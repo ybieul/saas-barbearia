@@ -13,7 +13,12 @@ if [ ! -f "package.json" ]; then
 fi
 
 echo "📦 Instalando dependências..."
-npm install --production
+# Limpar cache e instalações anteriores
+rm -rf node_modules
+rm -f package-lock.json
+
+# Instalar com flags para resolver conflitos
+npm install --production --legacy-peer-deps
 
 if [ $? -ne 0 ]; then
     echo "❌ Erro na instalação das dependências!"
