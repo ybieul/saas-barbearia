@@ -1,0 +1,366 @@
+// This is your Prisma schema file for MySQL/phpMyAdmin (Hostinger)
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// SaaS STRUCTURE: TENANT (NOSSOS CLIENTES) + END USERS (CLIENTES FINAIS)
+// ============================================
+
+// Tabela principal: NOSSOS CLIENTES (donos de barbearias)
+model Tenant {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String   // Nome do proprietário
+  password  String
+  phone     String?
+  avatar    String?
+  role      UserRole @default(OWNER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Business information (dados da barbearia)
+  businessName      String?   // Nome da barbearia
+  businessAddress   String?   @db.Text
+  businessPhone     String?
+  businessLogo      String?
+  businessCnpj      String?   // CNPJ da empresa
+  businessPlan      String    @default("BASIC") // Plano contratado
+  subscriptionStart DateTime  @default(now())
+  subscriptionEnd   DateTime?
+  isActive          Boolean   @default(true)
+  
+  // Configurações da barbearia
+  businessConfig    Json?     // Configurações personalizadas
+  
+  // Relations - TODOS os dados pertencem ao tenant
+  clients             EndUser[]
+  appointments        Appointment[]
+  services            Service[]
+  professionals       Professional[]
+  reports             Report[]
+  whatsappLogs        WhatsAppLog[]
+  promotionTemplates  PromotionTemplate[]
+  servicePackages     ServicePackage[]
+  financialRecords    FinancialRecord[]
+
+  @@map("tenants")
+}
+
+// Tabela: CLIENTES FINAIS (clientes das barbearias)
+model EndUser {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String
+  birthday  DateTime?
+  notes     String?  @db.Text
+  address   String?  @db.Text
+  cpf       String?  // CPF do cliente
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados do cliente
+  preferences Json?   // Preferências do cliente (JSON)
+  lastVisit   DateTime?
+  totalVisits Int      @default(0)
+  totalSpent  Decimal  @default(0) @db.Decimal(10,2)
+
+  // Relations
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  // Índices para performance
+  @@index([tenantId])
+  @@index([tenantId, phone])
+  @@index([tenantId, email])
+  @@map("end_users")
+}
+
+model Professional {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  specialty String?  @db.Text
+  avatar    String?
+  salary    Decimal? @db.Decimal(10,2)
+  commission Decimal? @db.Decimal(5,2) // Porcentagem de comissão
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Configurações do profissional
+  workingDays   Json?    // Dias da semana que trabalha
+  workingHours  Json?    // Horários de trabalho
+  
+  // Relations
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  services     Service[]
+
+  @@index([tenantId])
+  @@map("professionals")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10,2)
+  duration    Int      // em minutos
+  category    String?
+  image       String?  // URL da imagem
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Configurações do serviço
+  maxAdvanceBooking Int?     // Dias máximos para agendamento antecipado
+  minAdvanceBooking Int?     // Horas mínimas para agendamento
+  
+  // Relations
+  tenantId          String
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments      Appointment[]
+  professionals     Professional[]
+  servicePackages   ServicePackageService[]
+
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@map("services")
+}
+
+model ServicePackage {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  totalPrice  Decimal  @db.Decimal(10,2)
+  discount    Decimal  @default(0) @db.Decimal(5,2)
+  validDays   Int?     // Dias de validade do pacote
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenantId String
+  tenant   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services ServicePackageService[]
+
+  @@index([tenantId])
+  @@map("service_packages")
+}
+
+model ServicePackageService {
+  id               String         @id @default(cuid())
+  servicePackageId String
+  serviceId        String
+  quantity         Int            @default(1)
+
+  // Relations
+  servicePackage   ServicePackage @relation(fields: [servicePackageId], references: [id], onDelete: Cascade)
+  service          Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([servicePackageId, serviceId])
+  @@map("service_package_services")
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  dateTime      DateTime
+  duration      Int               // em minutos
+  totalPrice    Decimal           @db.Decimal(10,2)
+  status        AppointmentStatus @default(SCHEDULED)
+  paymentMethod PaymentMethod?
+  paymentStatus PaymentStatus     @default(PENDING)
+  notes         String?           @db.Text
+  reminderSent  Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Campos adicionais para controle
+  cancelledAt   DateTime?
+  cancelReason  String?          @db.Text
+  completedAt   DateTime?
+  
+  // Relations
+  tenantId       String
+  endUserId      String
+  serviceId      String
+  professionalId String?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  endUser      EndUser       @relation(fields: [endUserId], references: [id], onDelete: Cascade)
+  service      Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, dateTime])
+  @@index([tenantId, endUserId])
+  @@index([tenantId, professionalId])
+  @@map("appointments")
+}
+
+model FinancialRecord {
+  id          String            @id @default(cuid())
+  type        FinancialType
+  amount      Decimal           @db.Decimal(10,2)
+  description String            @db.Text
+  category    String?
+  date        DateTime          @default(now())
+  
+  // Dados do pagamento
+  paymentMethod PaymentMethod?
+  reference     String?         // Referência externa (ex: ID do agendamento)
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+  @@index([tenantId, type])
+  @@map("financial_records")
+}
+
+model Report {
+  id        String     @id @default(cuid())
+  type      ReportType
+  title     String
+  data      Json       // Dados do relatório em JSON
+  filters   Json?      // Filtros aplicados
+  createdAt DateTime   @default(now())
+
+  // Relations
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@map("reports")
+}
+
+model WhatsAppLog {
+  id        String          @id @default(cuid())
+  to        String
+  message   String          @db.Text
+  type      WhatsAppType
+  status    WhatsAppStatus  @default(PENDING)
+  sentAt    DateTime?
+  createdAt DateTime        @default(now())
+  
+  // Dados adicionais
+  errorMessage String?      @db.Text
+  attempts     Int          @default(0)
+
+  // Relations
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("whatsapp_logs")
+}
+
+model PromotionTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  title     String
+  message   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Configurações da promoção
+  targetAudience Json?  // Público alvo
+  scheduling     Json?  // Agendamento automático
+  
+  // Relations
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("promotion_templates")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  OWNER        // Dono da barbearia
+  ADMIN        // Administrador
+  PROFESSIONAL // Profissional
+  MANAGER      // Gerente
+}
+
+enum AppointmentStatus {
+  SCHEDULED  // Agendado
+  CONFIRMED  // Confirmado
+  COMPLETED  // Finalizado
+  CANCELLED  // Cancelado
+  NO_SHOW    // Não compareceu
+  IN_PROGRESS // Em andamento
+}
+
+enum PaymentMethod {
+  CASH     // Dinheiro
+  CARD     // Cartão
+  PIX      // PIX
+  TRANSFER // Transferência
+  DEBIT    // Débito
+  CREDIT   // Crédito
+}
+
+enum PaymentStatus {
+  PENDING   // Pendente
+  PAID      // Pago
+  PARTIAL   // Parcial
+  REFUNDED  // Estornado
+  CANCELLED // Cancelado
+}
+
+enum FinancialType {
+  INCOME    // Receita
+  EXPENSE   // Despesa
+  TRANSFER  // Transferência
+}
+
+enum ReportType {
+  FINANCIAL     // Financeiro
+  CLIENTS       // Clientes
+  SERVICES      // Serviços
+  APPOINTMENTS  // Agendamentos
+  PROFESSIONALS // Profissionais
+  CUSTOM        // Personalizado
+}
+
+enum WhatsAppType {
+  CONFIRMATION  // Confirmação
+  REMINDER_24H  // Lembrete 24h
+  REMINDER_2H   // Lembrete 2h
+  REACTIVATION  // Reativação
+  PROMOTION     // Promoção
+  CUSTOM        // Personalizada
+}
+
+enum WhatsAppStatus {
+  PENDING   // Pendente
+  SENT      // Enviada
+  DELIVERED // Entregue
+  READ      // Lida
+  FAILED    // Falhou
+}
