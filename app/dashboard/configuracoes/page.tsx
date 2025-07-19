@@ -141,6 +141,8 @@ export default function ConfiguracoesPage() {
       setNewProfessional({ name: "", email: "", phone: "", specialty: "" })
       setIsNewProfessionalOpen(false)
       alert(`Profissional "${newProfessional.name}" adicionado com sucesso!`)
+      // Recarrega a página para atualizar a lista
+      window.location.reload()
     } else {
       alert(professionalsError || "Erro ao adicionar profissional!")
     }
@@ -165,6 +167,8 @@ export default function ConfiguracoesPage() {
       const success = await deleteProfessional(id)
       if (success) {
         alert(`Profissional "${name}" removido com sucesso!`)
+        // Recarrega a página para atualizar a lista
+        window.location.reload()
       } else {
         alert(professionalsError || "Erro ao remover profissional!")
       }
@@ -189,6 +193,8 @@ export default function ConfiguracoesPage() {
       setNewService({ name: "", description: "", price: "", duration: "" })
       setIsNewServiceOpen(false)
       alert(`Serviço "${newService.name}" adicionado com sucesso!`)
+      // Recarrega a página para atualizar a lista
+      window.location.reload()
     } else {
       alert(servicesError || "Erro ao adicionar serviço!")
     }
@@ -213,6 +219,8 @@ export default function ConfiguracoesPage() {
       const success = await deleteService(id)
       if (success) {
         alert(`Serviço "${name}" removido com sucesso!`)
+        // Recarrega a página para atualizar a lista
+        window.location.reload()
       } else {
         alert(servicesError || "Erro ao remover serviço!")
       }
