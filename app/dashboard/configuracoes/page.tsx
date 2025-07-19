@@ -236,16 +236,19 @@ export default function ConfiguracoesPage() {
     const executeRemoval = async () => {
       try {
         const result = await deleteProfessional(id)
-        if (result) {
-          toast({
-            title: "Profissional removido!",
-            description: `Profissional "${name}" foi removido com sucesso.`,
-            variant: "default",
-          })
-          // Recarrega os dados dos profissionais
-          await fetchProfessionals()
-        }
+        console.log('Resultado da exclusão do profissional:', result)
+        
+        // A função deleteProfessional retorna os dados ou null
+        // Consideramos sucesso se não houve erro (não lançou exceção)
+        toast({
+          title: "Profissional removido!",
+          description: `Profissional "${name}" foi removido com sucesso.`,
+          variant: "default",
+        })
+        // Recarrega os dados dos profissionais
+        await fetchProfessionals()
       } catch (error) {
+        console.error('Erro ao remover profissional:', error)
         toast({
           title: "Erro ao remover profissional",
           description: professionalsError || "Ocorreu um erro inesperado.",
@@ -320,16 +323,19 @@ export default function ConfiguracoesPage() {
     const executeRemoval = async () => {
       try {
         const result = await deleteService(id)
-        if (result) {
-          toast({
-            title: "Serviço removido!",
-            description: `Serviço "${name}" foi removido com sucesso.`,
-            variant: "default",
-          })
-          // Recarrega os dados dos serviços
-          await fetchServices()
-        }
+        console.log('Resultado da exclusão do serviço:', result)
+        
+        // A função deleteService retorna os dados ou null
+        // Consideramos sucesso se não houve erro (não lançou exceção)
+        toast({
+          title: "Serviço removido!",
+          description: `Serviço "${name}" foi removido com sucesso.`,
+          variant: "default",
+        })
+        // Recarrega os dados dos serviços
+        await fetchServices()
       } catch (error) {
+        console.error('Erro ao remover serviço:', error)
         toast({
           title: "Erro ao remover serviço",
           description: servicesError || "Ocorreu um erro inesperado.",
@@ -427,14 +433,26 @@ export default function ConfiguracoesPage() {
 
   const handleDeleteTemplate = async (id: string, name: string) => {
     const executeRemoval = async () => {
-      const success = await deleteTemplate(id)
-      if (success) {
-        toast({
-          title: "Template excluído!",
-          description: `Template "${name}" foi excluído com sucesso.`,
-          variant: "default",
-        })
-      } else {
+      try {
+        const success = await deleteTemplate(id)
+        console.log('Resultado da exclusão do template:', success)
+        
+        // A função deleteTemplate retorna um boolean
+        if (success) {
+          toast({
+            title: "Template excluído!",
+            description: `Template "${name}" foi excluído com sucesso.`,
+            variant: "default",
+          })
+        } else {
+          toast({
+            title: "Erro ao excluir template",
+            description: "Ocorreu um erro inesperado.",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao excluir template:', error)
         toast({
           title: "Erro ao excluir template",
           description: "Ocorreu um erro inesperado.",
