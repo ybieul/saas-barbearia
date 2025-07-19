@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useProfessionals, useServices } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import {
@@ -67,6 +68,16 @@ export default function ConfiguracoesPage() {
     name: "",
     title: "",
     message: ""
+  })
+
+  // Estado para dialog de confirmação
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    type: '',
+    item: null as any,
+    title: '',
+    description: '',
+    action: null as (() => void) | null
   })
 
   // Hook para gerenciar profissionais com banco de dados
@@ -138,6 +149,37 @@ export default function ConfiguracoesPage() {
     })
   }
 
+  // Função para abrir dialog de confirmação
+  const openConfirmDialog = (type: string, item: any, title: string, description: string, action: () => void) => {
+    setConfirmDialog({
+      isOpen: true,
+      type,
+      item,
+      title,
+      description,
+      action
+    })
+  }
+
+  // Função para fechar dialog de confirmação
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      isOpen: false,
+      type: '',
+      item: null,
+      title: '',
+      description: '',
+      action: null
+    })
+  }
+
+  // Função para executar a ação confirmada
+  const handleConfirmAction = () => {
+    if (confirmDialog.action) {
+      confirmDialog.action()
+    }
+  }
+
   const handleAddProfessional = async () => {
     if (!newProfessional.name.trim()) {
       toast({
@@ -191,7 +233,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleRemoveProfessional = async (id: string, name: string) => {
-    if (confirm(`Deseja realmente remover o profissional "${name}"?`)) {
+    const executeRemoval = async () => {
       try {
         const result = await deleteProfessional(id)
         if (result) {
@@ -211,6 +253,14 @@ export default function ConfiguracoesPage() {
         })
       }
     }
+
+    openConfirmDialog(
+      'professional',
+      { id, name },
+      'Remover Profissional?',
+      `Deseja realmente remover o profissional "${name}"? Esta ação não pode ser desfeita.`,
+      executeRemoval
+    )
   }
 
   const handleAddService = async () => {
@@ -267,7 +317,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleRemoveService = async (id: string, name: string) => {
-    if (confirm(`Deseja realmente remover o serviço "${name}"?`)) {
+    const executeRemoval = async () => {
       try {
         const result = await deleteService(id)
         if (result) {
@@ -287,6 +337,14 @@ export default function ConfiguracoesPage() {
         })
       }
     }
+
+    openConfirmDialog(
+      'service',
+      { id, name },
+      'Remover Serviço?',
+      `Deseja realmente remover o serviço "${name}"? Esta ação não pode ser desfeita.`,
+      executeRemoval
+    )
   }
 
   // Funções para gerenciar templates de promoção
@@ -368,7 +426,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleDeleteTemplate = async (id: string, name: string) => {
-    if (confirm(`Deseja realmente excluir o template "${name}"?`)) {
+    const executeRemoval = async () => {
       const success = await deleteTemplate(id)
       if (success) {
         toast({
@@ -384,6 +442,14 @@ export default function ConfiguracoesPage() {
         })
       }
     }
+
+    openConfirmDialog(
+      'template',
+      { id, name },
+      'Excluir Template?',
+      `Deseja realmente excluir o template "${name}"? Esta ação não pode ser desfeita.`,
+      executeRemoval
+    )
   }
 
   const handleCancelTemplate = () => {
@@ -1085,6 +1151,18 @@ export default function ConfiguracoesPage() {
           )}
         </div>
       </div>
+
+      {/* Dialog de Confirmação */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={closeConfirmDialog}
+        onConfirm={handleConfirmAction}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText="Remover"
+        confirmVariant="destructive"
+        cancelText="Cancelar"
+      />
     </div>
   )
 }
