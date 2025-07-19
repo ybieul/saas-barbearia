@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Scissors, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useNotification } from "@/hooks/use-notification"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const notification = useNotification()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,11 +42,11 @@ export default function LoginPage() {
         
         router.push('/dashboard')
       } else {
-        alert(data.message || 'Erro ao fazer login')
+        notification.error(data.message || 'Erro ao fazer login')
       }
     } catch (error) {
       console.error('Erro no login:', error)
-      alert('Erro interno. Tente novamente.')
+      notification.error('Erro interno. Tente novamente.')
     } finally {
       setIsLoading(false)
     }

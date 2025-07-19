@@ -17,8 +17,11 @@ import {
   TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
+import { useNotification } from "@/hooks/use-notification"
 
 export default function LandingPage() {
+  const notification = useNotification()
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] text-[#ededed]">
       {/* Header */}
@@ -83,12 +86,15 @@ export default function LandingPage() {
                   const response = await fetch('/api/demo', { method: 'POST' })
                   const data = await response.json()
                   if (response.ok) {
-                    alert(`Dados demo criados!\nEmail: ${data.credentials.email}\nSenha: ${data.credentials.password}`)
+                    notification.success({
+                      title: "Dados demo criados!",
+                      description: `Email: ${data.credentials.email}\nSenha: ${data.credentials.password}`
+                    })
                   } else {
-                    alert(data.message)
+                    notification.error(data.message)
                   }
                 } catch (error) {
-                  alert('Erro ao criar dados demo')
+                  notification.error('Erro ao criar dados demo')
                 }
               }}
             >

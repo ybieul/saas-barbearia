@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { UserX, MessageCircle, Calendar, AlertTriangle, Send, Clock, X, Search, Gift } from "lucide-react"
 import { useClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
+import { useNotification } from "@/hooks/use-notification"
 
 export default function ClientesInativosPage() {
   const [sendingMessage, setSendingMessage] = useState<number | null>(null)
@@ -22,6 +23,7 @@ export default function ClientesInativosPage() {
   const [returnRate, setReturnRate] = useState(0)
   const { clients, loading, error, fetchClients } = useClients()
   const { templates: promotionTemplates, getTemplate } = usePromotionTemplates()
+  const notification = useNotification()
 
   useEffect(() => {
     fetchClients(false) // Buscar clientes inativos
@@ -72,11 +74,11 @@ export default function ClientesInativosPage() {
 
   const handleSendPromotion = () => {
     if (selectedClients.length === 0) {
-      alert("Selecione pelo menos um cliente!")
+      notification.warning("Selecione pelo menos um cliente!")
       return
     }
     if (!selectedTemplate) {
-      alert("Selecione um template de mensagem!")
+      notification.warning("Selecione um template de mensagem!")
       return
     }
     
@@ -84,7 +86,10 @@ export default function ClientesInativosPage() {
     setPromotionsSent(prev => prev + selectedClients.length)
     
     const selectedTemplateData = getTemplate(selectedTemplate)
-    alert(`Promoção "${selectedTemplateData?.name}" enviada para ${selectedClients.length} cliente(s)!`)
+    notification.success({
+      title: "Promoção enviada!",
+      description: `Template "${selectedTemplateData?.name}" enviado para ${selectedClients.length} cliente(s)!`
+    })
     setSelectedClients([])
     setSelectedTemplate("")
     setIsPromotionModalOpen(false)
@@ -101,7 +106,7 @@ export default function ClientesInativosPage() {
     // Simular envio de mensagem
     setTimeout(() => {
       setSendingMessage(null)
-      alert("Mensagem enviada com sucesso!")
+      notification.success("Mensagem enviada com sucesso!")
     }, 2000)
   }
 

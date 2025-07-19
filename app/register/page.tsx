@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Scissors, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useNotification } from "@/hooks/use-notification"
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -22,17 +23,18 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const notification = useNotification()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      alert("As senhas não coincidem!")
+      notification.error("As senhas não coincidem!")
       return
     }
 
     if (formData.password.length < 6) {
-      alert("A senha deve ter pelo menos 6 caracteres!")
+      notification.error("A senha deve ter pelo menos 6 caracteres!")
       return
     }
 
@@ -59,14 +61,14 @@ export default function RegisterPage() {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('token', data.token)
         
-        alert('Conta criada com sucesso!')
+        notification.success('Conta criada com sucesso!')
         router.push('/dashboard')
       } else {
-        alert(data.message || 'Erro ao criar conta')
+        notification.error(data.message || 'Erro ao criar conta')
       }
     } catch (error) {
       console.error('Erro no registro:', error)
-      alert('Erro interno. Tente novamente.')
+      notification.error('Erro interno. Tente novamente.')
     } finally {
       setIsLoading(false)
     }

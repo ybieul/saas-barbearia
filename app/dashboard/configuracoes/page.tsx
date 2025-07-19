@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
 import { useProfessionals, useServices } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import {
@@ -29,6 +30,7 @@ import {
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
+  const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState("estabelecimento")
   const [businessData, setBusinessData] = useState({
@@ -74,7 +76,8 @@ export default function ConfiguracoesPage() {
     error: professionalsError,
     createProfessional,
     updateProfessional,
-    deleteProfessional
+    deleteProfessional,
+    fetchProfessionals
   } = useProfessionals()
 
   // Hook para gerenciar serviços com banco de dados
@@ -84,8 +87,15 @@ export default function ConfiguracoesPage() {
     error: servicesError,
     createService,
     updateService,
-    deleteService
+    deleteService,
+    fetchServices
   } = useServices()
+
+  // Carrega dados iniciais
+  useEffect(() => {
+    fetchProfessionals()
+    fetchServices()
+  }, [])
   
   const [isNewProfessionalOpen, setIsNewProfessionalOpen] = useState(false)
   const [newProfessional, setNewProfessional] = useState({
@@ -121,30 +131,48 @@ export default function ConfiguracoesPage() {
   }
 
   const handleSave = () => {
-    alert("Configurações salvas com sucesso!")
+    toast({
+      title: "Configurações salvas!",
+      description: "As configurações foram salvas com sucesso.",
+      variant: "default",
+    })
   }
 
   const handleAddProfessional = async () => {
     if (!newProfessional.name.trim()) {
-      alert("Nome do profissional é obrigatório!")
+      toast({
+        title: "Erro de validação",
+        description: "Nome do profissional é obrigatório!",
+        variant: "destructive",
+      })
       return
     }
 
-    const success = await createProfessional({
-      name: newProfessional.name.trim(),
-      email: newProfessional.email.trim() || "",
-      phone: newProfessional.phone.trim(),
-      specialty: newProfessional.specialty.trim(),
-    })
+    try {
+      const result = await createProfessional({
+        name: newProfessional.name.trim(),
+        email: newProfessional.email.trim() || "",
+        phone: newProfessional.phone.trim(),
+        specialty: newProfessional.specialty.trim(),
+      })
 
-    if (success) {
-      setNewProfessional({ name: "", email: "", phone: "", specialty: "" })
-      setIsNewProfessionalOpen(false)
-      alert(`Profissional "${newProfessional.name}" adicionado com sucesso!`)
-      // Recarrega a página para atualizar a lista
-      window.location.reload()
-    } else {
-      alert(professionalsError || "Erro ao adicionar profissional!")
+      if (result) {
+        setNewProfessional({ name: "", email: "", phone: "", specialty: "" })
+        setIsNewProfessionalOpen(false)
+        toast({
+          title: "Profissional adicionado!",
+          description: `Profissional "${newProfessional.name}" foi adicionado com sucesso.`,
+          variant: "default",
+        })
+        // Recarrega os dados dos profissionais
+        await fetchProfessionals()
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao adicionar profissional",
+        description: professionalsError || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -164,39 +192,63 @@ export default function ConfiguracoesPage() {
 
   const handleRemoveProfessional = async (id: string, name: string) => {
     if (confirm(`Deseja realmente remover o profissional "${name}"?`)) {
-      const success = await deleteProfessional(id)
-      if (success) {
-        alert(`Profissional "${name}" removido com sucesso!`)
-        // Recarrega a página para atualizar a lista
-        window.location.reload()
-      } else {
-        alert(professionalsError || "Erro ao remover profissional!")
+      try {
+        const result = await deleteProfessional(id)
+        if (result) {
+          toast({
+            title: "Profissional removido!",
+            description: `Profissional "${name}" foi removido com sucesso.`,
+            variant: "default",
+          })
+          // Recarrega os dados dos profissionais
+          await fetchProfessionals()
+        }
+      } catch (error) {
+        toast({
+          title: "Erro ao remover profissional",
+          description: professionalsError || "Ocorreu um erro inesperado.",
+          variant: "destructive",
+        })
       }
     }
   }
 
   const handleAddService = async () => {
     if (!newService.name.trim()) {
-      alert("Nome do serviço é obrigatório!")
+      toast({
+        title: "Erro de validação",
+        description: "Nome do serviço é obrigatório!",
+        variant: "destructive",
+      })
       return
     }
 
-    const success = await createService({
-      name: newService.name.trim(),
-      description: newService.description.trim() || "",
-      price: parseFloat(newService.price) || 0,
-      duration: parseInt(newService.duration) || 0,
-      category: "Geral"
-    })
+    try {
+      const result = await createService({
+        name: newService.name.trim(),
+        description: newService.description.trim() || "",
+        price: parseFloat(newService.price) || 0,
+        duration: parseInt(newService.duration) || 0,
+        category: "Geral"
+      })
 
-    if (success) {
-      setNewService({ name: "", description: "", price: "", duration: "" })
-      setIsNewServiceOpen(false)
-      alert(`Serviço "${newService.name}" adicionado com sucesso!`)
-      // Recarrega a página para atualizar a lista
-      window.location.reload()
-    } else {
-      alert(servicesError || "Erro ao adicionar serviço!")
+      if (result) {
+        setNewService({ name: "", description: "", price: "", duration: "" })
+        setIsNewServiceOpen(false)
+        toast({
+          title: "Serviço adicionado!",
+          description: `Serviço "${newService.name}" foi adicionado com sucesso.`,
+          variant: "default",
+        })
+        // Recarrega os dados dos serviços
+        await fetchServices()
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao adicionar serviço",
+        description: servicesError || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -216,13 +268,23 @@ export default function ConfiguracoesPage() {
 
   const handleRemoveService = async (id: string, name: string) => {
     if (confirm(`Deseja realmente remover o serviço "${name}"?`)) {
-      const success = await deleteService(id)
-      if (success) {
-        alert(`Serviço "${name}" removido com sucesso!`)
-        // Recarrega a página para atualizar a lista
-        window.location.reload()
-      } else {
-        alert(servicesError || "Erro ao remover serviço!")
+      try {
+        const result = await deleteService(id)
+        if (result) {
+          toast({
+            title: "Serviço removido!",
+            description: `Serviço "${name}" foi removido com sucesso.`,
+            variant: "default",
+          })
+          // Recarrega os dados dos serviços
+          await fetchServices()
+        }
+      } catch (error) {
+        toast({
+          title: "Erro ao remover serviço",
+          description: servicesError || "Ocorreu um erro inesperado.",
+          variant: "destructive",
+        })
       }
     }
   }
@@ -230,7 +292,11 @@ export default function ConfiguracoesPage() {
   // Funções para gerenciar templates de promoção
   const handleAddTemplate = async () => {
     if (!newTemplate.name.trim() || !newTemplate.message.trim()) {
-      alert("Nome e mensagem são obrigatórios!")
+      toast({
+        title: "Erro de validação",
+        description: "Nome e mensagem são obrigatórios!",
+        variant: "destructive",
+      })
       return
     }
 
@@ -243,9 +309,17 @@ export default function ConfiguracoesPage() {
     if (success) {
       setNewTemplate({ name: "", title: "", message: "" })
       setIsNewTemplateOpen(false)
-      alert("Template adicionado com sucesso!")
+      toast({
+        title: "Template adicionado!",
+        description: "Template de promoção foi criado com sucesso.",
+        variant: "default",
+      })
     } else {
-      alert("Erro ao adicionar template!")
+      toast({
+        title: "Erro ao adicionar template",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -261,7 +335,11 @@ export default function ConfiguracoesPage() {
 
   const handleUpdateTemplate = async () => {
     if (!newTemplate.name.trim() || !newTemplate.message.trim()) {
-      alert("Nome e mensagem são obrigatórios!")
+      toast({
+        title: "Erro de validação",
+        description: "Nome e mensagem são obrigatórios!",
+        variant: "destructive",
+      })
       return
     }
 
@@ -275,9 +353,17 @@ export default function ConfiguracoesPage() {
       setNewTemplate({ name: "", title: "", message: "" })
       setEditingTemplate(null)
       setIsNewTemplateOpen(false)
-      alert("Template atualizado com sucesso!")
+      toast({
+        title: "Template atualizado!",
+        description: "Template de promoção foi atualizado com sucesso.",
+        variant: "default",
+      })
     } else {
-      alert("Erro ao atualizar template!")
+      toast({
+        title: "Erro ao atualizar template",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -285,9 +371,17 @@ export default function ConfiguracoesPage() {
     if (confirm(`Deseja realmente excluir o template "${name}"?`)) {
       const success = await deleteTemplate(id)
       if (success) {
-        alert("Template excluído com sucesso!")
+        toast({
+          title: "Template excluído!",
+          description: `Template "${name}" foi excluído com sucesso.`,
+          variant: "default",
+        })
       } else {
-        alert("Erro ao excluir template!")
+        toast({
+          title: "Erro ao excluir template",
+          description: "Ocorreu um erro inesperado.",
+          variant: "destructive",
+        })
       }
     }
   }
