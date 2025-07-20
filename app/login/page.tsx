@@ -10,43 +10,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Scissors, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useNotification } from "@/hooks/use-notification"
+import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const notification = useNotification()
+  const { login } = useAuth()
+  const { toast } = useToast()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Salvar dados do usuário e token
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token)
-        
-        router.push('/dashboard')
+      const result = await login(email, password)
+      
+      if (result.success) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Você será redirecionado para o dashboard.",
+        })
       } else {
-        notification.error(data.message || 'Erro ao fazer login')
+        toast({
+          title: "Erro no login",
+          description: result.error || "Credenciais inválidas",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Erro no login:', error)
-      notification.error('Erro interno. Tente novamente.')
+      toast({
+        title: "Erro interno",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -20,7 +20,7 @@ export function useApi<T>() {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       
       const response = await fetch(url, {
         ...options,

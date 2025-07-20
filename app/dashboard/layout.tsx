@@ -23,6 +23,8 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
+import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/hooks/use-auth"
 
 const menuItems = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", description: "Visão geral do negócio" },
@@ -40,20 +42,11 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<any>(null)
+  const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const router = useRouter()
   const pathname = usePathname()
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      router.push("/login")
-      return
-    }
-    setUser(JSON.parse(userData))
-  }, [router])
 
   // Atualizar hora a cada minuto
   useEffect(() => {
@@ -65,8 +58,7 @@ export default function DashboardLayout({
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem("user")
-    router.push("/")
+    logout()
   }
 
   const formatDate = () => {
@@ -98,11 +90,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#18181b]/95 backdrop-blur-xl border-r border-[#27272a] transform transition-transform duration-300 ease-in-out ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0 lg:static lg:inset-0`}>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex">
+        {/* Sidebar */}
+        <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#18181b]/95 backdrop-blur-xl border-r border-[#27272a] transform transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 lg:static lg:inset-0`}>
         
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a]">
@@ -234,5 +227,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

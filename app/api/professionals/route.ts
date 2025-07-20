@@ -327,6 +327,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
