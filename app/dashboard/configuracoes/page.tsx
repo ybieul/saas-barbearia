@@ -235,18 +235,19 @@ export default function ConfiguracoesPage() {
   const handleRemoveProfessional = async (id: string, name: string) => {
     const executeRemoval = async () => {
       try {
+        console.log('Iniciando remoção do profissional:', { id, name })
+        
         const result = await deleteProfessional(id)
         console.log('Resultado da exclusão do profissional:', result)
         
-        // A função deleteProfessional retorna os dados ou null
-        // Consideramos sucesso se não houve erro (não lançou exceção)
+        // Forçar atualização da lista imediatamente
+        await fetchProfessionals()
+        
         toast({
           title: "Profissional removido!",
           description: `Profissional "${name}" foi removido com sucesso.`,
           variant: "default",
         })
-        // Recarrega os dados dos profissionais
-        await fetchProfessionals()
       } catch (error) {
         console.error('Erro ao remover profissional:', error)
         toast({

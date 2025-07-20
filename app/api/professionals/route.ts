@@ -18,6 +18,13 @@ export async function GET(request: NextRequest) {
       where.isActive = status === 'active'
     }
 
+    console.log('GET profissionais - Filtros:', { 
+      tenantId: user.tenantId, 
+      status, 
+      isActiveFilter: where.isActive,
+      where 
+    })
+
     if (specialty) {
       where.specialty = {
         contains: specialty,
@@ -60,6 +67,11 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    })
+
+    console.log('✅ GET profissionais - Resultado:', {
+      total: professionals.length,
+      ids: professionals.map(p => ({ id: p.id, name: p.name, isActive: p.isActive }))
     })
 
     return NextResponse.json({ professionals })
@@ -383,16 +395,26 @@ export async function DELETE(request: NextRequest) {
     const professional = await prisma.professional.update({
       where: { id },
       data: {
-        isActive: false
+        isActive: false,
+        updatedAt: new Date()
       }
     })
 
-    console.log('Profissional desativado com sucesso:', professional.id)
+    console.log('✅ Profissional desativado com sucesso:', {
+      id: professional.id,
+      name: professional.name,
+      isActive: professional.isActive,
+      updatedAt: professional.updatedAt
+    })
 
     return NextResponse.json({ 
       message: 'Profissional desativado com sucesso',
       success: true,
-      professional: { id: professional.id, name: professional.name }
+      professional: { 
+        id: professional.id, 
+        name: professional.name,
+        isActive: professional.isActive 
+      }
     })
   } catch (error) {
     console.error('Erro ao remover profissional:', error)
