@@ -330,6 +330,8 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
+    console.log('DELETE profissional - ID:', id, 'TenantID:', user.tenantId)
+
     if (!id) {
       return NextResponse.json(
         { message: 'ID do profissional é obrigatório' },
@@ -344,6 +346,8 @@ export async function DELETE(request: NextRequest) {
         tenantId: user.tenantId
       }
     })
+
+    console.log('Profissional encontrado:', existingProfessional ? 'SIM' : 'NÃO')
 
     if (!existingProfessional) {
       return NextResponse.json(
@@ -365,6 +369,8 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
+    console.log('Agendamentos futuros:', futureAppointments ? 'SIM' : 'NÃO')
+
     if (futureAppointments) {
       return NextResponse.json(
         { message: 'Não é possível remover profissional com agendamentos futuros' },
@@ -380,7 +386,13 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ message: 'Profissional desativado com sucesso' })
+    console.log('Profissional desativado com sucesso:', professional.id)
+
+    return NextResponse.json({ 
+      message: 'Profissional desativado com sucesso',
+      success: true,
+      professional: { id: professional.id, name: professional.name }
+    })
   } catch (error) {
     console.error('Erro ao remover profissional:', error)
     return NextResponse.json(
