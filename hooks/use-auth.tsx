@@ -84,15 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Response status:', response.status)
         console.log('Response data:', data)
         
-        if (response.status === 401) {
-          // Se é erro de usuário não encontrado, mostrar mensagem específica
-          if (data.needsRegistration || data.message?.includes('não encontrado') || data.message?.includes('não possui cadastro')) {
-            return { 
-              success: false, 
-              error: data.message || 'E-mail não encontrado',
-              suggestion: data.suggestion,
-              needsRegistration: true
-            }
+        // Sempre verificar se é erro de usuário não encontrado primeiro
+        if (data.needsRegistration === true || 
+            data.message?.includes('não encontrado') || 
+            data.message?.includes('não possui cadastro') ||
+            data.message?.includes('E-mail não encontrado')) {
+          return { 
+            success: false, 
+            error: data.message || 'E-mail não encontrado',
+            suggestion: data.suggestion || 'Clique em "Cadastre-se grátis" para criar sua conta.',
+            needsRegistration: true
           }
         }
         

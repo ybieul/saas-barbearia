@@ -28,6 +28,8 @@ export default function LoginPage() {
     try {
       const result = await login(email, password)
       
+      console.log('Login result:', result) // Debug
+      
       if (result.success) {
         toast({
           title: "Login realizado com sucesso!",
@@ -37,7 +39,10 @@ export default function LoginPage() {
         // Verificar se é erro de usuário não encontrado
         const errorMessage = result.error || ""
         
-        if (errorMessage.includes("não encontrado") || errorMessage.includes("não possui cadastro") || result.needsRegistration) {
+        console.log('Error message:', errorMessage) // Debug
+        console.log('needsRegistration:', result.needsRegistration) // Debug
+        
+        if (result.needsRegistration === true || errorMessage.includes("não encontrado") || errorMessage.includes("não possui cadastro")) {
           toast({
             title: "🚫 Cadastro necessário",
             description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' abaixo para criar sua conta.",
