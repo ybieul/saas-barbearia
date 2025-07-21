@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useProfessionals, useServices } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
+import { useBusinessData } from "@/hooks/use-business-data"
 import {
   Upload,
   Save,
@@ -35,13 +36,16 @@ export default function ConfiguracoesPage() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState("estabelecimento")
-  const [businessData, setBusinessData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    customLink: "",
-  })
+
+  // Hook para dados do estabelecimento integrado ao banco de dados
+  const { 
+    businessData, 
+    loading: businessLoading,
+    saving: businessSaving,
+    error: businessError,
+    updateBusinessData,
+    updateField 
+  } = useBusinessData()
 
   const [services, setServices] = useState<any[]>([])
   const [isNewServiceOpen, setIsNewServiceOpen] = useState(false)
@@ -198,12 +202,21 @@ export default function ConfiguracoesPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleSave = () => {
-    toast({
-      title: "Configurações salvas!",
-      description: "As configurações foram salvas com sucesso.",
-      variant: "default",
-    })
+  const handleSave = async () => {
+    try {
+      await updateBusinessData(businessData)
+      toast({
+        title: "Configurações salvas!",
+        description: "As configurações do estabelecimento foram salvas com sucesso.",
+        variant: "default",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar!",
+        description: "Ocorreu um erro ao salvar as configurações. Tente novamente.",
+        variant: "destructive",
+      })
+    }
   }
 
   // Função para abrir dialog de confirmação
@@ -546,10 +559,17 @@ export default function ConfiguracoesPage() {
           <h1 className="text-3xl font-bold text-[#ededed]">Configurações</h1>
           <p className="text-[#3f3f46]">Gerencie as configurações do seu estabelecimento</p>
         </div>
-        <Button onClick={handleSave} className="bg-[#10b981] hover:bg-[#059669] text-[#ededed]">
-          <Save className="w-4 h-4 mr-2" />
-          Salvar Alterações
-        </Button>
+        {/* Botão Salvar apenas na aba Estabelecimento */}
+        {activeTab === "estabelecimento" && (
+          <Button 
+            onClick={handleSave} 
+            disabled={businessSaving}
+            className="bg-[#10b981] hover:bg-[#059669] text-[#ededed] disabled:opacity-50"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {businessSaving ? "Salvando..." : "Salvar Alterações"}
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -623,6 +643,16 @@ export default function ConfiguracoesPage() {
                 <CardTitle className="text-[#a1a1aa]">Dados do Estabelecimento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {businessLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-[#71717a]">Carregando dados do estabelecimento...</div>
+                  </div>
+                ) : businessError ? (
+                  <div className="text-red-400 text-center py-8">
+                    Erro ao carregar dados: {businessError}
+                  </div>
+                ) : (
+                  <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="businessName" className="text-[#ededed]">
@@ -631,7 +661,7 @@ export default function ConfiguracoesPage() {
                     <Input
                       id="businessName"
                       value={businessData.name}
-                      onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
+                      onChange={(e) => updateField('name', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="du corte"
                     />
@@ -644,7 +674,7 @@ export default function ConfiguracoesPage() {
                       id="email"
                       type="email"
                       value={businessData.email}
-                      onChange={(e) => setBusinessData({ ...businessData, email: e.target.value })}
+                      onChange={(e) => updateField('email', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="teste@teste.com"
                     />
@@ -656,7 +686,7 @@ export default function ConfiguracoesPage() {
                     <Input
                       id="phone"
                       value={businessData.phone}
-                      onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
+                      onChange={(e) => updateField('phone', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="(11) 11111-1111"
                     />
@@ -668,7 +698,7 @@ export default function ConfiguracoesPage() {
                     <Input
                       id="customLink"
                       value={businessData.customLink}
-                      onChange={(e) => setBusinessData({ ...businessData, customLink: e.target.value })}
+                      onChange={(e) => updateField('customLink', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="du-corte"
                     />
@@ -682,7 +712,7 @@ export default function ConfiguracoesPage() {
                   <Input
                     id="address"
                     value={businessData.address}
-                    onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
+                    onChange={(e) => updateField('address', e.target.value)}
                     className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                     placeholder="rua joao"
                   />
@@ -706,8 +736,10 @@ export default function ConfiguracoesPage() {
                     <LinkIcon className="w-4 h-4 text-[#10b981]" />
                     <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
                   </div>
-                  <p className="text-emerald-300 text-sm">https://agendapro.com/du-corte</p>
+                  <p className="text-emerald-300 text-sm">https://agendapro.com/{businessData.customLink || 'du-corte'}</p>
                 </div>
+                </>
+                )}
               </CardContent>
             </Card>
           )}
