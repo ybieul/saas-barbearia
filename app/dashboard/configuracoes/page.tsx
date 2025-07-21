@@ -731,7 +731,7 @@ export default function ConfiguracoesPage() {
                         updateField('customLink', formattedValue)
                       }}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="Exemplo:barbearia-do-jorge"
+                      placeholder="Exemplo: barbearia-do-jorge"
                     />
                     <div className="text-xs text-[#71717a] space-y-1">
                       <p>💡 <strong>Como usar:</strong> Use apenas letras, números e hífen (-)</p>
