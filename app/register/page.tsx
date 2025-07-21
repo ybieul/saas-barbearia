@@ -178,7 +178,7 @@ export default function RegisterPage() {
                 className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? "Criando conta..." : "Criar Conta Gratuita"}
+                {isLoading ? "Criando conta..." : "Criar Conta"}
               </Button>
             </form>
 
