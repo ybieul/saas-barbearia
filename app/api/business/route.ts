@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const user = verifyToken(request)
-    const { name, email, phone, address, customLink } = await request.json()
+    const { name, email, phone, address, customLink, logo } = await request.json()
     
-    console.log('PUT business data - Dados:', { name, email, phone, address, customLink, tenantId: user.tenantId })
+    console.log('PUT business data - Dados:', { name, email, phone, address, customLink, logo: logo ? 'Logo incluída' : 'Sem logo', tenantId: user.tenantId })
     
     if (!name) {
       return NextResponse.json(
@@ -94,6 +94,7 @@ export async function PUT(request: NextRequest) {
         email: email?.trim() || null,
         businessPhone: phone?.trim() || null,
         businessAddress: address?.trim() || null,
+        businessLogo: logo?.trim() || null,
         businessConfig: updatedConfig,
         updatedAt: new Date()
       }

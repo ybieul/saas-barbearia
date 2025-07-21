@@ -117,6 +117,61 @@ export function useBusinessData() {
     }))
   }
 
+  const uploadLogo = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('Arquivo deve ser uma imagem'))
+        return
+      }
+
+      // Validar tamanho (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        reject(new Error('Imagem deve ter no máximo 5MB'))
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          // Redimensionar para 250x250px
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          
+          canvas.width = 250
+          canvas.height = 250
+          
+          // Calcular posição para centralizar a imagem
+          const scale = Math.min(250 / img.width, 250 / img.height)
+          const newWidth = img.width * scale
+          const newHeight = img.height * scale
+          const x = (250 - newWidth) / 2
+          const y = (250 - newHeight) / 2
+          
+          if (ctx) {
+            // Fundo branco
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, 250, 250)
+            
+            // Desenhar imagem redimensionada
+            ctx.drawImage(img, x, y, newWidth, newHeight)
+            
+            // Converter para base64
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+            resolve(dataUrl)
+          } else {
+            reject(new Error('Erro ao processar imagem'))
+          }
+        }
+        img.onerror = () => reject(new Error('Erro ao carregar imagem'))
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'))
+      reader.readAsDataURL(file)
+    })
+  }
+
   useEffect(() => {
     fetchBusinessData()
   }, [])
@@ -129,5 +184,6 @@ export function useBusinessData() {
     fetchBusinessData,
     updateBusinessData,
     updateField,
+    uploadLogo,
   }
 }

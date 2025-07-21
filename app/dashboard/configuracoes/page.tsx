@@ -44,7 +44,8 @@ export default function ConfiguracoesPage() {
     saving: businessSaving,
     error: businessError,
     updateBusinessData,
-    updateField 
+    updateField,
+    uploadLogo
   } = useBusinessData()
 
   const [services, setServices] = useState<any[]>([])
@@ -214,6 +215,28 @@ export default function ConfiguracoesPage() {
       toast({
         title: "Erro ao salvar!",
         description: "Ocorreu um erro ao salvar as configurações. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const logoBase64 = await uploadLogo(file)
+      updateField('logo', logoBase64)
+      
+      toast({
+        title: "Logo carregada!",
+        description: "Logo do estabelecimento foi carregada com sucesso.",
+        variant: "default",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro no upload!",
+        description: error instanceof Error ? error.message : "Erro ao carregar logo.",
         variant: "destructive",
       })
     }
@@ -663,7 +686,7 @@ export default function ConfiguracoesPage() {
                       value={businessData.name}
                       onChange={(e) => updateField('name', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="du corte"
+                      placeholder="Nome do Estabelecimento"
                     />
                   </div>
                   <div className="space-y-2">
@@ -676,7 +699,7 @@ export default function ConfiguracoesPage() {
                       value={businessData.email}
                       onChange={(e) => updateField('email', e.target.value)}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="teste@teste.com"
+                      placeholder="Seu e-mail"
                     />
                   </div>
                   <div className="space-y-2">
@@ -698,10 +721,23 @@ export default function ConfiguracoesPage() {
                     <Input
                       id="customLink"
                       value={businessData.customLink}
-                      onChange={(e) => updateField('customLink', e.target.value)}
+                      onChange={(e) => {
+                        // Formatar automaticamente para URL válida
+                        const formattedValue = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, '-') // Substitui caracteres inválidos por hífen
+                          .replace(/-+/g, '-') // Remove hífens duplicados
+                          .replace(/^-|-$/g, '') // Remove hífens do início e fim
+                        updateField('customLink', formattedValue)
+                      }}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="du-corte"
+                      placeholder="Exemplo:barbearia-do-jorge"
                     />
+                    <div className="text-xs text-[#71717a] space-y-1">
+                      <p>💡 <strong>Como usar:</strong> Use apenas letras, números e hífen (-)</p>
+                      <p>✅ <strong>Correto:</strong> barbearia-do-jorge, cortes-modernos</p>
+                      <p>❌ <strong>Evite:</strong> espaços, acentos ou caracteres especiais</p>
+                    </div>
                   </div>
                 </div>
                 
@@ -714,20 +750,57 @@ export default function ConfiguracoesPage() {
                     value={businessData.address}
                     onChange={(e) => updateField('address', e.target.value)}
                     className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                    placeholder="rua joao"
+                    placeholder="Seu Endereço"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-[#ededed]">Logo do Estabelecimento</Label>
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                      <Scissors className="w-8 h-8 text-[#ededed]" />
+                    <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center border-2 border-dashed border-[#3f3f46] overflow-hidden">
+                      {businessData.logo ? (
+                        <img 
+                          src={businessData.logo} 
+                          alt="Logo" 
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Scissors className="w-8 h-8 text-[#ededed]" />
+                      )}
                     </div>
-                    <Button variant="outline" className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Fazer Upload
-                    </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {businessData.logo ? 'Alterar Logo' : 'Fazer Upload'}
+                        </Button>
+                        {businessData.logo && (
+                          <Button 
+                            variant="outline" 
+                            className="border-red-600 text-red-400 hover:text-red-300 bg-transparent"
+                            onClick={() => updateField('logo', '')}
+                          >
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                      <div className="text-xs text-[#71717a] space-y-1">
+                        <p>📐 <strong>Recomendado:</strong> 250x250px (quadrada)</p>
+                        <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
+                        <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
