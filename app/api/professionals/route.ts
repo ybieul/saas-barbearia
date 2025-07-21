@@ -335,7 +335,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Desativar profissional (soft delete)
+// DELETE - Excluir profissional permanentemente
 export async function DELETE(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -369,55 +369,26 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Verificar se há agendamentos futuros
-    const futureAppointments = await prisma.appointment.findFirst({
-      where: {
-        professionalId: id,
-        dateTime: {
-          gte: new Date()
-        },
-        status: {
-          in: ['SCHEDULED', 'CONFIRMED']
-        }
-      }
+    // EXCLUIR PERMANENTEMENTE DO BANCO DE DADOS
+    await prisma.professional.delete({
+      where: { id }
     })
 
-    console.log('Agendamentos futuros:', futureAppointments ? 'SIM' : 'NÃO')
-
-    if (futureAppointments) {
-      return NextResponse.json(
-        { message: 'Não é possível remover profissional com agendamentos futuros' },
-        { status: 409 }
-      )
-    }
-
-    // Desativar em vez de deletar para preservar histórico
-    const professional = await prisma.professional.update({
-      where: { id },
-      data: {
-        isActive: false,
-        updatedAt: new Date()
-      }
-    })
-
-    console.log('✅ Profissional desativado com sucesso:', {
-      id: professional.id,
-      name: professional.name,
-      isActive: professional.isActive,
-      updatedAt: professional.updatedAt
+    console.log('✅ Profissional EXCLUÍDO PERMANENTEMENTE do banco:', {
+      id: existingProfessional.id,
+      name: existingProfessional.name
     })
 
     return NextResponse.json({ 
-      message: 'Profissional desativado com sucesso',
+      message: 'Profissional excluído permanentemente',
       success: true,
       professional: { 
-        id: professional.id, 
-        name: professional.name,
-        isActive: professional.isActive 
+        id: existingProfessional.id, 
+        name: existingProfessional.name
       }
     })
   } catch (error) {
-    console.error('Erro ao remover profissional:', error)
+    console.error('Erro ao excluir profissional:', error)
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
       { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }

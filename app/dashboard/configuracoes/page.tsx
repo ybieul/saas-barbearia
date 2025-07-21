@@ -240,8 +240,8 @@ export default function ConfiguracoesPage() {
         const result = await deleteProfessional(id)
         console.log('Resultado da exclusão do profissional:', result)
         
-        // Forçar atualização da lista buscando TODOS os profissionais
-        await fetchProfessionals('all')  // ← CORREÇÃO: buscar todos
+        // Forçar atualização da lista imediatamente
+        await fetchProfessionals()
         
         toast({
           title: "Profissional removido!",
@@ -747,14 +747,12 @@ export default function ConfiguracoesPage() {
                     <div className="text-center py-8 text-[#71717a]">
                       Carregando profissionais...
                     </div>
-                  ) : professionals.filter(p => p.isActive).length === 0 ? (
+                  ) : professionals.length === 0 ? (
                     <div className="text-center py-8 text-[#71717a]">
                       Nenhum profissional cadastrado. Clique em &quot;Novo Profissional&quot; para adicionar.
                     </div>
                   ) : (
-                    professionals
-                      .filter(professional => professional.isActive) // ← FILTRO: apenas ativos
-                      .map((professional) => (
+                    professionals.map((professional) => (
                       <div
                         key={professional.id}
                         className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b] gap-4"
