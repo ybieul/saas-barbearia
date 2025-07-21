@@ -235,29 +235,50 @@ export default function ConfiguracoesPage() {
   const handleRemoveProfessional = async (id: string, name: string) => {
     const executeRemoval = async () => {
       try {
-        console.log('Iniciando remoção do profissional:', { id, name })
+        console.log('🚀 INICIANDO REMOÇÃO - Frontend')
+        console.log('📝 Dados:', { id, name })
         
+        // Verificar se temos token
+        const token = localStorage.getItem('auth_token')
+        console.log('🔑 Token presente?', token ? 'SIM' : 'NÃO')
+        if (token) {
+          console.log('🔑 Token (primeiros 20 chars):', token.substring(0, 20) + '...')
+        }
+        
+        console.log('📞 Chamando deleteProfessional...')
         const result = await deleteProfessional(id)
-        console.log('Resultado da exclusão do profissional:', result)
+        console.log('✅ Resultado da API:', result)
         
-        // Forçar atualização da lista imediatamente
+        console.log('🔄 Atualizando lista de profissionais...')
         await fetchProfessionals()
+        console.log('✅ Lista atualizada')
         
         toast({
           title: "Profissional removido!",
           description: `Profissional "${name}" foi removido com sucesso.`,
           variant: "default",
         })
+        
+        console.log('🎉 REMOÇÃO CONCLUÍDA COM SUCESSO')
       } catch (error) {
-        console.error('Erro ao remover profissional:', error)
+        console.error('❌ ERRO DURANTE REMOÇÃO:', error)
+        console.error('📊 Detalhes do erro:', {
+          message: error instanceof Error ? error.message : 'Erro desconhecido',
+          name: error instanceof Error ? error.name : 'N/A',
+          stack: error instanceof Error ? error.stack : 'N/A'
+        })
+        
         toast({
           title: "Erro ao remover profissional",
-          description: professionalsError || "Ocorreu um erro inesperado.",
+          description: professionalsError || (error instanceof Error ? error.message : "Ocorreu um erro inesperado."),
           variant: "destructive",
         })
       }
     }
 
+    console.log('🎯 CLIQUE NO BOTÃO DE REMOVER DETECTADO')
+    console.log('📝 Profissional selecionado:', { id, name })
+    
     openConfirmDialog(
       'professional',
       { id, name },
