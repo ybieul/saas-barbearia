@@ -73,7 +73,7 @@ export default function LandingPage() {
                 size="lg"
                 className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 text-lg px-8 py-6 transition-all duration-200"
               >
-                Criar Conta Gratuita
+                Criar Conta Agora
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
@@ -314,7 +314,7 @@ export default function LandingPage() {
               size="lg"
               className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0 text-lg px-8 py-6"
             >
-              Criar Conta Gratuita
+              Criar Conta Agora
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>
