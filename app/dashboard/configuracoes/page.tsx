@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useProfessionals, useServices } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
+import { useWorkingHours } from "@/hooks/use-working-hours"
 import {
   Upload,
   Save,
@@ -116,17 +117,80 @@ export default function ConfiguracoesPage() {
     specialty: ""
   })
 
-  const [workingHours, setWorkingHours] = useState({
-    monday: { start: "08:00", end: "18:00", active: true },
-    tuesday: { start: "08:00", end: "18:00", active: true },
-    wednesday: { start: "08:00", end: "18:00", active: true },
-    thursday: { start: "08:00", end: "18:00", active: true },
-    friday: { start: "08:00", end: "18:00", active: true },
-    saturday: { start: "08:00", end: "16:00", active: true },
-    sunday: { start: "09:00", end: "15:00", active: false },
-  })
+  // Hook para horários integrado ao banco de dados
+  const { 
+    workingHours: workingHoursData, 
+    loading: workingHoursLoading,
+    error: workingHoursError,
+    updateWorkingHours 
+  } = useWorkingHours()
 
   const [promotions, setPromotions] = useState<any[]>([])
+
+  // Converter dados do banco para formato da UI
+  const convertToUIFormat = (dbWorkingHours: any[]) => {
+    const defaultHours = {
+      monday: { start: "08:00", end: "18:00", active: true },
+      tuesday: { start: "08:00", end: "18:00", active: true },
+      wednesday: { start: "08:00", end: "18:00", active: true },
+      thursday: { start: "08:00", end: "18:00", active: true },
+      friday: { start: "08:00", end: "18:00", active: true },
+      saturday: { start: "08:00", end: "16:00", active: true },
+      sunday: { start: "09:00", end: "15:00", active: false },
+    }
+    
+    const uiFormat = { ...defaultHours }
+    
+    dbWorkingHours.forEach(hours => {
+      if (uiFormat[hours.dayOfWeek as keyof typeof uiFormat]) {
+        uiFormat[hours.dayOfWeek as keyof typeof uiFormat] = {
+          start: hours.startTime,
+          end: hours.endTime,
+          active: hours.isActive
+        }
+      }
+    })
+    
+    return uiFormat
+  }
+
+  // Converter formato da UI para o banco
+  const convertToDBFormat = (uiWorkingHours: any) => {
+    return Object.entries(uiWorkingHours).map(([dayOfWeek, hours]: [string, any]) => ({
+      dayOfWeek,
+      startTime: hours.start,
+      endTime: hours.end,
+      isActive: hours.active
+    }))
+  }
+
+  // Horários formatados para a UI
+  const workingHours = convertToUIFormat(workingHoursData || [])
+
+  // Função para atualizar um horário específico
+  const handleWorkingHoursChange = async (day: string, field: string, value: any) => {
+    const updatedWorkingHours = {
+      ...workingHours,
+      [day]: { ...workingHours[day as keyof typeof workingHours], [field]: value }
+    }
+    
+    try {
+      const dbFormat = convertToDBFormat(updatedWorkingHours)
+      await updateWorkingHours(dbFormat)
+      
+      toast({
+        title: "Horário atualizado!",
+        description: "O horário foi atualizado com sucesso.",
+        variant: "default",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar horário",
+        description: "Ocorreu um erro ao salvar o horário. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`https://agendapro.com/${businessData.customLink}`)
@@ -1019,17 +1083,23 @@ export default function ConfiguracoesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(workingHours).map(([day, hours]) => (
+                {workingHoursLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-[#71717a]">Carregando horários...</div>
+                  </div>
+                ) : workingHoursError ? (
+                  <div className="text-red-400 text-center py-8">
+                    Erro ao carregar horários: {workingHoursError}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(workingHours).map(([day, hours]) => (
                     <div key={day} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b]">
                       <div className="flex items-center gap-4">
                         <Switch
                           checked={hours.active}
                           onCheckedChange={(checked) =>
-                            setWorkingHours({
-                              ...workingHours,
-                              [day]: { ...hours, active: checked },
-                            })
+                            handleWorkingHoursChange(day, 'active', checked)
                           }
                         />
                         <span className="text-[#ededed] font-medium w-24 capitalize">
@@ -1048,10 +1118,7 @@ export default function ConfiguracoesPage() {
                             type="time"
                             value={hours.start}
                             onChange={(e) =>
-                              setWorkingHours({
-                                ...workingHours,
-                                [day]: { ...hours, start: e.target.value },
-                              })
+                              handleWorkingHoursChange(day, 'start', e.target.value)
                             }
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-32"
                           />
@@ -1060,10 +1127,7 @@ export default function ConfiguracoesPage() {
                             type="time"
                             value={hours.end}
                             onChange={(e) =>
-                              setWorkingHours({
-                                ...workingHours,
-                                [day]: { ...hours, end: e.target.value },
-                              })
+                              handleWorkingHoursChange(day, 'end', e.target.value)
                             }
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-32"
                           />
@@ -1074,7 +1138,8 @@ export default function ConfiguracoesPage() {
                       )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

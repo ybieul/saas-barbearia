@@ -50,6 +50,7 @@ model Tenant {
   promotionTemplates  PromotionTemplate[]
   servicePackages     ServicePackage[]
   financialRecords    FinancialRecord[]
+  workingHours        WorkingHours[]
 
   @@map("tenants")
 }
@@ -294,6 +295,24 @@ model PromotionTemplate {
 
   @@index([tenantId])
   @@map("promotion_templates")
+}
+
+model WorkingHours {
+  id        String   @id @default(cuid())
+  dayOfWeek String   // monday, tuesday, wednesday, etc.
+  startTime String   // HH:MM format
+  endTime   String   // HH:MM format
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, dayOfWeek])
+  @@index([tenantId])
+  @@map("working_hours")
 }
 
 // ============================================
