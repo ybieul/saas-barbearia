@@ -1085,7 +1085,7 @@ export default function ConfiguracoesPage() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-[#a1a1aa]">Templates de Promoção (Beta)</CardTitle>
+                    <CardTitle className="text-[#a1a1aa]">Templates de Promoção</CardTitle>
                     <CardDescription className="text-[#71717a]">
                       Crie templates de mensagens promocionais para enviar aos seus clientes
                     </CardDescription>
@@ -1134,8 +1134,11 @@ export default function ConfiguracoesPage() {
                             value={newTemplate.message}
                             onChange={(e) => setNewTemplate({ ...newTemplate, message: e.target.value })}
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-[100px]"
-                            placeholder="Olá! Aproveite nossa promoção especial de Natal com 20% de desconto em todos os serviços! 🎁✂️"
+                            placeholder="Olá [nome]! Aproveite nossa promoção especial de Natal com 20% de desconto em todos os serviços! 🎁✂️"
                           />
+                          <div className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 p-2 rounded border border-[#fbbf24]/20">
+                            💡 <strong>Dica:</strong> Use <code className="bg-[#27272a] px-1 rounded">[nome]</code> para personalizar automaticamente com o nome do cliente
+                          </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
                           <Button 
@@ -1158,63 +1161,105 @@ export default function ConfiguracoesPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {templatesLoading ? (
-                    <div className="text-center py-8 text-[#71717a]">
-                      Carregando templates...
-                    </div>
-                  ) : templatesError ? (
-                    <div className="text-center py-8">
-                      <p className="text-red-400">Erro ao carregar templates: {templatesError}</p>
-                      <Button 
-                        onClick={() => window.location.reload()}
-                        className="mt-4 bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a]"
-                      >
-                        Tentar Novamente
-                      </Button>
-                    </div>
-                  ) : promotionTemplates.length === 0 ? (
-                    <div className="text-center py-8 text-[#71717a]">
-                      Nenhum template cadastrado. Clique em &quot;Novo Template&quot; para criar o primeiro.
-                    </div>
-                  ) : (
-                    promotionTemplates.map((template) => (
-                      <div
-                        key={template.id}
-                        className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b]"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-[#ededed] font-medium">{template.name}</h3>
-                            {template.title && (
-                              <p className="text-[#fbbf24] text-sm mt-1">{template.title}</p>
-                            )}
+                <div className="space-y-6">
+                  {/* Explicação da funcionalidade [nome] */}
+                  <div className="p-4 bg-gradient-to-r from-[#fbbf24]/10 to-[#f59e0b]/10 rounded-lg border border-[#fbbf24]/30">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-[#fbbf24] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <MessageSquare className="w-4 h-4 text-[#0a0a0a]" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-[#fbbf24] font-medium mb-2">🚀 Personalização Automática</h3>
+                        <p className="text-[#71717a] text-sm mb-3">
+                          Use <code className="bg-[#27272a] px-2 py-1 rounded text-[#fbbf24]">[nome]</code> nos seus templates para personalizar automaticamente as mensagens com o nome de cada cliente.
+                        </p>
+                        <div className="space-y-2">
+                          <div className="text-xs">
+                            <span className="text-[#71717a]">📝 Exemplo:</span>
+                            <div className="bg-[#27272a] p-2 rounded mt-1 text-[#ededed]">
+                              "Olá [nome]! Temos uma promoção especial para você! 🎉"
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditTemplate(template)}
-                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteTemplate(template.id, template.name)}
-                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div className="text-xs">
+                            <span className="text-[#71717a]">📤 Será enviado como:</span>
+                            <div className="bg-[#1f2937] p-2 rounded mt-1 text-[#10b981]">
+                              "Olá João! Temos uma promoção especial para você! 🎉"
+                            </div>
                           </div>
                         </div>
-                        <p className="text-[#71717a] text-sm bg-[#27272a] p-3 rounded border border-[#3f3f46]">
-                          {template.message}
-                        </p>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  </div>
+
+                  {/* Lista de templates */}
+                  <div className="space-y-4">
+                    {templatesLoading ? (
+                      <div className="text-center py-8 text-[#71717a]">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-[#fbbf24] border-t-transparent rounded-full animate-spin"></div>
+                          Carregando templates...
+                        </div>
+                      </div>
+                    ) : templatesError ? (
+                      <div className="text-center py-8">
+                        <p className="text-red-400">Erro ao carregar templates: {templatesError}</p>
+                        <Button 
+                          onClick={() => window.location.reload()}
+                          className="mt-4 bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a]"
+                        >
+                          Tentar Novamente
+                        </Button>
+                      </div>
+                    ) : promotionTemplates.length === 0 ? (
+                      <div className="text-center py-8 text-[#71717a]">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-4 text-[#3f3f46]" />
+                        <p className="text-lg mb-2">Nenhum template cadastrado</p>
+                        <p className="text-sm">Clique em "Novo Template" para criar o primeiro template de promoção.</p>
+                      </div>
+                    ) : (
+                      promotionTemplates.map((template) => (
+                        <div
+                          key={template.id}
+                          className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="text-[#ededed] font-medium">{template.name}</h3>
+                              {template.title && (
+                                <p className="text-[#fbbf24] text-sm mt-1">{template.title}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditTemplate(template)}
+                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteTemplate(template.id, template.name)}
+                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-[#71717a] text-sm bg-[#27272a] p-3 rounded border border-[#3f3f46]">
+                            {template.message}
+                          </p>
+                          {template.message.includes('[nome]') && (
+                            <div className="mt-2 text-xs text-[#fbbf24] flex items-center gap-1">
+                              ✨ <span>Este template será personalizado automaticamente com o nome do cliente</span>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

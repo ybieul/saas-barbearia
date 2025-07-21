@@ -48,6 +48,10 @@ export function usePromotionTemplates() {
     }
   }
 
+  useEffect(() => {
+    fetchTemplates()
+  }, [])
+
   const addTemplate = async (templateData: Omit<PromotionTemplate, 'id'>): Promise<boolean> => {
     try {
       setError(null)
@@ -89,19 +93,22 @@ export function usePromotionTemplates() {
       if (!token) {
         throw new Error('Token de autenticação não encontrado')
       }
+          localStorage.setItem('barbershop-user-id', userId)
+        }
+      }
       
       const response = await fetch('/api/promotion-templates', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'x-user-id': userId
         },
         body: JSON.stringify({ id, ...updates }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Erro ao atualizar template')
+        throw new Error(errorData.error || 'Erro ao atualizar template')
       }
 
       // Recarregar a lista de templates
@@ -118,28 +125,32 @@ export function usePromotionTemplates() {
     try {
       setError(null)
       
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado')
+      // Obter ID do usuário do localStorage
+      let userId = typeof window !== 'undefined' ? localStorage.getItem('barbershop-user-id') : null
+      if (!userId) {
+        userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('barbershop-user-id', userId)
+        }
       }
       
       const response = await fetch(`/api/promotion-templates?id=${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'x-user-id': userId
         }
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Erro ao deletar template')
+        throw new Error(errorData.error || 'Erro ao remover template')
       }
 
       // Recarregar a lista de templates
       await fetchTemplates()
       return true
     } catch (err) {
-      console.error('Erro ao deletar template:', err)
+      console.error('Erro ao remover template:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
       return false
     }
@@ -149,13 +160,6 @@ export function usePromotionTemplates() {
     return templates.find(template => template.id === id)
   }
 
-  // Carregar templates na inicialização
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetchTemplates()
-    }
-  }, [])
-
   return {
     templates,
     loading,
@@ -164,6 +168,6 @@ export function usePromotionTemplates() {
     updateTemplate,
     deleteTemplate,
     getTemplate,
-    fetchTemplates,
+    refreshTemplates: fetchTemplates
   }
 }
