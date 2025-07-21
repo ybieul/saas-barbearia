@@ -2,6 +2,51 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 
+// Templates padrão para novos usuários
+const DEFAULT_TEMPLATES = [
+  {
+    name: "Desconto de Retorno 20%",
+    title: "20% OFF", 
+    message: "Olá [nome]! 😊\n\nSentimos sua falta! ❤️\n\nQue tal voltar com um desconto especial de 20% OFF em qualquer serviço?\n\n✨ Oferta válida até 31/07/2025\n📅 Agende já pelo link\n\nEstamos esperando você! 🙋‍♀️"
+  },
+  {
+    name: "Promoção Especial",
+    title: "30% OFF",
+    message: "🎉 Oferta Especial! 🎉\n\nOlá [nome], tudo bem?\n\nTemos uma super promoção para você:\n💸 30% de desconto em todos os serviços!\n\n⏰ Oferta por tempo limitado\n📲 Agende agora"
+  },
+  {
+    name: "Volte Sempre",
+    title: "15% OFF", 
+    message: "Oi [nome]! Como você está? 😊\n\nQueremos você de volta!\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n\n📅 Marque seu horário"
+  }
+]
+
+// Função para criar templates padrão para novos usuários
+async function createDefaultTemplates(tenantId: string) {
+  try {
+    console.log('Criando templates padrão para tenant:', tenantId)
+    
+    const createdTemplates = await Promise.all(
+      DEFAULT_TEMPLATES.map(template =>
+        prisma.promotionTemplate.create({
+          data: {
+            name: template.name,
+            title: template.title,
+            message: template.message,
+            tenantId: tenantId
+          }
+        })
+      )
+    )
+    
+    console.log('Templates padrão criados:', createdTemplates.length)
+    return createdTemplates
+  } catch (error) {
+    console.error('Erro ao criar templates padrão:', error)
+    return []
+  }
+}
+
 // GET - Listar templates do tenant
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +54,7 @@ export async function GET(request: NextRequest) {
     
     console.log('GET templates - TenantID:', user.tenantId)
     
-    const templates = await prisma.promotionTemplate.findMany({
+    let templates = await prisma.promotionTemplate.findMany({
       where: {
         tenantId: user.tenantId
       },
@@ -17,6 +62,13 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc'
       }
     })
+    
+    // Se o usuário não tem templates, criar os padrão
+    if (templates.length === 0) {
+      console.log('Nenhum template encontrado, criando templates padrão...')
+      const defaultTemplates = await createDefaultTemplates(user.tenantId)
+      templates = defaultTemplates
+    }
     
     console.log('Templates encontrados:', templates.length)
     
