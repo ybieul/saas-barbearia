@@ -28,7 +28,6 @@ import {
   Link as LinkIcon,
   Edit,
   MessageSquare,
-  Bell,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -128,13 +127,6 @@ export default function ConfiguracoesPage() {
   })
 
   const [promotions, setPromotions] = useState<any[]>([])
-
-  const [notifications, setNotifications] = useState({
-    whatsappReminders: true,
-    emailNotifications: false,
-    smsNotifications: false,
-    reminderTime: 24,
-  })
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`https://agendapro.com/${businessData.customLink}`)
@@ -859,91 +851,6 @@ export default function ConfiguracoesPage() {
                         </div>
                       ))
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Seção de Notificações */}
-              <Card className="bg-[#18181b] border-[#27272a]">
-                <CardHeader>
-                  <CardTitle className="text-[#a1a1aa]">Notificações</CardTitle>
-                  <p className="text-sm text-[#71717a]">Configure como os profissionais e clientes serão notificados</p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-[#ededed]">WhatsApp Lembretes</Label>
-                          <p className="text-sm text-[#71717a]">Enviar lembretes via WhatsApp</p>
-                        </div>
-                        <Switch
-                          checked={notifications.whatsappReminders}
-                          onCheckedChange={(checked) => 
-                            setNotifications({ ...notifications, whatsappReminders: checked })
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-[#ededed]">Notificações por E-mail</Label>
-                          <p className="text-sm text-[#71717a]">Enviar confirmações por e-mail</p>
-                        </div>
-                        <Switch
-                          checked={notifications.emailNotifications}
-                          onCheckedChange={(checked) => 
-                            setNotifications({ ...notifications, emailNotifications: checked })
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-[#ededed]">SMS Notificações</Label>
-                          <p className="text-sm text-[#71717a]">Enviar lembretes via SMS</p>
-                        </div>
-                        <Switch
-                          checked={notifications.smsNotifications}
-                          onCheckedChange={(checked) => 
-                            setNotifications({ ...notifications, smsNotifications: checked })
-                          }
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-[#ededed]">Tempo de Lembrete (horas)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            max="72"
-                            value={notifications.reminderTime}
-                            onChange={(e) => 
-                              setNotifications({ 
-                                ...notifications, 
-                                reminderTime: parseInt(e.target.value) || 24 
-                              })
-                            }
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-20"
-                          />
-                          <span className="text-[#71717a]">horas antes do agendamento</span>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-700/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Bell className="w-4 h-4 text-blue-400" />
-                          <span className="text-blue-400 font-medium">Configuração Atual</span>
-                        </div>
-                        <ul className="text-sm text-blue-300 space-y-1">
-                          <li>• WhatsApp: {notifications.whatsappReminders ? "Ativado" : "Desativado"}</li>
-                          <li>• E-mail: {notifications.emailNotifications ? "Ativado" : "Desativado"}</li>
-                          <li>• SMS: {notifications.smsNotifications ? "Ativado" : "Desativado"}</li>
-                          <li>• Lembrete: {notifications.reminderTime}h antes</li>
-                        </ul>
-                      </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
