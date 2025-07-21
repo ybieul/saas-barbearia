@@ -809,7 +809,7 @@ export default function ConfiguracoesPage() {
                     <LinkIcon className="w-4 h-4 text-[#10b981]" />
                     <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
                   </div>
-                  <p className="text-emerald-300 text-sm">https://agendapro.com/{businessData.customLink || 'du-corte'}</p>
+                  <p className="text-emerald-300 text-sm">https://agendapro.com/{businessData.customLink || 'seu-link-personalizado'}</p>
                 </div>
                 </>
                 )}
