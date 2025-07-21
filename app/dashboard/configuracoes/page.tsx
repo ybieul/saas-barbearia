@@ -796,8 +796,8 @@ export default function ConfiguracoesPage() {
                         className="hidden"
                       />
                       <div className="text-xs text-[#71717a] space-y-1">
-                        <p>📐 <strong>Recomendado:</strong> 250x250px (quadrada)</p>
-                        <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
+                        <p>📐 <strong>Recomendado:</strong> 150x150px (quadrada)</p>
+                        <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 2MB)</p>
                         <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
                       </div>
                     </div>

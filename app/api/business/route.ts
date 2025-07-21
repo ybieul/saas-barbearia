@@ -86,7 +86,14 @@ export async function PUT(request: NextRequest) {
       ...currentConfig,
       customLink: customLink || ''
     }
-    
+
+    // Truncar logo se for muito grande (limite de 65000 caracteres para VARCHAR)
+    let processedLogo = logo?.trim() || null
+    if (processedLogo && processedLogo.length > 65000) {
+      console.warn('Logo muito grande, será truncada')
+      processedLogo = null // Remover logo se for muito grande
+    }
+
     const tenant = await prisma.tenant.update({
       where: { id: user.tenantId },
       data: {
@@ -94,7 +101,7 @@ export async function PUT(request: NextRequest) {
         email: email?.trim() || null,
         businessPhone: phone?.trim() || null,
         businessAddress: address?.trim() || null,
-        businessLogo: logo?.trim() || null,
+        businessLogo: processedLogo,
         businessConfig: updatedConfig,
         updatedAt: new Date()
       }

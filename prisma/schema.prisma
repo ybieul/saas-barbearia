@@ -30,7 +30,7 @@ model Tenant {
   businessName      String?   // Nome da barbearia
   businessAddress   String?   @db.Text
   businessPhone     String?
-  businessLogo      String?
+  businessLogo      String?   @db.LongText
   businessCnpj      String?   // CNPJ da empresa
   businessPlan      String    @default("BASIC") // Plano contratado
   subscriptionStart DateTime  @default(now())
