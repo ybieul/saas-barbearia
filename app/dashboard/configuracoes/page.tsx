@@ -28,6 +28,7 @@ import {
   Link as LinkIcon,
   Edit,
   MessageSquare,
+  Bell,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -235,50 +236,33 @@ export default function ConfiguracoesPage() {
   const handleRemoveProfessional = async (id: string, name: string) => {
     const executeRemoval = async () => {
       try {
-        console.log('🚀 INICIANDO REMOÇÃO - Frontend')
-        console.log('📝 Dados:', { id, name })
+        console.log('🚀 Removendo profissional:', { id, name })
         
-        // Verificar se temos token
-        const token = localStorage.getItem('auth_token')
-        console.log('🔑 Token presente?', token ? 'SIM' : 'NÃO')
-        if (token) {
-          console.log('🔑 Token (primeiros 20 chars):', token.substring(0, 20) + '...')
-        }
+        // Chamar a API de exclusão
+        await deleteProfessional(id)
         
-        console.log('📞 Chamando deleteProfessional...')
-        const result = await deleteProfessional(id)
-        console.log('✅ Resultado da API:', result)
-        
-        console.log('🔄 Atualizando lista de profissionais...')
+        // Recarregar a lista
         await fetchProfessionals()
-        console.log('✅ Lista atualizada')
         
+        // Mostrar sucesso
         toast({
           title: "Profissional removido!",
-          description: `Profissional "${name}" foi removido com sucesso.`,
+          description: `${name} foi removido com sucesso.`,
           variant: "default",
         })
         
-        console.log('🎉 REMOÇÃO CONCLUÍDA COM SUCESSO')
+        console.log('✅ Profissional removido com sucesso')
       } catch (error) {
-        console.error('❌ ERRO DURANTE REMOÇÃO:', error)
-        console.error('📊 Detalhes do erro:', {
-          message: error instanceof Error ? error.message : 'Erro desconhecido',
-          name: error instanceof Error ? error.name : 'N/A',
-          stack: error instanceof Error ? error.stack : 'N/A'
-        })
-        
+        console.error('❌ Erro ao remover profissional:', error)
         toast({
           title: "Erro ao remover profissional",
-          description: professionalsError || (error instanceof Error ? error.message : "Ocorreu um erro inesperado."),
+          description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
           variant: "destructive",
         })
       }
     }
 
-    console.log('🎯 CLIQUE NO BOTÃO DE REMOVER DETECTADO')
-    console.log('📝 Profissional selecionado:', { id, name })
-    
+    // Abrir dialog de confirmação
     openConfirmDialog(
       'professional',
       { id, name },
@@ -674,157 +658,296 @@ export default function ConfiguracoesPage() {
 
           {/* Profissionais Tab */}
           {activeTab === "profissionais" && (
-            <Card className="bg-[#18181b] border-[#27272a]">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-[#a1a1aa]">Profissionais</CardTitle>
-                  <Dialog open={isNewProfessionalOpen} onOpenChange={setIsNewProfessionalOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-blue-500 hover:bg-blue-600 text-[#ededed]">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Novo Profissional
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
-                      <DialogHeader>
-                        <DialogTitle className="text-[#ededed]">Adicionar Novo Profissional</DialogTitle>
-                        <DialogDescription className="text-[#71717a]">
-                          Preencha os dados do novo profissional
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="professionalName" className="text-[#ededed]">
-                            Nome Completo *
-                          </Label>
-                          <Input
-                            id="professionalName"
-                            value={newProfessional.name}
-                            onChange={(e) => setNewProfessional({ ...newProfessional, name: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="Digite o nome do profissional"
-                          />
+            <div className="space-y-6">
+              {/* Seção de Profissionais */}
+              <Card className="bg-[#18181b] border-[#27272a]">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-[#a1a1aa]">Profissionais</CardTitle>
+                    <Dialog open={isNewProfessionalOpen} onOpenChange={setIsNewProfessionalOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-[#ededed]">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Novo Profissional
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
+                        <DialogHeader>
+                          <DialogTitle className="text-[#ededed]">Adicionar Novo Profissional</DialogTitle>
+                          <DialogDescription className="text-[#71717a]">
+                            Preencha os dados do novo profissional
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="professionalName" className="text-[#ededed]">
+                              Nome Completo *
+                            </Label>
+                            <Input
+                              id="professionalName"
+                              value={newProfessional.name}
+                              onChange={(e) => setNewProfessional({ ...newProfessional, name: e.target.value })}
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                              placeholder="Digite o nome do profissional"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="professionalEmail" className="text-[#ededed]">
+                              E-mail
+                            </Label>
+                            <Input
+                              id="professionalEmail"
+                              type="email"
+                              value={newProfessional.email}
+                              onChange={(e) => setNewProfessional({ ...newProfessional, email: e.target.value })}
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                              placeholder="profissional@email.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="professionalPhone" className="text-[#ededed]">
+                              Telefone
+                            </Label>
+                            <Input
+                              id="professionalPhone"
+                              value={newProfessional.phone}
+                              onChange={(e) => setNewProfessional({ ...newProfessional, phone: e.target.value })}
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                              placeholder="(11) 99999-9999"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="professionalSpecialty" className="text-[#ededed]">
+                              Especialidade
+                            </Label>
+                            <Input
+                              id="professionalSpecialty"
+                              value={newProfessional.specialty}
+                              onChange={(e) => setNewProfessional({ ...newProfessional, specialty: e.target.value })}
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                              placeholder="Ex: Corte masculino, Barba, etc."
+                            />
+                          </div>
+                          <div className="flex justify-end gap-3 mt-6">
+                            <Button 
+                              variant="outline" 
+                              onClick={handleCancelAddProfessional}
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button 
+                              onClick={handleAddProfessional}
+                              className="bg-blue-500 hover:bg-blue-600 text-[#ededed]"
+                              disabled={professionalsLoading}
+                            >
+                              {professionalsLoading ? "Adicionando..." : "Adicionar Profissional"}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="professionalEmail" className="text-[#ededed]">
-                            E-mail
-                          </Label>
-                          <Input
-                            id="professionalEmail"
-                            type="email"
-                            value={newProfessional.email}
-                            onChange={(e) => setNewProfessional({ ...newProfessional, email: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="profissional@email.com"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="professionalPhone" className="text-[#ededed]">
-                            Telefone
-                          </Label>
-                          <Input
-                            id="professionalPhone"
-                            value={newProfessional.phone}
-                            onChange={(e) => setNewProfessional({ ...newProfessional, phone: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="(11) 99999-9999"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="professionalSpecialty" className="text-[#ededed]">
-                            Especialidade
-                          </Label>
-                          <Input
-                            id="professionalSpecialty"
-                            value={newProfessional.specialty}
-                            onChange={(e) => setNewProfessional({ ...newProfessional, specialty: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="Ex: Corte masculino, Barba, etc."
-                          />
-                        </div>
-                        <div className="flex justify-end gap-3 mt-6">
-                          <Button 
-                            variant="outline" 
-                            onClick={handleCancelAddProfessional}
-                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
-                          >
-                            Cancelar
-                          </Button>
-                          <Button 
-                            onClick={handleAddProfessional}
-                            className="bg-blue-500 hover:bg-blue-600 text-[#ededed]"
-                          >
-                            Adicionar Profissional
-                          </Button>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {professionalsLoading ? (
+                      <div className="text-center py-8 text-[#71717a]">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                          Carregando profissionais...
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {professionalsLoading ? (
-                    <div className="text-center py-8 text-[#71717a]">
-                      Carregando profissionais...
-                    </div>
-                  ) : professionals.length === 0 ? (
-                    <div className="text-center py-8 text-[#71717a]">
-                      Nenhum profissional cadastrado. Clique em &quot;Novo Profissional&quot; para adicionar.
-                    </div>
-                  ) : (
-                    professionals.map((professional) => (
-                      <div
-                        key={professional.id}
-                        className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b] gap-4"
-                      >
-                        <div className="flex items-center gap-4 flex-1 w-full">
-                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-bold text-[#ededed]">
-                              {professional.name
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")
-                                .substring(0, 2)}
-                            </span>
-                          </div>
-                          <div className="flex-1 w-full">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              <Input
-                                value={professional.name}
-                                onChange={(e) => handleUpdateProfessional(professional.id, 'name', e.target.value)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Nome do profissional"
-                              />
-                              <Input
-                                value={professional.email || ""}
-                                onChange={(e) => handleUpdateProfessional(professional.id, 'email', e.target.value)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="E-mail"
-                              />
-                              <Input
-                                value={professional.phone || ""}
-                                onChange={(e) => handleUpdateProfessional(professional.id, 'phone', e.target.value)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Telefone"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
+                    ) : professionalsError ? (
+                      <div className="text-center py-8 text-red-400">
+                        <p>Erro ao carregar profissionais: {professionalsError}</p>
+                        <Button 
+                          onClick={() => fetchProfessionals()}
                           variant="outline"
-                          onClick={() => handleRemoveProfessional(professional.id, professional.name)}
-                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent flex-shrink-0"
+                          className="mt-4 border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          Tentar Novamente
                         </Button>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    ) : professionals.length === 0 ? (
+                      <div className="text-center py-8 text-[#71717a]">
+                        <User className="w-12 h-12 mx-auto mb-4 text-[#3f3f46]" />
+                        <p className="text-lg mb-2">Nenhum profissional cadastrado</p>
+                        <p className="text-sm">Clique em "Novo Profissional" para adicionar o primeiro profissional.</p>
+                      </div>
+                    ) : (
+                      professionals.map((professional) => (
+                        <div
+                          key={professional.id}
+                          className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b] gap-4 hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4 flex-1 w-full">
+                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-bold text-[#ededed]">
+                                {professional.name
+                                  ?.split(" ")
+                                  .map((n: string) => n[0])
+                                  .join("")
+                                  .substring(0, 2)
+                                  .toUpperCase() || "??"}
+                              </span>
+                            </div>
+                            <div className="flex-1 w-full">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-[#71717a]">Nome</Label>
+                                  <Input
+                                    value={professional.name || ""}
+                                    onChange={(e) => handleUpdateProfessional(professional.id, 'name', e.target.value)}
+                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
+                                    placeholder="Nome do profissional"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-[#71717a]">E-mail</Label>
+                                  <Input
+                                    type="email"
+                                    value={professional.email || ""}
+                                    onChange={(e) => handleUpdateProfessional(professional.id, 'email', e.target.value)}
+                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
+                                    placeholder="email@exemplo.com"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-[#71717a]">Telefone</Label>
+                                  <Input
+                                    value={professional.phone || ""}
+                                    onChange={(e) => handleUpdateProfessional(professional.id, 'phone', e.target.value)}
+                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
+                                    placeholder="(11) 99999-9999"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-[#71717a]">Especialidade</Label>
+                                  <Input
+                                    value={professional.specialty || ""}
+                                    onChange={(e) => handleUpdateProfessional(professional.id, 'specialty', e.target.value)}
+                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
+                                    placeholder="Especialidade"
+                                  />
+                                </div>
+                              </div>
+                              <div className="mt-2 flex items-center gap-2 text-xs text-[#71717a]">
+                                <span>ID: {professional.id}</span>
+                                <span>•</span>
+                                <span>Status: {professional.isActive ? "Ativo" : "Inativo"}</span>
+                                {professional.createdAt && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Cadastrado: {new Date(professional.createdAt).toLocaleDateString('pt-BR')}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemoveProfessional(professional.id, professional.name)}
+                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent"
+                              disabled={professionalsLoading}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Seção de Notificações */}
+              <Card className="bg-[#18181b] border-[#27272a]">
+                <CardHeader>
+                  <CardTitle className="text-[#a1a1aa]">Notificações</CardTitle>
+                  <p className="text-sm text-[#71717a]">Configure como os profissionais e clientes serão notificados</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label className="text-[#ededed]">WhatsApp Lembretes</Label>
+                          <p className="text-sm text-[#71717a]">Enviar lembretes via WhatsApp</p>
+                        </div>
+                        <Switch
+                          checked={notifications.whatsappReminders}
+                          onCheckedChange={(checked) => 
+                            setNotifications({ ...notifications, whatsappReminders: checked })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label className="text-[#ededed]">Notificações por E-mail</Label>
+                          <p className="text-sm text-[#71717a]">Enviar confirmações por e-mail</p>
+                        </div>
+                        <Switch
+                          checked={notifications.emailNotifications}
+                          onCheckedChange={(checked) => 
+                            setNotifications({ ...notifications, emailNotifications: checked })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label className="text-[#ededed]">SMS Notificações</Label>
+                          <p className="text-sm text-[#71717a]">Enviar lembretes via SMS</p>
+                        </div>
+                        <Switch
+                          checked={notifications.smsNotifications}
+                          onCheckedChange={(checked) => 
+                            setNotifications({ ...notifications, smsNotifications: checked })
+                          }
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-[#ededed]">Tempo de Lembrete (horas)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="72"
+                            value={notifications.reminderTime}
+                            onChange={(e) => 
+                              setNotifications({ 
+                                ...notifications, 
+                                reminderTime: parseInt(e.target.value) || 24 
+                              })
+                            }
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-20"
+                          />
+                          <span className="text-[#71717a]">horas antes do agendamento</span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-700/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Bell className="w-4 h-4 text-blue-400" />
+                          <span className="text-blue-400 font-medium">Configuração Atual</span>
+                        </div>
+                        <ul className="text-sm text-blue-300 space-y-1">
+                          <li>• WhatsApp: {notifications.whatsappReminders ? "Ativado" : "Desativado"}</li>
+                          <li>• E-mail: {notifications.emailNotifications ? "Ativado" : "Desativado"}</li>
+                          <li>• SMS: {notifications.smsNotifications ? "Ativado" : "Desativado"}</li>
+                          <li>• Lembrete: {notifications.reminderTime}h antes</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Serviços Tab */}
