@@ -37,9 +37,10 @@ export default function LoginPage() {
         // Se é um erro de usuário não cadastrado, mostrar mensagem específica
         if (result.needsRegistration) {
           toast({
-            title: "Cadastro necessário",
-            description: result.error + " " + (result.suggestion || ""),
+            title: "🚫 Cadastro necessário",
+            description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' abaixo para criar sua conta.",
             variant: "destructive",
+            duration: 6000, // 6 segundos para dar tempo de ler
           })
         } else {
           toast({

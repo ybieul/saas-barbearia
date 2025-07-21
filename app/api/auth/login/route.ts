@@ -35,7 +35,11 @@ export async function POST(request: NextRequest) {
 
     if (!isPasswordValid) {
       return NextResponse.json(
-        { message: 'Credenciais inválidas' },
+        { 
+          message: 'Senha incorreta. Verifique suas credenciais.',
+          suggestion: 'Certifique-se de que digitou a senha corretamente.',
+          needsRegistration: false
+        },
         { status: 401 }
       )
     }
