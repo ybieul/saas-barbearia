@@ -34,11 +34,20 @@ export default function LoginPage() {
           description: "Você será redirecionado para o dashboard.",
         })
       } else {
-        toast({
-          title: "Erro no login",
-          description: result.error || "Credenciais inválidas",
-          variant: "destructive",
-        })
+        // Se é um erro de usuário não cadastrado, mostrar mensagem específica
+        if (result.needsRegistration) {
+          toast({
+            title: "Cadastro necessário",
+            description: result.error + " " + (result.suggestion || ""),
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Erro no login",
+            description: result.error || "Credenciais inválidas",
+            variant: "destructive",
+          })
+        }
       }
     } catch (error) {
       console.error('Erro no login:', error)

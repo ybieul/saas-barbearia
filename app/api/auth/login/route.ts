@@ -21,7 +21,11 @@ export async function POST(request: NextRequest) {
 
     if (!tenant) {
       return NextResponse.json(
-        { message: 'Credenciais inválidas' },
+        { 
+          message: 'E-mail não encontrado. Você ainda não possui cadastro.',
+          suggestion: 'Clique em "Cadastre-se grátis" para criar sua conta.',
+          needsRegistration: true
+        },
         { status: 401 }
       )
     }

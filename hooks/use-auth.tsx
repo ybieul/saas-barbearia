@@ -16,7 +16,12 @@ interface User {
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{ 
+    success: boolean; 
+    error?: string; 
+    suggestion?: string; 
+    needsRegistration?: boolean 
+  }>
   logout: () => void
   isLoading: boolean
   isAuthenticated: boolean
@@ -75,6 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/dashboard')
         return { success: true }
       } else {
+        // Se é erro de usuário não encontrado, mostrar mensagem específica
+        if (data.needsRegistration) {
+          return { 
+            success: false, 
+            error: data.message,
+            suggestion: data.suggestion,
+            needsRegistration: true
+          }
+        }
         return { success: false, error: data.message }
       }
     } catch (error) {
