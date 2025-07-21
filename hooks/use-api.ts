@@ -247,11 +247,12 @@ export function useProfessionals() {
   const fetchProfessionals = useCallback((status?: string, specialty?: string) => {
     const params = new URLSearchParams()
     // Por padrão, buscar apenas profissionais ativos
-    if (status) {
+    if (status && status !== 'all') {
       params.append('status', status)
-    } else {
+    } else if (!status) {
       params.append('status', 'active')
     }
+    // Se status === 'all', não adiciona filtro de status
     if (specialty) params.append('specialty', specialty)
     
     const queryString = params.toString()
