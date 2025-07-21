@@ -80,16 +80,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/dashboard')
         return { success: true }
       } else {
-        // Se é erro de usuário não encontrado, mostrar mensagem específica
-        if (data.needsRegistration) {
-          return { 
-            success: false, 
-            error: data.message,
-            suggestion: data.suggestion,
-            needsRegistration: true
+        // Capturar diferentes tipos de erro
+        console.log('Response status:', response.status)
+        console.log('Response data:', data)
+        
+        if (response.status === 401) {
+          // Se é erro de usuário não encontrado, mostrar mensagem específica
+          if (data.needsRegistration || data.message?.includes('não encontrado') || data.message?.includes('não possui cadastro')) {
+            return { 
+              success: false, 
+              error: data.message || 'E-mail não encontrado',
+              suggestion: data.suggestion,
+              needsRegistration: true
+            }
           }
         }
-        return { success: false, error: data.message }
+        
+        return { success: false, error: data.message || 'Credenciais inválidas' }
       }
     } catch (error) {
       console.error('Erro no login:', error)

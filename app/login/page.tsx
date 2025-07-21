@@ -34,13 +34,22 @@ export default function LoginPage() {
           description: "Você será redirecionado para o dashboard.",
         })
       } else {
-        // Se é um erro de usuário não cadastrado, mostrar mensagem específica
-        if (result.needsRegistration) {
+        // Verificar se é erro de usuário não encontrado
+        const errorMessage = result.error || ""
+        
+        if (errorMessage.includes("não encontrado") || errorMessage.includes("não possui cadastro") || result.needsRegistration) {
           toast({
             title: "🚫 Cadastro necessário",
             description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' abaixo para criar sua conta.",
             variant: "destructive",
-            duration: 6000, // 6 segundos para dar tempo de ler
+            duration: 8000,
+          })
+        } else if (errorMessage.includes("Senha incorreta") || errorMessage.includes("senha")) {
+          toast({
+            title: "❌ Senha incorreta",
+            description: "Verifique se digitou a senha corretamente.",
+            variant: "destructive",
+            duration: 5000,
           })
         } else {
           toast({
@@ -52,11 +61,23 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error('Erro no login:', error)
-      toast({
-        title: "Erro interno",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      })
+      
+      // Verificar se é erro de rede ou servidor
+      const errorStr = error?.toString() || ""
+      if (errorStr.includes("401") || errorStr.includes("Unauthorized")) {
+        toast({
+          title: "🚫 E-mail não encontrado",
+          description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' para criar sua conta.",
+          variant: "destructive",
+          duration: 8000,
+        })
+      } else {
+        toast({
+          title: "Erro interno",
+          description: "Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
