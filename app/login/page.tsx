@@ -18,12 +18,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const { login } = useAuth()
   const { toast } = useToast()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMessage("") // Limpar erro anterior
 
     try {
       const result = await login(email, password)
@@ -31,37 +33,24 @@ export default function LoginPage() {
       console.log('Login result:', result) // Debug
       
       if (result.success) {
+        setErrorMessage("") // Limpar erro se login for bem-sucedido
         toast({
           title: "Login realizado com sucesso!",
           description: "Você será redirecionado para o dashboard.",
         })
       } else {
-        // Verificar se é erro de usuário não encontrado
+        // Mostrar mensagem de erro diretamente na tela
         const errorMessage = result.error || ""
         
         console.log('Error message:', errorMessage) // Debug
         console.log('needsRegistration:', result.needsRegistration) // Debug
         
         if (result.needsRegistration === true || errorMessage.includes("não encontrado") || errorMessage.includes("não possui cadastro")) {
-          toast({
-            title: "🚫 Cadastro necessário",
-            description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' abaixo para criar sua conta.",
-            variant: "destructive",
-            duration: 8000,
-          })
+          setErrorMessage("E-mail não encontrado. Faça seu cadastro primeiro.")
         } else if (errorMessage.includes("Senha incorreta") || errorMessage.includes("senha")) {
-          toast({
-            title: "❌ Senha incorreta",
-            description: "Verifique se digitou a senha corretamente.",
-            variant: "destructive",
-            duration: 5000,
-          })
+          setErrorMessage("Usuário ou senha incorreto.")
         } else {
-          toast({
-            title: "Erro no login",
-            description: result.error || "Credenciais inválidas",
-            variant: "destructive",
-          })
+          setErrorMessage("Usuário ou senha incorreto.")
         }
       }
     } catch (error) {
@@ -70,18 +59,9 @@ export default function LoginPage() {
       // Verificar se é erro de rede ou servidor
       const errorStr = error?.toString() || ""
       if (errorStr.includes("401") || errorStr.includes("Unauthorized")) {
-        toast({
-          title: "🚫 E-mail não encontrado",
-          description: "Este e-mail não está cadastrado. Clique em 'Cadastre-se grátis' para criar sua conta.",
-          variant: "destructive",
-          duration: 8000,
-        })
+        setErrorMessage("E-mail não encontrado. Faça seu cadastro primeiro.")
       } else {
-        toast({
-          title: "Erro interno",
-          description: "Tente novamente mais tarde.",
-          variant: "destructive",
-        })
+        setErrorMessage("Erro interno. Tente novamente mais tarde.")
       }
     } finally {
       setIsLoading(false)
@@ -145,6 +125,14 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              
+              {/* Mensagem de erro inline */}
+              {errorMessage && (
+                <div className="bg-red-900/20 border border-red-600/30 text-red-400 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
+              
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
@@ -158,7 +146,7 @@ export default function LoginPage() {
               <p className="text-[#71717a]">
                 Não tem uma conta?{" "}
                 <Link href="/register" className="text-[#10b981] hover:text-[#059669] font-medium transition-colors">
-                  Cadastre-se grátis
+                  Cadastre-se
                 </Link>
               </p>
             </div>

@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { 
             success: false, 
             error: data.message || 'E-mail não encontrado',
-            suggestion: data.suggestion || 'Clique em "Cadastre-se grátis" para criar sua conta.',
+            suggestion: data.suggestion || 'Clique em "Cadastre-se" para criar sua conta.',
             needsRegistration: true
           }
         }
