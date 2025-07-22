@@ -386,3 +386,35 @@ export function useDashboard() {
     fetchDashboardData
   }
 }
+
+// Hook específico para configurações do estabelecimento
+export function useEstablishment() {
+  const { data, loading, error, request } = useApi<{ establishment: any }>()
+
+  const fetchEstablishment = useCallback(() => {
+    return request('/api/establishment')
+  }, [request])
+
+  const updateEstablishment = useCallback((establishmentData: {
+    id?: string
+    name?: string
+    openTime?: string
+    closeTime?: string
+    address?: string
+    phone?: string
+    workingDays?: string[]
+  }) => {
+    return request('/api/establishment', {
+      method: 'PUT',
+      body: JSON.stringify(establishmentData)
+    })
+  }, [request])
+
+  return {
+    establishment: data?.establishment || null,
+    loading,
+    error,
+    fetchEstablishment,
+    updateEstablishment
+  }
+}

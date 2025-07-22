@@ -32,7 +32,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
-import { useAppointments, useClients, useServices } from "@/hooks/use-api"
+import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AgendaPage() {
@@ -70,6 +70,7 @@ export default function AgendaPage() {
   const { clients, loading: clientsLoading, error: clientsError, fetchClients } = useClients()
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
+  const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -78,7 +79,8 @@ export default function AgendaPage() {
     fetchClients()
     fetchServices()
     fetchProfessionals()
-  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals])
+    fetchEstablishment()
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment])
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -97,11 +99,19 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
-  // Função para gerar horários (de 5 em 5 minutos)
+  // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
   const generateTimeSlots = () => {
     const slots = []
-    const startHour = 8 // 08:00
-    const endHour = 18 // 18:00
+    
+    // Usar horários do estabelecimento ou padrão
+    const defaultStartHour = 8
+    const defaultEndHour = 18
+    
+    const startHour = establishment?.openTime ? 
+      parseInt(establishment.openTime.split(':')[0]) : defaultStartHour
+    const endHour = establishment?.closeTime ? 
+      parseInt(establishment.closeTime.split(':')[0]) : defaultEndHour
+    
     const interval = 5 // Intervalos de 5 minutos
     
     for (let hour = startHour; hour < endHour; hour++) {
@@ -615,7 +625,7 @@ export default function AgendaPage() {
     })
   }
 
-  if (appointmentsLoading || clientsLoading || servicesLoading) {
+  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -787,7 +797,7 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            Grade de 5 em 5 minutos - Agendamentos bloqueiam automaticamente todo o período do serviço
+            Grade de 5 em 5 minutos - Horários de funcionamento: {establishment?.openTime || '08:00'} às {establishment?.closeTime || '18:00'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
