@@ -244,17 +244,17 @@ export default function FinanceiroPage() {
       [''],
       ['RESUMO GERAL'],
       ['Métrica', 'Valor', 'Variação'],
-      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? `R$ ${dashboardData.stats.totalRevenue.toFixed(2).replace('.', ',')}` : 'R$ 0,00', revenueChange.change],
+      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? `R$ ${(Number(dashboardData.stats.totalRevenue) || 0).toFixed(2).replace('.', ',')}` : 'R$ 0,00', revenueChange.change],
       ['Agendamentos Concluídos', completedAppointments.length.toString(), completedChange.change],
       ['Taxa de Conversão', `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`, conversionChange.change],
-      ['Ticket Médio', `R$ ${currentTicketMedio.toFixed(2).replace('.', ',')}`, ticketChange.change],
+      ['Ticket Médio', `R$ ${(Number(currentTicketMedio) || 0).toFixed(2).replace('.', ',')}`, ticketChange.change],
       [''],
       ['FORMAS DE PAGAMENTO'],
       ['Método', 'Quantidade', 'Valor', 'Percentual'],
       ...paymentStats.map(payment => [
         payment.method,
         payment.count.toString(),
-        `R$ ${payment.amount.toFixed(2).replace('.', ',')}`,
+        `R$ ${(Number(payment.amount) || 0).toFixed(2).replace('.', ',')}`,
         `${payment.percentage}%`
       ]),
       [''],
@@ -263,7 +263,7 @@ export default function FinanceiroPage() {
       ...completedAppointments.slice(0, 50).map(apt => [
         apt.clientName || 'Cliente',
         apt.serviceName || 'Serviço',
-        `R$ ${apt.totalPrice.toFixed(2).replace('.', ',')}`,
+        `R$ ${(Number(apt.totalPrice) || 0).toFixed(2).replace('.', ',')}`,
         apt.date
       ])
     ]

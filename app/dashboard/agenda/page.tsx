@@ -355,7 +355,7 @@ export default function AgendaPage() {
                   <SelectContent className="bg-[#18181b] border-[#27272a]">
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.id}>
-                        {service.name} - R$ {service.price?.toFixed(2)} ({service.duration}min)
+                        {service.name} - R$ {(Number(service.price) || 0).toFixed(2)} ({service.duration || 0}min)
                       </SelectItem>
                     ))}
                   </SelectContent>
