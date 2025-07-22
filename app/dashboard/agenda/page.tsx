@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast"
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState("todos")
+  const [timeInterval, setTimeInterval] = useState(40) // Intervalo em minutos (40min padrão)
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -43,7 +44,7 @@ export default function AgendaPage() {
   const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment } = useAppointments()
   const { clients, loading: clientsLoading, error: clientsError, fetchClients } = useClients()
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
-  const { professionals: professionalsData, loading: professionalsLoading } = useProfessionals()
+  const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -51,7 +52,69 @@ export default function AgendaPage() {
     fetchAppointments()
     fetchClients()
     fetchServices()
-  }, [fetchAppointments, fetchClients, fetchServices])
+    fetchProfessionals()
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals])
+
+  // Debug para verificar se os dados estão chegando
+  useEffect(() => {
+    console.log('Dados carregados:', {
+      appointments: appointments?.length || 0,
+      clients: clients?.length || 0,
+      services: services?.length || 0,
+      professionals: professionalsData?.length || 0
+    })
+  }, [appointments, clients, services, professionalsData])
+
+  // Função para gerar horários baseados no intervalo escolhido
+  const generateTimeSlots = () => {
+    const slots = []
+    const startHour = 8 // 08:00
+    const endHour = 18 // 18:00
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += timeInterval) {
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        slots.push(time)
+      }
+    }
+    return slots
+  }
+
+  // Obter agendamentos do dia atual
+  const todayAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.dateTime || apt.date)
+    return aptDate.toDateString() === currentDate.toDateString()
+  })
+
+  // Função para verificar se um horário está ocupado
+  const isTimeSlotOccupied = (time: string, professionalId?: string) => {
+    return todayAppointments.some(apt => {
+      const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+      return aptTime === time && (!professionalId || apt.professionalId === professionalId)
+    })
+  }
+
+  // Calcular estatísticas do dia
+  const calculateDayStats = () => {
+    const today = todayAppointments
+    const completed = today.filter(apt => apt.status === 'completed')
+    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'confirmed')
+    const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
+    const occupancyRate = Math.round((today.length / generateTimeSlots().length) * 100)
+
+    return {
+      appointmentsToday: today.length,
+      completed: completed.length,
+      pending: pending.length,
+      occupancyRate: Math.min(occupancyRate, 100),
+      revenueToday: totalRevenue
+    }
+  }
+
+  const dayStats = calculateDayStats()
 
   // Resetar formulário
   const resetForm = () => {
@@ -203,6 +266,84 @@ export default function AgendaPage() {
         </Button>
       </div>
 
+      {/* Cards de Estatísticas */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-[#10b981]/20 rounded-lg">
+                <Calendar className="w-5 h-5 text-[#10b981]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#a1a1aa]">Agendamentos Hoje</p>
+                <p className="text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-[#a1a1aa]">Concluídos</p>
+                <p className="text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-500/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-sm text-[#a1a1aa]">Pendentes</p>
+                <p className="text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Users className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-[#a1a1aa]">Taxa de Ocupação</p>
+                <p className="text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-[#10b981]/20 rounded-lg">
+                <span className="text-[#10b981] font-bold text-lg">R$</span>
+              </div>
+              <div>
+                <p className="text-sm text-[#a1a1aa]">Receita Hoje</p>
+                <p className="text-2xl font-bold text-[#ededed]">
+                  {new Intl.NumberFormat('pt-BR', { 
+                    style: 'currency', 
+                    currency: 'BRL' 
+                  }).format(dayStats.revenueToday)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Controles de navegação */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
@@ -231,20 +372,105 @@ export default function AgendaPage() {
           </Button>
         </div>
 
-        <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-            <SelectValue placeholder="Filtrar por profissional" />
-          </SelectTrigger>
-          <SelectContent className="bg-[#18181b] border-[#27272a]">
-            <SelectItem value="todos">Todos os profissionais</SelectItem>
-            {professionalsData?.map((professional) => (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label className="text-[#ededed] text-sm">Intervalo:</Label>
+            <Select value={timeInterval.toString()} onValueChange={(value) => setTimeInterval(Number(value))}>
+              <SelectTrigger className="w-32 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#18181b] border-[#27272a]">
+                <SelectItem value="15">15 min</SelectItem>
+                <SelectItem value="40">40 min</SelectItem>
+                <SelectItem value="60">1 hora</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+              <SelectValue placeholder="Filtrar por profissional" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#18181b] border-[#27272a]">
+              <SelectItem value="todos">Todos os profissionais</SelectItem>
+              {professionalsData?.map((professional) => (
               <SelectItem key={professional.id} value={professional.id}>
                 {professional.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
+
+      {/* Agenda de Horários */}
+      <Card className="bg-[#18181b] border-[#27272a]">
+        <CardHeader>
+          <CardTitle className="text-[#ededed]">Agendamentos do Dia</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-96 overflow-y-auto">
+            {generateTimeSlots().map((time) => {
+              const isOccupied = isTimeSlotOccupied(time)
+              const appointment = todayAppointments.find(apt => {
+                const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })
+                return aptTime === time
+              })
+
+              return (
+                <div
+                  key={time}
+                  className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                    isOccupied ? 'bg-[#10b981]/10' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 text-[#ededed] font-medium">
+                      {time}
+                    </div>
+                    {appointment ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <div>
+                          <p className="text-[#ededed] font-medium">
+                            {appointment.clientName || 'Cliente'}
+                          </p>
+                          <p className="text-[#a1a1aa] text-sm">
+                            {appointment.serviceName || 'Serviço'} • {appointment.professionalName || 'Profissional'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-[#71717a] rounded-full"></div>
+                        <p className="text-[#71717a]">Disponível - Clique para agendar</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {!appointment && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                      onClick={() => {
+                        setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                        setIsNewAppointmentOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Agendar
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lista de agendamentos */}
       <div className="space-y-4">
