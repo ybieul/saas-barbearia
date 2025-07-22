@@ -9,6 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Calendar,
   Clock,
   Plus,
@@ -34,6 +42,19 @@ export default function AgendaPage() {
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    type: 'complete' | 'cancel' | null
+    appointmentId: string
+    clientName: string
+    serviceName: string
+  }>({
+    isOpen: false,
+    type: null,
+    appointmentId: '',
+    clientName: '',
+    serviceName: ''
+  })
   const [newAppointment, setNewAppointment] = useState({
     endUserId: "",
     professionalId: "",
@@ -294,58 +315,63 @@ export default function AgendaPage() {
     }
   }
 
-  // Concluir agendamento
+  // Abrir diálogo de confirmação para concluir
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
     const serviceName = appointment?.service?.name || 'Serviço'
     
-    if (!confirm(`Deseja concluir o serviço?\n\nCliente: ${clientName}\nServiço: ${serviceName}`)) {
-      return
-    }
-
-    try {
-      await updateAppointment({ id: appointmentId, status: 'COMPLETED' })
-      
-      toast({
-        title: "Sucesso",
-        description: "Agendamento concluído com sucesso!",
-      })
-      
-      fetchAppointments() // Recarregar dados
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao concluir agendamento",
-        variant: "destructive",
-      })
-    }
+    setConfirmDialog({
+      isOpen: true,
+      type: 'complete',
+      appointmentId,
+      clientName,
+      serviceName
+    })
   }
 
-  // Cancelar agendamento
+  // Abrir diálogo de confirmação para cancelar
   const handleCancelAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
     const serviceName = appointment?.service?.name || 'Serviço'
     
-    if (!confirm(`Deseja cancelar o serviço?\n\nCliente: ${clientName}\nServiço: ${serviceName}`)) {
-      return
-    }
+    setConfirmDialog({
+      isOpen: true,
+      type: 'cancel',
+      appointmentId,
+      clientName,
+      serviceName
+    })
+  }
+
+  // Confirmar ação do diálogo
+  const handleConfirmAction = async () => {
+    if (!confirmDialog.appointmentId || !confirmDialog.type) return
 
     try {
-      await updateAppointment({ id: appointmentId, status: 'CANCELLED' })
+      const status = confirmDialog.type === 'complete' ? 'COMPLETED' : 'CANCELLED'
+      await updateAppointment({ id: confirmDialog.appointmentId, status })
       
       toast({
         title: "Sucesso",
-        description: "Agendamento cancelado com sucesso!",
+        description: `Agendamento ${confirmDialog.type === 'complete' ? 'concluído' : 'cancelado'} com sucesso!`,
       })
       
       fetchAppointments() // Recarregar dados
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao cancelar agendamento",
+        description: `Erro ao ${confirmDialog.type === 'complete' ? 'concluir' : 'cancelar'} agendamento`,
         variant: "destructive",
+      })
+    } finally {
+      setConfirmDialog({
+        isOpen: false,
+        type: null,
+        appointmentId: '',
+        clientName: '',
+        serviceName: ''
       })
     }
   }
@@ -992,15 +1018,16 @@ export default function AgendaPage() {
                       <SelectValue placeholder="Selecione um horário" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60">
-                      {getAvailableTimeSlots().map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                      {getAvailableTimeSlots().length === 0 && (
-                        <SelectItem value="" disabled>
+                      {getAvailableTimeSlots().length > 0 ? (
+                        getAvailableTimeSlots().map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-center text-[#a1a1aa] text-sm">
                           Nenhum horário disponível
-                        </SelectItem>
+                        </div>
                       )}
                     </SelectContent>
                   </Select>
@@ -1047,6 +1074,69 @@ export default function AgendaPage() {
           </Card>
         </div>
       )}
+
+      {/* Dialog de Confirmação */}
+      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmDialog({
+            isOpen: false,
+            type: null,
+            appointmentId: '',
+            clientName: '',
+            serviceName: ''
+          })
+        }
+      }}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <DialogHeader>
+            <DialogTitle className="text-[#ededed]">
+              {confirmDialog.type === 'complete' ? 'Concluir Serviço' : 'Cancelar Serviço'}
+            </DialogTitle>
+            <DialogDescription className="text-[#a1a1aa]">
+              {confirmDialog.type === 'complete' 
+                ? 'Tem certeza que deseja marcar este serviço como concluído?' 
+                : 'Tem certeza que deseja cancelar este serviço?'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-2">
+              <p className="text-[#ededed]">
+                <strong>Cliente:</strong> {confirmDialog.clientName}
+              </p>
+              <p className="text-[#a1a1aa]">
+                <strong>Serviço:</strong> {confirmDialog.serviceName}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog({
+                isOpen: false,
+                type: null,
+                appointmentId: '',
+                clientName: '',
+                serviceName: ''
+              })}
+              className="border-[#27272a] hover:bg-[#27272a]"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmAction}
+              className={confirmDialog.type === 'complete' 
+                ? "bg-[#10b981] hover:bg-[#059669]" 
+                : "bg-red-600 hover:bg-red-700"
+              }
+            >
+              {confirmDialog.type === 'complete' ? 'Concluir' : 'Cancelar Serviço'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
