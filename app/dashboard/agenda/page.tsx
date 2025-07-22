@@ -69,6 +69,13 @@ export default function AgendaPage() {
     })
   }, [appointments, clients, services, professionalsData])
 
+  // Limpar horário quando serviço, data ou profissional mudam
+  useEffect(() => {
+    if (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId) {
+      setNewAppointment(prev => ({...prev, time: ""}))
+    }
+  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
+
   // Função para gerar horários (de 5 em 5 minutos)
   const generateTimeSlots = () => {
     const slots = []
@@ -216,42 +223,35 @@ export default function AgendaPage() {
       return false
     }
 
-    if (!newAppointment.date || !newAppointment.time) {
+    if (!newAppointment.date) {
       toast({
         title: "Erro",
-        description: "Selecione data e horário",
+        description: "Selecione uma data",
         variant: "destructive",
       })
       return false
     }
 
-    // Validar se o horário está em intervalos de 5 minutos
-    const [hours, minutes] = newAppointment.time.split(':').map(Number)
-    if (minutes % 5 !== 0) {
+    if (!newAppointment.time) {
       toast({
-        title: "Horário Inválido",
-        description: "O horário deve estar em intervalos de 5 em 5 minutos (ex: 08:00, 08:05, 08:10...)",
+        title: "Erro",
+        description: "Selecione um horário",
         variant: "destructive",
       })
       return false
     }
 
-    // Verificar se o horário está disponível considerando a duração do serviço
+    // Verificar se o horário ainda está disponível (dupla verificação)
     const selectedService = services.find(s => s.id === newAppointment.serviceId)
     if (selectedService) {
-      const serviceDuration = selectedService.duration || 30
-      const isAvailable = canScheduleService(
-        newAppointment.time, 
-        serviceDuration, 
-        newAppointment.professionalId || undefined
-      )
-      
-      if (!isAvailable) {
+      const availableSlots = getAvailableTimeSlots()
+      if (!availableSlots.includes(newAppointment.time)) {
         toast({
           title: "Horário Indisponível",
-          description: `Este horário não está disponível para um serviço de ${serviceDuration} minutos. Escolha outro horário.`,
+          description: "Este horário não está mais disponível. Selecione outro horário.",
           variant: "destructive",
         })
+        setNewAppointment(prev => ({...prev, time: ""}))
         return false
       }
     }
@@ -296,6 +296,14 @@ export default function AgendaPage() {
 
   // Concluir agendamento
   const handleCompleteAppointment = async (appointmentId: string) => {
+    const appointment = appointments.find(apt => apt.id === appointmentId)
+    const clientName = appointment?.endUser?.name || 'Cliente'
+    const serviceName = appointment?.service?.name || 'Serviço'
+    
+    if (!confirm(`Deseja concluir o serviço?\n\nCliente: ${clientName}\nServiço: ${serviceName}`)) {
+      return
+    }
+
     try {
       await updateAppointment({ id: appointmentId, status: 'COMPLETED' })
       
@@ -316,6 +324,14 @@ export default function AgendaPage() {
 
   // Cancelar agendamento
   const handleCancelAppointment = async (appointmentId: string) => {
+    const appointment = appointments.find(apt => apt.id === appointmentId)
+    const clientName = appointment?.endUser?.name || 'Cliente'
+    const serviceName = appointment?.service?.name || 'Serviço'
+    
+    if (!confirm(`Deseja cancelar o serviço?\n\nCliente: ${clientName}\nServiço: ${serviceName}`)) {
+      return
+    }
+
     try {
       await updateAppointment({ id: appointmentId, status: 'CANCELLED' })
       
@@ -382,8 +398,11 @@ export default function AgendaPage() {
     const matchesDate = appointmentDate === currentDateString
     const matchesProfessional = selectedProfessional === "todos" || 
                                appointment.professionalId === selectedProfessional
-    const matchesStatus = selectedStatus === "todos" || 
-                         appointment.status === selectedStatus
+    
+    // Normalizar status para comparação (maiúsculo)
+    const appointmentStatus = (appointment.status || '').toString().toUpperCase()
+    const filterStatus = selectedStatus.toUpperCase()
+    const matchesStatus = selectedStatus === "todos" || appointmentStatus === filterStatus
     
     return matchesDate && matchesProfessional && matchesStatus
   })
@@ -418,6 +437,76 @@ export default function AgendaPage() {
       }
     }
     return null
+  }
+
+  // Função para obter horários disponíveis para o modal
+  const getAvailableTimeSlots = () => {
+    if (!newAppointment.serviceId || !newAppointment.date) return []
+    
+    const selectedService = services.find(s => s.id === newAppointment.serviceId)
+    if (!selectedService) return []
+    
+    const serviceDuration = selectedService.duration || 30
+    const selectedDate = new Date(newAppointment.date)
+    
+    // Obter agendamentos da data selecionada
+    const dayAppointments = appointments.filter(apt => {
+      const aptDate = new Date(apt.dateTime || apt.date)
+      return aptDate.toDateString() === selectedDate.toDateString()
+    })
+    
+    return generateTimeSlots().filter(time => {
+      // Verificar se o horário pode acomodar o serviço
+      const timeToMinutes = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        return hours * 60 + minutes
+      }
+      
+      const startMinutes = timeToMinutes(time)
+      const endMinutes = startMinutes + serviceDuration
+      
+      // Verificar se todos os slots de 5min necessários estão livres
+      const slots = generateTimeSlots()
+      for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
+        const hours = Math.floor(currentMinutes / 60)
+        const minutes = currentMinutes % 60
+        const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+        
+        if (!slots.includes(slotTime)) continue
+        
+        // Verificar se este slot está ocupado
+        const isOccupied = dayAppointments.some(apt => {
+          const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+          const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })
+          
+          const aptServiceDuration = apt.service?.duration || apt.duration || 30
+          const aptEndTime = new Date(aptStartTime.getTime() + (aptServiceDuration * 60000))
+          const aptEndTimeString = aptEndTime.toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })
+          
+          const slotMinutes = timeToMinutes(slotTime)
+          const aptStartMinutes = timeToMinutes(aptStartTimeString)
+          const aptEndMinutes = timeToMinutes(aptEndTimeString)
+          
+          const isWithinAppointment = slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes
+          const matchesProfessional = !newAppointment.professionalId || 
+                                     apt.professionalId === newAppointment.professionalId
+          
+          return isWithinAppointment && matchesProfessional
+        })
+        
+        if (isOccupied) {
+          return false
+        }
+      }
+      
+      return true
+    })
   }
 
   if (appointmentsLoading || clientsLoading || servicesLoading) {
@@ -895,16 +984,31 @@ export default function AgendaPage() {
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    step="300"
-                    value={newAppointment.time}
-                    onChange={(e) => setNewAppointment({...newAppointment, time: e.target.value})}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed]"
-                  />
+                  <Select 
+                    value={newAppointment.time} 
+                    onValueChange={(value) => setNewAppointment({...newAppointment, time: value})}
+                  >
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                      <SelectValue placeholder="Selecione um horário" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60">
+                      {getAvailableTimeSlots().map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                      {getAvailableTimeSlots().length === 0 && (
+                        <SelectItem value="" disabled>
+                          Nenhum horário disponível
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-[#a1a1aa] mt-1">
-                    Horários disponíveis de 5 em 5 minutos
+                    {newAppointment.serviceId ? 
+                      `${getAvailableTimeSlots().length} horários disponíveis` : 
+                      'Selecione um serviço primeiro'
+                    }
                   </p>
                 </div>
               </div>
