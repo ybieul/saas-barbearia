@@ -18,6 +18,10 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
+  Check,
+  X,
+  Edit3,
+  Trash2,
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices } from "@/hooks/use-api"
@@ -26,6 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState("todos")
+  const [selectedStatus, setSelectedStatus] = useState("todos")
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -40,7 +45,7 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   
   // Hooks para dados reais do banco de dados
-  const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment } = useAppointments()
+  const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
   const { clients, loading: clientsLoading, error: clientsError, fetchClients } = useClients()
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
@@ -64,12 +69,12 @@ export default function AgendaPage() {
     })
   }, [appointments, clients, services, professionalsData])
 
-  // Função para gerar horários (sempre de 15 em 15 minutos - menor unidade)
+  // Função para gerar horários (de 5 em 5 minutos)
   const generateTimeSlots = () => {
     const slots = []
     const startHour = 8 // 08:00
     const endHour = 18 // 18:00
-    const interval = 15 // Sempre 15 minutos (menor unidade)
+    const interval = 5 // Intervalos de 5 minutos
     
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
@@ -135,9 +140,9 @@ export default function AgendaPage() {
     const startMinutes = timeToMinutes(time)
     const endMinutes = startMinutes + serviceDuration
     
-    // Verificar se todos os slots de 15min necessários estão livres
+    // Verificar se todos os slots de 5min necessários estão livres
     const slots = generateTimeSlots()
-    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 15) {
+    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
       const hours = Math.floor(currentMinutes / 60)
       const minutes = currentMinutes % 60
       const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
@@ -153,15 +158,25 @@ export default function AgendaPage() {
   // Calcular estatísticas do dia
   const calculateDayStats = () => {
     const today = todayAppointments
-    const completed = today.filter(apt => apt.status === 'completed')
-    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'confirmed')
+    const completed = today.filter(apt => apt.status === 'completed' || apt.status === 'COMPLETED')
+    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED')
+    const inProgress = today.filter(apt => apt.status === 'IN_PROGRESS')
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
-    const occupancyRate = Math.round((today.length / generateTimeSlots().length) * 100)
+    
+    // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
+    const totalSlotsInDay = generateTimeSlots().length
+    const totalOccupiedSlots = today.reduce((sum, apt) => {
+      const serviceDuration = apt.service?.duration || apt.duration || 30
+      const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
+      return sum + slotsNeeded
+    }, 0)
+    
+    const occupancyRate = Math.round((totalOccupiedSlots / totalSlotsInDay) * 100)
 
     return {
       appointmentsToday: today.length,
       completed: completed.length,
-      pending: pending.length,
+      pending: pending.length + inProgress.length,
       occupancyRate: Math.min(occupancyRate, 100),
       revenueToday: totalRevenue
     }
@@ -205,6 +220,17 @@ export default function AgendaPage() {
       toast({
         title: "Erro",
         description: "Selecione data e horário",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    // Validar se o horário está em intervalos de 5 minutos
+    const [hours, minutes] = newAppointment.time.split(':').map(Number)
+    if (minutes % 5 !== 0) {
+      toast({
+        title: "Horário Inválido",
+        description: "O horário deve estar em intervalos de 5 em 5 minutos (ex: 08:00, 08:05, 08:10...)",
         variant: "destructive",
       })
       return false
@@ -268,6 +294,70 @@ export default function AgendaPage() {
     }
   }
 
+  // Concluir agendamento
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      await updateAppointment({ id: appointmentId, status: 'COMPLETED' })
+      
+      toast({
+        title: "Sucesso",
+        description: "Agendamento concluído com sucesso!",
+      })
+      
+      fetchAppointments() // Recarregar dados
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao concluir agendamento",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Cancelar agendamento
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await updateAppointment({ id: appointmentId, status: 'CANCELLED' })
+      
+      toast({
+        title: "Sucesso",
+        description: "Agendamento cancelado com sucesso!",
+      })
+      
+      fetchAppointments() // Recarregar dados
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao cancelar agendamento",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Deletar agendamento permanentemente
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este agendamento permanentemente?')) {
+      return
+    }
+
+    try {
+      await deleteAppointment(appointmentId)
+      
+      toast({
+        title: "Sucesso",
+        description: "Agendamento excluído com sucesso!",
+      })
+      
+      fetchAppointments() // Recarregar dados
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir agendamento",
+        variant: "destructive",
+      })
+    }
+  }
+
   // Formatar data para exibição
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("pt-BR", {
@@ -284,7 +374,7 @@ export default function AgendaPage() {
     setCurrentDate(newDate)
   }
 
-  // Filtrar agendamentos por data e profissional
+  // Filtrar agendamentos por data, profissional e status
   const filteredAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.dateTime).toDateString()
     const currentDateString = currentDate.toDateString()
@@ -292,22 +382,42 @@ export default function AgendaPage() {
     const matchesDate = appointmentDate === currentDateString
     const matchesProfessional = selectedProfessional === "todos" || 
                                appointment.professionalId === selectedProfessional
+    const matchesStatus = selectedStatus === "todos" || 
+                         appointment.status === selectedStatus
     
-    return matchesDate && matchesProfessional
+    return matchesDate && matchesProfessional && matchesStatus
   })
 
-  // Status do agendamento
+  // Status do agendamento - melhorado
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      SCHEDULED: { label: "Agendado", variant: "secondary" as const },
-      CONFIRMED: { label: "Confirmado", variant: "default" as const },
-      IN_PROGRESS: { label: "Em andamento", variant: "default" as const },
-      COMPLETED: { label: "Concluído", variant: "secondary" as const },
-      CANCELLED: { label: "Cancelado", variant: "destructive" as const },
-      NO_SHOW: { label: "Não compareceu", variant: "destructive" as const },
+      SCHEDULED: { label: "Agendado", variant: "secondary" as const, color: "bg-blue-500" },
+      CONFIRMED: { label: "Confirmado", variant: "default" as const, color: "bg-[#10b981]" },
+      IN_PROGRESS: { label: "Em andamento", variant: "default" as const, color: "bg-yellow-500" },
+      COMPLETED: { label: "Concluído", variant: "secondary" as const, color: "bg-[#10b981]" },
+      CANCELLED: { label: "Cancelado", variant: "destructive" as const, color: "bg-red-500" },
+      NO_SHOW: { label: "Não compareceu", variant: "destructive" as const, color: "bg-red-500" },
     }
     
-    return statusMap[status as keyof typeof statusMap] || { label: status, variant: "secondary" as const }
+    return statusMap[status as keyof typeof statusMap] || { label: status, variant: "secondary" as const, color: "bg-gray-500" }
+  }
+
+  // Função para verificar se data/hora já passou
+  const isPastDateTime = (dateTime: string | Date) => {
+    const appointmentDateTime = new Date(dateTime)
+    const now = new Date()
+    return appointmentDateTime < now
+  }
+
+  // Função para obter a próxima disponibilidade
+  const getNextAvailableTime = (serviceDuration: number, professionalId?: string) => {
+    const slots = generateTimeSlots()
+    for (const slot of slots) {
+      if (canScheduleService(slot, serviceDuration, professionalId)) {
+        return slot
+      }
+    }
+    return null
   }
 
   if (appointmentsLoading || clientsLoading || servicesLoading) {
@@ -459,6 +569,21 @@ export default function AgendaPage() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#18181b] border-[#27272a]">
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="SCHEDULED">Agendado</SelectItem>
+            <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+            <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
+            <SelectItem value="COMPLETED">Concluído</SelectItem>
+            <SelectItem value="CANCELLED">Cancelado</SelectItem>
+            <SelectItem value="NO_SHOW">Não compareceu</SelectItem>
+          </SelectContent>
+        </Select>
         </div>
       </div>
 
@@ -467,7 +592,7 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            Grade de 15 em 15 minutos - Agendamentos bloqueiam automaticamente todo o período do serviço
+            Grade de 5 em 5 minutos - Agendamentos bloqueiam automaticamente todo o período do serviço
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -495,7 +620,9 @@ export default function AgendaPage() {
                     </div>
                     {appointment ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div 
+                          className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                        ></div>
                         <div>
                           <p className="text-[#ededed] font-medium">
                             {appointment.endUser?.name || appointment.clientName || 'Cliente'}
@@ -506,6 +633,9 @@ export default function AgendaPage() {
                             {(appointment.professional?.name || appointment.professionalName) && 
                               ` • ${appointment.professional?.name || appointment.professionalName}`
                             }
+                          </p>
+                          <p className="text-xs text-[#71717a]">
+                            Status: {getStatusBadge(appointment.status).label}
                           </p>
                         </div>
                       </div>
@@ -523,18 +653,41 @@ export default function AgendaPage() {
                   </div>
                   
                   {!isOccupied && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
-                      onClick={() => {
-                        setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
-                        setIsNewAppointmentOpen(true)
-                      }}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Agendar
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                        onClick={() => {
+                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          setIsNewAppointmentOpen(true)
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Agendar
+                      </Button>
+                      
+                      {/* Mostrar sugestão de próximo horário disponível se houver serviço selecionado */}
+                      {newAppointment.serviceId && (
+                        (() => {
+                          const selectedService = services.find(s => s.id === newAppointment.serviceId)
+                          if (selectedService) {
+                            const nextAvailable = getNextAvailableTime(
+                              selectedService.duration || 30,
+                              newAppointment.professionalId || undefined
+                            )
+                            if (nextAvailable && nextAvailable !== time) {
+                              return (
+                                <span className="text-xs text-[#a1a1aa]">
+                                  Próximo: {nextAvailable}
+                                </span>
+                              )
+                            }
+                          }
+                          return null
+                        })()
+                      )}
+                    </div>
                   )}
                 </div>
               )
@@ -591,16 +744,67 @@ export default function AgendaPage() {
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-[#10b981] font-semibold">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(appointment.totalPrice || 0)}
-                      </p>
-                      <p className="text-[#a1a1aa] text-sm">
-                        {appointment.duration || appointment.service?.duration || 0} min
-                      </p>
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="text-right">
+                        <p className="text-[#10b981] font-semibold">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                          }).format(appointment.totalPrice || 0)}
+                        </p>
+                        <p className="text-[#a1a1aa] text-sm">
+                          {appointment.duration || appointment.service?.duration || 0} min
+                        </p>
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex gap-2">
+                        {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCompleteAppointment(appointment.id)}
+                              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                              title="Concluir agendamento"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              title="Cancelar agendamento"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingAppointment(appointment)
+                            setIsEditAppointmentOpen(true)
+                          }}
+                          className="border-[#27272a] hover:bg-[#27272a]"
+                          title="Editar agendamento"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteAppointment(appointment.id)}
+                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          title="Excluir agendamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -694,10 +898,14 @@ export default function AgendaPage() {
                   <Input
                     id="time"
                     type="time"
+                    step="300"
                     value={newAppointment.time}
                     onChange={(e) => setNewAppointment({...newAppointment, time: e.target.value})}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
+                  <p className="text-xs text-[#a1a1aa] mt-1">
+                    Horários disponíveis de 5 em 5 minutos
+                  </p>
                 </div>
               </div>
 
