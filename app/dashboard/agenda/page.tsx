@@ -222,6 +222,7 @@ export default function AgendaPage() {
       time: "",
       notes: ""
     })
+    setEditingAppointment(null)
   }
 
   // Validação de dados
@@ -286,11 +287,23 @@ export default function AgendaPage() {
 
     setIsCreating(true)
     try {
+      // Criar dateTime sem problemas de fuso horário
+      const [year, month, day] = newAppointment.date.split('-')
+      const [hours, minutes] = newAppointment.time.split(':')
+      const appointmentDateTime = new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Month is 0-indexed
+        parseInt(day),
+        parseInt(hours),
+        parseInt(minutes),
+        0
+      )
+
       const appointmentData = {
         endUserId: newAppointment.endUserId,
         serviceId: newAppointment.serviceId,
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: `${newAppointment.date}T${newAppointment.time}:00`,
+        dateTime: appointmentDateTime.toISOString(),
         notes: newAppointment.notes || undefined
       }
 
@@ -315,7 +328,74 @@ export default function AgendaPage() {
     }
   }
 
-  // Abrir diálogo de confirmação para concluir
+  // Editar agendamento (função simples)
+  const handleEditAppointment = (appointment: any) => {
+    // Preencher o formulário com os dados do agendamento existente
+    const appointmentDate = new Date(appointment.dateTime)
+    const formattedDate = appointmentDate.toISOString().split('T')[0]
+    const formattedTime = appointmentDate.toTimeString().split(' ')[0].substring(0, 5)
+    
+    setNewAppointment({
+      endUserId: appointment.endUserId || appointment.endUser?.id || "",
+      professionalId: appointment.professionalId || "",
+      serviceId: appointment.serviceId || appointment.service?.id || "",
+      date: formattedDate,
+      time: formattedTime,
+      notes: appointment.notes || ""
+    })
+    
+    setEditingAppointment(appointment)
+    setIsNewAppointmentOpen(true) // Reutilizar o modal existente
+  }
+
+  // Atualizar agendamento existente
+  const handleUpdateAppointment = async () => {
+    if (!validateForm() || !editingAppointment) return
+
+    setIsCreating(true)
+    try {
+      // Criar dateTime sem problemas de fuso horário
+      const [year, month, day] = newAppointment.date.split('-')
+      const [hours, minutes] = newAppointment.time.split(':')
+      const appointmentDateTime = new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Month is 0-indexed
+        parseInt(day),
+        parseInt(hours),
+        parseInt(minutes),
+        0
+      )
+
+      const appointmentData = {
+        id: editingAppointment.id,
+        endUserId: newAppointment.endUserId,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId || undefined,
+        dateTime: appointmentDateTime.toISOString(),
+        notes: newAppointment.notes || undefined
+      }
+
+      await updateAppointment(appointmentData)
+      
+      toast({
+        title: "Sucesso",
+        description: "Agendamento atualizado com sucesso!",
+      })
+      
+      setIsNewAppointmentOpen(false)
+      setEditingAppointment(null)
+      resetForm()
+      fetchAppointments() // Recarregar dados
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar agendamento",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreating(false)
+    }
+  }
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
@@ -900,10 +980,7 @@ export default function AgendaPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditingAppointment(appointment)
-                            setIsEditAppointmentOpen(true)
-                          }}
+                          onClick={() => handleEditAppointment(appointment)}
                           className="border-[#27272a] hover:bg-[#27272a]"
                           title="Editar agendamento"
                         >
@@ -934,9 +1011,11 @@ export default function AgendaPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="bg-[#18181b] border-[#27272a] w-full max-w-md">
             <CardHeader>
-              <CardTitle className="text-[#ededed]">Novo Agendamento</CardTitle>
+              <CardTitle className="text-[#ededed]">
+                {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
+              </CardTitle>
               <CardDescription className="text-[#a1a1aa]">
-                Preencha os dados do agendamento
+                {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1057,6 +1136,7 @@ export default function AgendaPage() {
                 variant="outline"
                 onClick={() => {
                   setIsNewAppointmentOpen(false)
+                  setEditingAppointment(null)
                   resetForm()
                 }}
                 className="border-[#27272a] hover:bg-[#27272a]"
@@ -1064,11 +1144,14 @@ export default function AgendaPage() {
                 Cancelar
               </Button>
               <Button
-                onClick={handleCreateAppointment}
+                onClick={editingAppointment ? handleUpdateAppointment : handleCreateAppointment}
                 disabled={!newAppointment.endUserId || !newAppointment.serviceId || !newAppointment.date || !newAppointment.time || isCreating}
                 className="bg-[#10b981] hover:bg-[#059669]"
               >
-                {isCreating ? "Criando..." : "Criar Agendamento"}
+                {isCreating ? 
+                  (editingAppointment ? "Atualizando..." : "Criando...") : 
+                  (editingAppointment ? "Atualizar Agendamento" : "Criar Agendamento")
+                }
               </Button>
             </div>
           </Card>
