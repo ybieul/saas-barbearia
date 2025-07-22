@@ -26,7 +26,6 @@ import { useToast } from "@/hooks/use-toast"
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState("todos")
-  const [timeInterval, setTimeInterval] = useState(40) // Intervalo em minutos (40min padrão)
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -65,14 +64,15 @@ export default function AgendaPage() {
     })
   }, [appointments, clients, services, professionalsData])
 
-  // Função para gerar horários baseados no intervalo escolhido
+  // Função para gerar horários (sempre de 15 em 15 minutos - menor unidade)
   const generateTimeSlots = () => {
     const slots = []
     const startHour = 8 // 08:00
     const endHour = 18 // 18:00
+    const interval = 15 // Sempre 15 minutos (menor unidade)
     
     for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += timeInterval) {
+      for (let minute = 0; minute < 60; minute += interval) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
         slots.push(time)
       }
@@ -86,15 +86,68 @@ export default function AgendaPage() {
     return aptDate.toDateString() === currentDate.toDateString()
   })
 
-  // Função para verificar se um horário está ocupado
+  // Função para verificar se um horário está ocupado (considerando duração do serviço)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
-      const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
+      const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+      const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
         hour: '2-digit', 
         minute: '2-digit' 
       })
-      return aptTime === time && (!professionalId || apt.professionalId === professionalId)
+      
+      // Obter duração do serviço (em minutos)
+      const serviceDuration = apt.service?.duration || apt.duration || 30
+      
+      // Calcular horário de fim do agendamento
+      const aptEndTime = new Date(aptStartTime.getTime() + (serviceDuration * 60000))
+      const aptEndTimeString = aptEndTime.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+      
+      // Converter horários para minutos para facilitar comparação
+      const timeToMinutes = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        return hours * 60 + minutes
+      }
+      
+      const slotMinutes = timeToMinutes(time)
+      const aptStartMinutes = timeToMinutes(aptStartTimeString)
+      const aptEndMinutes = timeToMinutes(aptEndTimeString)
+      
+      // Verificar se o slot está dentro do período do agendamento
+      const isWithinAppointment = slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes
+      
+      // Verificar filtro de profissional
+      const matchesProfessional = !professionalId || apt.professionalId === professionalId
+      
+      return isWithinAppointment && matchesProfessional
     })
+  }
+
+  // Função para verificar se é possível agendar um serviço em determinado horário
+  const canScheduleService = (time: string, serviceDuration: number, professionalId?: string) => {
+    const timeToMinutes = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(':').map(Number)
+      return hours * 60 + minutes
+    }
+    
+    const startMinutes = timeToMinutes(time)
+    const endMinutes = startMinutes + serviceDuration
+    
+    // Verificar se todos os slots de 15min necessários estão livres
+    const slots = generateTimeSlots()
+    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 15) {
+      const hours = Math.floor(currentMinutes / 60)
+      const minutes = currentMinutes % 60
+      const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      
+      if (slots.includes(slotTime) && isTimeSlotOccupied(slotTime, professionalId)) {
+        return false
+      }
+    }
+    
+    return true
   }
 
   // Calcular estatísticas do dia
@@ -155,6 +208,26 @@ export default function AgendaPage() {
         variant: "destructive",
       })
       return false
+    }
+
+    // Verificar se o horário está disponível considerando a duração do serviço
+    const selectedService = services.find(s => s.id === newAppointment.serviceId)
+    if (selectedService) {
+      const serviceDuration = selectedService.duration || 30
+      const isAvailable = canScheduleService(
+        newAppointment.time, 
+        serviceDuration, 
+        newAppointment.professionalId || undefined
+      )
+      
+      if (!isAvailable) {
+        toast({
+          title: "Horário Indisponível",
+          description: `Este horário não está disponível para um serviço de ${serviceDuration} minutos. Escolha outro horário.`,
+          variant: "destructive",
+        })
+        return false
+      }
     }
 
     return true
@@ -373,20 +446,6 @@ export default function AgendaPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label className="text-[#ededed] text-sm">Intervalo:</Label>
-            <Select value={timeInterval.toString()} onValueChange={(value) => setTimeInterval(Number(value))}>
-              <SelectTrigger className="w-32 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="15">15 min</SelectItem>
-                <SelectItem value="40">40 min</SelectItem>
-                <SelectItem value="60">1 hora</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
             <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
               <SelectValue placeholder="Filtrar por profissional" />
@@ -406,7 +465,10 @@ export default function AgendaPage() {
       {/* Agenda de Horários */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#ededed]">Agendamentos do Dia</CardTitle>
+          <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
+          <CardDescription className="text-[#a1a1aa]">
+            Grade de 15 em 15 minutos - Agendamentos bloqueiam automaticamente todo o período do serviço
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-96 overflow-y-auto">
@@ -424,7 +486,7 @@ export default function AgendaPage() {
                 <div
                   key={time}
                   className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
-                    isOccupied ? 'bg-[#10b981]/10' : ''
+                    isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -433,25 +495,34 @@ export default function AgendaPage() {
                     </div>
                     {appointment ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <div>
                           <p className="text-[#ededed] font-medium">
-                            {appointment.clientName || 'Cliente'}
+                            {appointment.endUser?.name || appointment.clientName || 'Cliente'}
                           </p>
                           <p className="text-[#a1a1aa] text-sm">
-                            {appointment.serviceName || 'Serviço'} • {appointment.professionalName || 'Profissional'}
+                            {appointment.service?.name || appointment.serviceName || 'Serviço'} 
+                            <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
+                            {(appointment.professional?.name || appointment.professionalName) && 
+                              ` • ${appointment.professional?.name || appointment.professionalName}`
+                            }
                           </p>
                         </div>
                       </div>
+                    ) : isOccupied ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-[#71717a] rounded-full"></div>
-                        <p className="text-[#71717a]">Disponível - Clique para agendar</p>
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
                       </div>
                     )}
                   </div>
                   
-                  {!appointment && (
+                  {!isOccupied && (
                     <Button
                       size="sm"
                       variant="outline"
