@@ -1001,7 +1001,34 @@ export default function AgendaPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-96 overflow-y-auto">
-            {generateTimeSlots().map((time) => {
+            {(() => {
+              // Verificar se o estabelecimento está aberto antes de gerar slots
+              if (!isEstablishmentOpen(currentDate)) {
+                const dayName = currentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+                return (
+                  <div className="p-8 text-center">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
+                      <p className="text-gray-400 text-lg">Estabelecimento Fechado</p>
+                    </div>
+                    <p className="text-[#a1a1aa] text-sm">
+                      {dayName} ({currentDate.toLocaleDateString('pt-BR')}) - Não há atendimento neste dia
+                    </p>
+                  </div>
+                );
+              }
+
+              const timeSlots = generateTimeSlots();
+              
+              if (timeSlots.length === 0) {
+                return (
+                  <div className="p-8 text-center">
+                    <p className="text-[#a1a1aa]">Nenhum horário disponível para este dia</p>
+                  </div>
+                );
+              }
+
+              return timeSlots.map((time) => {
               const isOccupied = isTimeSlotOccupied(time)
               const dateStr = currentDate.toISOString().split('T')[0];
               const isAvailable = isEstablishmentOpen(currentDate) && isTimeSlotAvailable(time, dateStr);
@@ -1111,7 +1138,8 @@ export default function AgendaPage() {
                   )}
                 </div>
               )
-            })}
+            });
+            })()}
           </div>
         </CardContent>
       </Card>
