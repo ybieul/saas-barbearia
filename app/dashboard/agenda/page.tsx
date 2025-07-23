@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
+import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AgendaPage() {
@@ -71,6 +72,7 @@ export default function AgendaPage() {
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
+  const { workingHours, loading: workingHoursLoading, fetchWorkingHours } = useWorkingHours()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -80,7 +82,8 @@ export default function AgendaPage() {
     fetchServices()
     fetchProfessionals()
     fetchEstablishment()
-  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment])
+    fetchWorkingHours()
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment, fetchWorkingHours])
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -99,11 +102,63 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
+  // Função para verificar se um dia está disponível (estabelecimento aberto)
+  const isDayAvailable = (date: Date) => {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayOfWeek = dayNames[date.getDay()]
+    
+    const workingHoursForDay = workingHours.find(wh => wh.dayOfWeek === dayOfWeek)
+    return workingHoursForDay?.isActive || false
+  }
+
+  // Função para obter horários de funcionamento de um dia específico
+  const getDayWorkingHours = (date: Date) => {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayOfWeek = dayNames[date.getDay()]
+    
+    const workingHoursForDay = workingHours.find(wh => wh.dayOfWeek === dayOfWeek)
+    
+    if (!workingHoursForDay?.isActive) {
+      return null
+    }
+    
+    return {
+      startTime: workingHoursForDay.startTime,
+      endTime: workingHoursForDay.endTime
+    }
+  }
+
   // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
-  const generateTimeSlots = () => {
+  const generateTimeSlots = (specificDate?: Date) => {
     const slots = []
     
-    // Usar horários do estabelecimento ou padrão
+    // Se uma data específica foi fornecida, usar os horários daquele dia
+    if (specificDate) {
+      const dayHours = getDayWorkingHours(specificDate)
+      if (!dayHours) return [] // Dia não disponível
+      
+      const startHour = parseInt(dayHours.startTime.split(':')[0])
+      const startMinute = parseInt(dayHours.startTime.split(':')[1])
+      const endHour = parseInt(dayHours.endTime.split(':')[0])
+      const endMinute = parseInt(dayHours.endTime.split(':')[1])
+      
+      const interval = 5 // Intervalos de 5 minutos
+      
+      // Converter tudo para minutos para facilitar o cálculo
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      
+      for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
+        const hour = Math.floor(totalMinutes / 60)
+        const minute = totalMinutes % 60
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        slots.push(time)
+      }
+      
+      return slots
+    }
+    
+    // Fallback para usar horários do establishment (compatibilidade)
     const defaultStartHour = 8
     const defaultEndHour = 18
     
@@ -202,14 +257,14 @@ export default function AgendaPage() {
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
     // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
-    const totalSlotsInDay = generateTimeSlots().length
+    const totalSlotsInDay = generateTimeSlots(currentDate).length
     const totalOccupiedSlots = today.reduce((sum, apt) => {
       const serviceDuration = apt.service?.duration || apt.duration || 30
       const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
       return sum + slotsNeeded
     }, 0)
     
-    const occupancyRate = Math.round((totalOccupiedSlots / totalSlotsInDay) * 100)
+    const occupancyRate = totalSlotsInDay > 0 ? Math.round((totalOccupiedSlots / totalSlotsInDay) * 100) : 0
 
     return {
       appointmentsToday: today.length,
@@ -259,6 +314,20 @@ export default function AgendaPage() {
       toast({
         title: "Erro",
         description: "Selecione uma data",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    // Verificar se a data selecionada está disponível (estabelecimento aberto)
+    const selectedDate = new Date(newAppointment.date)
+    if (!isDayAvailable(selectedDate)) {
+      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+      const dayName = dayNames[selectedDate.getDay()]
+      
+      toast({
+        title: "Data Indisponível",
+        description: `O estabelecimento não funciona às ${dayName}s. Selecione uma data em que o estabelecimento esteja aberto.`,
         variant: "destructive",
       })
       return false
@@ -565,13 +634,19 @@ export default function AgendaPage() {
     const serviceDuration = selectedService.duration || 30
     const selectedDate = new Date(newAppointment.date)
     
+    // Verificar se o dia está disponível (estabelecimento aberto)
+    if (!isDayAvailable(selectedDate)) {
+      return []
+    }
+    
     // Obter agendamentos da data selecionada
     const dayAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.dateTime || apt.date)
       return aptDate.toDateString() === selectedDate.toDateString()
     })
     
-    return generateTimeSlots().filter(time => {
+    // Gerar slots baseados nos horários de funcionamento daquele dia
+    return generateTimeSlots(selectedDate).filter(time => {
       // Verificar se o horário pode acomodar o serviço
       const timeToMinutes = (timeStr: string) => {
         const [hours, minutes] = timeStr.split(':').map(Number)
@@ -582,7 +657,7 @@ export default function AgendaPage() {
       const endMinutes = startMinutes + serviceDuration
       
       // Verificar se todos os slots de 5min necessários estão livres
-      const slots = generateTimeSlots()
+      const slots = generateTimeSlots(selectedDate)
       for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
         const hours = Math.floor(currentMinutes / 60)
         const minutes = currentMinutes % 60
@@ -641,13 +716,32 @@ export default function AgendaPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
-          <p className="text-[#a1a1aa]">Gerencie seus agendamentos</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
+            {isDayAvailable(currentDate) ? (
+              <Badge className="bg-green-600 hover:bg-green-600 text-white">
+                🟢 Aberto
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                🔴 Fechado
+              </Badge>
+            )}
+          </div>
+          <p className="text-[#a1a1aa]">
+            Gerencie seus agendamentos • {currentDate.toLocaleDateString('pt-BR', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
         </div>
         
         <Button 
           onClick={() => setIsNewAppointmentOpen(true)}
           className="bg-[#10b981] hover:bg-[#059669]"
+          disabled={!isDayAvailable(currentDate)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Agendamento
@@ -797,12 +891,33 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            Grade de 5 em 5 minutos - Horários de funcionamento: {establishment?.openTime || '08:00'} às {establishment?.closeTime || '18:00'}
+            {isDayAvailable(currentDate) ? (
+              <>
+                Grade de 5 em 5 minutos - Horários de funcionamento: {getDayWorkingHours(currentDate)?.startTime || '08:00'} às {getDayWorkingHours(currentDate)?.endTime || '18:00'}
+              </>
+            ) : (
+              <span className="text-red-400">
+                🔴 Estabelecimento fechado hoje. Configurar horários de funcionamento nas Configurações.
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {!isDayAvailable(currentDate) ? (
+            <div className="p-8 text-center">
+              <div className="p-4 bg-red-900/20 rounded-lg border border-red-700/50 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold text-red-400 mb-2">Estabelecimento Fechado</h3>
+                <p className="text-red-300 text-sm mb-4">
+                  O estabelecimento não funciona hoje. Não é possível criar novos agendamentos.
+                </p>
+                <p className="text-xs text-gray-400">
+                  Para alterar os horários de funcionamento, acesse a aba &quot;Configurações &gt; Horários&quot;.
+                </p>
+              </div>
+            </div>
+          ) : (
           <div className="max-h-96 overflow-y-auto">
-            {generateTimeSlots().map((time) => {
+            {generateTimeSlots(currentDate).map((time) => {
               const isOccupied = isTimeSlotOccupied(time)
               const appointment = todayAppointments.find(apt => {
                 const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
@@ -849,6 +964,11 @@ export default function AgendaPage() {
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
                       </div>
+                    ) : !isDayAvailable(currentDate) ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <p className="text-gray-400">Estabelecimento fechado</p>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
@@ -857,7 +977,7 @@ export default function AgendaPage() {
                     )}
                   </div>
                   
-                  {!isOccupied && (
+                  {!isOccupied && isDayAvailable(currentDate) && (
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
@@ -898,6 +1018,7 @@ export default function AgendaPage() {
               )
             })}
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1096,12 +1217,18 @@ export default function AgendaPage() {
                     onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
+                  {newAppointment.date && !isDayAvailable(new Date(newAppointment.date)) && (
+                    <p className="text-xs text-red-400 mt-1">
+                      ⚠️ Estabelecimento fechado nesta data
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>
                   <Select 
                     value={newAppointment.time} 
                     onValueChange={(value) => setNewAppointment({...newAppointment, time: value})}
+                    disabled={!newAppointment.date || !isDayAvailable(new Date(newAppointment.date))}
                   >
                     <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
                       <SelectValue placeholder="Selecione um horário" />
@@ -1115,7 +1242,8 @@ export default function AgendaPage() {
                         ))
                       ) : (
                         <div className="p-2 text-center text-[#a1a1aa] text-sm">
-                          Nenhum horário disponível
+                          {newAppointment.date && !isDayAvailable(new Date(newAppointment.date)) ? 
+                            "Estabelecimento fechado" : "Nenhum horário disponível"}
                         </div>
                       )}
                     </SelectContent>

@@ -122,6 +122,26 @@ export default function ConfiguracoesPage() {
     specialty: ""
   })
 
+  // Estados para edição de profissionais
+  const [isEditProfessionalOpen, setIsEditProfessionalOpen] = useState(false)
+  const [editingProfessional, setEditingProfessional] = useState<any>(null)
+  const [editProfessional, setEditProfessional] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    specialty: ""
+  })
+
+  // Estados para edição de serviços
+  const [isEditServiceOpen, setIsEditServiceOpen] = useState(false)
+  const [editingService, setEditingService] = useState<any>(null)
+  const [editService, setEditService] = useState({
+    name: "",
+    description: "",
+    price: "",
+    duration: ""
+  })
+
   // Hook para horários integrado ao banco de dados
   const { 
     workingHours: workingHoursData, 
@@ -177,6 +197,26 @@ export default function ConfiguracoesPage() {
     const updatedWorkingHours = {
       ...workingHours,
       [day]: { ...workingHours[day as keyof typeof workingHours], [field]: value }
+    }
+    
+    // Validação para horários de abertura e fechamento
+    if (field === 'start' || field === 'end') {
+      const dayHours = updatedWorkingHours[day as keyof typeof updatedWorkingHours]
+      const startTime = field === 'start' ? value : dayHours.start
+      const endTime = field === 'end' ? value : dayHours.end
+      
+      // Converter para minutos para comparação
+      const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
+      const endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1])
+      
+      if (startMinutes >= endMinutes) {
+        toast({
+          title: "Horário inválido",
+          description: "O horário de abertura deve ser anterior ao horário de fechamento.",
+          variant: "destructive",
+        })
+        return
+      }
     }
     
     try {
@@ -316,13 +356,60 @@ export default function ConfiguracoesPage() {
     setIsNewProfessionalOpen(false)
   }
 
-  const handleUpdateProfessional = async (id: string, field: string, value: string) => {
-    // Debounce: aguarda 1 segundo de inatividade antes de salvar
-    clearTimeout((window as any)[`updateTimeout_${id}_${field}`])
-    
-    ;(window as any)[`updateTimeout_${id}_${field}`] = setTimeout(async () => {
-      await updateProfessional({ id, [field]: value })
-    }, 1000)
+  const handleUpdateProfessional = async () => {
+    if (!editProfessional.name.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Nome do profissional é obrigatório!",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      await updateProfessional({ 
+        id: editingProfessional.id, 
+        name: editProfessional.name.trim(),
+        email: editProfessional.email.trim(),
+        phone: editProfessional.phone.trim(),
+        specialty: editProfessional.specialty.trim()
+      })
+      
+      setIsEditProfessionalOpen(false)
+      setEditingProfessional(null)
+      setEditProfessional({ name: "", email: "", phone: "", specialty: "" })
+      
+      toast({
+        title: "Profissional atualizado!",
+        description: "Os dados do profissional foram atualizados com sucesso.",
+        variant: "default",
+      })
+      
+      await fetchProfessionals()
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar profissional",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditProfessional = (professional: any) => {
+    setEditingProfessional(professional)
+    setEditProfessional({
+      name: professional.name || "",
+      email: professional.email || "",
+      phone: professional.phone || "",
+      specialty: professional.specialty || ""
+    })
+    setIsEditProfessionalOpen(true)
+  }
+
+  const handleCancelEditProfessional = () => {
+    setIsEditProfessionalOpen(false)
+    setEditingProfessional(null)
+    setEditProfessional({ name: "", email: "", phone: "", specialty: "" })
   }
 
   const handleRemoveProfessional = async (id: string, name: string) => {
@@ -408,13 +495,60 @@ export default function ConfiguracoesPage() {
     setIsNewServiceOpen(false)
   }
 
-  const handleUpdateService = async (id: string, field: string, value: string | number) => {
-    // Debounce: aguarda 1 segundo de inatividade antes de salvar
-    clearTimeout((window as any)[`updateServiceTimeout_${id}_${field}`])
-    
-    ;(window as any)[`updateServiceTimeout_${id}_${field}`] = setTimeout(async () => {
-      await updateService({ id, [field]: value })
-    }, 1000)
+  const handleUpdateService = async () => {
+    if (!editService.name.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Nome do serviço é obrigatório!",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      await updateService({ 
+        id: editingService.id, 
+        name: editService.name.trim(),
+        description: editService.description.trim(),
+        price: parseFloat(editService.price) || 0,
+        duration: parseInt(editService.duration) || 0
+      })
+      
+      setIsEditServiceOpen(false)
+      setEditingService(null)
+      setEditService({ name: "", description: "", price: "", duration: "" })
+      
+      toast({
+        title: "Serviço atualizado!",
+        description: "Os dados do serviço foram atualizados com sucesso.",
+        variant: "default",
+      })
+      
+      await fetchServices()
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar serviço",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditService = (service: any) => {
+    setEditingService(service)
+    setEditService({
+      name: service.name || "",
+      description: service.description || "",
+      price: service.price?.toString() || "",
+      duration: service.duration?.toString() || ""
+    })
+    setIsEditServiceOpen(true)
+  }
+
+  const handleCancelEditService = () => {
+    setIsEditServiceOpen(false)
+    setEditingService(null)
+    setEditService({ name: "", description: "", price: "", duration: "" })
   }
 
   const handleRemoveService = async (id: string, name: string) => {
@@ -957,40 +1091,27 @@ export default function ConfiguracoesPage() {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div className="space-y-1">
                                   <Label className="text-xs text-[#71717a]">Nome</Label>
-                                  <Input
-                                    value={professional.name || ""}
-                                    onChange={(e) => handleUpdateProfessional(professional.id, 'name', e.target.value)}
-                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
-                                    placeholder="Nome do profissional"
-                                  />
+                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                    {professional.name || "Não informado"}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs text-[#71717a]">E-mail</Label>
-                                  <Input
-                                    type="email"
-                                    value={professional.email || ""}
-                                    onChange={(e) => handleUpdateProfessional(professional.id, 'email', e.target.value)}
-                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
-                                    placeholder="email@exemplo.com"
-                                  />
+                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                    {professional.email || "Não informado"}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs text-[#71717a]">Telefone</Label>
-                                  <Input
-                                    value={professional.phone || ""}
-                                    onChange={(e) => handleUpdateProfessional(professional.id, 'phone', e.target.value)}
-                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
-                                    placeholder="(11) 99999-9999"
-                                  />
+                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                    {professional.phone || "Não informado"}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs text-[#71717a]">Especialidade</Label>
-                                  <Input
-                                    value={professional.specialty || ""}
-                                    onChange={(e) => handleUpdateProfessional(professional.id, 'specialty', e.target.value)}
-                                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9"
-                                    placeholder="Especialidade"
-                                  />
+                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                    {professional.specialty || "Não informado"}
+                                  </div>
                                 </div>
                               </div>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#71717a]">
@@ -1010,6 +1131,14 @@ export default function ConfiguracoesPage() {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => handleEditProfessional(professional)}
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleRemoveProfessional(professional.id, professional.name)}
                               className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent"
                               disabled={professionalsLoading}
@@ -1023,12 +1152,92 @@ export default function ConfiguracoesPage() {
                   </div>
                 </CardContent>
               </Card>
+              
+              {/* Dialog para editar profissional */}
+              <Dialog open={isEditProfessionalOpen} onOpenChange={setIsEditProfessionalOpen}>
+                <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
+                  <DialogHeader>
+                    <DialogTitle className="text-[#ededed]">Editar Profissional</DialogTitle>
+                    <DialogDescription className="text-[#71717a]">
+                      Atualize os dados do profissional
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editProfessionalName" className="text-[#ededed]">
+                        Nome Completo *
+                      </Label>
+                      <Input
+                        id="editProfessionalName"
+                        value={editProfessional.name}
+                        onChange={(e) => setEditProfessional({ ...editProfessional, name: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="Digite o nome do profissional"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editProfessionalEmail" className="text-[#ededed]">
+                        E-mail
+                      </Label>
+                      <Input
+                        id="editProfessionalEmail"
+                        type="email"
+                        value={editProfessional.email}
+                        onChange={(e) => setEditProfessional({ ...editProfessional, email: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="profissional@email.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editProfessionalPhone" className="text-[#ededed]">
+                        Telefone
+                      </Label>
+                      <Input
+                        id="editProfessionalPhone"
+                        value={editProfessional.phone}
+                        onChange={(e) => setEditProfessional({ ...editProfessional, phone: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editProfessionalSpecialty" className="text-[#ededed]">
+                        Especialidade
+                      </Label>
+                      <Input
+                        id="editProfessionalSpecialty"
+                        value={editProfessional.specialty}
+                        onChange={(e) => setEditProfessional({ ...editProfessional, specialty: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="Ex: Corte masculino, Barba, etc."
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 mt-6">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancelEditProfessional}
+                        className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleUpdateProfessional}
+                        className="bg-blue-500 hover:bg-blue-600 text-[#ededed]"
+                        disabled={professionalsLoading}
+                      >
+                        {professionalsLoading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 
           {/* Serviços Tab */}
           {activeTab === "servicos" && (
-            <Card className="bg-[#18181b] border-[#27272a]">
+            <div className="space-y-6">
+              <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
@@ -1133,49 +1342,132 @@ export default function ConfiguracoesPage() {
                           </div>
                           <div className="flex-1 w-full">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                              <Input
-                                value={service.name}
-                                onChange={(e) => handleUpdateService(service.id, 'name', e.target.value)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Nome do serviço"
-                              />
-                              <Input
-                                value={service.description || ""}
-                                onChange={(e) => handleUpdateService(service.id, 'description', e.target.value)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Descrição"
-                              />
-                              <Input
-                                type="number"
-                                value={service.price}
-                                onChange={(e) => handleUpdateService(service.id, 'price', parseFloat(e.target.value) || 0)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Preço"
-                              />
-                              <Input
-                                type="number"
-                                value={service.duration}
-                                onChange={(e) => handleUpdateService(service.id, 'duration', parseInt(e.target.value) || 0)}
-                                className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                                placeholder="Duração (min)"
-                              />
+                              <div className="space-y-1">
+                                <Label className="text-xs text-[#71717a]">Nome</Label>
+                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                  {service.name || "Não informado"}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-[#71717a]">Descrição</Label>
+                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                  {service.description || "Não informado"}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-[#71717a]">Preço</Label>
+                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                  R$ {service.price?.toFixed(2) || "0,00"}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-[#71717a]">Duração</Label>
+                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                  {service.duration || "0"} min
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRemoveService(service.id, service.name)}
-                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent flex-shrink-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditService(service)}
+                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemoveService(service.id, service.name)}
+                            className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Dialog para editar serviço */}
+            <Dialog open={isEditServiceOpen} onOpenChange={setIsEditServiceOpen}>
+              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
+                <DialogHeader>
+                  <DialogTitle className="text-[#ededed]">Editar Serviço</DialogTitle>
+                  <DialogDescription className="text-[#71717a]">
+                    Atualize os dados do serviço
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editServiceName" className="text-[#ededed]">Nome do Serviço *</Label>
+                    <Input
+                      id="editServiceName"
+                      value={editService.name}
+                      onChange={(e) => setEditService({ ...editService, name: e.target.value })}
+                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                      placeholder="Ex: Corte masculino"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editServiceDescription" className="text-[#ededed]">Descrição</Label>
+                    <Input
+                      id="editServiceDescription"
+                      value={editService.description}
+                      onChange={(e) => setEditService({ ...editService, description: e.target.value })}
+                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                      placeholder="Descrição do serviço"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editServicePrice" className="text-[#ededed]">Preço (R$)</Label>
+                      <Input
+                        id="editServicePrice"
+                        type="number"
+                        value={editService.price}
+                        onChange={(e) => setEditService({ ...editService, price: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editServiceDuration" className="text-[#ededed]">Duração (min)</Label>
+                      <Input
+                        id="editServiceDuration"
+                        type="number"
+                        value={editService.duration}
+                        onChange={(e) => setEditService({ ...editService, duration: e.target.value })}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        placeholder="30"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCancelEditService}
+                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateService}
+                      className="bg-purple-500 hover:bg-purple-600 text-[#ededed]"
+                      disabled={servicesLoading}
+                    >
+                      {servicesLoading ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            </div>
           )}
 
           {/* Horários Tab */}
@@ -1190,59 +1482,110 @@ export default function ConfiguracoesPage() {
               <CardContent>
                 {workingHoursLoading ? (
                   <div className="flex justify-center items-center py-8">
-                    <div className="text-[#71717a]">Carregando horários...</div>
+                    <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-3 text-[#71717a]">Carregando horários...</span>
                   </div>
                 ) : workingHoursError ? (
-                  <div className="text-red-400 text-center py-8">
-                    Erro ao carregar horários: {workingHoursError}
+                  <div className="text-red-400 text-center py-8 bg-red-900/10 rounded-lg border border-red-700/30">
+                    <p className="font-medium">Erro ao carregar horários</p>
+                    <p className="text-sm mt-1">{workingHoursError}</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {Object.entries(workingHours).map(([day, hours]) => (
-                    <div key={day} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b]">
-                      <div className="flex items-center gap-4">
-                        <Switch
-                          checked={hours.active}
-                          onCheckedChange={(checked) =>
-                            handleWorkingHoursChange(day, 'active', checked)
-                          }
-                        />
-                        <span className="text-[#ededed] font-medium w-24 capitalize">
-                          {day === 'monday' && 'Segunda'}
-                          {day === 'tuesday' && 'Terça'}
-                          {day === 'wednesday' && 'Quarta'}
-                          {day === 'thursday' && 'Quinta'}
-                          {day === 'friday' && 'Sexta'}
-                          {day === 'saturday' && 'Sábado'}
-                          {day === 'sunday' && 'Domingo'}
-                        </span>
-                      </div>
-                      {hours.active && (
-                        <div className="flex items-center gap-4">
-                          <Input
-                            type="time"
-                            value={hours.start}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(day, 'start', e.target.value)
-                            }
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-32"
-                          />
-                          <span className="text-[#71717a]">às</span>
-                          <Input
-                            type="time"
-                            value={hours.end}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(day, 'end', e.target.value)
-                            }
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-32"
-                          />
+                      <div key={day} className="group relative bg-[#27272a]/50 hover:bg-[#27272a] transition-colors rounded-xl border border-[#3f3f46] overflow-hidden">
+                        <div className="p-5">
+                          <div className="flex items-center justify-between">
+                            {/* Lado esquerdo - Dia e Switch */}
+                            <div className="flex items-center gap-4">
+                              <div className="relative">
+                                <Switch
+                                  checked={hours.active}
+                                  onCheckedChange={(checked) =>
+                                    handleWorkingHoursChange(day, 'active', checked)
+                                  }
+                                  className="data-[state=checked]:bg-[#10b981]"
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[#ededed] font-semibold text-lg">
+                                  {day === 'monday' && 'Segunda-feira'}
+                                  {day === 'tuesday' && 'Terça-feira'}
+                                  {day === 'wednesday' && 'Quarta-feira'}
+                                  {day === 'thursday' && 'Quinta-feira'}
+                                  {day === 'friday' && 'Sexta-feira'}
+                                  {day === 'saturday' && 'Sábado'}
+                                  {day === 'sunday' && 'Domingo'}
+                                </span>
+                                <span className="text-[#71717a] text-sm">
+                                  {hours.active ? 'Estabelecimento aberto' : 'Estabelecimento fechado'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Lado direito - Horários ou Status */}
+                            <div className="flex items-center gap-3">
+                              {hours.active ? (
+                                <div className="flex items-center gap-3 bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]">
+                                  <div className="flex flex-col items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium mb-1">Abertura</label>
+                                    <Input
+                                      type="time"
+                                      value={hours.start}
+                                      onChange={(e) =>
+                                        handleWorkingHoursChange(day, 'start', e.target.value)
+                                      }
+                                      className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]"
+                                    />
+                                  </div>
+                                  <div className="flex items-center px-2">
+                                    <span className="text-[#71717a] font-medium">até</span>
+                                  </div>
+                                  <div className="flex flex-col items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium mb-1">Fechamento</label>
+                                    <Input
+                                      type="time"
+                                      value={hours.end}
+                                      onChange={(e) =>
+                                        handleWorkingHoursChange(day, 'end', e.target.value)
+                                      }
+                                      className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-red-900/20 rounded-lg border border-red-700/30">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                  <span className="text-red-400 font-medium">Fechado</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {!hours.active && (
-                        <span className="text-[#71717a]">Fechado</span>
-                      )}
+                        
+                        {/* Indicador visual sutil */}
+                        <div className={`h-1 w-full transition-colors ${
+                          hours.active ? 'bg-gradient-to-r from-[#10b981] to-[#059669]' : 'bg-gradient-to-r from-red-600 to-red-700'
+                        }`}></div>
+                      </div>
+                    ))}
+                    
+                    {/* Informações adicionais */}
+                    <div className="mt-6 p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
+                      <div className="flex items-start gap-3">
+                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-bold">ℹ</span>
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-blue-400 font-medium">Informações Importantes</h4>
+                          <ul className="text-blue-300 text-sm space-y-1">
+                            <li>• Os horários definidos aqui controlam quando novos agendamentos podem ser feitos</li>
+                            <li>• Agendamentos já existentes não são afetados pelas mudanças</li>
+                            <li>• As alterações são salvas automaticamente</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                  ))}
                   </div>
                 )}
               </CardContent>
