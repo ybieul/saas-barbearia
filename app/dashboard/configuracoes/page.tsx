@@ -539,8 +539,8 @@ export default function ConfiguracoesPage() {
     setEditService({
       name: service.name || "",
       description: service.description || "",
-      price: service.price?.toString() || "",
-      duration: service.duration?.toString() || ""
+      price: (typeof service.price === 'number' ? service.price : 0).toString(),
+      duration: (typeof service.duration === 'number' ? service.duration : 0).toString()
     })
     setIsEditServiceOpen(true)
   }
@@ -1357,7 +1357,7 @@ export default function ConfiguracoesPage() {
                               <div className="space-y-1">
                                 <Label className="text-xs text-[#71717a]">Preço</Label>
                                 <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                  R$ {service.price?.toFixed(2) || "0,00"}
+                                  R$ {typeof service.price === 'number' ? service.price.toFixed(2) : "0,00"}
                                 </div>
                               </div>
                               <div className="space-y-1">

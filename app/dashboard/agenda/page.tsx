@@ -34,7 +34,7 @@ import {
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -1032,7 +1032,8 @@ export default function AgendaPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredAppointments.map((appointment) => {
+          <>
+            {filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status)
             const appointmentTime = new Date(appointment.dateTime).toLocaleTimeString("pt-BR", {
               hour: "2-digit",
@@ -1133,7 +1134,8 @@ export default function AgendaPage() {
                 </CardContent>
               </Card>
             )
-          })
+          })}
+          </>
         )}
       </div>
 
