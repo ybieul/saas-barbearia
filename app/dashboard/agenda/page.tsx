@@ -103,6 +103,11 @@ export default function AgendaPage() {
 
   // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
   const generateTimeSlots = () => {
+    // Verificar se os dados de horários de funcionamento estão carregados
+    if (workingHoursLoading || !workingHours) {
+      return []
+    }
+
     const slots = []
     
     // Obter o dia da semana atual em formato de string
@@ -110,7 +115,7 @@ export default function AgendaPage() {
     const currentDayName = dayNames[currentDate.getDay()]
     
     // Buscar horários de funcionamento para o dia atual
-    const dayWorkingHours = workingHours?.find(wh => wh.dayOfWeek === currentDayName)
+    const dayWorkingHours = workingHours.find(wh => wh.dayOfWeek === currentDayName)
     
     // Se não há horário configurado ou o dia está inativo, retornar array vazio
     if (!dayWorkingHours || !dayWorkingHours.isActive) {
@@ -573,12 +578,17 @@ export default function AgendaPage() {
 
   // Função para obter horários disponíveis para uma data específica
   const getAvailableTimeSlotsForDate = (date: Date) => {
+    // Verificar se os dados de horários de funcionamento estão carregados
+    if (workingHoursLoading || !workingHours) {
+      return []
+    }
+
     // Obter o dia da semana para a data selecionada
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     const dayName = dayNames[date.getDay()]
     
     // Buscar horários de funcionamento para o dia
-    const dayWorkingHours = workingHours?.find(wh => wh.dayOfWeek === dayName)
+    const dayWorkingHours = workingHours.find(wh => wh.dayOfWeek === dayName)
     
     // Se não há horário configurado ou o dia está inativo, retornar array vazio
     if (!dayWorkingHours || !dayWorkingHours.isActive) {
@@ -670,7 +680,7 @@ export default function AgendaPage() {
     })
   }
 
-  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading) {
+  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading || workingHoursLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
