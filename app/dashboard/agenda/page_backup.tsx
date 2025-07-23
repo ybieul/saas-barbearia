@@ -475,7 +475,6 @@ export default function AgendaPage() {
       setIsCreating(false)
     }
   }
-  
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
@@ -863,27 +862,27 @@ export default function AgendaPage() {
             <SelectContent className="bg-[#18181b] border-[#27272a]">
               <SelectItem value="todos">Todos os profissionais</SelectItem>
               {professionalsData?.map((professional) => (
-                <SelectItem key={professional.id} value={professional.id}>
-                  {professional.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectItem key={professional.id} value={professional.id}>
+                {professional.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#18181b] border-[#27272a]">
-              <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="SCHEDULED">Agendado</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-              <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
-              <SelectItem value="COMPLETED">Concluído</SelectItem>
-              <SelectItem value="CANCELLED">Cancelado</SelectItem>
-              <SelectItem value="NO_SHOW">Não compareceu</SelectItem>
-            </SelectContent>
-          </Select>
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#18181b] border-[#27272a]">
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="SCHEDULED">Agendado</SelectItem>
+            <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+            <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
+            <SelectItem value="COMPLETED">Concluído</SelectItem>
+            <SelectItem value="CANCELLED">Cancelado</SelectItem>
+            <SelectItem value="NO_SHOW">Não compareceu</SelectItem>
+          </SelectContent>
+        </Select>
         </div>
       </div>
 
@@ -917,87 +916,108 @@ export default function AgendaPage() {
               </div>
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
-              {generateTimeSlots(currentDate).map((time) => {
-                const isOccupied = isTimeSlotOccupied(time)
-                const appointment = todayAppointments.find(apt => {
-                  const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })
-                  return aptTime === time
+          <div className="max-h-96 overflow-y-auto">
+            {generateTimeSlots(currentDate).map((time) => {
+              const isOccupied = isTimeSlotOccupied(time)
+              const appointment = todayAppointments.find(apt => {
+                const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
                 })
+                return aptTime === time
+              })
 
-                return (
-                  <div
-                    key={time}
-                    className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
-                      isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 text-[#ededed] font-medium">
-                        {time}
-                      </div>
-                      {appointment ? (
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
-                          ></div>
-                          <div>
-                            <p className="text-[#ededed] font-medium">
-                              {appointment.endUser?.name || appointment.clientName || 'Cliente'}
-                            </p>
-                            <p className="text-[#a1a1aa] text-sm">
-                              {appointment.service?.name || appointment.serviceName || 'Serviço'} 
-                              <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
-                              {(appointment.professional?.name || appointment.professionalName) && 
-                                ` • ${appointment.professional?.name || appointment.professionalName}`
-                              }
-                            </p>
-                            <p className="text-xs text-[#71717a]">
-                              Status: {getStatusBadge(appointment.status).label}
-                            </p>
-                          </div>
-                        </div>
-                      ) : isOccupied ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
-                        </div>
-                      ) : !isDayAvailable(currentDate) ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                          <p className="text-gray-400">Estabelecimento fechado</p>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
-                          <p className="text-[#10b981]">Disponível - Clique para agendar</p>
-                        </div>
-                      )}
+              return (
+                <div
+                  key={time}
+                  className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                    isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 text-[#ededed] font-medium">
+                      {time}
                     </div>
-                    
-                    {!isOccupied && isDayAvailable(currentDate) && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
-                          onClick={() => {
-                            setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
-                            setIsNewAppointmentOpen(true)
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Agendar
-                        </Button>
+                    {appointment ? (
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                        ></div>
+                        <div>
+                          <p className="text-[#ededed] font-medium">
+                            {appointment.endUser?.name || appointment.clientName || 'Cliente'}
+                          </p>
+                          <p className="text-[#a1a1aa] text-sm">
+                            {appointment.service?.name || appointment.serviceName || 'Serviço'} 
+                            <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
+                            {(appointment.professional?.name || appointment.professionalName) && 
+                              ` • ${appointment.professional?.name || appointment.professionalName}`
+                            }
+                          </p>
+                          <p className="text-xs text-[#71717a]">
+                            Status: {getStatusBadge(appointment.status).label}
+                          </p>
+                        </div>
+                      </div>
+                    ) : isOccupied ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      </div>
+                    ) : !isDayAvailable(currentDate) ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <p className="text-gray-400">Estabelecimento fechado</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
                       </div>
                     )}
                   </div>
-                )
-              })}
-            </div>
+                  
+                  {!isOccupied && isDayAvailable(currentDate) && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                        onClick={() => {
+                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          setIsNewAppointmentOpen(true)
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Agendar
+                      </Button>
+                      
+                      {/* Mostrar sugestão de próximo horário disponível se houver serviço selecionado */}
+                      {newAppointment.serviceId && (
+                        (() => {
+                          const selectedService = services.find(s => s.id === newAppointment.serviceId)
+                          if (selectedService) {
+                            const nextAvailable = getNextAvailableTime(
+                              selectedService.duration || 30,
+                              newAppointment.professionalId || undefined
+                            )
+                            if (nextAvailable && nextAvailable !== time) {
+                              return (
+                                <span className="text-xs text-[#a1a1aa]">
+                                  Próximo: {nextAvailable}
+                                </span>
+                              )
+                            }
+                          }
+                          return null
+                        })()
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
           )}
         </CardContent>
       </Card>
@@ -1012,7 +1032,8 @@ export default function AgendaPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredAppointments.map((appointment) => {
+          <>
+            {filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status)
             const appointmentTime = new Date(appointment.dateTime).toLocaleTimeString("pt-BR", {
               hour: "2-digit",
@@ -1113,7 +1134,8 @@ export default function AgendaPage() {
                 </CardContent>
               </Card>
             )
-          })
+          })}
+          </>
         )}
       </div>
 
