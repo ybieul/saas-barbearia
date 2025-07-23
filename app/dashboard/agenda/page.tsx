@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,6 +43,7 @@ export default function AgendaPage() {
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isPageReady, setIsPageReady] = useState(false) // Novo estado para controlar renderização
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     type: 'complete' | 'cancel' | null
@@ -102,59 +103,79 @@ export default function AgendaPage() {
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
   // Função auxiliar para obter horários de funcionamento com fallback seguro
-  const getWorkingHoursForDay = (date: Date) => {
-    if (!workingHours || workingHours.length === 0) {
+  const getWorkingHoursForDay = useCallback((date: Date) => {
+    try {
+      if (!workingHours || !Array.isArray(workingHours) || workingHours.length === 0) {
+        return null
+      }
+
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayName = dayNames[date.getDay()]
+      
+      if (!dayName) return null
+      
+      return workingHours.find(wh => wh && wh.dayOfWeek === dayName) || null
+    } catch (error) {
+      console.error('Erro ao obter horários de funcionamento:', error)
       return null
     }
-
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[date.getDay()]
-    
-    return workingHours.find(wh => wh.dayOfWeek === dayName) || null
-  }
+  }, [workingHours])
 
   // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
-  const generateTimeSlots = () => {
-    // Verificar se os dados de horários de funcionamento estão carregados
-    if (workingHoursLoading || !workingHours) {
+  const generateTimeSlots = useCallback(() => {
+    try {
+      // Verificar se os dados de horários de funcionamento estão carregados
+      if (workingHoursLoading || !workingHours || !Array.isArray(workingHours)) {
+        return []
+      }
+
+      const dayWorkingHours = getWorkingHoursForDay(currentDate)
+      
+      // Se não há horário configurado ou o dia está inativo, retornar array vazio
+      if (!dayWorkingHours || !dayWorkingHours.isActive) {
+        return []
+      }
+      
+      // Usar horários configurados
+      const startTime = dayWorkingHours.startTime || "08:00"
+      const endTime = dayWorkingHours.endTime || "18:00"
+      
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+      
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      
+      const interval = 15 // Intervalos de 15 minutos (consistente com configurações)
+      const slots = []
+      
+      for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
+        const hour = Math.floor(totalMinutes / 60)
+        const minute = totalMinutes % 60
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        slots.push(time)
+      }
+      
+      return slots
+    } catch (error) {
+      console.error('Erro ao gerar horários:', error)
       return []
     }
+  }, [workingHoursLoading, workingHours, currentDate, getWorkingHoursForDay])
 
-    const dayWorkingHours = getWorkingHoursForDay(currentDate)
+  // Obter agendamentos do dia atual - com verificação segura
+  const todayAppointments = useMemo(() => {
+    if (!appointments || appointments.length === 0) return []
     
-    // Se não há horário configurado ou o dia está inativo, retornar array vazio
-    if (!dayWorkingHours || !dayWorkingHours.isActive) {
-      return []
-    }
-    
-    // Usar horários configurados
-    const startTime = dayWorkingHours.startTime || "08:00"
-    const endTime = dayWorkingHours.endTime || "18:00"
-    
-    const [startHour, startMinute] = startTime.split(':').map(Number)
-    const [endHour, endMinute] = endTime.split(':').map(Number)
-    
-    const startTotalMinutes = startHour * 60 + startMinute
-    const endTotalMinutes = endHour * 60 + endMinute
-    
-    const interval = 15 // Intervalos de 15 minutos (consistente com configurações)
-    const slots = []
-    
-    for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
-      const hour = Math.floor(totalMinutes / 60)
-      const minute = totalMinutes % 60
-      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-      slots.push(time)
-    }
-    
-    return slots
-  }
-
-  // Obter agendamentos do dia atual
-  const todayAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime || apt.date)
-    return aptDate.toDateString() === currentDate.toDateString()
-  })
+    return appointments.filter(apt => {
+      try {
+        const aptDate = new Date(apt.dateTime || apt.date)
+        return aptDate.toDateString() === currentDate.toDateString()
+      } catch {
+        return false
+      }
+    })
+  }, [appointments, currentDate])
 
   // Função para verificar se um horário está ocupado (considerando duração do serviço)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
@@ -597,41 +618,46 @@ export default function AgendaPage() {
   }
 
   // Função para obter horários disponíveis para uma data específica
-  const getAvailableTimeSlotsForDate = (date: Date) => {
-    // Verificar se os dados de horários de funcionamento estão carregados
-    if (workingHoursLoading || !workingHours) {
-      return []
-    }
+  const getAvailableTimeSlotsForDate = useCallback((date: Date) => {
+    try {
+      // Verificar se os dados de horários de funcionamento estão carregados
+      if (workingHoursLoading || !workingHours || !Array.isArray(workingHours)) {
+        return []
+      }
 
-    const dayWorkingHours = getWorkingHoursForDay(date)
-    
-    // Se não há horário configurado ou o dia está inativo, retornar array vazio
-    if (!dayWorkingHours || !dayWorkingHours.isActive) {
+      const dayWorkingHours = getWorkingHoursForDay(date)
+      
+      // Se não há horário configurado ou o dia está inativo, retornar array vazio
+      if (!dayWorkingHours || !dayWorkingHours.isActive) {
+        return []
+      }
+      
+      // Gerar slots para a data específica
+      const startTime = dayWorkingHours.startTime || "08:00"
+      const endTime = dayWorkingHours.endTime || "18:00"
+      
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+      
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      
+      const interval = 15 // Intervalos de 15 minutos
+      const slots = []
+      
+      for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
+        const hour = Math.floor(totalMinutes / 60)
+        const minute = totalMinutes % 60
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        slots.push(time)
+      }
+      
+      return slots
+    } catch (error) {
+      console.error('Erro ao obter horários disponíveis:', error)
       return []
     }
-    
-    // Gerar slots para a data específica
-    const startTime = dayWorkingHours.startTime || "08:00"
-    const endTime = dayWorkingHours.endTime || "18:00"
-    
-    const [startHour, startMinute] = startTime.split(':').map(Number)
-    const [endHour, endMinute] = endTime.split(':').map(Number)
-    
-    const startTotalMinutes = startHour * 60 + startMinute
-    const endTotalMinutes = endHour * 60 + endMinute
-    
-    const interval = 15 // Intervalos de 15 minutos
-    const slots = []
-    
-    for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
-      const hour = Math.floor(totalMinutes / 60)
-      const minute = totalMinutes % 60
-      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-      slots.push(time)
-    }
-    
-    return slots
-  }
+  }, [workingHoursLoading, workingHours, getWorkingHoursForDay])
 
   // Função para obter horários disponíveis para o modal
   const getAvailableTimeSlots = () => {
@@ -695,12 +721,46 @@ export default function AgendaPage() {
     })
   }
 
-  // Verificar se todos os dados necessários estão carregados
-  const isDataReady = !appointmentsLoading && !clientsLoading && !servicesLoading && 
-                     !establishmentLoading && !workingHoursLoading && 
-                     workingHours !== undefined && workingHours !== null
+  // Verificar se todos os dados necessários estão carregados e válidos
+  const isDataReady = useMemo(() => {
+    const loadingStates = [
+      appointmentsLoading,
+      clientsLoading, 
+      servicesLoading,
+      establishmentLoading,
+      workingHoursLoading
+    ]
+    
+    const dataStates = [
+      appointments !== undefined,
+      clients !== undefined,
+      services !== undefined,
+      workingHours !== undefined && workingHours !== null
+    ]
+    
+    const allDataLoaded = !loadingStates.some(loading => loading === true)
+    const allDataValid = dataStates.every(valid => valid === true)
+    
+    return allDataLoaded && allDataValid
+  }, [
+    appointmentsLoading, clientsLoading, servicesLoading, 
+    establishmentLoading, workingHoursLoading,
+    appointments, clients, services, workingHours
+  ])
 
-  if (!isDataReady) {
+  // Controlar quando a página está pronta para ser renderizada
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isDataReady) {
+        setIsPageReady(true)
+      }
+    }, 50) // Pequeno delay para garantir que tudo está estabilizado
+
+    return () => clearTimeout(timer)
+  }, [isDataReady])
+
+  // Early return se os dados não estão prontos
+  if (!isDataReady || !isPageReady) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
