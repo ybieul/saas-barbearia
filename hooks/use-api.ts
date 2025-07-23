@@ -389,10 +389,10 @@ export function useDashboard() {
 
 // Hook específico para configurações do estabelecimento
 export function useEstablishment() {
-  const { data, loading, error, request } = useApi<{ establishment: any }>()
+  const { data, loading, error, request } = useApi<{ businessData: any }>()
 
   const fetchEstablishment = useCallback(() => {
-    return request('/api/establishment')
+    return request('/api/business')
   }, [request])
 
   const updateEstablishment = useCallback((establishmentData: {
@@ -404,14 +404,14 @@ export function useEstablishment() {
     phone?: string
     workingDays?: string[]
   }) => {
-    return request('/api/establishment', {
+    return request('/api/business', {
       method: 'PUT',
       body: JSON.stringify(establishmentData)
     })
   }, [request])
 
   return {
-    establishment: data?.establishment || null,
+    establishment: data?.businessData || null,
     loading,
     error,
     fetchEstablishment,

@@ -86,13 +86,23 @@ export default function AgendaPage() {
 
   // Carregar dados ao montar o componente
   useEffect(() => {
-    fetchAppointments()
-    fetchClients()
-    fetchServices()
-    fetchProfessionals()
-    fetchEstablishment()
-    fetchWorkingHours()
-  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment, fetchWorkingHours])
+    const loadData = async () => {
+      try {
+        await Promise.allSettled([
+          fetchAppointments(),
+          fetchClients(),
+          fetchServices(),
+          fetchProfessionals(),
+          fetchEstablishment(),
+          fetchWorkingHours()
+        ])
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      }
+    }
+    
+    loadData()
+  }, []) // Sem dependências para executar apenas uma vez
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -398,10 +408,7 @@ export default function AgendaPage() {
         return false
       }
 
-      // Recarregar dados do banco antes da validação final
-      await fetchAppointments()
-      
-      // Verificar conflitos com dados atualizados
+      // Verificar conflitos com dados atuais (sem recarregar)
       const appointmentData = {
         date: newAppointment.date,
         time: newAppointment.time,
