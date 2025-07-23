@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -36,6 +37,18 @@ export default function ConfiguracoesPage() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState("estabelecimento")
+
+  // Função para gerar horários
+  const generateTimeOptions = () => {
+    const times = []
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        times.push(timeString)
+      }
+    }
+    return times
+  }
 
   // Hook para dados do estabelecimento integrado ao banco de dados
   const { 
@@ -1529,28 +1542,42 @@ export default function ConfiguracoesPage() {
                                 <div className="flex items-center gap-3 bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]">
                                   <div className="flex flex-col items-center">
                                     <label className="text-[#a1a1aa] text-xs font-medium mb-1">Abertura</label>
-                                    <Input
-                                      type="time"
+                                    <Select
                                       value={hours.start}
-                                      onChange={(e) =>
-                                        handleWorkingHoursChange(day, 'start', e.target.value)
-                                      }
-                                      className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]"
-                                    />
+                                      onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
+                                    >
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                        {generateTimeOptions().map((time) => (
+                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                   <div className="flex items-center px-2">
                                     <span className="text-[#71717a] font-medium">até</span>
                                   </div>
                                   <div className="flex flex-col items-center">
                                     <label className="text-[#a1a1aa] text-xs font-medium mb-1">Fechamento</label>
-                                    <Input
-                                      type="time"
+                                    <Select
                                       value={hours.end}
-                                      onChange={(e) =>
-                                        handleWorkingHoursChange(day, 'end', e.target.value)
-                                      }
-                                      className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]"
-                                    />
+                                      onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
+                                    >
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                        {generateTimeOptions().map((time) => (
+                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 </div>
                               ) : (
