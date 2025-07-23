@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
+import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AgendaPage() {
@@ -72,6 +73,15 @@ export default function AgendaPage() {
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
+  const { 
+    workingHours, 
+    loading: workingHoursLoading, 
+    error: workingHoursError, 
+    fetchWorkingHours,
+    getWorkingHoursForDay,
+    isEstablishmentOpen,
+    isTimeWithinWorkingHours 
+  } = useWorkingHours()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -81,7 +91,8 @@ export default function AgendaPage() {
     fetchServices()
     fetchProfessionals()
     fetchEstablishment()
-  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment])
+    fetchWorkingHours()
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment, fetchWorkingHours])
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -100,28 +111,50 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
-  // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
-  const generateTimeSlots = () => {
-    const slots = []
-    
-    // Usar horários do estabelecimento ou padrão
-    const defaultStartHour = 8
-    const defaultEndHour = 18
-    
-    const startHour = establishment?.openTime ? 
-      parseInt(establishment.openTime.split(':')[0]) : defaultStartHour
-    const endHour = establishment?.closeTime ? 
-      parseInt(establishment.closeTime.split(':')[0]) : defaultEndHour
-    
-    const interval = 5 // Intervalos de 5 minutos
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += interval) {
+  // Função para gerar horários baseado nos horários de funcionamento específicos por dia
+  const generateTimeSlotsForDate = (date: Date) => {
+    try {
+      const slots = []
+      
+      // Verificar se o estabelecimento está aberto no dia
+      if (!isEstablishmentOpen(date)) {
+        return []
+      }
+      
+      // Obter horários específicos do dia
+      const dayConfig = getWorkingHoursForDay(date)
+      
+      if (!dayConfig.isOpen || !dayConfig.startTime || !dayConfig.endTime) {
+        return []
+      }
+      
+      // Converter horários para números
+      const [startHour, startMinute] = dayConfig.startTime.split(':').map(Number)
+      const [endHour, endMinute] = dayConfig.endTime.split(':').map(Number)
+      
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      
+      const interval = 5 // Intervalos de 5 minutos
+      
+      // Gerar slots apenas dentro do horário de funcionamento
+      for (let currentMinutes = startTotalMinutes; currentMinutes < endTotalMinutes; currentMinutes += interval) {
+        const hour = Math.floor(currentMinutes / 60)
+        const minute = currentMinutes % 60
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
         slots.push(time)
       }
+      
+      return slots
+    } catch (error) {
+      console.error('Erro ao gerar slots de horário:', error)
+      return []
     }
-    return slots
+  }
+
+  // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento) - mantida para compatibilidade
+  const generateTimeSlots = () => {
+    return generateTimeSlotsForDate(currentDate)
   }
 
   // Obter agendamentos do dia atual
@@ -338,6 +371,30 @@ export default function AgendaPage() {
           description: "Selecione um horário",
           variant: "destructive",
         })
+        return false
+      }
+
+      // Validar se estabelecimento está aberto no dia selecionado
+      const selectedDate = new Date(newAppointment.date)
+      if (!isEstablishmentOpen(selectedDate)) {
+        const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+        toast({
+          title: "Estabelecimento Fechado",
+          description: `O estabelecimento não funciona ${dayName}. Escolha outro dia.`,
+          variant: "destructive",
+        })
+        return false
+      }
+
+      // Validar se horário está dentro do funcionamento
+      if (!isTimeWithinWorkingHours(selectedDate, newAppointment.time)) {
+        const dayConfig = getWorkingHoursForDay(selectedDate)
+        toast({
+          title: "Fora do Horário de Funcionamento",
+          description: `Horário disponível: ${dayConfig.startTime} às ${dayConfig.endTime}`,
+          variant: "destructive",
+        })
+        setNewAppointment(prev => ({...prev, time: ""}))
         return false
       }
 
@@ -701,10 +758,18 @@ export default function AgendaPage() {
       const selectedService = services.find(s => s.id === newAppointment.serviceId)
       if (!selectedService) return []
       
-      const serviceDuration = selectedService.duration || 30
+      const selectedDate = new Date(newAppointment.date)
       
-      // Usar a função hasConflict para verificar disponibilidade
-      return generateTimeSlots().filter(time => {
+      // Verificar se o estabelecimento está aberto no dia
+      if (!isEstablishmentOpen(selectedDate)) {
+        return []
+      }
+      
+      // Gerar slots para a data específica
+      const availableSlots = generateTimeSlotsForDate(selectedDate)
+      
+      // Filtrar slots que não têm conflito
+      return availableSlots.filter(time => {
         const testAppointment = {
           date: newAppointment.date,
           time: time,
@@ -720,7 +785,7 @@ export default function AgendaPage() {
     }
   }
 
-  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading) {
+  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading || workingHoursLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -892,7 +957,14 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            Grade de 5 em 5 minutos - Horários de funcionamento: {establishment?.openTime || '08:00'} às {establishment?.closeTime || '18:00'}
+            {(() => {
+              const dayConfig = getWorkingHoursForDay(currentDate)
+              if (!dayConfig.isOpen) {
+                const dayName = currentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+                return `Estabelecimento fechado ${dayName}`
+              }
+              return `Grade de 5 em 5 minutos - Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`
+            })()}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -1188,9 +1260,34 @@ export default function AgendaPage() {
                     id="date"
                     type="date"
                     value={newAppointment.date}
-                    onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
+                    min={new Date().toISOString().split('T')[0]} // Não permitir datas passadas
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value)
+                      if (!isEstablishmentOpen(selectedDate)) {
+                        const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+                        toast({
+                          title: "Dia Indisponível",
+                          description: `Estabelecimento fechado ${dayName}. Escolha outro dia.`,
+                          variant: "destructive",
+                        })
+                        return
+                      }
+                      setNewAppointment({...newAppointment, date: e.target.value, time: ""})
+                    }}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
+                  {newAppointment.date && (
+                    <p className="text-xs text-[#a1a1aa] mt-1">
+                      {(() => {
+                        const selectedDate = new Date(newAppointment.date)
+                        const dayConfig = getWorkingHoursForDay(selectedDate)
+                        if (!dayConfig.isOpen) {
+                          return "⚠️ Estabelecimento fechado neste dia"
+                        }
+                        return `✅ Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`
+                      })()}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>

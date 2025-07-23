@@ -42,6 +42,7 @@ export default function AgendaPage() {
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     type: 'complete' | 'cancel' | null
@@ -168,6 +169,71 @@ export default function AgendaPage() {
     })
   }
 
+  // Função robusta para verificar conflitos de agendamento
+  const hasConflict = (appointmentData: {
+    date: string
+    time: string
+    serviceId: string
+    professionalId?: string
+  }) => {
+    try {
+      const { date, time, serviceId, professionalId } = appointmentData
+      
+      // Validar dados de entrada
+      if (!date || !time || !serviceId) return true
+      
+      // Obter serviço selecionado
+      const selectedService = services.find(s => s.id === serviceId)
+      if (!selectedService) return true
+      
+      const serviceDuration = selectedService.duration || 30
+      
+      // Converter para formato consistente (ISO)
+      const [year, month, day] = date.split('-').map(Number)
+      const [hours, minutes] = time.split(':').map(Number)
+      
+      const newStartTime = new Date(year, month - 1, day, hours, minutes, 0)
+      const newEndTime = new Date(newStartTime.getTime() + (serviceDuration * 60000))
+      
+      // Filtrar agendamentos da mesma data que não estão cancelados
+      const dayAppointments = appointments.filter(apt => {
+        if (!apt.dateTime) return false
+        if (apt.status === 'CANCELLED') return false
+        
+        // Ignorar o próprio agendamento em caso de edição
+        if (editingAppointment && apt.id === editingAppointment.id) return false
+        
+        const aptDate = new Date(apt.dateTime)
+        return aptDate.toDateString() === newStartTime.toDateString()
+      })
+      
+      // Verificar conflitos
+      return dayAppointments.some(existingApt => {
+        const existingStartTime = new Date(existingApt.dateTime)
+        const existingServiceDuration = existingApt.service?.duration || 30
+        const existingEndTime = new Date(existingStartTime.getTime() + (existingServiceDuration * 60000))
+        
+        // Verificar sobreposição de horários
+        const hasTimeOverlap = (newStartTime < existingEndTime) && (newEndTime > existingStartTime)
+        
+        // Se não há profissional especificado, verificar apenas sobreposição geral
+        if (!professionalId) {
+          return hasTimeOverlap
+        }
+        
+        // Se há profissional especificado, verificar conflito apenas com o mesmo profissional
+        if (existingApt.professionalId && professionalId === existingApt.professionalId) {
+          return hasTimeOverlap
+        }
+        
+        return false
+      })
+    } catch (error) {
+      console.error('Erro ao verificar conflitos:', error)
+      return true // Em caso de erro, considerar como conflito para segurança
+    }
+  }
+
   // Função para verificar se é possível agendar um serviço em determinado horário
   const canScheduleService = (time: string, serviceDuration: number, professionalId?: string) => {
     const timeToMinutes = (timeStr: string) => {
@@ -235,68 +301,120 @@ export default function AgendaPage() {
     setEditingAppointment(null)
   }
 
-  // Validação de dados
-  const validateForm = () => {
-    if (!newAppointment.endUserId) {
-      toast({
-        title: "Erro",
-        description: "Selecione um cliente",
-        variant: "destructive",
-      })
-      return false
-    }
-    
-    if (!newAppointment.serviceId) {
-      toast({
-        title: "Erro", 
-        description: "Selecione um serviço",
-        variant: "destructive",
-      })
-      return false
-    }
-
-    if (!newAppointment.date) {
-      toast({
-        title: "Erro",
-        description: "Selecione uma data",
-        variant: "destructive",
-      })
-      return false
-    }
-
-    if (!newAppointment.time) {
-      toast({
-        title: "Erro",
-        description: "Selecione um horário",
-        variant: "destructive",
-      })
-      return false
-    }
-
-    // Verificar se o horário ainda está disponível (dupla verificação)
-    const selectedService = services.find(s => s.id === newAppointment.serviceId)
-    if (selectedService) {
-      const availableSlots = getAvailableTimeSlots()
-      if (!availableSlots.includes(newAppointment.time)) {
+  // Validação de dados com verificação de conflitos em tempo real
+  const validateForm = async () => {
+    setIsValidating(true)
+    try {
+      if (!newAppointment.endUserId) {
         toast({
-          title: "Horário Indisponível",
-          description: "Este horário não está mais disponível. Selecione outro horário.",
+          title: "Erro",
+          description: "Selecione um cliente",
+          variant: "destructive",
+        })
+        return false
+      }
+      
+      if (!newAppointment.serviceId) {
+        toast({
+          title: "Erro", 
+          description: "Selecione um serviço",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      if (!newAppointment.date) {
+        toast({
+          title: "Erro",
+          description: "Selecione uma data",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      if (!newAppointment.time) {
+        toast({
+          title: "Erro",
+          description: "Selecione um horário",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      // Recarregar dados do banco antes da validação final
+      await fetchAppointments()
+      
+      // Verificar conflitos com dados atualizados
+      const appointmentData = {
+        date: newAppointment.date,
+        time: newAppointment.time,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId || undefined
+      }
+      
+      if (hasConflict(appointmentData)) {
+        toast({
+          title: "Conflito de Horário",
+          description: "Este horário já está ocupado. Escolha outro horário.",
           variant: "destructive",
         })
         setNewAppointment(prev => ({...prev, time: ""}))
         return false
       }
-    }
 
-    return true
+      // Verificar se o horário ainda está disponível (dupla verificação)
+      const selectedService = services.find(s => s.id === newAppointment.serviceId)
+      if (selectedService) {
+        const availableSlots = getAvailableTimeSlots()
+        if (!availableSlots.includes(newAppointment.time)) {
+          toast({
+            title: "Horário Indisponível",
+            description: "Este horário não está mais disponível. Selecione outro horário.",
+            variant: "destructive",
+          })
+          setNewAppointment(prev => ({...prev, time: ""}))
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Erro na validação:', error)
+      toast({
+        title: "Erro de Validação",
+        description: "Erro ao validar agendamento. Tente novamente.",
+        variant: "destructive",
+      })
+      return false
+    } finally {
+      setIsValidating(false)
+    }
   }
 
-  // Criar agendamento
+  // Criar agendamento com validação robusta
   const handleCreateAppointment = async () => {
-    if (!validateForm()) return
+    if (!(await validateForm())) return
 
     setIsCreating(true)
     try {
+      // Validação final antes de criar
+      const appointmentData = {
+        date: newAppointment.date,
+        time: newAppointment.time,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId || undefined
+      }
+      
+      if (hasConflict(appointmentData)) {
+        toast({
+          title: "Conflito Detectado",
+          description: "Este horário foi ocupado por outro agendamento. Escolha outro horário.",
+          variant: "destructive",
+        })
+        setNewAppointment(prev => ({...prev, time: ""}))
+        return
+      }
+
       // Criar dateTime sem problemas de fuso horário
       const [year, month, day] = newAppointment.date.split('-')
       const [hours, minutes] = newAppointment.time.split(':')
@@ -309,7 +427,7 @@ export default function AgendaPage() {
         0
       )
 
-      const appointmentData = {
+      const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
         serviceId: newAppointment.serviceId,
         professionalId: newAppointment.professionalId || undefined,
@@ -317,7 +435,7 @@ export default function AgendaPage() {
         notes: newAppointment.notes || undefined
       }
 
-      await createAppointment(appointmentData)
+      await createAppointment(finalAppointmentData)
       
       toast({
         title: "Sucesso",
@@ -326,11 +444,12 @@ export default function AgendaPage() {
       
       setIsNewAppointmentOpen(false)
       resetForm()
-      fetchAppointments() // Recarregar dados
+      await fetchAppointments() // Recarregar dados
     } catch (error) {
+      console.error('Erro ao criar agendamento:', error)
       toast({
         title: "Erro",
-        description: "Erro ao criar agendamento",
+        description: "Erro ao criar agendamento. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -358,12 +477,30 @@ export default function AgendaPage() {
     setIsNewAppointmentOpen(true) // Reutilizar o modal existente
   }
 
-  // Atualizar agendamento existente
+  // Atualizar agendamento existente com validação
   const handleUpdateAppointment = async () => {
-    if (!validateForm() || !editingAppointment) return
+    if (!(await validateForm()) || !editingAppointment) return
 
     setIsCreating(true)
     try {
+      // Validação final antes de atualizar
+      const appointmentData = {
+        date: newAppointment.date,
+        time: newAppointment.time,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId || undefined
+      }
+      
+      if (hasConflict(appointmentData)) {
+        toast({
+          title: "Conflito Detectado",
+          description: "Este horário foi ocupado por outro agendamento. Escolha outro horário.",
+          variant: "destructive",
+        })
+        setNewAppointment(prev => ({...prev, time: ""}))
+        return
+      }
+
       // Criar dateTime sem problemas de fuso horário
       const [year, month, day] = newAppointment.date.split('-')
       const [hours, minutes] = newAppointment.time.split(':')
@@ -376,7 +513,7 @@ export default function AgendaPage() {
         0
       )
 
-      const appointmentData = {
+      const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
         serviceId: newAppointment.serviceId,
@@ -385,7 +522,7 @@ export default function AgendaPage() {
         notes: newAppointment.notes || undefined
       }
 
-      await updateAppointment(appointmentData)
+      await updateAppointment(finalAppointmentData)
       
       toast({
         title: "Sucesso",
@@ -395,11 +532,12 @@ export default function AgendaPage() {
       setIsNewAppointmentOpen(false)
       setEditingAppointment(null)
       resetForm()
-      fetchAppointments() // Recarregar dados
+      await fetchAppointments() // Recarregar dados
     } catch (error) {
+      console.error('Erro ao atualizar agendamento:', error)
       toast({
         title: "Erro",
-        description: "Erro ao atualizar agendamento",
+        description: "Erro ao atualizar agendamento. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -555,74 +693,31 @@ export default function AgendaPage() {
     return null
   }
 
-  // Função para obter horários disponíveis para o modal
+  // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = () => {
-    if (!newAppointment.serviceId || !newAppointment.date) return []
-    
-    const selectedService = services.find(s => s.id === newAppointment.serviceId)
-    if (!selectedService) return []
-    
-    const serviceDuration = selectedService.duration || 30
-    const selectedDate = new Date(newAppointment.date)
-    
-    // Obter agendamentos da data selecionada
-    const dayAppointments = appointments.filter(apt => {
-      const aptDate = new Date(apt.dateTime || apt.date)
-      return aptDate.toDateString() === selectedDate.toDateString()
-    })
-    
-    return generateTimeSlots().filter(time => {
-      // Verificar se o horário pode acomodar o serviço
-      const timeToMinutes = (timeStr: string) => {
-        const [hours, minutes] = timeStr.split(':').map(Number)
-        return hours * 60 + minutes
-      }
+    try {
+      if (!newAppointment.serviceId || !newAppointment.date) return []
       
-      const startMinutes = timeToMinutes(time)
-      const endMinutes = startMinutes + serviceDuration
+      const selectedService = services.find(s => s.id === newAppointment.serviceId)
+      if (!selectedService) return []
       
-      // Verificar se todos os slots de 5min necessários estão livres
-      const slots = generateTimeSlots()
-      for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
-        const hours = Math.floor(currentMinutes / 60)
-        const minutes = currentMinutes % 60
-        const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-        
-        if (!slots.includes(slotTime)) continue
-        
-        // Verificar se este slot está ocupado
-        const isOccupied = dayAppointments.some(apt => {
-          const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-          const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })
-          
-          const aptServiceDuration = apt.service?.duration || apt.duration || 30
-          const aptEndTime = new Date(aptStartTime.getTime() + (aptServiceDuration * 60000))
-          const aptEndTimeString = aptEndTime.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })
-          
-          const slotMinutes = timeToMinutes(slotTime)
-          const aptStartMinutes = timeToMinutes(aptStartTimeString)
-          const aptEndMinutes = timeToMinutes(aptEndTimeString)
-          
-          const isWithinAppointment = slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes
-          const matchesProfessional = !newAppointment.professionalId || 
-                                     apt.professionalId === newAppointment.professionalId
-          
-          return isWithinAppointment && matchesProfessional
-        })
-        
-        if (isOccupied) {
-          return false
+      const serviceDuration = selectedService.duration || 30
+      
+      // Usar a função hasConflict para verificar disponibilidade
+      return generateTimeSlots().filter(time => {
+        const testAppointment = {
+          date: newAppointment.date,
+          time: time,
+          serviceId: newAppointment.serviceId,
+          professionalId: newAppointment.professionalId || undefined
         }
-      }
-      
-      return true
-    })
+        
+        return !hasConflict(testAppointment)
+      })
+    } catch (error) {
+      console.error('Erro ao obter horários disponíveis:', error)
+      return []
+    }
   }
 
   if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading) {
@@ -1155,11 +1250,12 @@ export default function AgendaPage() {
               </Button>
               <Button
                 onClick={editingAppointment ? handleUpdateAppointment : handleCreateAppointment}
-                disabled={!newAppointment.endUserId || !newAppointment.serviceId || !newAppointment.date || !newAppointment.time || isCreating}
+                disabled={!newAppointment.endUserId || !newAppointment.serviceId || !newAppointment.date || !newAppointment.time || isCreating || isValidating}
                 className="bg-[#10b981] hover:bg-[#059669]"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
+                  isValidating ? "Validando..." :
                   (editingAppointment ? "Atualizar Agendamento" : "Criar Agendamento")
                 }
               </Button>
