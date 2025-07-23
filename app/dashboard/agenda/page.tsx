@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -101,6 +101,18 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
+  // Função auxiliar para obter horários de funcionamento com fallback seguro
+  const getWorkingHoursForDay = (date: Date) => {
+    if (!workingHours || workingHours.length === 0) {
+      return null
+    }
+
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayName = dayNames[date.getDay()]
+    
+    return workingHours.find(wh => wh.dayOfWeek === dayName) || null
+  }
+
   // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
   const generateTimeSlots = () => {
     // Verificar se os dados de horários de funcionamento estão carregados
@@ -108,14 +120,7 @@ export default function AgendaPage() {
       return []
     }
 
-    const slots = []
-    
-    // Obter o dia da semana atual em formato de string
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const currentDayName = dayNames[currentDate.getDay()]
-    
-    // Buscar horários de funcionamento para o dia atual
-    const dayWorkingHours = workingHours.find(wh => wh.dayOfWeek === currentDayName)
+    const dayWorkingHours = getWorkingHoursForDay(currentDate)
     
     // Se não há horário configurado ou o dia está inativo, retornar array vazio
     if (!dayWorkingHours || !dayWorkingHours.isActive) {
@@ -133,6 +138,7 @@ export default function AgendaPage() {
     const endTotalMinutes = endHour * 60 + endMinute
     
     const interval = 15 // Intervalos de 15 minutos (consistente com configurações)
+    const slots = []
     
     for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
       const hour = Math.floor(totalMinutes / 60)
@@ -223,14 +229,14 @@ export default function AgendaPage() {
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
     // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
-    const totalSlotsInDay = getAvailableTimeSlotsForDate(currentDate).length
+    const totalSlotsInDay = getAvailableTimeSlotsForDate(currentDate).length || 1 // Evitar divisão por zero
     const totalOccupiedSlots = today.reduce((sum, apt) => {
       const serviceDuration = apt.service?.duration || apt.duration || 30
       const slotsNeeded = Math.ceil(serviceDuration / 15) // slots de 15 minutos
       return sum + slotsNeeded
     }, 0)
     
-    const occupancyRate = Math.round((totalOccupiedSlots / totalSlotsInDay) * 100)
+    const occupancyRate = totalSlotsInDay > 0 ? Math.round((totalOccupiedSlots / totalSlotsInDay) * 100) : 0
 
     return {
       appointmentsToday: today.length,
@@ -241,7 +247,21 @@ export default function AgendaPage() {
     }
   }
 
-  const dayStats = calculateDayStats()
+  // Memoizar o cálculo das estatísticas para evitar chamadas desnecessárias
+  const dayStats = useMemo(() => {
+    // Só calcular quando todos os dados estão carregados
+    if (workingHoursLoading || !workingHours || appointmentsLoading) {
+      return {
+        appointmentsToday: 0,
+        completed: 0,
+        pending: 0,
+        occupancyRate: 0,
+        revenueToday: 0
+      }
+    }
+
+    return calculateDayStats()
+  }, [workingHoursLoading, workingHours, appointmentsLoading, todayAppointments, currentDate])
 
   // Resetar formulário
   const resetForm = () => {
@@ -583,12 +603,7 @@ export default function AgendaPage() {
       return []
     }
 
-    // Obter o dia da semana para a data selecionada
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[date.getDay()]
-    
-    // Buscar horários de funcionamento para o dia
-    const dayWorkingHours = workingHours.find(wh => wh.dayOfWeek === dayName)
+    const dayWorkingHours = getWorkingHoursForDay(date)
     
     // Se não há horário configurado ou o dia está inativo, retornar array vazio
     if (!dayWorkingHours || !dayWorkingHours.isActive) {
@@ -680,7 +695,12 @@ export default function AgendaPage() {
     })
   }
 
-  if (appointmentsLoading || clientsLoading || servicesLoading || establishmentLoading || workingHoursLoading) {
+  // Verificar se todos os dados necessários estão carregados
+  const isDataReady = !appointmentsLoading && !clientsLoading && !servicesLoading && 
+                     !establishmentLoading && !workingHoursLoading && 
+                     workingHours !== undefined && workingHours !== null
+
+  if (!isDataReady) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
