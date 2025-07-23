@@ -212,6 +212,31 @@ export default function AgendaPage() {
     })
   }
 
+  // Função para verificar se um horário está disponível (combina validações de funcionamento e ocupação)
+  const isTimeSlotAvailable = (time: string, dateStr: string) => {
+    try {
+      // Validar parâmetros de entrada
+      if (!time || !dateStr) return false
+      
+      // Converter data string para objeto Date
+      const date = new Date(dateStr)
+      
+      // Verificar se o estabelecimento está aberto no dia
+      if (!isEstablishmentOpen(date)) return false
+      
+      // Verificar se o horário está dentro do funcionamento
+      if (!isTimeWithinWorkingHours(date, time)) return false
+      
+      // Verificar se o horário não está ocupado
+      if (isTimeSlotOccupied(time)) return false
+      
+      return true
+    } catch (error) {
+      console.error('Erro ao verificar disponibilidade do horário:', error)
+      return false
+    }
+  }
+
   // Função robusta para verificar conflitos de agendamento
   const hasConflict = (appointmentData: {
     date: string
@@ -978,6 +1003,8 @@ export default function AgendaPage() {
           <div className="max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time)
+              const dateStr = currentDate.toISOString().split('T')[0];
+              const isAvailable = isEstablishmentOpen(currentDate) && isTimeSlotAvailable(time, dateStr);
               const appointment = todayAppointments.find(apt => {
                 const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
                   hour: '2-digit', 
@@ -990,7 +1017,7 @@ export default function AgendaPage() {
                 <div
                   key={time}
                   className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
-                    isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
+                    !isAvailable ? 'bg-gray-500/10' : isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -1018,6 +1045,11 @@ export default function AgendaPage() {
                           </p>
                         </div>
                       </div>
+                    ) : !isAvailable ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <p className="text-gray-400">Indisponível - Estabelecimento fechado</p>
+                      </div>
                     ) : isOccupied ? (
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -1031,14 +1063,23 @@ export default function AgendaPage() {
                     )}
                   </div>
                   
-                  {!isOccupied && (
+                  {!isOccupied && isAvailable && (
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
                         onClick={() => {
-                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          const dateStr = currentDate.toISOString().split('T')[0];
+                          if (!isEstablishmentOpen(currentDate) || !isTimeSlotAvailable(time, dateStr)) {
+                            toast({
+                              title: "Horário indisponível",
+                              description: "Este horário não está disponível para agendamento.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setNewAppointment({...newAppointment, time, date: dateStr})
                           setIsNewAppointmentOpen(true)
                         }}
                       >
@@ -1277,8 +1318,10 @@ export default function AgendaPage() {
                           description: `Estabelecimento fechado ${dayName}. Escolha outro dia.`,
                           variant: "destructive",
                         })
+                        // NÃO setar a data se o estabelecimento estiver fechado
                         return
                       }
+                      // SÓ setar a data se o estabelecimento estiver aberto
                       setNewAppointment({...newAppointment, date: e.target.value, time: ""})
                     }}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
