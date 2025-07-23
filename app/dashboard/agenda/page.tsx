@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
+import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AgendaPage() {
@@ -71,6 +72,7 @@ export default function AgendaPage() {
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
+  const { workingHours, loading: workingHoursLoading, error: workingHoursError } = useWorkingHours()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -103,23 +105,37 @@ export default function AgendaPage() {
   const generateTimeSlots = () => {
     const slots = []
     
-    // Usar horários do estabelecimento ou padrão
-    const defaultStartHour = 8
-    const defaultEndHour = 18
+    // Obter o dia da semana atual em formato de string
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const currentDayName = dayNames[currentDate.getDay()]
     
-    const startHour = establishment?.openTime ? 
-      parseInt(establishment.openTime.split(':')[0]) : defaultStartHour
-    const endHour = establishment?.closeTime ? 
-      parseInt(establishment.closeTime.split(':')[0]) : defaultEndHour
+    // Buscar horários de funcionamento para o dia atual
+    const dayWorkingHours = workingHours?.find(wh => wh.dayOfWeek === currentDayName)
     
-    const interval = 5 // Intervalos de 5 minutos
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += interval) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        slots.push(time)
-      }
+    // Se não há horário configurado ou o dia está inativo, retornar array vazio
+    if (!dayWorkingHours || !dayWorkingHours.isActive) {
+      return []
     }
+    
+    // Usar horários configurados
+    const startTime = dayWorkingHours.startTime || "08:00"
+    const endTime = dayWorkingHours.endTime || "18:00"
+    
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+    
+    const startTotalMinutes = startHour * 60 + startMinute
+    const endTotalMinutes = endHour * 60 + endMinute
+    
+    const interval = 15 // Intervalos de 15 minutos (consistente com configurações)
+    
+    for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
+      const hour = Math.floor(totalMinutes / 60)
+      const minute = totalMinutes % 60
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+      slots.push(time)
+    }
+    
     return slots
   }
 
@@ -202,10 +218,10 @@ export default function AgendaPage() {
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
     // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
-    const totalSlotsInDay = generateTimeSlots().length
+    const totalSlotsInDay = getAvailableTimeSlotsForDate(currentDate).length
     const totalOccupiedSlots = today.reduce((sum, apt) => {
       const serviceDuration = apt.service?.duration || apt.duration || 30
-      const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
+      const slotsNeeded = Math.ceil(serviceDuration / 15) // slots de 15 minutos
       return sum + slotsNeeded
     }, 0)
     
@@ -546,13 +562,50 @@ export default function AgendaPage() {
 
   // Função para obter a próxima disponibilidade
   const getNextAvailableTime = (serviceDuration: number, professionalId?: string) => {
-    const slots = generateTimeSlots()
+    const slots = getAvailableTimeSlotsForDate(currentDate)
     for (const slot of slots) {
       if (canScheduleService(slot, serviceDuration, professionalId)) {
         return slot
       }
     }
     return null
+  }
+
+  // Função para obter horários disponíveis para uma data específica
+  const getAvailableTimeSlotsForDate = (date: Date) => {
+    // Obter o dia da semana para a data selecionada
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayName = dayNames[date.getDay()]
+    
+    // Buscar horários de funcionamento para o dia
+    const dayWorkingHours = workingHours?.find(wh => wh.dayOfWeek === dayName)
+    
+    // Se não há horário configurado ou o dia está inativo, retornar array vazio
+    if (!dayWorkingHours || !dayWorkingHours.isActive) {
+      return []
+    }
+    
+    // Gerar slots para a data específica
+    const startTime = dayWorkingHours.startTime || "08:00"
+    const endTime = dayWorkingHours.endTime || "18:00"
+    
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+    
+    const startTotalMinutes = startHour * 60 + startMinute
+    const endTotalMinutes = endHour * 60 + endMinute
+    
+    const interval = 15 // Intervalos de 15 minutos
+    const slots = []
+    
+    for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
+      const hour = Math.floor(totalMinutes / 60)
+      const minute = totalMinutes % 60
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+      slots.push(time)
+    }
+    
+    return slots
   }
 
   // Função para obter horários disponíveis para o modal
@@ -565,13 +618,16 @@ export default function AgendaPage() {
     const serviceDuration = selectedService.duration || 30
     const selectedDate = new Date(newAppointment.date)
     
+    // Obter slots disponíveis para a data selecionada
+    const availableSlots = getAvailableTimeSlotsForDate(selectedDate)
+    
     // Obter agendamentos da data selecionada
     const dayAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.dateTime || apt.date)
       return aptDate.toDateString() === selectedDate.toDateString()
     })
     
-    return generateTimeSlots().filter(time => {
+    return availableSlots.filter(time => {
       // Verificar se o horário pode acomodar o serviço
       const timeToMinutes = (timeStr: string) => {
         const [hours, minutes] = timeStr.split(':').map(Number)
@@ -581,47 +637,36 @@ export default function AgendaPage() {
       const startMinutes = timeToMinutes(time)
       const endMinutes = startMinutes + serviceDuration
       
-      // Verificar se todos os slots de 5min necessários estão livres
-      const slots = generateTimeSlots()
-      for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
-        const hours = Math.floor(currentMinutes / 60)
-        const minutes = currentMinutes % 60
-        const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-        
-        if (!slots.includes(slotTime)) continue
-        
-        // Verificar se este slot está ocupado
-        const isOccupied = dayAppointments.some(apt => {
-          const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-          const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })
-          
-          const aptServiceDuration = apt.service?.duration || apt.duration || 30
-          const aptEndTime = new Date(aptStartTime.getTime() + (aptServiceDuration * 60000))
-          const aptEndTimeString = aptEndTime.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })
-          
-          const slotMinutes = timeToMinutes(slotTime)
-          const aptStartMinutes = timeToMinutes(aptStartTimeString)
-          const aptEndMinutes = timeToMinutes(aptEndTimeString)
-          
-          const isWithinAppointment = slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes
-          const matchesProfessional = !newAppointment.professionalId || 
-                                     apt.professionalId === newAppointment.professionalId
-          
-          return isWithinAppointment && matchesProfessional
+      // Verificar se o serviço cabe dentro do horário de funcionamento
+      const dayEndTime = availableSlots[availableSlots.length - 1]
+      if (!dayEndTime) return false
+      
+      const dayEndMinutes = timeToMinutes(dayEndTime) + 15 // Adicionar o intervalo do último slot
+      if (endMinutes > dayEndMinutes) return false
+      
+      // Verificar conflitos com agendamentos existentes
+      const isConflicting = dayAppointments.some(apt => {
+        const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+        const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
         })
         
-        if (isOccupied) {
-          return false
-        }
-      }
+        const aptServiceDuration = apt.service?.duration || apt.duration || 30
+        const aptStartMinutes = timeToMinutes(aptStartTimeString)
+        const aptEndMinutes = aptStartMinutes + aptServiceDuration
+        
+        // Verificar se há sobreposição de horários
+        const hasOverlap = (startMinutes < aptEndMinutes && endMinutes > aptStartMinutes)
+        
+        // Verificar se é o mesmo profissional (se especificado)
+        const matchesProfessional = !newAppointment.professionalId || 
+                                   apt.professionalId === newAppointment.professionalId
+        
+        return hasOverlap && matchesProfessional
+      })
       
-      return true
+      return !isConflicting
     })
   }
 
@@ -797,12 +842,13 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            Grade de 5 em 5 minutos - Horários de funcionamento: {establishment?.openTime || '08:00'} às {establishment?.closeTime || '18:00'}
+            Grade de 15 em 15 minutos - Horários configurados no sistema
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-96 overflow-y-auto">
-            {generateTimeSlots().map((time) => {
+            {getAvailableTimeSlotsForDate(currentDate).length > 0 ? (
+              getAvailableTimeSlotsForDate(currentDate).map((time) => {
               const isOccupied = isTimeSlotOccupied(time)
               const appointment = todayAppointments.find(apt => {
                 const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
@@ -896,7 +942,14 @@ export default function AgendaPage() {
                   )}
                 </div>
               )
-            })}
+            })
+            ) : (
+              <div className="p-8 text-center text-[#71717a]">
+                <Clock className="w-12 h-12 mx-auto mb-4 text-[#3f3f46]" />
+                <p className="text-lg mb-2">Estabelecimento fechado</p>
+                <p className="text-sm">Não há horários de funcionamento configurados para este dia.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
