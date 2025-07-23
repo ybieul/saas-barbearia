@@ -33,8 +33,7 @@ import {
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
-import { useWorkingHours } from "@/hooks/use-working-hours"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -72,7 +71,6 @@ export default function AgendaPage() {
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
-  const { workingHours, loading: workingHoursLoading, fetchWorkingHours } = useWorkingHours()
   const { toast } = useToast()
 
   // Carregar dados ao montar o componente
@@ -82,8 +80,7 @@ export default function AgendaPage() {
     fetchServices()
     fetchProfessionals()
     fetchEstablishment()
-    fetchWorkingHours()
-  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment, fetchWorkingHours])
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment])
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -102,63 +99,11 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
 
-  // Função para verificar se um dia está disponível (estabelecimento aberto)
-  const isDayAvailable = (date: Date) => {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayOfWeek = dayNames[date.getDay()]
-    
-    const workingHoursForDay = workingHours.find(wh => wh.dayOfWeek === dayOfWeek)
-    return workingHoursForDay?.isActive || false
-  }
-
-  // Função para obter horários de funcionamento de um dia específico
-  const getDayWorkingHours = (date: Date) => {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayOfWeek = dayNames[date.getDay()]
-    
-    const workingHoursForDay = workingHours.find(wh => wh.dayOfWeek === dayOfWeek)
-    
-    if (!workingHoursForDay?.isActive) {
-      return null
-    }
-    
-    return {
-      startTime: workingHoursForDay.startTime,
-      endTime: workingHoursForDay.endTime
-    }
-  }
-
   // Função para gerar horários (baseado nos horários de funcionamento do estabelecimento)
-  const generateTimeSlots = (specificDate?: Date) => {
+  const generateTimeSlots = () => {
     const slots = []
     
-    // Se uma data específica foi fornecida, usar os horários daquele dia
-    if (specificDate) {
-      const dayHours = getDayWorkingHours(specificDate)
-      if (!dayHours) return [] // Dia não disponível
-      
-      const startHour = parseInt(dayHours.startTime.split(':')[0])
-      const startMinute = parseInt(dayHours.startTime.split(':')[1])
-      const endHour = parseInt(dayHours.endTime.split(':')[0])
-      const endMinute = parseInt(dayHours.endTime.split(':')[1])
-      
-      const interval = 5 // Intervalos de 5 minutos
-      
-      // Converter tudo para minutos para facilitar o cálculo
-      const startTotalMinutes = startHour * 60 + startMinute
-      const endTotalMinutes = endHour * 60 + endMinute
-      
-      for (let totalMinutes = startTotalMinutes; totalMinutes < endTotalMinutes; totalMinutes += interval) {
-        const hour = Math.floor(totalMinutes / 60)
-        const minute = totalMinutes % 60
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        slots.push(time)
-      }
-      
-      return slots
-    }
-    
-    // Fallback para usar horários do establishment (compatibilidade)
+    // Usar horários do estabelecimento ou padrão
     const defaultStartHour = 8
     const defaultEndHour = 18
     
@@ -257,14 +202,14 @@ export default function AgendaPage() {
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
     // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
-    const totalSlotsInDay = generateTimeSlots(currentDate).length
+    const totalSlotsInDay = generateTimeSlots().length
     const totalOccupiedSlots = today.reduce((sum, apt) => {
       const serviceDuration = apt.service?.duration || apt.duration || 30
       const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
       return sum + slotsNeeded
     }, 0)
     
-    const occupancyRate = totalSlotsInDay > 0 ? Math.round((totalOccupiedSlots / totalSlotsInDay) * 100) : 0
+    const occupancyRate = Math.round((totalOccupiedSlots / totalSlotsInDay) * 100)
 
     return {
       appointmentsToday: today.length,
@@ -314,20 +259,6 @@ export default function AgendaPage() {
       toast({
         title: "Erro",
         description: "Selecione uma data",
-        variant: "destructive",
-      })
-      return false
-    }
-
-    // Verificar se a data selecionada está disponível (estabelecimento aberto)
-    const selectedDate = new Date(newAppointment.date)
-    if (!isDayAvailable(selectedDate)) {
-      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-      const dayName = dayNames[selectedDate.getDay()]
-      
-      toast({
-        title: "Data Indisponível",
-        description: `O estabelecimento não funciona às ${dayName}s. Selecione uma data em que o estabelecimento esteja aberto.`,
         variant: "destructive",
       })
       return false
@@ -475,7 +406,6 @@ export default function AgendaPage() {
       setIsCreating(false)
     }
   }
-  
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
@@ -635,19 +565,13 @@ export default function AgendaPage() {
     const serviceDuration = selectedService.duration || 30
     const selectedDate = new Date(newAppointment.date)
     
-    // Verificar se o dia está disponível (estabelecimento aberto)
-    if (!isDayAvailable(selectedDate)) {
-      return []
-    }
-    
     // Obter agendamentos da data selecionada
     const dayAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.dateTime || apt.date)
       return aptDate.toDateString() === selectedDate.toDateString()
     })
     
-    // Gerar slots baseados nos horários de funcionamento daquele dia
-    return generateTimeSlots(selectedDate).filter(time => {
+    return generateTimeSlots().filter(time => {
       // Verificar se o horário pode acomodar o serviço
       const timeToMinutes = (timeStr: string) => {
         const [hours, minutes] = timeStr.split(':').map(Number)
@@ -658,7 +582,7 @@ export default function AgendaPage() {
       const endMinutes = startMinutes + serviceDuration
       
       // Verificar se todos os slots de 5min necessários estão livres
-      const slots = generateTimeSlots(selectedDate)
+      const slots = generateTimeSlots()
       for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
         const hours = Math.floor(currentMinutes / 60)
         const minutes = currentMinutes % 60
@@ -717,32 +641,13 @@ export default function AgendaPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
-            {isDayAvailable(currentDate) ? (
-              <Badge className="bg-green-600 hover:bg-green-600 text-white">
-                🟢 Aberto
-              </Badge>
-            ) : (
-              <Badge variant="destructive">
-                🔴 Fechado
-              </Badge>
-            )}
-          </div>
-          <p className="text-[#a1a1aa]">
-            Gerencie seus agendamentos • {currentDate.toLocaleDateString('pt-BR', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
+          <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
+          <p className="text-[#a1a1aa]">Gerencie seus agendamentos</p>
         </div>
         
         <Button 
           onClick={() => setIsNewAppointmentOpen(true)}
           className="bg-[#10b981] hover:bg-[#059669]"
-          disabled={!isDayAvailable(currentDate)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Agendamento
@@ -863,27 +768,27 @@ export default function AgendaPage() {
             <SelectContent className="bg-[#18181b] border-[#27272a]">
               <SelectItem value="todos">Todos os profissionais</SelectItem>
               {professionalsData?.map((professional) => (
-                <SelectItem key={professional.id} value={professional.id}>
-                  {professional.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectItem key={professional.id} value={professional.id}>
+                {professional.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#18181b] border-[#27272a]">
-              <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="SCHEDULED">Agendado</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-              <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
-              <SelectItem value="COMPLETED">Concluído</SelectItem>
-              <SelectItem value="CANCELLED">Cancelado</SelectItem>
-              <SelectItem value="NO_SHOW">Não compareceu</SelectItem>
-            </SelectContent>
-          </Select>
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#18181b] border-[#27272a]">
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="SCHEDULED">Agendado</SelectItem>
+            <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+            <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
+            <SelectItem value="COMPLETED">Concluído</SelectItem>
+            <SelectItem value="CANCELLED">Cancelado</SelectItem>
+            <SelectItem value="NO_SHOW">Não compareceu</SelectItem>
+          </SelectContent>
+        </Select>
         </div>
       </div>
 
@@ -892,113 +797,107 @@ export default function AgendaPage() {
         <CardHeader>
           <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
           <CardDescription className="text-[#a1a1aa]">
-            {isDayAvailable(currentDate) ? (
-              <>
-                Grade de 5 em 5 minutos - Horários de funcionamento: {getDayWorkingHours(currentDate)?.startTime || '08:00'} às {getDayWorkingHours(currentDate)?.endTime || '18:00'}
-              </>
-            ) : (
-              <span className="text-red-400">
-                🔴 Estabelecimento fechado hoje. Configurar horários de funcionamento nas Configurações.
-              </span>
-            )}
+            Grade de 5 em 5 minutos - Horários de funcionamento: {establishment?.openTime || '08:00'} às {establishment?.closeTime || '18:00'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {!isDayAvailable(currentDate) ? (
-            <div className="p-8 text-center">
-              <div className="p-4 bg-red-900/20 rounded-lg border border-red-700/50 max-w-md mx-auto">
-                <h3 className="text-lg font-semibold text-red-400 mb-2">Estabelecimento Fechado</h3>
-                <p className="text-red-300 text-sm mb-4">
-                  O estabelecimento não funciona hoje. Não é possível criar novos agendamentos.
-                </p>
-                <p className="text-xs text-gray-400">
-                  Para alterar os horários de funcionamento, acesse a aba &quot;Configurações &gt; Horários&quot;.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="max-h-96 overflow-y-auto">
-              {generateTimeSlots(currentDate).map((time) => {
-                const isOccupied = isTimeSlotOccupied(time)
-                const appointment = todayAppointments.find(apt => {
-                  const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })
-                  return aptTime === time
+          <div className="max-h-96 overflow-y-auto">
+            {generateTimeSlots().map((time) => {
+              const isOccupied = isTimeSlotOccupied(time)
+              const appointment = todayAppointments.find(apt => {
+                const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
                 })
+                return aptTime === time
+              })
 
-                return (
-                  <div
-                    key={time}
-                    className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
-                      isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 text-[#ededed] font-medium">
-                        {time}
-                      </div>
-                      {appointment ? (
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
-                          ></div>
-                          <div>
-                            <p className="text-[#ededed] font-medium">
-                              {appointment.endUser?.name || appointment.clientName || 'Cliente'}
-                            </p>
-                            <p className="text-[#a1a1aa] text-sm">
-                              {appointment.service?.name || appointment.serviceName || 'Serviço'} 
-                              <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
-                              {(appointment.professional?.name || appointment.professionalName) && 
-                                ` • ${appointment.professional?.name || appointment.professionalName}`
-                              }
-                            </p>
-                            <p className="text-xs text-[#71717a]">
-                              Status: {getStatusBadge(appointment.status).label}
-                            </p>
-                          </div>
-                        </div>
-                      ) : isOccupied ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
-                        </div>
-                      ) : !isDayAvailable(currentDate) ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                          <p className="text-gray-400">Estabelecimento fechado</p>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
-                          <p className="text-[#10b981]">Disponível - Clique para agendar</p>
-                        </div>
-                      )}
+              return (
+                <div
+                  key={time}
+                  className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                    isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 text-[#ededed] font-medium">
+                      {time}
                     </div>
-                    
-                    {!isOccupied && isDayAvailable(currentDate) && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
-                          onClick={() => {
-                            setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
-                            setIsNewAppointmentOpen(true)
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Agendar
-                        </Button>
+                    {appointment ? (
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                        ></div>
+                        <div>
+                          <p className="text-[#ededed] font-medium">
+                            {appointment.endUser?.name || appointment.clientName || 'Cliente'}
+                          </p>
+                          <p className="text-[#a1a1aa] text-sm">
+                            {appointment.service?.name || appointment.serviceName || 'Serviço'} 
+                            <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
+                            {(appointment.professional?.name || appointment.professionalName) && 
+                              ` • ${appointment.professional?.name || appointment.professionalName}`
+                            }
+                          </p>
+                          <p className="text-xs text-[#71717a]">
+                            Status: {getStatusBadge(appointment.status).label}
+                          </p>
+                        </div>
+                      </div>
+                    ) : isOccupied ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
                       </div>
                     )}
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  
+                  {!isOccupied && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                        onClick={() => {
+                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          setIsNewAppointmentOpen(true)
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Agendar
+                      </Button>
+                      
+                      {/* Mostrar sugestão de próximo horário disponível se houver serviço selecionado */}
+                      {newAppointment.serviceId && (
+                        (() => {
+                          const selectedService = services.find(s => s.id === newAppointment.serviceId)
+                          if (selectedService) {
+                            const nextAvailable = getNextAvailableTime(
+                              selectedService.duration || 30,
+                              newAppointment.professionalId || undefined
+                            )
+                            if (nextAvailable && nextAvailable !== time) {
+                              return (
+                                <span className="text-xs text-[#a1a1aa]">
+                                  Próximo: {nextAvailable}
+                                </span>
+                              )
+                            }
+                          }
+                          return null
+                        })()
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
 
@@ -1197,18 +1096,12 @@ export default function AgendaPage() {
                     onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
-                  {newAppointment.date && !isDayAvailable(new Date(newAppointment.date)) && (
-                    <p className="text-xs text-red-400 mt-1">
-                      ⚠️ Estabelecimento fechado nesta data
-                    </p>
-                  )}
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>
                   <Select 
                     value={newAppointment.time} 
                     onValueChange={(value) => setNewAppointment({...newAppointment, time: value})}
-                    disabled={!newAppointment.date || !isDayAvailable(new Date(newAppointment.date))}
                   >
                     <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
                       <SelectValue placeholder="Selecione um horário" />
@@ -1222,8 +1115,7 @@ export default function AgendaPage() {
                         ))
                       ) : (
                         <div className="p-2 text-center text-[#a1a1aa] text-sm">
-                          {newAppointment.date && !isDayAvailable(new Date(newAppointment.date)) ? 
-                            "Estabelecimento fechado" : "Nenhum horário disponível"}
+                          Nenhum horário disponível
                         </div>
                       )}
                     </SelectContent>
