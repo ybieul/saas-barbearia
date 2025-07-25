@@ -21,7 +21,7 @@ model Tenant {
   name      String   // Nome do proprietário
   password  String
   phone     String?
-  avatar    String?
+  avatar    String?  @db.Text
   role      UserRole @default(OWNER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -93,7 +93,7 @@ model Professional {
   email     String?
   phone     String?
   specialty String?  @db.Text
-  avatar    String?
+  avatar    String?  @db.Text
   salary    Decimal? @db.Decimal(10,2)
   commission Decimal? @db.Decimal(5,2) // Porcentagem de comissão
   isActive  Boolean  @default(true)
