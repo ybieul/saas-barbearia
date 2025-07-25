@@ -7,6 +7,7 @@ interface Service {
   price: number
   duration: number
   category?: string
+  image?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -16,10 +17,11 @@ interface UseServicesReturn {
   services: Service[]
   loading: boolean
   error: string | null
-  addService: (data: Omit<Service, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>) => Promise<boolean>
-  updateService: (id: string, data: Partial<Service>) => Promise<boolean>
-  removeService: (id: string) => Promise<boolean>
-  refreshServices: () => Promise<void>
+  createService: (data: Omit<Service, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>) => Promise<Service | null>
+  updateService: (data: { id: string } & Partial<Service>) => Promise<Service | null>
+  updateServiceImage: (serviceId: string, imageBase64: string | null) => Promise<Service | null>
+  deleteService: (id: string) => Promise<Service | null>
+  fetchServices: () => Promise<void>
 }
 
 export function useServices(): UseServicesReturn {
@@ -27,7 +29,7 @@ export function useServices(): UseServicesReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchServices = async () => {
+  const fetchServicesInternal = async () => {
     try {
       setLoading(true)
       setError(null)
@@ -48,7 +50,7 @@ export function useServices(): UseServicesReturn {
     }
   }
 
-  const addService = async (serviceData: Omit<Service, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
+  const createService = async (serviceData: Omit<Service, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<Service | null> => {
     try {
       setError(null)
       
@@ -67,15 +69,15 @@ export function useServices(): UseServicesReturn {
       
       const data = await response.json()
       setServices(prev => [data.service, ...prev])
-      return true
+      return data.service
     } catch (err) {
       console.error('Erro ao adicionar serviço:', err)
       setError(err instanceof Error ? err.message : 'Erro ao adicionar serviço')
-      return false
+      return null
     }
   }
 
-  const updateService = async (id: string, serviceData: Partial<Service>): Promise<boolean> => {
+  const updateService = async (serviceData: { id: string } & Partial<Service>): Promise<Service | null> => {
     try {
       setError(null)
       
@@ -84,7 +86,7 @@ export function useServices(): UseServicesReturn {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, ...serviceData })
+        body: JSON.stringify(serviceData)
       })
       
       if (!response.ok) {
@@ -94,17 +96,49 @@ export function useServices(): UseServicesReturn {
       
       const data = await response.json()
       setServices(prev => 
-        prev.map(s => s.id === id ? data.service : s)
+        prev.map(s => s.id === serviceData.id ? data.service : s)
       )
-      return true
+      return data.service
     } catch (err) {
       console.error('Erro ao atualizar serviço:', err)
       setError(err instanceof Error ? err.message : 'Erro ao atualizar serviço')
-      return false
+      return null
     }
   }
 
-  const removeService = async (id: string): Promise<boolean> => {
+  const updateServiceImage = async (serviceId: string, imageBase64: string | null): Promise<Service | null> => {
+    try {
+      setError(null)
+      
+      const response = await fetch('/api/services', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          id: serviceId, 
+          image: imageBase64 
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Erro ${response.status}`)
+      }
+      
+      const data = await response.json()
+      setServices(prev => 
+        prev.map(s => s.id === serviceId ? data.service : s)
+      )
+      return data.service
+    } catch (err) {
+      console.error('Erro ao atualizar imagem do serviço:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar imagem')
+      throw err // Re-throw para que o componente possa lidar com o erro
+    }
+  }
+
+  const deleteService = async (id: string): Promise<Service | null> => {
     try {
       setError(null)
       
@@ -117,30 +151,32 @@ export function useServices(): UseServicesReturn {
         throw new Error(errorData.error || `Erro ${response.status}`)
       }
       
+      const data = await response.json()
       setServices(prev => prev.filter(s => s.id !== id))
-      return true
+      return data.service || null
     } catch (err) {
       console.error('Erro ao remover serviço:', err)
       setError(err instanceof Error ? err.message : 'Erro ao remover serviço')
-      return false
+      return null
     }
   }
 
-  const refreshServices = async () => {
-    await fetchServices()
+  const fetchServices = async () => {
+    await fetchServicesInternal()
   }
 
   useEffect(() => {
-    fetchServices()
+    fetchServicesInternal()
   }, [])
 
   return {
     services,
     loading,
     error,
-    addService,
+    createService,
     updateService,
-    removeService,
-    refreshServices,
+    updateServiceImage,
+    deleteService,
+    fetchServices,
   }
 }

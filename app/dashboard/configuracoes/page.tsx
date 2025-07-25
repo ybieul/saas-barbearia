@@ -15,7 +15,10 @@ import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 import { ProfessionalAvatarUpload } from "@/components/professional-avatar-upload"
-import { useProfessionals, useServices } from "@/hooks/use-api"
+import ServiceImage from "@/components/service-image"
+import ServiceImageUpload from "@/components/service-image-upload"
+import { useProfessionals } from "@/hooks/use-api"
+import { useServices } from "@/hooks/use-services"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
@@ -121,6 +124,7 @@ export default function ConfiguracoesPage() {
     error: servicesError,
     createService,
     updateService,
+    updateServiceImage,
     deleteService,
     fetchServices
   } = useServices()
@@ -162,6 +166,10 @@ export default function ConfiguracoesPage() {
     price: "",
     duration: ""
   })
+
+  // Estados para upload de imagem de serviços
+  const [isServiceImageUploadOpen, setIsServiceImageUploadOpen] = useState(false)
+  const [selectedServiceForImage, setSelectedServiceForImage] = useState<any>(null)
 
   // Hook para horários integrado ao banco de dados
   const { 
@@ -464,6 +472,39 @@ export default function ConfiguracoesPage() {
   const handleCloseAvatarUpload = () => {
     setSelectedProfessionalForAvatar(null)
     setIsAvatarUploadOpen(false)
+  }
+
+  // Funções para gerenciar upload de imagem de serviços
+  const handleServiceImageChange = async (serviceId: string, imageBase64: string | null) => {
+    try {
+      await updateServiceImage(serviceId, imageBase64)
+      // Recarregar a lista de serviços para mostrar a nova imagem
+      await fetchServices()
+      // Mostrar feedback de sucesso
+      toast({
+        title: "Imagem atualizada!",
+        description: "A imagem do serviço foi atualizada com sucesso.",
+        variant: "default",
+      })
+      // Fechar o modal após sucesso
+      handleCloseServiceImageUpload()
+      return Promise.resolve()
+    } catch (error) {
+      console.error('Erro ao atualizar imagem do serviço:', error)
+      throw error
+    }
+  }
+
+  // Função para abrir dialog de upload de imagem do serviço
+  const handleOpenServiceImageUpload = (service: any) => {
+    setSelectedServiceForImage(service)
+    setIsServiceImageUploadOpen(true)
+  }
+
+  // Função para fechar dialog de upload de imagem do serviço
+  const handleCloseServiceImageUpload = () => {
+    setSelectedServiceForImage(null)
+    setIsServiceImageUploadOpen(false)
   }
 
   const handleRemoveProfessional = async (id: string, name: string) => {
@@ -1345,7 +1386,7 @@ export default function ConfiguracoesPage() {
                         Novo Serviço
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
+                    <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
                       <DialogHeader>
                         <DialogTitle className="text-[#ededed]">Novo Serviço</DialogTitle>
                         <DialogDescription className="text-[#71717a]">
@@ -1375,10 +1416,11 @@ export default function ConfiguracoesPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="servicePrice" className="text-[#ededed]">Preço (R$)</Label>
+                            <Label htmlFor="servicePrice" className="text-[#ededed]">Preço (R$) *</Label>
                             <Input
                               id="servicePrice"
                               type="number"
+                              step="0.01"
                               value={newService.price}
                               onChange={(e) => setNewService({ ...newService, price: e.target.value })}
                               className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
@@ -1386,7 +1428,7 @@ export default function ConfiguracoesPage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="serviceDuration" className="text-[#ededed]">Duração (min)</Label>
+                            <Label htmlFor="serviceDuration" className="text-[#ededed]">Duração (min) *</Label>
                             <Input
                               id="serviceDuration"
                               type="number"
@@ -1401,15 +1443,16 @@ export default function ConfiguracoesPage() {
                           <Button 
                             variant="outline" 
                             onClick={handleCancelAddService}
-                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
                           >
                             Cancelar
                           </Button>
                           <Button 
                             onClick={handleAddService}
-                            className="bg-purple-500 hover:bg-purple-600 text-[#ededed]"
+                            className="bg-purple-500 hover:bg-purple-600 text-[#ededed] min-h-[44px] px-6 touch-manipulation"
+                            disabled={servicesLoading}
                           >
-                            Adicionar Serviço
+                            {servicesLoading ? "Adicionando..." : "Adicionar Serviço"}
                           </Button>
                         </div>
                       </div>
@@ -1421,68 +1464,119 @@ export default function ConfiguracoesPage() {
                 <div className="space-y-4">
                   {servicesLoading ? (
                     <div className="text-center py-8 text-[#71717a]">
-                      Carregando serviços...
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        Carregando serviços...
+                      </div>
+                    </div>
+                  ) : servicesError ? (
+                    <div className="text-center py-8 text-red-400">
+                      <p>Erro ao carregar serviços: {servicesError}</p>
+                      <Button 
+                        onClick={() => fetchServices()}
+                        variant="outline"
+                        className="mt-4 border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                      >
+                        Tentar Novamente
+                      </Button>
                     </div>
                   ) : dbServices.length === 0 ? (
                     <div className="text-center py-8 text-[#71717a]">
-                      Nenhum serviço cadastrado. Clique em &quot;Novo Serviço&quot; para adicionar.
+                      <Wrench className="w-12 h-12 mx-auto mb-4 text-[#3f3f46]" />
+                      <p className="text-lg mb-2">Nenhum serviço cadastrado</p>
+                      <p className="text-sm">Clique em "Novo Serviço" para adicionar o primeiro serviço.</p>
                     </div>
                   ) : (
                     dbServices.map((service) => (
                       <div
                         key={service.id}
-                        className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b] gap-4"
+                        className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
                       >
-                        <div className="flex items-center gap-4 flex-1 w-full">
-                          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Wrench className="w-6 h-6 text-[#ededed]" />
+                        {/* Header com imagem e ações - Mobile-friendly */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <ServiceImage 
+                              image={service.image}
+                              name={service.name || "Serviço"}
+                              size="lg"
+                              className="flex-shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-[#ededed] font-medium truncate">
+                                {service.name || "Nome não informado"}
+                              </h3>
+                              <p className="text-xs text-[#71717a] truncate">
+                                {service.description || "Descrição não informada"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1 w-full">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs text-[#71717a]">Nome</Label>
-                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                  {service.name || "Não informado"}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs text-[#71717a]">Descrição</Label>
-                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                  {service.description || "Não informado"}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs text-[#71717a]">Preço</Label>
-                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                  R$ {typeof service.price === 'number' ? service.price.toFixed(2) : "0,00"}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs text-[#71717a]">Duração</Label>
-                                <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                  {service.duration || "0"} min
-                                </div>
-                              </div>
+                          
+                          {/* Ações - Stack vertical em mobile */}
+                          <div className="flex sm:flex-row flex-col gap-1 sm:gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenServiceImageUpload(service)}
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              title="Alterar imagem do serviço"
+                            >
+                              <Camera className="w-4 h-4" />
+                              <span className="hidden sm:inline ml-2">Imagem</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditService(service)}
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              title="Editar serviço"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span className="hidden sm:inline ml-2">Editar</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemoveService(service.id, service.name)}
+                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              disabled={servicesLoading}
+                              title="Remover serviço"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span className="hidden sm:inline ml-2">Remover</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Informações em grid responsivo */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-[#71717a]">Preço</Label>
+                            <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm font-medium">
+                              R$ {(typeof service.price === 'number' ? service.price : parseFloat(String(service.price)) || 0).toFixed(2).replace('.', ',')}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-[#71717a]">Duração</Label>
+                            <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                              {service.duration || 0} minutos
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-[#71717a]">Categoria</Label>
+                            <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                              {service.category || "Geral"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditService(service)}
-                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRemoveService(service.id, service.name)}
-                            className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent flex-shrink-0"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+
+                        {/* Metadados */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#71717a]">
+                          <Badge variant={service.isActive ? "default" : "secondary"} className="text-xs">
+                            {service.isActive ? "Ativo" : "Inativo"}
+                          </Badge>
+                          {service.createdAt && (
+                            <span>Cadastrado: {new Date(service.createdAt).toLocaleDateString('pt-BR')}</span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1493,7 +1587,7 @@ export default function ConfiguracoesPage() {
             
             {/* Dialog para editar serviço */}
             <Dialog open={isEditServiceOpen} onOpenChange={setIsEditServiceOpen}>
-              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
+              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
                 <DialogHeader>
                   <DialogTitle className="text-[#ededed]">Editar Serviço</DialogTitle>
                   <DialogDescription className="text-[#71717a]">
@@ -1523,10 +1617,11 @@ export default function ConfiguracoesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="editServicePrice" className="text-[#ededed]">Preço (R$)</Label>
+                      <Label htmlFor="editServicePrice" className="text-[#ededed]">Preço (R$) *</Label>
                       <Input
                         id="editServicePrice"
                         type="number"
+                        step="0.01"
                         value={editService.price}
                         onChange={(e) => setEditService({ ...editService, price: e.target.value })}
                         className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
@@ -1534,7 +1629,7 @@ export default function ConfiguracoesPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="editServiceDuration" className="text-[#ededed]">Duração (min)</Label>
+                      <Label htmlFor="editServiceDuration" className="text-[#ededed]">Duração (min) *</Label>
                       <Input
                         id="editServiceDuration"
                         type="number"
@@ -1549,18 +1644,51 @@ export default function ConfiguracoesPage() {
                     <Button 
                       variant="outline" 
                       onClick={handleCancelEditService}
-                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
                     >
                       Cancelar
                     </Button>
                     <Button 
                       onClick={handleUpdateService}
-                      className="bg-purple-500 hover:bg-purple-600 text-[#ededed]"
+                      className="bg-purple-500 hover:bg-purple-600 text-[#ededed] min-h-[44px] px-6 touch-manipulation"
                       disabled={servicesLoading}
                     >
                       {servicesLoading ? "Salvando..." : "Salvar Alterações"}
                     </Button>
                   </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog para upload de imagem do serviço */}
+            <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
+              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-[#ededed] text-center">Imagem do Serviço</DialogTitle>
+                  <DialogDescription className="text-[#71717a] text-center">
+                    {selectedServiceForImage?.name && `${selectedServiceForImage.name}`}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  {selectedServiceForImage && (
+                    <ServiceImageUpload
+                      currentImage={selectedServiceForImage.image}
+                      serviceName={selectedServiceForImage.name}
+                      onImageChange={(imageBase64) => 
+                        handleServiceImageChange(selectedServiceForImage.id, imageBase64)
+                      }
+                      size="lg"
+                    />
+                  )}
+                </div>
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCloseServiceImageUpload}
+                    className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
+                  >
+                    Fechar
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
