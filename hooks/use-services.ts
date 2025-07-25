@@ -34,7 +34,14 @@ export function useServices(): UseServicesReturn {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/services?active=true')
+      const token = localStorage.getItem('auth_token')
+      
+      const response = await fetch('/api/services?active=true', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      })
       
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`)
@@ -54,10 +61,13 @@ export function useServices(): UseServicesReturn {
     try {
       setError(null)
       
+      const token = localStorage.getItem('auth_token')
+      
       const response = await fetch('/api/services', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify(serviceData)
       })
@@ -81,10 +91,13 @@ export function useServices(): UseServicesReturn {
     try {
       setError(null)
       
+      const token = localStorage.getItem('auth_token')
+      
       const response = await fetch('/api/services', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify(serviceData)
       })
@@ -110,10 +123,13 @@ export function useServices(): UseServicesReturn {
     try {
       setError(null)
       
+      const token = localStorage.getItem('auth_token')
+      
       const response = await fetch('/api/services', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify({ 
           id: serviceId, 
@@ -142,8 +158,14 @@ export function useServices(): UseServicesReturn {
     try {
       setError(null)
       
+      const token = localStorage.getItem('auth_token')
+      
       const response = await fetch(`/api/services?id=${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
       })
       
       if (!response.ok) {
