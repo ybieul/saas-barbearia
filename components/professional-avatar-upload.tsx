@@ -142,11 +142,8 @@ export function ProfessionalAvatarUpload({
     setIsUploading(true)
     try {
       await onAvatarChange(previewAvatar)
-      toast({
-        title: "Foto salva!",
-        description: "A foto de perfil foi atualizada com sucesso.",
-        variant: "default",
-      })
+      // Não mostramos toast aqui pois o dialog será fechado automaticamente
+      // O toast será mostrado pela função pai após o fechamento do modal
     } catch (error) {
       toast({
         title: "Erro ao salvar",
@@ -278,7 +275,14 @@ export function ProfessionalAvatarUpload({
               size="sm"
               className="bg-[#10b981] hover:bg-[#059669] text-white w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
-              Salvar Alteração
+              {isUploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Alteração"
+              )}
             </Button>
             <Button
               onClick={handleCancelPreview}

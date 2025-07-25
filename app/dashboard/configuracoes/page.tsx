@@ -439,6 +439,14 @@ export default function ConfiguracoesPage() {
       await updateProfessionalAvatar(professionalId, avatarBase64)
       // Recarregar a lista de profissionais para mostrar a nova foto
       await fetchProfessionals()
+      // Mostrar feedback de sucesso
+      toast({
+        title: "Foto atualizada!",
+        description: "A foto de perfil foi atualizada com sucesso.",
+        variant: "default",
+      })
+      // Fechar o modal após sucesso
+      handleCloseAvatarUpload()
       return Promise.resolve()
     } catch (error) {
       console.error('Erro ao atualizar avatar:', error)
