@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ProfessionalAvatar } from "@/components/professional-avatar"
+import { ProfessionalAvatarUpload } from "@/components/professional-avatar-upload"
 import { useProfessionals, useServices } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
@@ -31,6 +33,7 @@ import {
   Link as LinkIcon,
   Edit,
   MessageSquare,
+  Camera,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -106,6 +109,7 @@ export default function ConfiguracoesPage() {
     error: professionalsError,
     createProfessional,
     updateProfessional,
+    updateProfessionalAvatar,
     deleteProfessional,
     fetchProfessionals
   } = useProfessionals()
@@ -144,6 +148,10 @@ export default function ConfiguracoesPage() {
     phone: "",
     specialty: ""
   })
+
+  // Estados para upload de avatar
+  const [isAvatarUploadOpen, setIsAvatarUploadOpen] = useState(false)
+  const [selectedProfessionalForAvatar, setSelectedProfessionalForAvatar] = useState<any>(null)
 
   // Estados para edição de serviços
   const [isEditServiceOpen, setIsEditServiceOpen] = useState(false)
@@ -423,6 +431,31 @@ export default function ConfiguracoesPage() {
     setIsEditProfessionalOpen(false)
     setEditingProfessional(null)
     setEditProfessional({ name: "", email: "", phone: "", specialty: "" })
+  }
+
+  // Função para lidar com upload de avatar do profissional
+  const handleProfessionalAvatarChange = async (professionalId: string, avatarBase64: string | null) => {
+    try {
+      await updateProfessionalAvatar(professionalId, avatarBase64)
+      // Recarregar a lista de profissionais para mostrar a nova foto
+      await fetchProfessionals()
+      return Promise.resolve()
+    } catch (error) {
+      console.error('Erro ao atualizar avatar:', error)
+      throw error
+    }
+  }
+
+  // Função para abrir dialog de upload de avatar
+  const handleOpenAvatarUpload = (professional: any) => {
+    setSelectedProfessionalForAvatar(professional)
+    setIsAvatarUploadOpen(true)
+  }
+
+  // Função para fechar dialog de upload de avatar
+  const handleCloseAvatarUpload = () => {
+    setSelectedProfessionalForAvatar(null)
+    setIsAvatarUploadOpen(false)
   }
 
   const handleRemoveProfessional = async (id: string, name: string) => {
@@ -1087,77 +1120,87 @@ export default function ConfiguracoesPage() {
                       professionals.map((professional) => (
                         <div
                           key={professional.id}
-                          className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-[#52525b] gap-4 hover:bg-gray-800/50 transition-colors"
+                          className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
                         >
-                          <div className="flex items-center gap-4 flex-1 w-full">
-                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-sm font-bold text-[#ededed]">
-                                {professional.name
-                                  ?.split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")
-                                  .substring(0, 2)
-                                  .toUpperCase() || "??"}
-                              </span>
-                            </div>
-                            <div className="flex-1 w-full">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-[#71717a]">Nome</Label>
-                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                    {professional.name || "Não informado"}
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-[#71717a]">E-mail</Label>
-                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                    {professional.email || "Não informado"}
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-[#71717a]">Telefone</Label>
-                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                    {professional.phone || "Não informado"}
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs text-[#71717a]">Especialidade</Label>
-                                  <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                                    {professional.specialty || "Não informado"}
-                                  </div>
-                                </div>
+                          {/* Header com avatar e ações - Mobile-friendly */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <ProfessionalAvatar 
+                                avatar={professional.avatar}
+                                name={professional.name || "Profissional"}
+                                size="lg"
+                                className="flex-shrink-0"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-[#ededed] font-medium truncate">
+                                  {professional.name || "Nome não informado"}
+                                </h3>
+                                <p className="text-xs text-[#71717a]">
+                                  {professional.specialty || "Especialidade não informada"}
+                                </p>
                               </div>
-                              <div className="mt-2 flex items-center gap-2 text-xs text-[#71717a]">
-                                <span>ID: {professional.id}</span>
-                                <span>•</span>
-                                <span>Status: {professional.isActive ? "Ativo" : "Inativo"}</span>
-                                {professional.createdAt && (
-                                  <>
-                                    <span>•</span>
-                                    <span>Cadastrado: {new Date(professional.createdAt).toLocaleDateString('pt-BR')}</span>
-                                  </>
-                                )}
+                            </div>
+                            
+                            {/* Ações - Stack vertical em mobile */}
+                            <div className="flex sm:flex-row flex-col gap-1 sm:gap-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenAvatarUpload(professional)}
+                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                title="Alterar foto de perfil"
+                              >
+                                <Camera className="w-4 h-4" />
+                                <span className="hidden sm:inline ml-2">Foto</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditProfessional(professional)}
+                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                title="Editar profissional"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span className="hidden sm:inline ml-2">Editar</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRemoveProfessional(professional.id, professional.name)}
+                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                disabled={professionalsLoading}
+                                title="Remover profissional"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="hidden sm:inline ml-2">Remover</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Informações em grid responsivo */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-[#71717a]">E-mail</Label>
+                              <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm break-all">
+                                {professional.email || "Não informado"}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-[#71717a]">Telefone</Label>
+                              <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
+                                {professional.phone || "Não informado"}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditProfessional(professional)}
-                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRemoveProfessional(professional.id, professional.name)}
-                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent"
-                              disabled={professionalsLoading}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+
+                          {/* Metadados */}
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#71717a]">
+                            <Badge variant={professional.isActive ? "default" : "secondary"} className="text-xs">
+                              {professional.isActive ? "Ativo" : "Inativo"}
+                            </Badge>
+                            {professional.createdAt && (
+                              <span>Cadastrado: {new Date(professional.createdAt).toLocaleDateString('pt-BR')}</span>
+                            )}
                           </div>
                         </div>
                       ))
@@ -1241,6 +1284,39 @@ export default function ConfiguracoesPage() {
                         {professionalsLoading ? "Salvando..." : "Salvar Alterações"}
                       </Button>
                     </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Dialog para upload de avatar */}
+              <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
+                <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-[#ededed] text-center">Foto de Perfil</DialogTitle>
+                    <DialogDescription className="text-[#71717a] text-center">
+                      {selectedProfessionalForAvatar?.name && `${selectedProfessionalForAvatar.name}`}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    {selectedProfessionalForAvatar && (
+                      <ProfessionalAvatarUpload
+                        currentAvatar={selectedProfessionalForAvatar.avatar}
+                        professionalName={selectedProfessionalForAvatar.name}
+                        onAvatarChange={(avatarBase64) => 
+                          handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, avatarBase64)
+                        }
+                        size="lg"
+                      />
+                    )}
+                  </div>
+                  <div className="flex justify-center pt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCloseAvatarUpload}
+                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
+                    >
+                      Fechar
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>

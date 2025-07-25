@@ -212,7 +212,8 @@ export async function PUT(request: NextRequest) {
       commission, 
       serviceIds,
       workingHours,
-      isActive 
+      isActive,
+      avatar 
     } = await request.json()
 
     if (!id) {
@@ -299,6 +300,7 @@ export async function PUT(request: NextRequest) {
         commission: commission !== undefined ? commission : existingProfessional.commission,
         workingHours: workingHours || existingProfessional.workingHours,
         isActive: isActive !== undefined ? isActive : existingProfessional.isActive,
+        avatar: avatar !== undefined ? avatar : existingProfessional.avatar,
         services: serviceIds ? {
           set: serviceIds.map((serviceId: string) => ({ id: serviceId }))
         } : undefined

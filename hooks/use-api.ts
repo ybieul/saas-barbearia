@@ -284,10 +284,21 @@ export function useProfessionals() {
     serviceIds?: string[]
     workingHours?: any
     isActive?: boolean
+    avatar?: string | null
   }) => {
     return request('/api/professionals', {
       method: 'PUT',
       body: JSON.stringify(professionalData)
+    })
+  }, [request])
+
+  const updateProfessionalAvatar = useCallback((professionalId: string, avatarBase64: string | null) => {
+    return request('/api/professionals', {
+      method: 'PUT',
+      body: JSON.stringify({ 
+        id: professionalId, 
+        avatar: avatarBase64 
+      })
     })
   }, [request])
 
@@ -304,6 +315,7 @@ export function useProfessionals() {
     fetchProfessionals,
     createProfessional,
     updateProfessional,
+    updateProfessionalAvatar,
     deleteProfessional
   }
 }
