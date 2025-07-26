@@ -125,9 +125,9 @@ export function useBusinessData() {
         return
       }
 
-      // Validar tamanho (máximo 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        reject(new Error('Imagem deve ter no máximo 2MB'))
+      // Validar tamanho (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        reject(new Error('Imagem deve ter no máximo 5MB'))
         return
       }
 
