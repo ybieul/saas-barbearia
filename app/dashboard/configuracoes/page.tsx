@@ -1674,7 +1674,7 @@ export default function ConfiguracoesPage() {
                     <ServiceImageUpload
                       currentImage={selectedServiceForImage.image}
                       serviceName={selectedServiceForImage.name}
-                      onImageChange={(imageBase64) => 
+                      onImageChange={(imageBase64: string | null) => 
                         handleServiceImageChange(selectedServiceForImage.id, imageBase64)
                       }
                       size="lg"
