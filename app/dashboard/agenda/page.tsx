@@ -66,6 +66,7 @@ export default function AgendaPage() {
     notes: ""
   })
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
+  const [backendError, setBackendError] = useState<string | null>(null)
   
   // Hooks para dados reais do banco de dados
   const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
@@ -118,8 +119,17 @@ export default function AgendaPage() {
   useEffect(() => {
     if (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId) {
       setNewAppointment(prev => ({...prev, time: ""}))
+      // Limpar erro do backend quando dados importantes mudam
+      setBackendError(null)
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
+
+  // Limpar erro do backend quando modal é aberto
+  useEffect(() => {
+    if (isNewAppointmentOpen) {
+      setBackendError(null)
+    }
+  }, [isNewAppointmentOpen])
 
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
@@ -363,6 +373,7 @@ export default function AgendaPage() {
       notes: ""
     })
     setEditingAppointment(null)
+    setBackendError(null)
   }
 
   // Validação de dados com verificação de conflitos em tempo real
@@ -516,6 +527,9 @@ export default function AgendaPage() {
 
   // Criar agendamento com validação robusta
   const handleCreateAppointment = async () => {
+    // Limpar erro anterior
+    setBackendError(null)
+    
     if (!(await validateForm())) return
 
     setIsCreating(true)
@@ -577,25 +591,29 @@ export default function AgendaPage() {
       
       if (error?.message) {
         if (error.message.includes('fechado')) {
-          errorMessage = "🏪 " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('fora do funcionamento')) {
-          errorMessage = "⏰ " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('conflito')) {
-          errorMessage = "⚠️ " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('passado')) {
-          errorMessage = "🚫 " + error.message
+          errorMessage = error.message
         } else {
           errorMessage = error.message
         }
       }
       
-      // Capturar erros HTTP do backend
+      // Capturar erros HTTP do backend (principal correção)
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message
       } else if (error?.status === 400 && error?.data?.message) {
         errorMessage = error.data.message
       }
       
+      // Exibir erro no modal em vez de apenas toast
+      setBackendError(errorMessage)
+      
+      // Também manter o toast para feedback geral
       toast({
         title: "❌ Erro ao Criar Agendamento",
         description: errorMessage,
@@ -628,6 +646,9 @@ export default function AgendaPage() {
 
   // Atualizar agendamento existente com validação
   const handleUpdateAppointment = async () => {
+    // Limpar erro anterior
+    setBackendError(null)
+    
     if (!(await validateForm()) || !editingAppointment) return
 
     setIsCreating(true)
@@ -691,13 +712,13 @@ export default function AgendaPage() {
       
       if (error?.message) {
         if (error.message.includes('fechado')) {
-          errorMessage = "🏪 " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('fora do funcionamento')) {
-          errorMessage = "⏰ " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('conflito')) {
-          errorMessage = "⚠️ " + error.message
+          errorMessage = error.message
         } else if (error.message.includes('passado')) {
-          errorMessage = "🚫 " + error.message
+          errorMessage = error.message
         } else {
           errorMessage = error.message
         }
@@ -709,6 +730,9 @@ export default function AgendaPage() {
       } else if (error?.status === 400 && error?.data?.message) {
         errorMessage = error.data.message
       }
+      
+      // Exibir erro no modal em vez de apenas toast
+      setBackendError(errorMessage)
       
       toast({
         title: "❌ Erro ao Atualizar Agendamento",
@@ -947,12 +971,14 @@ export default function AgendaPage() {
   }
 
   // Função para verificar se uma data selecionada está fechada e exibir informações adequadas
-  const getDateStatus = () => {
-    if (!newAppointment.date) {
+  const getDateStatus = (checkDate?: string) => {
+    const dateToCheck = checkDate || newAppointment.date
+    
+    if (!dateToCheck) {
       return { isOpen: null, message: null, dayConfig: null }
     }
     
-    const selectedDate = new Date(newAppointment.date)
+    const selectedDate = new Date(dateToCheck)
     const isOpen = isEstablishmentOpen(selectedDate)
     const dayConfig = getWorkingHoursForDay(selectedDate)
     
@@ -1383,6 +1409,16 @@ export default function AgendaPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Exibir erro do backend */}
+              {backendError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400">⚠️</span>
+                    <p className="text-red-400 text-sm font-medium">{backendError}</p>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
                 <Select 
