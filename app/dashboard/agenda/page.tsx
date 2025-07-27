@@ -1218,8 +1218,8 @@ export default function AgendaPage() {
         <CardContent className="p-0">
           <div className="max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
-              const isOccupied = isTimeSlotOccupied(time)
-              const appointment = todayAppointments.find(apt => {
+              const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
+              const appointment = filteredAppointments.find(apt => {
                 const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
                   hour: '2-digit', 
                   minute: '2-digit' 
