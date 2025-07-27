@@ -572,7 +572,7 @@ export default function AgendaPage() {
     } catch (error: any) {
       console.error('🚫 Erro ao criar agendamento:', error)
       
-      // Tratar diferentes tipos de erro com mensagens específicas
+      // Tratar diferentes tipos de erro do backend com mensagens específicas
       let errorMessage = "Erro ao criar agendamento. Tente novamente."
       
       if (error?.message) {
@@ -587,6 +587,13 @@ export default function AgendaPage() {
         } else {
           errorMessage = error.message
         }
+      }
+      
+      // Capturar erros HTTP do backend
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error?.status === 400 && error?.data?.message) {
+        errorMessage = error.data.message
       }
       
       toast({
@@ -679,7 +686,7 @@ export default function AgendaPage() {
     } catch (error: any) {
       console.error('🚫 Erro ao atualizar agendamento:', error)
       
-      // Tratar diferentes tipos de erro com mensagens específicas
+      // Tratar diferentes tipos de erro do backend com mensagens específicas
       let errorMessage = "Erro ao atualizar agendamento. Tente novamente."
       
       if (error?.message) {
@@ -694,6 +701,13 @@ export default function AgendaPage() {
         } else {
           errorMessage = error.message
         }
+      }
+      
+      // Capturar erros HTTP do backend
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error?.status === 400 && error?.data?.message) {
+        errorMessage = error.data.message
       }
       
       toast({
@@ -929,6 +943,32 @@ export default function AgendaPage() {
     } catch (error) {
       console.error('🚫 Erro ao obter horários disponíveis:', error)
       return []
+    }
+  }
+
+  // Função para verificar se uma data selecionada está fechada e exibir informações adequadas
+  const getDateStatus = () => {
+    if (!newAppointment.date) {
+      return { isOpen: null, message: null, dayConfig: null }
+    }
+    
+    const selectedDate = new Date(newAppointment.date)
+    const isOpen = isEstablishmentOpen(selectedDate)
+    const dayConfig = getWorkingHoursForDay(selectedDate)
+    
+    if (!isOpen) {
+      const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+      return {
+        isOpen: false,
+        message: `Estabelecimento fechado ${dayName}`,
+        dayConfig: null
+      }
+    }
+    
+    return {
+      isOpen: true,
+      message: `Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`,
+      dayConfig
     }
   }
 
@@ -1409,31 +1449,32 @@ export default function AgendaPage() {
                     value={newAppointment.date}
                     min={new Date().toISOString().split('T')[0]} // Não permitir datas passadas
                     onChange={(e) => {
-                      const selectedDate = new Date(e.target.value)
-                      if (!isEstablishmentOpen(selectedDate)) {
-                        const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
-                        toast({
-                          title: "Dia Indisponível",
-                          description: `Estabelecimento fechado ${dayName}. Escolha outro dia.`,
-                          variant: "destructive",
-                        })
-                        return
-                      }
                       setNewAppointment({...newAppointment, date: e.target.value, time: ""})
                     }}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
                   {newAppointment.date && (
-                    <p className="text-xs text-[#a1a1aa] mt-1">
+                    <div className="mt-1">
                       {(() => {
-                        const selectedDate = new Date(newAppointment.date)
-                        const dayConfig = getWorkingHoursForDay(selectedDate)
-                        if (!dayConfig.isOpen) {
-                          return "⚠️ Estabelecimento fechado neste dia"
+                        const dateStatus = getDateStatus()
+                        if (dateStatus.isOpen === false) {
+                          return (
+                            <p className="text-xs text-red-400 flex items-center gap-1">
+                              <span>❌</span>
+                              {dateStatus.message}
+                            </p>
+                          )
+                        } else if (dateStatus.isOpen === true) {
+                          return (
+                            <p className="text-xs text-[#10b981] flex items-center gap-1">
+                              <span>✅</span>
+                              {dateStatus.message}
+                            </p>
+                          )
                         }
-                        return `✅ Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`
+                        return null
                       })()}
-                    </p>
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1441,9 +1482,15 @@ export default function AgendaPage() {
                   <Select 
                     value={newAppointment.time} 
                     onValueChange={(value) => setNewAppointment({...newAppointment, time: value})}
+                    disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
                     <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                      <SelectValue placeholder="Selecione um horário" />
+                      <SelectValue placeholder={
+                        !newAppointment.date ? "Selecione uma data primeiro" :
+                        !newAppointment.serviceId ? "Selecione um serviço primeiro" :
+                        !getDateStatus().isOpen ? "Estabelecimento fechado" :
+                        "Selecione um horário"
+                      } />
                     </SelectTrigger>
                     <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60">
                       {getAvailableTimeSlots().length > 0 ? (
@@ -1454,17 +1501,23 @@ export default function AgendaPage() {
                         ))
                       ) : (
                         <div className="p-2 text-center text-[#a1a1aa] text-sm">
-                          Nenhum horário disponível
+                          {!newAppointment.date ? "Selecione uma data" :
+                           !newAppointment.serviceId ? "Selecione um serviço" :
+                           !getDateStatus().isOpen ? "Estabelecimento fechado neste dia" :
+                           "Nenhum horário disponível"
+                          }
                         </div>
                       )}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-[#a1a1aa] mt-1">
-                    {newAppointment.serviceId ? 
-                      `${getAvailableTimeSlots().length} horários disponíveis` : 
-                      'Selecione um serviço primeiro'
-                    }
-                  </p>
+                  {newAppointment.date && newAppointment.serviceId && (
+                    <p className="text-xs text-[#a1a1aa] mt-1">
+                      {getDateStatus().isOpen ? 
+                        `${getAvailableTimeSlots().length} horários disponíveis` : 
+                        'Estabelecimento fechado neste dia'
+                      }
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1494,12 +1547,21 @@ export default function AgendaPage() {
               </Button>
               <Button
                 onClick={editingAppointment ? handleUpdateAppointment : handleCreateAppointment}
-                disabled={!newAppointment.endUserId || !newAppointment.serviceId || !newAppointment.date || !newAppointment.time || isCreating || isValidating}
-                className="bg-[#10b981] hover:bg-[#059669]"
+                disabled={
+                  !newAppointment.endUserId || 
+                  !newAppointment.serviceId || 
+                  !newAppointment.date || 
+                  !newAppointment.time || 
+                  isCreating || 
+                  isValidating ||
+                  !getDateStatus().isOpen
+                }
+                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
                   isValidating ? "Validando..." :
+                  !getDateStatus().isOpen ? "Estabelecimento Fechado" :
                   (editingAppointment ? "Atualizar Agendamento" : "Criar Agendamento")
                 }
               </Button>
