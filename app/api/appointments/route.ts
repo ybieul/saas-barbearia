@@ -129,9 +129,62 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
+    const appointmentDate = new Date(dateTime)
+    
+    // Verificar se a data não é no passado
+    const now = new Date()
+    if (appointmentDate < now) {
+      return NextResponse.json(
+        { message: 'Não é possível agendar em datas/horários passados' },
+        { status: 400 }
+      )
+    }
+    
+    // Obter horários de funcionamento do estabelecimento
+    const workingHours = await prisma.workingHours.findMany({
+      where: { tenantId: user.tenantId }
+    })
+    
+    if (!workingHours || workingHours.length === 0) {
+      return NextResponse.json(
+        { message: 'Horários de funcionamento não configurados' },
+        { status: 400 }
+      )
+    }
+    
+    // Obter dia da semana (0 = domingo, 1 = segunda, etc.)
+    const dayOfWeek = appointmentDate.getDay()
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayName = dayNames[dayOfWeek]
+    
+    // Buscar configuração do dia específico
+    const dayConfig = workingHours.find(wh => wh.dayOfWeek === dayName)
+    
+    if (!dayConfig || !dayConfig.isActive) {
+      const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+      return NextResponse.json(
+        { message: `Estabelecimento fechado ${dayNamePt}. Escolha outro dia.` },
+        { status: 400 }
+      )
+    }
+    
+    // Verificar se horário está dentro do funcionamento
+    const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
+    const startTime = dayConfig.startTime
+    const endTime = dayConfig.endTime
+    
+    if (appointmentTime < startTime || appointmentTime >= endTime) {
+      return NextResponse.json(
+        { message: `Horário fora do funcionamento. Horário disponível: ${startTime} às ${endTime}` },
+        { status: 400 }
+      )
+    }
+    
+    console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
+
     // Verificar conflitos de horário se profissional foi especificado
     if (professionalId) {
-      const appointmentDate = new Date(dateTime)
       const endTime = new Date(appointmentDate.getTime() + service.duration * 60000)
 
       const conflictingAppointment = await prisma.appointment.findFirst({
@@ -152,22 +205,42 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Simplificado: verificar apenas se já existe agendamento no mesmo horário
-      const exactTimeConflict = await prisma.appointment.findFirst({
+      // Verificação mais robusta: buscar todos os agendamentos do dia
+      const dayStart = new Date(appointmentDate)
+      dayStart.setHours(0, 0, 0, 0)
+      const dayEnd = new Date(appointmentDate)
+      dayEnd.setHours(23, 59, 59, 999)
+      
+      const dayAppointments = await prisma.appointment.findMany({
         where: {
           professionalId,
-          dateTime: appointmentDate,
+          dateTime: {
+            gte: dayStart,
+            lte: dayEnd
+          },
           status: {
             in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
           }
+        },
+        include: {
+          service: {
+            select: { duration: true }
+          }
         }
       })
-
-      if (exactTimeConflict) {
-        return NextResponse.json(
-          { message: 'Já existe um agendamento neste horário para este profissional' },
-          { status: 409 }
-        )
+      
+      // Verificar sobreposição de horários
+      for (const existing of dayAppointments) {
+        const existingStart = new Date(existing.dateTime)
+        const existingEnd = new Date(existingStart.getTime() + (existing.service?.duration || existing.duration || 30) * 60000)
+        
+        // Verificar se há sobreposição
+        if ((appointmentDate < existingEnd) && (endTime > existingStart)) {
+          return NextResponse.json(
+            { message: 'Conflito de horário detectado. Este horário já está ocupado.' },
+            { status: 409 }
+          )
+        }
       }
     }
 
@@ -257,6 +330,122 @@ export async function PUT(request: NextRequest) {
         { message: 'Agendamento não encontrado' },
         { status: 404 }
       )
+    }
+
+    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (apenas se dateTime está sendo alterado)
+    if (dateTime) {
+      const appointmentDate = new Date(dateTime)
+      
+      // Verificar se a data não é no passado
+      const now = new Date()
+      if (appointmentDate < now) {
+        return NextResponse.json(
+          { message: 'Não é possível agendar em datas/horários passados' },
+          { status: 400 }
+        )
+      }
+      
+      // Obter horários de funcionamento do estabelecimento
+      const workingHours = await prisma.workingHours.findMany({
+        where: { tenantId: user.tenantId }
+      })
+      
+      if (!workingHours || workingHours.length === 0) {
+        return NextResponse.json(
+          { message: 'Horários de funcionamento não configurados' },
+          { status: 400 }
+        )
+      }
+      
+      // Obter dia da semana (0 = domingo, 1 = segunda, etc.)
+      const dayOfWeek = appointmentDate.getDay()
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      const dayName = dayNames[dayOfWeek]
+      
+      // Buscar configuração do dia específico
+      const dayConfig = workingHours.find(wh => wh.dayOfWeek === dayName)
+      
+      if (!dayConfig || !dayConfig.isActive) {
+        const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+        return NextResponse.json(
+          { message: `Estabelecimento fechado ${dayNamePt}. Escolha outro dia.` },
+          { status: 400 }
+        )
+      }
+      
+      // Verificar se horário está dentro do funcionamento
+      const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
+      const startTime = dayConfig.startTime
+      const endTime = dayConfig.endTime
+      
+      if (appointmentTime < startTime || appointmentTime >= endTime) {
+        return NextResponse.json(
+          { message: `Horário fora do funcionamento. Horário disponível: ${startTime} às ${endTime}` },
+          { status: 400 }
+        )
+      }
+      
+      console.log(`✅ Validação de horário (UPDATE) aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
+      
+      // Verificar conflitos de horário (apenas se professionalId está sendo alterado ou mantido)
+      const finalProfessionalId = professionalId !== undefined ? professionalId : existingAppointment.professionalId
+      
+      if (finalProfessionalId) {
+        // Obter dados do serviço para calcular duração
+        const service = serviceId 
+          ? await prisma.service.findFirst({ where: { id: serviceId, tenantId: user.tenantId }})
+          : await prisma.service.findFirst({ where: { id: existingAppointment.serviceId, tenantId: user.tenantId }})
+        
+        if (!service) {
+          return NextResponse.json(
+            { message: 'Serviço não encontrado' },
+            { status: 404 }
+          )
+        }
+        
+        const endTime = new Date(appointmentDate.getTime() + service.duration * 60000)
+        
+        // Verificação robusta: buscar todos os agendamentos do dia
+        const dayStart = new Date(appointmentDate)
+        dayStart.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(appointmentDate)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayAppointments = await prisma.appointment.findMany({
+          where: {
+            professionalId: finalProfessionalId,
+            dateTime: {
+              gte: dayStart,
+              lte: dayEnd
+            },
+            status: {
+              in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+            },
+            id: {
+              not: id // Excluir o próprio agendamento
+            }
+          },
+          include: {
+            service: {
+              select: { duration: true }
+            }
+          }
+        })
+        
+        // Verificar sobreposição de horários
+        for (const existing of dayAppointments) {
+          const existingStart = new Date(existing.dateTime)
+          const existingEnd = new Date(existingStart.getTime() + (existing.service?.duration || existing.duration || 30) * 60000)
+          
+          // Verificar se há sobreposição
+          if ((appointmentDate < existingEnd) && (endTime > existingStart)) {
+            return NextResponse.json(
+              { message: 'Conflito de horário detectado. Este horário já está ocupado.' },
+              { status: 409 }
+            )
+          }
+        }
+      }
     }
 
     // Se está sendo marcado como concluído, atualizar dados do cliente

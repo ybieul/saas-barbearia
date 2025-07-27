@@ -128,6 +128,7 @@ export default function AgendaPage() {
       
       // Verificar se o estabelecimento está aberto no dia
       if (!isEstablishmentOpen(date)) {
+        console.log(`🚫 Estabelecimento fechado em ${date.toDateString()}`)
         return []
       }
       
@@ -135,6 +136,14 @@ export default function AgendaPage() {
       const dayConfig = getWorkingHoursForDay(date)
       
       if (!dayConfig.isOpen || !dayConfig.startTime || !dayConfig.endTime) {
+        console.log(`🚫 Configuração inválida para ${date.toDateString()}:`, dayConfig)
+        return []
+      }
+      
+      // Validar formato de horários
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+      if (!timeRegex.test(dayConfig.startTime) || !timeRegex.test(dayConfig.endTime)) {
+        console.error(`🚫 Formato de horário inválido:`, dayConfig)
         return []
       }
       
@@ -144,6 +153,12 @@ export default function AgendaPage() {
       
       const startTotalMinutes = startHour * 60 + startMinute
       const endTotalMinutes = endHour * 60 + endMinute
+      
+      // Validar se horário de início é menor que fim
+      if (startTotalMinutes >= endTotalMinutes) {
+        console.error(`🚫 Horário de início deve ser menor que fim:`, dayConfig)
+        return []
+      }
       
       const interval = 5 // Intervalos de 5 minutos
       
@@ -155,9 +170,15 @@ export default function AgendaPage() {
         slots.push(time)
       }
       
+      console.log(`✅ Gerados ${slots.length} slots para ${date.toDateString()}:`, {
+        funcionamento: `${dayConfig.startTime} - ${dayConfig.endTime}`,
+        primeiros3: slots.slice(0, 3),
+        ultimos3: slots.slice(-3)
+      })
+      
       return slots
     } catch (error) {
-      console.error('Erro ao gerar slots de horário:', error)
+      console.error('🚫 Erro ao gerar slots de horário:', error)
       return []
     }
   }
@@ -348,10 +369,12 @@ export default function AgendaPage() {
   const validateForm = async () => {
     setIsValidating(true)
     try {
+      console.log('🔍 Iniciando validação do formulário:', newAppointment)
+      
       if (!newAppointment.endUserId) {
         toast({
-          title: "Erro",
-          description: "Selecione um cliente",
+          title: "❌ Cliente Obrigatório",
+          description: "Selecione um cliente para continuar",
           variant: "destructive",
         })
         return false
@@ -359,8 +382,8 @@ export default function AgendaPage() {
       
       if (!newAppointment.serviceId) {
         toast({
-          title: "Erro", 
-          description: "Selecione um serviço",
+          title: "❌ Serviço Obrigatório", 
+          description: "Selecione um serviço para continuar",
           variant: "destructive",
         })
         return false
@@ -368,8 +391,8 @@ export default function AgendaPage() {
 
       if (!newAppointment.date) {
         toast({
-          title: "Erro",
-          description: "Selecione uma data",
+          title: "❌ Data Obrigatória",
+          description: "Selecione uma data para o agendamento",
           variant: "destructive",
         })
         return false
@@ -377,19 +400,34 @@ export default function AgendaPage() {
 
       if (!newAppointment.time) {
         toast({
-          title: "Erro",
-          description: "Selecione um horário",
+          title: "❌ Horário Obrigatório",
+          description: "Selecione um horário para o agendamento",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      const selectedDate = new Date(newAppointment.date)
+      
+      // Validar se a data não é no passado
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      
+      if (selectedDate < today) {
+        toast({
+          title: "🚫 Data Inválida",
+          description: "Não é possível agendar em datas passadas",
           variant: "destructive",
         })
         return false
       }
 
       // Validar se estabelecimento está aberto no dia selecionado
-      const selectedDate = new Date(newAppointment.date)
       if (!isEstablishmentOpen(selectedDate)) {
         const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
         toast({
-          title: "Estabelecimento Fechado",
+          title: "🏪 Estabelecimento Fechado",
           description: `O estabelecimento não funciona ${dayName}. Escolha outro dia.`,
           variant: "destructive",
         })
@@ -400,12 +438,32 @@ export default function AgendaPage() {
       if (!isTimeWithinWorkingHours(selectedDate, newAppointment.time)) {
         const dayConfig = getWorkingHoursForDay(selectedDate)
         toast({
-          title: "Fora do Horário de Funcionamento",
-          description: `Horário disponível: ${dayConfig.startTime} às ${dayConfig.endTime}`,
+          title: "⏰ Fora do Horário de Funcionamento",
+          description: `Horário de funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`,
           variant: "destructive",
         })
         setNewAppointment(prev => ({...prev, time: ""}))
         return false
+      }
+
+      // Validar se é hoje e o horário já passou
+      const now = new Date()
+      const isToday = selectedDate.getTime() === today.getTime()
+      
+      if (isToday) {
+        const [hours, minutes] = newAppointment.time.split(':').map(Number)
+        const appointmentTime = new Date()
+        appointmentTime.setHours(hours, minutes, 0, 0)
+        
+        if (appointmentTime <= now) {
+          toast({
+            title: "⏰ Horário Já Passou",
+            description: "Selecione um horário futuro para hoje",
+            variant: "destructive",
+          })
+          setNewAppointment(prev => ({...prev, time: ""}))
+          return false
+        }
       }
 
       // Verificar conflitos com dados atuais (sem recarregar)
@@ -418,7 +476,7 @@ export default function AgendaPage() {
       
       if (hasConflict(appointmentData)) {
         toast({
-          title: "Conflito de Horário",
+          title: "⚠️ Conflito de Horário",
           description: "Este horário já está ocupado. Escolha outro horário.",
           variant: "destructive",
         })
@@ -432,7 +490,7 @@ export default function AgendaPage() {
         const availableSlots = getAvailableTimeSlots()
         if (!availableSlots.includes(newAppointment.time)) {
           toast({
-            title: "Horário Indisponível",
+            title: "🚫 Horário Indisponível",
             description: "Este horário não está mais disponível. Selecione outro horário.",
             variant: "destructive",
           })
@@ -441,12 +499,13 @@ export default function AgendaPage() {
         }
       }
 
+      console.log('✅ Validação concluída com sucesso')
       return true
     } catch (error) {
-      console.error('Erro na validação:', error)
+      console.error('🚫 Erro na validação:', error)
       toast({
-        title: "Erro de Validação",
-        description: "Erro ao validar agendamento. Tente novamente.",
+        title: "❌ Erro de Validação",
+        description: "Erro interno ao validar agendamento. Tente novamente.",
         variant: "destructive",
       })
       return false
@@ -471,7 +530,7 @@ export default function AgendaPage() {
       
       if (hasConflict(appointmentData)) {
         toast({
-          title: "Conflito Detectado",
+          title: "⚠️ Conflito Detectado",
           description: "Este horário foi ocupado por outro agendamento. Escolha outro horário.",
           variant: "destructive",
         })
@@ -499,21 +558,40 @@ export default function AgendaPage() {
         notes: newAppointment.notes || undefined
       }
 
+      console.log('🚀 Criando agendamento:', finalAppointmentData)
       await createAppointment(finalAppointmentData)
       
       toast({
-        title: "Sucesso",
+        title: "✅ Sucesso",
         description: "Agendamento criado com sucesso!",
       })
       
       setIsNewAppointmentOpen(false)
       resetForm()
       await fetchAppointments() // Recarregar dados
-    } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
+    } catch (error: any) {
+      console.error('🚫 Erro ao criar agendamento:', error)
+      
+      // Tratar diferentes tipos de erro com mensagens específicas
+      let errorMessage = "Erro ao criar agendamento. Tente novamente."
+      
+      if (error?.message) {
+        if (error.message.includes('fechado')) {
+          errorMessage = "🏪 " + error.message
+        } else if (error.message.includes('fora do funcionamento')) {
+          errorMessage = "⏰ " + error.message
+        } else if (error.message.includes('conflito')) {
+          errorMessage = "⚠️ " + error.message
+        } else if (error.message.includes('passado')) {
+          errorMessage = "🚫 " + error.message
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
-        title: "Erro",
-        description: "Erro ao criar agendamento. Tente novamente.",
+        title: "❌ Erro ao Criar Agendamento",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -557,7 +635,7 @@ export default function AgendaPage() {
       
       if (hasConflict(appointmentData)) {
         toast({
-          title: "Conflito Detectado",
+          title: "⚠️ Conflito Detectado",
           description: "Este horário foi ocupado por outro agendamento. Escolha outro horário.",
           variant: "destructive",
         })
@@ -586,10 +664,11 @@ export default function AgendaPage() {
         notes: newAppointment.notes || undefined
       }
 
+      console.log('🔄 Atualizando agendamento:', finalAppointmentData)
       await updateAppointment(finalAppointmentData)
       
       toast({
-        title: "Sucesso",
+        title: "✅ Sucesso",
         description: "Agendamento atualizado com sucesso!",
       })
       
@@ -597,11 +676,29 @@ export default function AgendaPage() {
       setEditingAppointment(null)
       resetForm()
       await fetchAppointments() // Recarregar dados
-    } catch (error) {
-      console.error('Erro ao atualizar agendamento:', error)
+    } catch (error: any) {
+      console.error('🚫 Erro ao atualizar agendamento:', error)
+      
+      // Tratar diferentes tipos de erro com mensagens específicas
+      let errorMessage = "Erro ao atualizar agendamento. Tente novamente."
+      
+      if (error?.message) {
+        if (error.message.includes('fechado')) {
+          errorMessage = "🏪 " + error.message
+        } else if (error.message.includes('fora do funcionamento')) {
+          errorMessage = "⏰ " + error.message
+        } else if (error.message.includes('conflito')) {
+          errorMessage = "⚠️ " + error.message
+        } else if (error.message.includes('passado')) {
+          errorMessage = "🚫 " + error.message
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
-        title: "Erro",
-        description: "Erro ao atualizar agendamento. Tente novamente.",
+        title: "❌ Erro ao Atualizar Agendamento",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -760,23 +857,56 @@ export default function AgendaPage() {
   // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = () => {
     try {
-      if (!newAppointment.serviceId || !newAppointment.date) return []
+      if (!newAppointment.serviceId || !newAppointment.date) {
+        console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
+        return []
+      }
       
       const selectedService = services.find(s => s.id === newAppointment.serviceId)
-      if (!selectedService) return []
+      if (!selectedService) {
+        console.log('🚫 getAvailableTimeSlots: Serviço não encontrado')
+        return []
+      }
       
       const selectedDate = new Date(newAppointment.date)
       
       // Verificar se o estabelecimento está aberto no dia
       if (!isEstablishmentOpen(selectedDate)) {
+        console.log('🚫 getAvailableTimeSlots: Estabelecimento fechado')
+        return []
+      }
+      
+      // Verificar se a data não é no passado
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      
+      if (selectedDate < today) {
+        console.log('🚫 getAvailableTimeSlots: Data no passado')
         return []
       }
       
       // Gerar slots para a data específica
-      const availableSlots = generateTimeSlotsForDate(selectedDate)
+      const allSlots = generateTimeSlotsForDate(selectedDate)
+      console.log(`🔍 getAvailableTimeSlots: ${allSlots.length} slots gerados para ${selectedDate.toDateString()}`)
+      
+      // Se é hoje, filtrar horários que já passaram
+      const now = new Date()
+      const isToday = selectedDate.getTime() === today.getTime()
+      
+      const futureSlots = isToday 
+        ? allSlots.filter(time => {
+            const [hours, minutes] = time.split(':').map(Number)
+            const slotTime = new Date()
+            slotTime.setHours(hours, minutes, 0, 0)
+            return slotTime > now
+          })
+        : allSlots
+      
+      console.log(`🔍 getAvailableTimeSlots: ${futureSlots.length} slots futuros`)
       
       // Filtrar slots que não têm conflito
-      return availableSlots.filter(time => {
+      const availableSlots = futureSlots.filter(time => {
         const testAppointment = {
           date: newAppointment.date,
           time: time,
@@ -784,10 +914,20 @@ export default function AgendaPage() {
           professionalId: newAppointment.professionalId || undefined
         }
         
-        return !hasConflict(testAppointment)
+        const hasConflictResult = hasConflict(testAppointment)
+        
+        // Verificar se há tempo suficiente para o serviço
+        const serviceDuration = selectedService.duration || 30
+        const canSchedule = canScheduleService(time, serviceDuration, newAppointment.professionalId || undefined)
+        
+        return !hasConflictResult && canSchedule
       })
+      
+      console.log(`✅ getAvailableTimeSlots: ${availableSlots.length} slots disponíveis finais`)
+      
+      return availableSlots
     } catch (error) {
-      console.error('Erro ao obter horários disponíveis:', error)
+      console.error('🚫 Erro ao obter horários disponíveis:', error)
       return []
     }
   }
