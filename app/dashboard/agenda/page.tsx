@@ -418,7 +418,15 @@ export default function AgendaPage() {
         return false
       }
 
-      const selectedDate = new Date(newAppointment.date)
+      // Criar date usando valores locais para evitar problemas de fuso horário
+      const [year, month, day] = newAppointment.date.split('-').map(Number)
+      const selectedDate = new Date(year, month - 1, day)
+      
+      console.log('🔍 validateForm Debug:', {
+        inputDate: newAppointment.date,
+        selectedDate: selectedDate.toString(),
+        dayOfWeek: selectedDate.getDay()
+      })
       
       // Validar se a data não é no passado
       const today = new Date()
@@ -906,7 +914,15 @@ export default function AgendaPage() {
         return []
       }
       
-      const selectedDate = new Date(newAppointment.date)
+      // Criar date usando valores locais para evitar problemas de fuso horário
+      const [year, month, day] = newAppointment.date.split('-').map(Number)
+      const selectedDate = new Date(year, month - 1, day)
+      
+      console.log('🔍 getAvailableTimeSlots Debug:', {
+        inputDate: newAppointment.date,
+        selectedDate: selectedDate.toString(),
+        dayOfWeek: selectedDate.getDay()
+      })
       
       // Verificar se o estabelecimento está aberto no dia
       if (!isEstablishmentOpen(selectedDate)) {
@@ -978,9 +994,28 @@ export default function AgendaPage() {
       return { isOpen: null, message: null, dayConfig: null }
     }
     
-    const selectedDate = new Date(dateToCheck)
+    // Função robusta para extrair o dia da semana local sem problemas de fuso horário
+    const getDiaSemanaLocal = (dateString: string) => {
+      const [ano, mes, dia] = dateString.split('-').map(Number)
+      // Lembrete: mês no Date é 0-indexado (janeiro = 0)
+      const date = new Date(ano, mes - 1, dia)
+      return date.getDay() // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+    }
+    
+    // Criar date usando valores locais para evitar problemas de fuso horário
+    const [year, month, day] = dateToCheck.split('-').map(Number)
+    const selectedDate = new Date(year, month - 1, day)
+    
     const isOpen = isEstablishmentOpen(selectedDate)
     const dayConfig = getWorkingHoursForDay(selectedDate)
+    
+    console.log('🔍 getDateStatus Debug:', {
+      dateToCheck,
+      selectedDate: selectedDate.toString(),
+      dayOfWeek: selectedDate.getDay(),
+      dayConfig,
+      isOpen
+    })
     
     if (!isOpen) {
       const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
