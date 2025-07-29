@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
+import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const brazilNow = getBrazilNow()
+  const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
+  const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
   const { dashboardData, loading, fetchDashboardData } = useDashboard()
   const { appointments, fetchAppointments } = useAppointments()
 
@@ -25,13 +27,13 @@ export default function FinanceiroPage() {
     app.status === 'COMPLETED' && 
     app.totalPrice > 0 && 
     app.dateTime &&
-    new Date(app.dateTime) <= new Date() // Apenas agendamentos já realizados
+    utcToBrazil(new Date(app.dateTime)) <= getBrazilNow() // Apenas agendamentos já realizados
   )
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
     return completedAppointments.filter(app => {
-      const appointmentDate = new Date(app.date)
+      const appointmentDate = utcToBrazil(new Date(app.date))
       return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
     })
   }
@@ -39,16 +41,17 @@ export default function FinanceiroPage() {
   // Função para obter dados dos últimos 12 meses com dados reais
   const getMonthlyData = () => {
     const monthlyData = []
-    const currentDate = new Date()
+    const currentDate = getBrazilNow()
     
     for (let i = 11; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+      const brazilCurrentDate = utcToBrazil(currentDate)
+      const date = new Date(brazilCurrentDate.getFullYear(), brazilCurrentDate.getMonth() - i, 1)
       const month = date.getMonth()
       const year = date.getFullYear()
       
       // Filtrar agendamentos do mês específico
       const monthAppointments = completedAppointments.filter(app => {
-        const appointmentDate = new Date(app.date)
+        const appointmentDate = utcToBrazil(new Date(app.date))
         return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
       })
       
@@ -77,15 +80,16 @@ export default function FinanceiroPage() {
   // Função para obter dados dos últimos 30 dias com dados reais
   const getDailyData = () => {
     const dailyData = []
-    const currentDate = new Date()
+    const currentDate = getBrazilNow()
     
     for (let i = 29; i >= 0; i--) {
-      const date = new Date(currentDate)
-      date.setDate(currentDate.getDate() - i)
+      const brazilCurrentDate = utcToBrazil(currentDate)
+      const date = new Date(brazilCurrentDate)
+      date.setDate(brazilCurrentDate.getDate() - i)
       
       // Filtrar agendamentos do dia específico
       const dayAppointments = completedAppointments.filter(app => {
-        const appointmentDate = new Date(app.date)
+        const appointmentDate = utcToBrazil(new Date(app.date))
         return appointmentDate.toDateString() === date.toDateString()
       })
       
@@ -237,7 +241,7 @@ export default function FinanceiroPage() {
 
   // Função para exportar relatório financeiro
   const handleExportReport = () => {
-    const today = new Date().toLocaleDateString('pt-BR')
+    const today = formatBrazilDate(getBrazilNow())
     const reportData = [
       ['RELATÓRIO FINANCEIRO'],
       [`Data de Geração: ${today}`],
@@ -278,7 +282,7 @@ export default function FinanceiroPage() {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `relatorio-financeiro-${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `relatorio-financeiro-${formatBrazilDate(getBrazilNow()).split('/').reverse().join('-')}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -424,7 +428,7 @@ export default function FinanceiroPage() {
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
                   const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                  const isWeekend = new Date(day.date).getDay() === 0 || new Date(day.date).getDay() === 6
+                  const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
                   
                   return (
                     <div
@@ -467,7 +471,7 @@ export default function FinanceiroPage() {
                           {day.dayName}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {new Date(day.date).getDate()}
+                          {utcToBrazil(new Date(day.date)).getDate()}
                         </div>
                       </div>
                     </div>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
+import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
 
 export default function RelatoriosPage() {
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
@@ -16,21 +17,22 @@ export default function RelatoriosPage() {
     fetchAppointments()
   }, [fetchDashboardData, fetchAppointments])
 
-  // Calcular dados comparativos reais
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
+  // 🇧🇷 CORREÇÃO: Calcular dados comparativos usando timezone brasileiro
+  const nowBrazil = utcToBrazil(new Date())
+  const currentMonth = nowBrazil.getMonth()
+  const currentYear = nowBrazil.getFullYear()
   const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
   const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
 
-  // Filtrar agendamentos do mês atual e anterior
+  // 🇧🇷 CORREÇÃO: Filtrar agendamentos do mês atual e anterior usando timezone brasileiro
   const thisMonthAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime)
-    return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear
+    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime))
+    return aptDateBrazil.getMonth() === currentMonth && aptDateBrazil.getFullYear() === currentYear
   })
 
   const lastMonthAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime)
-    return aptDate.getMonth() === lastMonth && aptDate.getFullYear() === lastMonthYear
+    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime))
+    return aptDateBrazil.getMonth() === lastMonth && aptDateBrazil.getFullYear() === lastMonthYear
   })
 
   // Calcular métricas reais
@@ -67,18 +69,18 @@ export default function RelatoriosPage() {
     return timeSlots.map(slot => {
       let filteredAppointments = appointments
 
-      // Filtrar por fim de semana para o período "Sábado"
+      // 🇧🇷 CORREÇÃO: Filtrar por fim de semana usando timezone brasileiro
       if (slot.isWeekend) {
         filteredAppointments = appointments.filter(apt => {
-          const aptDate = new Date(apt.date)
-          return aptDate.getDay() === 6 // Sábado
+          const aptDateBrazil = utcToBrazil(new Date(apt.dateTime || apt.date))
+          const dayOfWeek = getBrazilDayOfWeek(new Date(apt.dateTime || apt.date))
+          return dayOfWeek === 6 // Sábado no timezone brasileiro
         })
       } else {
-        // Filtrar apenas dias úteis (segunda a sexta)
+        // Filtrar apenas dias úteis (segunda a sexta) usando timezone brasileiro
         filteredAppointments = appointments.filter(apt => {
-          const aptDate = new Date(apt.date)
-          const dayOfWeek = aptDate.getDay()
-          return dayOfWeek >= 1 && dayOfWeek <= 5 // Segunda a sexta
+          const dayOfWeek = getBrazilDayOfWeek(new Date(apt.dateTime || apt.date))
+          return dayOfWeek >= 1 && dayOfWeek <= 5 // Segunda a sexta no timezone brasileiro
         })
       }
 

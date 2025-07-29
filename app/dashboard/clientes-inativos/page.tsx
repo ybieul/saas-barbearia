@@ -12,6 +12,7 @@ import { UserX, MessageCircle, Calendar, AlertTriangle, Send, Clock, X, Search, 
 import { useClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useNotification } from "@/hooks/use-notification"
+import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
 
 export default function ClientesInativosPage() {
   const [sendingMessage, setSendingMessage] = useState<number | null>(null)
@@ -33,8 +34,8 @@ export default function ClientesInativosPage() {
   const inactiveClients = clients.filter(client => {
     if (client.appointments.length === 0) return true
     
-    const lastAppointment = new Date(client.appointments[0]?.dateTime || 0)
-    const now = new Date()
+    const lastAppointment = utcToBrazil(new Date(client.appointments[0]?.dateTime || 0))
+    const now = utcToBrazil(getBrazilNow())
     const daysSinceLastVisit = Math.floor((now.getTime() - lastAppointment.getTime()) / (1000 * 60 * 60 * 24))
     
     return daysSinceLastVisit > 45 // Considerar inativo após 45 dias
@@ -333,7 +334,7 @@ export default function ClientesInativosPage() {
           <div className="space-y-4">
             {filteredClients.map((client) => {
               const daysSinceLastVisit = client.appointments.length > 0 
-                ? Math.floor((new Date().getTime() - new Date(client.appointments[0].dateTime).getTime()) / (1000 * 60 * 60 * 24))
+                ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.appointments[0].dateTime)).getTime()) / (1000 * 60 * 60 * 24))
                 : 90; // Padrão para quem nunca visitou
                 
               return (

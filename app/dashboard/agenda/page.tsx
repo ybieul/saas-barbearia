@@ -35,6 +35,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
+import { utcToBrazil, brazilToUtc, formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -198,30 +199,33 @@ export default function AgendaPage() {
     return generateTimeSlotsForDate(currentDate)
   }
 
-  // Obter agendamentos do dia atual
+  // 🇧🇷 CORREÇÃO: Obter agendamentos do dia atual usando timezone brasileiro
   const todayAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime || apt.date)
-    return aptDate.toDateString() === currentDate.toDateString()
+    // Converter UTC do banco para timezone brasileiro
+    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime || apt.date))
+    const currentDateBrazil = utcToBrazil(currentDate)
+    
+    // Comparar datas usando apenas ano/mês/dia (sem horário)
+    const aptDateOnly = new Date(aptDateBrazil.getFullYear(), aptDateBrazil.getMonth(), aptDateBrazil.getDate())
+    const currentDateOnly = new Date(currentDateBrazil.getFullYear(), currentDateBrazil.getMonth(), currentDateBrazil.getDate())
+    
+    return aptDateOnly.getTime() === currentDateOnly.getTime()
   })
 
-  // Função para verificar se um horário está ocupado (considerando duração do serviço)
+  // 🇧🇷 CORREÇÃO: Função para verificar se um horário está ocupado (considerando duração do serviço)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
-      const aptStartTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-      const aptStartTimeString = aptStartTime.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+      // Converter UTC do banco para timezone brasileiro
+      const aptStartTimeUTC = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+      const aptStartTimeBrazil = utcToBrazil(aptStartTimeUTC)
+      const aptStartTimeString = aptStartTimeBrazil.toTimeString().substring(0, 5) // HH:mm
       
       // Obter duração do serviço (em minutos)
       const serviceDuration = apt.service?.duration || apt.duration || 30
       
-      // Calcular horário de fim do agendamento
-      const aptEndTime = new Date(aptStartTime.getTime() + (serviceDuration * 60000))
-      const aptEndTimeString = aptEndTime.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+      // Calcular horário de fim do agendamento (em timezone brasileiro)
+      const aptEndTimeBrazil = new Date(aptStartTimeBrazil.getTime() + (serviceDuration * 60000))
+      const aptEndTimeString = aptEndTimeBrazil.toTimeString().substring(0, 5) // HH:mm
       
       // Converter horários para minutos para facilitar comparação
       const timeToMinutes = (timeStr: string) => {
@@ -560,23 +564,15 @@ export default function AgendaPage() {
         return
       }
 
-      // Criar dateTime sem problemas de fuso horário
-      const [year, month, day] = newAppointment.date.split('-')
-      const [hours, minutes] = newAppointment.time.split(':')
-      const appointmentDateTime = new Date(
-        parseInt(year),
-        parseInt(month) - 1, // Month is 0-indexed
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        0
-      )
+      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro e converter para UTC
+      const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
+      debugTimezone(appointmentDateTime, 'Frontend - Criando agendamento')
 
       const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
         serviceId: newAppointment.serviceId,
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(),
+        dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: newAppointment.notes || undefined
       }
 
@@ -634,10 +630,20 @@ export default function AgendaPage() {
 
   // Editar agendamento (função simples)
   const handleEditAppointment = (appointment: any) => {
-    // Preencher o formulário com os dados do agendamento existente
-    const appointmentDate = new Date(appointment.dateTime)
-    const formattedDate = appointmentDate.toISOString().split('T')[0]
-    const formattedTime = appointmentDate.toTimeString().split(' ')[0].substring(0, 5)
+    // 🇧🇷 CORREÇÃO: Converter UTC do banco para timezone brasileiro para edição
+    const appointmentUTC = new Date(appointment.dateTime)
+    const appointmentBrazil = utcToBrazil(appointmentUTC)
+    
+    const formattedDate = appointmentBrazil.toISOString().split('T')[0]
+    const formattedTime = appointmentBrazil.toTimeString().split(' ')[0].substring(0, 5)
+    
+    debugTimezone(appointmentUTC, `Editando agendamento - Original UTC`)
+    console.log('🇧🇷 Dados para edição:', {
+      appointmentUTC: appointmentUTC.toISOString(),
+      appointmentBrazil: appointmentBrazil.toString(),
+      formattedDate,
+      formattedTime
+    })
     
     setNewAppointment({
       endUserId: appointment.endUserId || appointment.endUser?.id || "",
@@ -679,24 +685,16 @@ export default function AgendaPage() {
         return
       }
 
-      // Criar dateTime sem problemas de fuso horário
-      const [year, month, day] = newAppointment.date.split('-')
-      const [hours, minutes] = newAppointment.time.split(':')
-      const appointmentDateTime = new Date(
-        parseInt(year),
-        parseInt(month) - 1, // Month is 0-indexed
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        0
-      )
+      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro e converter para UTC
+      const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
+      debugTimezone(appointmentDateTime, 'Frontend - Atualizando agendamento')
 
       const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
         serviceId: newAppointment.serviceId,
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(),
+        dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: newAppointment.notes || undefined
       }
 
@@ -851,12 +849,17 @@ export default function AgendaPage() {
     setCurrentDate(newDate)
   }
 
-  // Filtrar agendamentos por data, profissional e status
+  // 🇧🇷 CORREÇÃO: Filtrar agendamentos por data, profissional e status
   const filteredAppointments = appointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.dateTime).toDateString()
-    const currentDateString = currentDate.toDateString()
+    // Converter UTC do banco para timezone brasileiro
+    const appointmentDateBrazil = utcToBrazil(new Date(appointment.dateTime))
+    const currentDateBrazil = utcToBrazil(currentDate)
     
-    const matchesDate = appointmentDate === currentDateString
+    // Comparar apenas data (sem horário)
+    const aptDateOnly = new Date(appointmentDateBrazil.getFullYear(), appointmentDateBrazil.getMonth(), appointmentDateBrazil.getDate())
+    const currentDateOnly = new Date(currentDateBrazil.getFullYear(), currentDateBrazil.getMonth(), currentDateBrazil.getDate())
+    
+    const matchesDate = aptDateOnly.getTime() === currentDateOnly.getTime()
     const matchesProfessional = selectedProfessional === "todos" || 
                                appointment.professionalId === selectedProfessional
     
@@ -1220,10 +1223,10 @@ export default function AgendaPage() {
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               const appointment = filteredAppointments.find(apt => {
-                const aptTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`).toLocaleTimeString('pt-BR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })
+                // 🇧🇷 CORREÇÃO: Converter UTC para timezone brasileiro antes de comparar horários
+                const aptDateTimeUTC = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+                const aptDateTimeBrazil = utcToBrazil(aptDateTimeUTC)
+                const aptTime = aptDateTimeBrazil.toTimeString().substring(0, 5) // HH:mm
                 return aptTime === time
               })
 
@@ -1328,10 +1331,10 @@ export default function AgendaPage() {
         ) : (
           filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status)
-            const appointmentTime = new Date(appointment.dateTime).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+            // 🇧🇷 CORREÇÃO: Converter UTC para timezone brasileiro para exibição
+            const appointmentUTC = new Date(appointment.dateTime)
+            const appointmentBrazil = utcToBrazil(appointmentUTC)
+            const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:mm
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">

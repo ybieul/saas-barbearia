@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
+import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, utcToBrazil } from '@/lib/timezone'
 
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
@@ -10,29 +11,29 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'today'
 
     let startDate: Date
-    let endDate: Date = new Date()
+    let endDate: Date = getBrazilNow()
 
     switch (period) {
       case 'today':
-        startDate = new Date()
-        startDate.setHours(0, 0, 0, 0)
-        endDate.setHours(23, 59, 59, 999)
+        startDate = getBrazilStartOfDay(getBrazilNow())
+        endDate = getBrazilEndOfDay(getBrazilNow())
         break
       case 'week':
-        startDate = new Date()
+        startDate = getBrazilStartOfDay(getBrazilNow())
         startDate.setDate(startDate.getDate() - 7)
         break
       case 'month':
-        startDate = new Date()
-        startDate.setMonth(startDate.getMonth() - 1)
+        startDate = getBrazilStartOfDay(getBrazilNow())
+        const brazilCurrent = utcToBrazil(getBrazilNow())
+        startDate.setMonth(brazilCurrent.getMonth() - 1)
         break
       case 'year':
-        startDate = new Date()
+        startDate = getBrazilStartOfDay(getBrazilNow())
         startDate.setFullYear(startDate.getFullYear() - 1)
         break
       default:
-        startDate = new Date()
-        startDate.setHours(0, 0, 0, 0)
+        startDate = getBrazilStartOfDay(getBrazilNow())
+        endDate = getBrazilEndOfDay(getBrazilNow())
     }
 
     // Métricas do tenant
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
             in: ['SCHEDULED', 'CONFIRMED']
           },
           dateTime: {
-            gte: new Date() // Apenas futuros
+            gte: getBrazilNow() // Apenas futuros
           }
         }
       }),
@@ -127,7 +128,7 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: new Date()
+            gte: getBrazilNow()
           },
           status: {
             in: ['SCHEDULED', 'CONFIRMED']
@@ -165,12 +166,10 @@ export async function GET(request: NextRequest) {
     // Dados para gráficos - receita por dia (últimos 7 dias)
     const dailyRevenue = []
     for (let i = 6; i >= 0; i--) {
-      const date = new Date()
+      const date = getBrazilStartOfDay(getBrazilNow())
       date.setDate(date.getDate() - i)
-      date.setHours(0, 0, 0, 0)
       
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      const endOfDay = getBrazilEndOfDay(date)
       
       const dayRevenue = await prisma.appointment.aggregate({
         where: {

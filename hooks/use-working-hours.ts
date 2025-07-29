@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, utcToBrazil, debugTimezone } from '@/lib/timezone'
 
 export interface WorkingHours {
   id?: string
@@ -92,13 +93,22 @@ export function useWorkingHours() {
     fetchWorkingHours()
   }, [])
 
-  // Função para obter o nome do dia da semana em inglês
+  // 🇧🇷 CORREÇÃO: Função para obter o nome do dia da semana em inglês usando timezone brasileiro
   const getDayName = (date: Date): string => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    return days[date.getDay()]
+    // Se a data recebida for em UTC, converter para timezone brasileiro
+    const brazilDate = utcToBrazil(date)
+    const dayName = getBrazilDayNameEn(date) // Esta função já considera timezone brasileiro
+    
+    console.log('🇧🇷 getDayName Debug:', {
+      originalDate: date.toString(),
+      brazilDate: brazilDate.toString(),
+      dayName
+    })
+    
+    return dayName
   }
 
-  // Função para obter horários de funcionamento para um dia específico
+  // 🇧🇷 CORREÇÃO: Função para obter horários de funcionamento para um dia específico
   const getWorkingHoursForDay = (date: Date) => {
     try {
       const dayName = getDayName(date)

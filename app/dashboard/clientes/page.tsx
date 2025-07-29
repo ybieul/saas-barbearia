@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
 import { useClients } from "@/hooks/use-api"
+import { utcToBrazil, getBrazilNow, formatBrazilDate } from "@/lib/timezone"
 
 interface Client {
   id: string
@@ -279,8 +280,8 @@ export default function ClientesPage() {
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
                 <p className="text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
-                    const clientDate = new Date(client.createdAt)
-                    const now = new Date()
+                    const clientDate = utcToBrazil(new Date(client.createdAt))
+                    const now = utcToBrazil(getBrazilNow())
                     return clientDate.getMonth() === now.getMonth() && clientDate.getFullYear() === now.getFullYear()
                   }).length}
                 </p>
@@ -343,7 +344,7 @@ export default function ClientesPage() {
             {filteredClients.map((client) => {
               const stats = calculateClientStats(client)
               const lastVisit = client.appointments.length > 0 
-                ? new Date(Math.max(...client.appointments.map((app: any) => new Date(app.dateTime).getTime())))
+                ? utcToBrazil(new Date(Math.max(...client.appointments.map((app: any) => new Date(app.dateTime).getTime()))))
                 : null
               
               return (
@@ -353,7 +354,7 @@ export default function ClientesPage() {
                     <div>
                       <h3 className="font-medium text-white">{client.name}</h3>
                       <p className="text-xs text-[#71717a]">
-                        Cliente desde {new Date(client.createdAt).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                        Cliente desde {formatBrazilDate(client.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -515,7 +516,7 @@ export default function ClientesPage() {
                   <div>
                     <h3 className="text-sm font-medium text-[#71717a] mb-2">Data de Nascimento</h3>
                     <p className="text-white">
-                      {new Date(selectedClient.birthday).toLocaleDateString('pt-BR')}
+                      {formatBrazilDate(selectedClient.birthday)}
                     </p>
                   </div>
                 )}
@@ -523,7 +524,7 @@ export default function ClientesPage() {
                 <div>
                   <h3 className="text-sm font-medium text-[#71717a] mb-2">Cliente desde</h3>
                   <p className="text-white">
-                    {new Date(selectedClient.createdAt).toLocaleDateString('pt-BR')}
+                    {formatBrazilDate(selectedClient.createdAt)}
                   </p>
                 </div>
               </div>

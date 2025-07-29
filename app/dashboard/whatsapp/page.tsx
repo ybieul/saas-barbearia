@@ -11,6 +11,7 @@ import { WhatsAppStatus } from "@/components/whatsapp-status"
 import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber } from "@/lib/whatsapp"
 import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
+import { utcToBrazil, getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
 
 export default function WhatsAppPage() {
   const [testMessage, setTestMessage] = useState({
@@ -38,9 +39,9 @@ export default function WhatsAppPage() {
   }, [fetchAppointments, fetchClients])
 
   // Calcular estatísticas reais
-  const today = new Date().toISOString().split('T')[0]
+  const today = toBrazilDateString(getBrazilNow())
   const todayAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime).toISOString().split('T')[0]
+    const aptDate = toBrazilDateString(utcToBrazil(new Date(apt.dateTime)))
     return aptDate === today
   })
   const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'confirmed' || apt.status === 'completed')
@@ -51,13 +52,13 @@ export default function WhatsAppPage() {
   const totalMessages = confirmationMessages + reminderMessages
   
   // Calcular clientes inativos (30+ dias sem agendamento)
-  const thirtyDaysAgo = new Date()
+  const thirtyDaysAgo = utcToBrazil(getBrazilNow())
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const inactiveClients = clients.filter(client => {
     const lastAppointment = appointments
       .filter(apt => apt.clientId === client.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-    return !lastAppointment || new Date(lastAppointment.date) < thirtyDaysAgo
+      .sort((a, b) => utcToBrazil(new Date(b.date)).getTime() - utcToBrazil(new Date(a.date)).getTime())[0]
+    return !lastAppointment || utcToBrazil(new Date(lastAppointment.date)) < thirtyDaysAgo
   }).length
 
   // Taxa de entrega simulada (95-99% baseado no volume)
@@ -103,7 +104,7 @@ export default function WhatsAppPage() {
       businessName: "Sua Barbearia",
       service: firstAppointment?.serviceName || "Serviço Exemplo",
       professional: firstAppointment?.professional || "Profissional",
-      date: new Date().toLocaleDateString('pt-BR'),
+      date: formatBrazilDate(getBrazilNow()),
       time: firstAppointment?.time || "14:00",
       totalTime: 45,
       price: firstAppointment?.totalPrice || 50,
