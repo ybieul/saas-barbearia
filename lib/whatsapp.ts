@@ -1,4 +1,6 @@
 // WhatsApp API integration utilities
+import { formatCurrency } from './currency'
+
 export interface WhatsAppMessage {
   to: string
   message: string
@@ -60,7 +62,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 • Data: ${data.date}
 • Horário: ${data.time}
 • Duração estimada: ${data.totalTime} minutos
-• Valor: R$ ${data.price.toFixed(2)}
+• Valor: ${formatCurrency(data.price)}
 
 ✨ Estamos ansiosos para recebê-lo(a)!
 

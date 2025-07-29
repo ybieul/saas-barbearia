@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { formatBrazilDate } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 import { ProfessionalAvatarUpload } from "@/components/professional-avatar-upload"
 import ServiceImage from "@/components/service-image"
@@ -1553,7 +1554,7 @@ export default function ConfiguracoesPage() {
                           <div className="space-y-1">
                             <Label className="text-xs text-[#71717a]">Preço</Label>
                             <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm font-medium">
-                              R$ {(typeof service.price === 'number' ? service.price : parseFloat(String(service.price)) || 0).toFixed(2).replace('.', ',')}
+                              R$ {formatCurrency(service.price)}
                             </div>
                           </div>
                           <div className="space-y-1">

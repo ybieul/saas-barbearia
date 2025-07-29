@@ -36,6 +36,7 @@ import { useAppointments, useClients, useServices, useEstablishment } from "@/ho
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 import { utcToBrazil, brazilToUtc, formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/currency"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -1488,7 +1489,7 @@ export default function AgendaPage() {
                   <SelectContent className="bg-[#18181b] border-[#27272a]">
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.id}>
-                        {service.name} - R$ {(Number(service.price) || 0).toFixed(2)} ({service.duration || 0}min)
+                        {service.name} - {formatCurrency(service.price)} ({service.duration || 0}min)
                       </SelectItem>
                     ))}
                   </SelectContent>

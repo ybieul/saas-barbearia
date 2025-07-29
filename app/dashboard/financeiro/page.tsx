@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/currency"
 
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
@@ -248,17 +249,17 @@ export default function FinanceiroPage() {
       [''],
       ['RESUMO GERAL'],
       ['Métrica', 'Valor', 'Variação'],
-      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? `R$ ${(Number(dashboardData.stats.totalRevenue) || 0).toFixed(2).replace('.', ',')}` : 'R$ 0,00', revenueChange.change],
+      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? formatCurrency(dashboardData.stats.totalRevenue) : 'R$ 0,00', revenueChange.change],
       ['Agendamentos Concluídos', completedAppointments.length.toString(), completedChange.change],
       ['Taxa de Conversão', `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`, conversionChange.change],
-      ['Ticket Médio', `R$ ${(Number(currentTicketMedio) || 0).toFixed(2).replace('.', ',')}`, ticketChange.change],
+      ['Ticket Médio', formatCurrency(currentTicketMedio), ticketChange.change],
       [''],
       ['FORMAS DE PAGAMENTO'],
       ['Método', 'Quantidade', 'Valor', 'Percentual'],
       ...paymentStats.map(payment => [
         payment.method,
         payment.count.toString(),
-        `R$ ${(Number(payment.amount) || 0).toFixed(2).replace('.', ',')}`,
+        formatCurrency(payment.amount),
         `${payment.percentage}%`
       ]),
       [''],
@@ -267,7 +268,7 @@ export default function FinanceiroPage() {
       ...completedAppointments.slice(0, 50).map(apt => [
         apt.clientName || 'Cliente',
         apt.serviceName || 'Serviço',
-        `R$ ${(Number(apt.totalPrice) || 0).toFixed(2).replace('.', ',')}`,
+        formatCurrency(apt.totalPrice),
         apt.date
       ])
     ]

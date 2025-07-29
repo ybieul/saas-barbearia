@@ -37,6 +37,7 @@ import {
   debugTimezone,
   parseDate
 } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/currency"
 
 // Types
 interface BusinessData {
@@ -516,7 +517,7 @@ export default function AgendamentoPage() {
                                   <span>{service.duration}min</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span>R$ {service.price.toFixed(2)}</span>
+                                  <span>{formatCurrency(service.price)}</span>
                                 </div>
                               </div>
                             </div>
@@ -1024,7 +1025,7 @@ export default function AgendamentoPage() {
                       <div className="flex justify-between border-t border-[#3f3f46] pt-3">
                         <span className="text-[#a1a1aa]">Valor:</span>
                         <span className="text-[#ededed] font-bold text-lg">
-                          R$ {selectedService?.price.toFixed(2)}
+                          {formatCurrency(selectedService?.price)}
                         </span>
                       </div>
                     </div>
@@ -1093,7 +1094,7 @@ export default function AgendamentoPage() {
                       <strong className="text-[#ededed]">Profissional:</strong> {selectedProfessional?.name || "Qualquer profissional"}
                     </p>
                     <p className="text-sm text-[#a1a1aa]">
-                      <strong className="text-[#ededed]">Valor:</strong> R$ {selectedService?.price.toFixed(2)}
+                      <strong className="text-[#ededed]">Valor:</strong> {formatCurrency(selectedService?.price)}
                     </p>
                   </div>
                   
