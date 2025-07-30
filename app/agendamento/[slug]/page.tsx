@@ -113,8 +113,6 @@ export default function AgendamentoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([])
-  const [loadingAvailability, setLoadingAvailability] = useState(false)
 
   // Carregar dados do negócio
   useEffect(() => {
@@ -164,41 +162,6 @@ export default function AgendamentoPage() {
     }
   }
 
-  // Carregar disponibilidade de horários
-  const loadAvailability = async (date: string, professionalId?: string | null) => {
-    if (!selectedService) return
-
-    try {
-      setLoadingAvailability(true)
-      
-      const searchParams = new URLSearchParams({
-        date,
-        serviceId: selectedService.id,
-        serviceDuration: selectedService.duration.toString()
-      })
-      
-      if (professionalId) {
-        searchParams.append('professionalId', professionalId)
-      }
-
-      const response = await fetch(`/api/public/business/${params.slug}/availability?${searchParams}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setOccupiedSlots(data.occupiedSlots || [])
-        console.log('🔍 Disponibilidade carregada:', data)
-      } else {
-        console.error('Erro ao carregar disponibilidade:', response.statusText)
-        setOccupiedSlots([])
-      }
-    } catch (error) {
-      console.error('Erro ao carregar disponibilidade:', error)
-      setOccupiedSlots([])
-    } finally {
-      setLoadingAvailability(false)
-    }
-  }
-
   // Gerar horários disponíveis baseados nos horários de funcionamento
   const generateAvailableSlots = (date: string) => {
     if (!selectedService || workingHours.length === 0) return []
@@ -232,7 +195,7 @@ export default function AgendamentoPage() {
       
       slots.push({
         time: timeString,
-        available: true, // Sempre true, verificação real é feita via occupiedSlots
+        available: true, // TODO: verificar conflitos reais
         period: hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
       })
       
@@ -251,45 +214,6 @@ export default function AgendamentoPage() {
     }
     
     return groups
-  }
-
-  // Renderizar slot de horário (disponível ou ocupado)
-  const renderTimeSlot = (slot: any) => {
-    const isOccupied = occupiedSlots.includes(slot.time)
-    
-    if (isOccupied) {
-      // Horário ocupado - não clicável, igual ao dashboard
-      return (
-        <div 
-          key={slot.time}
-          className="bg-red-500/10 border border-red-500 rounded p-3 text-center cursor-not-allowed"
-        >
-          <div className="text-[#ededed] font-medium">{slot.time}</div>
-          <div className="text-xs text-red-400 mt-1">ocupado</div>
-        </div>
-      )
-    } else {
-      // Horário disponível - clicável
-      return (
-        <Button
-          key={slot.time}
-          variant="outline"
-          onClick={() => {
-            setSelectedTime(slot.time)
-            setStep(5)
-          }}
-          className={`h-auto p-3 flex flex-col border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10
-            ${selectedTime === slot.time 
-              ? 'bg-emerald-600/20 border-emerald-600 ring-1 ring-emerald-600' 
-              : ''
-            }
-          `}
-        >
-          <div className="font-medium">{slot.time}</div>
-          <div className="text-xs text-emerald-500 mt-1">disponível</div>
-        </Button>
-      )
-    }
   }
 
   // Carregar dados do cliente por telefone
@@ -751,7 +675,6 @@ export default function AgendamentoPage() {
                           onClick={() => {
                             if (isAvailable) {
                               setSelectedDate(dateString)
-                              loadAvailability(dateString, selectedProfessional?.id)
                               setStep(4)
                             }
                           }}
@@ -800,24 +723,18 @@ export default function AgendamentoPage() {
                   </h3>
                   
                   {selectedDate ? (
-                    loadingAvailability ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#71717a]" />
-                        <p className="text-[#71717a]">Verificando disponibilidade...</p>
-                      </div>
-                    ) : (
-                      (() => {
-                        const availableSlots = generateAvailableSlots(selectedDate)
-                        const groupedSlots = groupSlotsByPeriod(availableSlots)
-                        
-                        if (availableSlots.length === 0) {
-                          return (
-                            <div className="text-center py-8">
-                              <Clock className="h-12 w-12 mx-auto mb-4 text-[#71717a]" />
-                              <p className="text-[#71717a]">Nenhum horário disponível para esta data</p>
-                            </div>
-                          )
-                        }
+                    (() => {
+                      const availableSlots = generateAvailableSlots(selectedDate)
+                      const groupedSlots = groupSlotsByPeriod(availableSlots)
+                      
+                      if (availableSlots.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <Clock className="h-12 w-12 mx-auto mb-4 text-[#71717a]" />
+                            <p className="text-[#71717a]">Nenhum horário disponível para esta data</p>
+                          </div>
+                        )
+                      }
                       
                       return (
                         <div className="space-y-4">
@@ -835,7 +752,31 @@ export default function AgendamentoPage() {
                               
                               {expandedPeriods.morning && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.morning.map((slot) => renderTimeSlot(slot))}
+                                  {groupedSlots.morning.map((slot) => (
+                                    <Button
+                                      key={slot.time}
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (slot.available) {
+                                          setSelectedTime(slot.time)
+                                          setStep(5)
+                                        }
+                                      }}
+                                      disabled={!slot.available}
+                                      className={`
+                                        ${slot.available 
+                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                        }
+                                        ${selectedTime === slot.time 
+                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                          : ''
+                                        }
+                                      `}
+                                    >
+                                      {slot.time}
+                                    </Button>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -855,7 +796,31 @@ export default function AgendamentoPage() {
                               
                               {expandedPeriods.afternoon && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.afternoon.map((slot) => renderTimeSlot(slot))}
+                                  {groupedSlots.afternoon.map((slot) => (
+                                    <Button
+                                      key={slot.time}
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (slot.available) {
+                                          setSelectedTime(slot.time)
+                                          setStep(5)
+                                        }
+                                      }}
+                                      disabled={!slot.available}
+                                      className={`
+                                        ${slot.available 
+                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                        }
+                                        ${selectedTime === slot.time 
+                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                          : ''
+                                        }
+                                      `}
+                                    >
+                                      {slot.time}
+                                    </Button>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -875,7 +840,31 @@ export default function AgendamentoPage() {
                               
                               {expandedPeriods.night && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.night.map((slot) => renderTimeSlot(slot))}
+                                  {groupedSlots.night.map((slot) => (
+                                    <Button
+                                      key={slot.time}
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (slot.available) {
+                                          setSelectedTime(slot.time)
+                                          setStep(5)
+                                        }
+                                      }}
+                                      disabled={!slot.available}
+                                      className={`
+                                        ${slot.available 
+                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                        }
+                                        ${selectedTime === slot.time 
+                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                          : ''
+                                        }
+                                      `}
+                                    >
+                                      {slot.time}
+                                    </Button>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -883,7 +872,6 @@ export default function AgendamentoPage() {
                         </div>
                       )
                     })()
-                    )
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-[#71717a]">Selecione uma data primeiro</p>
