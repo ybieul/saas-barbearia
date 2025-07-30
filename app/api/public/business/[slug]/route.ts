@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     if (!slug) {
       return NextResponse.json(
@@ -16,22 +16,26 @@ export async function GET(
       )
     }
 
-    // Buscar tenant por ID (usando slug como ID por enquanto)
+    // Buscar tenant por ID ou email
     const business = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: slug },
-          { email: slug } // Fallback para busca por email
+          { email: slug }
         ],
         isActive: true
       },
       select: {
         id: true,
+        name: true,
+        email: true,
         businessName: true,
         businessPhone: true,
         businessAddress: true,
         businessLogo: true,
-        businessConfig: true
+        businessConfig: true,
+        businessPlan: true,
+        subscriptionEnd: true
       }
     })
 
