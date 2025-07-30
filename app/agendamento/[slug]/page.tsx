@@ -173,6 +173,7 @@ export default function AgendamentoPage() {
       
       const searchParams = new URLSearchParams({
         date,
+        serviceId: selectedService.id,
         serviceDuration: selectedService.duration.toString()
       })
       
@@ -257,14 +258,14 @@ export default function AgendamentoPage() {
     const isOccupied = occupiedSlots.includes(slot.time)
     
     if (isOccupied) {
-      // Horário ocupado - não clicável
+      // Horário ocupado - não clicável, igual ao dashboard
       return (
         <div 
           key={slot.time}
-          className="bg-red-600 opacity-60 cursor-not-allowed text-center p-2 rounded text-white"
+          className="bg-red-500/10 border border-red-500 rounded p-3 text-center cursor-not-allowed"
         >
-          <div>{slot.time}</div>
-          <div className="text-xs opacity-60">ocupado</div>
+          <div className="text-[#ededed] font-medium">{slot.time}</div>
+          <div className="text-xs text-red-400 mt-1">ocupado</div>
         </div>
       )
     } else {
@@ -277,15 +278,15 @@ export default function AgendamentoPage() {
             setSelectedTime(slot.time)
             setStep(5)
           }}
-          className={`
-            border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10
+          className={`h-auto p-3 flex flex-col border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10
             ${selectedTime === slot.time 
-              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+              ? 'bg-emerald-600/20 border-emerald-600 ring-1 ring-emerald-600' 
               : ''
             }
           `}
         >
-          {slot.time}
+          <div className="font-medium">{slot.time}</div>
+          <div className="text-xs text-emerald-500 mt-1">disponível</div>
         </Button>
       )
     }

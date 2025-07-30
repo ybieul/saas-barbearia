@@ -1,3 +1,4 @@
+
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { utcToBrazil, parseDate } from '@/lib/timezone'
@@ -11,6 +12,7 @@ export async function GET(
     const { slug } = await params
     const { searchParams } = new URL(request.url)
     const professionalId = searchParams.get('professionalId')
+    const serviceId = searchParams.get('serviceId')
     const date = searchParams.get('date')
     const serviceDurationParam = searchParams.get('serviceDuration')
 
@@ -49,32 +51,6 @@ export async function GET(
     })
 
     if (!tenant) {
-      // Para demonstração, se slug for "demo", simular tenant
-      if (slug === 'demo') {
-        console.log('🎭 Usando tenant demo simulado para teste')
-        
-        // Simular alguns agendamentos para teste
-        const mockOccupiedSlots = []
-        
-        // Se data for hoje ou uma data específica, simular alguns horários ocupados
-        if (date === '2025-07-30' || date === new Date().toISOString().split('T')[0]) {
-          mockOccupiedSlots.push('09:00', '09:05', '09:10', '09:15', '09:20', '09:25') // 30min ocupado
-          mockOccupiedSlots.push('14:30', '14:35', '14:40', '14:45') // 20min ocupado
-          mockOccupiedSlots.push('16:00', '16:05', '16:10', '16:15', '16:20', '16:25', '16:30', '16:35') // 40min ocupado
-        }
-        
-        console.log(`✅ Slots ocupados simulados para demo:`, mockOccupiedSlots)
-        
-        return NextResponse.json({
-          date,
-          professionalId,
-          serviceDuration,
-          occupiedSlots: mockOccupiedSlots,
-          appointmentsCount: mockOccupiedSlots.length > 0 ? 3 : 0,
-          mode: 'demo'
-        })
-      }
-      
       return NextResponse.json(
         { message: 'Estabelecimento não encontrado' },
         { status: 404 }
@@ -144,6 +120,7 @@ export async function GET(
 
     console.log(`🔍 Buscando disponibilidade para ${date}:`, {
       professionalId,
+      serviceId,
       serviceDuration,
       appointmentsFound: appointments.length,
       utcRange: {
@@ -190,6 +167,7 @@ export async function GET(
     return NextResponse.json({
       date,
       professionalId,
+      serviceId,
       serviceDuration,
       occupiedSlots,
       appointmentsCount: appointments.length
