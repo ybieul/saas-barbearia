@@ -125,6 +125,11 @@ async function testSystem() {
         if (result.data && typeof result.data === 'object') {
           if (Array.isArray(result.data)) {
             console.log(`📊 Retornou: ${result.data.length} item(s)`);
+          } else if (result.data.slots) {
+            // API de disponibilidade
+            const available = result.data.slots.filter(s => s.available).length;
+            const occupied = result.data.slots.filter(s => s.occupied).length;
+            console.log(`📊 Slots: ${available} disponíveis, ${occupied} ocupados`);
           } else {
             console.log(`📊 Dados: ${Object.keys(result.data).join(', ')}`);
           }

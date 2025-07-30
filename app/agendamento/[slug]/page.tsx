@@ -179,23 +179,32 @@ export default function AgendamentoPage() {
     try {
       const queryParams = new URLSearchParams({
         date,
-        serviceDuration: selectedService.duration.toString()
+        serviceDuration: selectedService.duration.toString(),
+        showOcupados: 'true' // Incluir horários ocupados na resposta
       })
       
       if (professionalId) {
         queryParams.append('professionalId', professionalId)
       }
 
+      console.log('🔍 Carregando disponibilidade:', { date, professionalId, serviceDuration: selectedService.duration })
+
       const response = await fetch(`/api/public/business/${params.slug}/availability?${queryParams}`)
       if (response.ok) {
         const data = await response.json()
-        setOccupiedSlots(data.occupiedSlots || [])
+        console.log('✅ Disponibilidade carregada:', data)
+        
+        // Extrair apenas horários ocupados da nova API
+        const occupied = data.slots ? data.slots.filter((slot: any) => slot.occupied).map((slot: any) => slot.time) : []
+        setOccupiedSlots(occupied)
+        
+        console.log('🚫 Horários ocupados:', occupied)
       } else {
-        console.error('Erro ao carregar disponibilidade')
+        console.error('❌ Erro ao carregar disponibilidade:', response.status)
         setOccupiedSlots([])
       }
     } catch (error) {
-      console.error('Erro ao carregar disponibilidade:', error)
+      console.error('❌ Erro de rede ao carregar disponibilidade:', error)
       setOccupiedSlots([])
     } finally {
       setLoadingAvailability(false)
