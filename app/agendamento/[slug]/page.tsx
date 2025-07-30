@@ -113,11 +113,20 @@ export default function AgendamentoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([])
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
 
   // Carregar dados do negócio
   useEffect(() => {
     loadBusinessData()
   }, [params.slug])
+
+  // Carregar disponibilidade quando profissional ou data mudar
+  useEffect(() => {
+    if (selectedDate && selectedService) {
+      loadAvailability(selectedProfessional?.id || null, selectedDate)
+    }
+  }, [selectedProfessional, selectedDate, selectedService])
 
   const loadBusinessData = async () => {
     try {
@@ -162,6 +171,37 @@ export default function AgendamentoPage() {
     }
   }
 
+  // Carregar disponibilidade quando selecionar profissional e data
+  const loadAvailability = async (professionalId: string | null, date: string) => {
+    if (!date || !selectedService) return
+
+    setLoadingAvailability(true)
+    try {
+      const queryParams = new URLSearchParams({
+        date,
+        serviceDuration: selectedService.duration.toString()
+      })
+      
+      if (professionalId) {
+        queryParams.append('professionalId', professionalId)
+      }
+
+      const response = await fetch(`/api/public/business/${params.slug}/availability?${queryParams}`)
+      if (response.ok) {
+        const data = await response.json()
+        setOccupiedSlots(data.occupiedSlots || [])
+      } else {
+        console.error('Erro ao carregar disponibilidade')
+        setOccupiedSlots([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar disponibilidade:', error)
+      setOccupiedSlots([])
+    } finally {
+      setLoadingAvailability(false)
+    }
+  }
+
   // Gerar horários disponíveis baseados nos horários de funcionamento
   const generateAvailableSlots = (date: string) => {
     if (!selectedService || workingHours.length === 0) return []
@@ -193,10 +233,14 @@ export default function AgendamentoPage() {
       const minute = currentTime % 60
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
       
+      // Verificar se o horário está ocupado
+      const isOccupied = occupiedSlots.includes(timeString)
+      
       slots.push({
         time: timeString,
-        available: true, // TODO: verificar conflitos reais
-        period: hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
+        available: !isOccupied,
+        period: hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night',
+        occupied: isOccupied
       })
       
       currentTime += 5 // incrementar 5 minutos
@@ -720,6 +764,9 @@ export default function AgendamentoPage() {
                   
                   <h3 className="text-lg font-semibold mb-4 text-[#ededed]">
                     Escolha o horário
+                    {loadingAvailability && (
+                      <Loader2 className="h-4 w-4 animate-spin inline-block ml-2" />
+                    )}
                   </h3>
                   
                   {selectedDate ? (
@@ -753,29 +800,39 @@ export default function AgendamentoPage() {
                               {expandedPeriods.morning && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.morning.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                          setStep(5)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`
-                                        ${slot.available 
-                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
-                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      {slot.time}
-                                    </Button>
+                                    <div key={slot.time} className="relative">
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (slot.available) {
+                                            setSelectedTime(slot.time)
+                                            setStep(5)
+                                          }
+                                        }}
+                                        disabled={!slot.available}
+                                        className={`w-full
+                                          ${slot.occupied 
+                                            ? 'bg-red-600 border-red-600 text-white opacity-60 cursor-not-allowed' 
+                                            : slot.available 
+                                              ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                              : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                          }
+                                          ${selectedTime === slot.time 
+                                            ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                            : ''
+                                          }
+                                        `}
+                                      >
+                                        <div className="text-center">
+                                          <div>{slot.time}</div>
+                                          {slot.occupied && (
+                                            <div className="text-xs opacity-70 mt-1">
+                                              Ocupado
+                                            </div>
+                                          )}
+                                        </div>
+                                      </Button>
+                                    </div>
                                   ))}
                                 </div>
                               )}
@@ -797,29 +854,39 @@ export default function AgendamentoPage() {
                               {expandedPeriods.afternoon && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.afternoon.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                          setStep(5)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`
-                                        ${slot.available 
-                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
-                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      {slot.time}
-                                    </Button>
+                                    <div key={slot.time} className="relative">
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (slot.available) {
+                                            setSelectedTime(slot.time)
+                                            setStep(5)
+                                          }
+                                        }}
+                                        disabled={!slot.available}
+                                        className={`w-full
+                                          ${slot.occupied 
+                                            ? 'bg-red-600 border-red-600 text-white opacity-60 cursor-not-allowed' 
+                                            : slot.available 
+                                              ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                              : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                          }
+                                          ${selectedTime === slot.time 
+                                            ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                            : ''
+                                          }
+                                        `}
+                                      >
+                                        <div className="text-center">
+                                          <div>{slot.time}</div>
+                                          {slot.occupied && (
+                                            <div className="text-xs opacity-70 mt-1">
+                                              Ocupado
+                                            </div>
+                                          )}
+                                        </div>
+                                      </Button>
+                                    </div>
                                   ))}
                                 </div>
                               )}
@@ -841,29 +908,39 @@ export default function AgendamentoPage() {
                               {expandedPeriods.night && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.night.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                          setStep(5)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`
-                                        ${slot.available 
-                                          ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
-                                          : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      {slot.time}
-                                    </Button>
+                                    <div key={slot.time} className="relative">
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (slot.available) {
+                                            setSelectedTime(slot.time)
+                                            setStep(5)
+                                          }
+                                        }}
+                                        disabled={!slot.available}
+                                        className={`w-full
+                                          ${slot.occupied 
+                                            ? 'bg-red-600 border-red-600 text-white opacity-60 cursor-not-allowed' 
+                                            : slot.available 
+                                              ? 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                              : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600 text-white'
+                                          }
+                                          ${selectedTime === slot.time 
+                                            ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                            : ''
+                                          }
+                                        `}
+                                      >
+                                        <div className="text-center">
+                                          <div>{slot.time}</div>
+                                          {slot.occupied && (
+                                            <div className="text-xs opacity-70 mt-1">
+                                              Ocupado
+                                            </div>
+                                          )}
+                                        </div>
+                                      </Button>
+                                    </div>
                                   ))}
                                 </div>
                               )}
