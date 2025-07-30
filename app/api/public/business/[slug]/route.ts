@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // GET - Buscar dados do negócio por slug (ID do tenant)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { slug } = await params
