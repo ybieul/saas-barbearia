@@ -19,9 +19,8 @@ export async function GET(
     const professionalId = searchParams.get('professionalId')
     const date = searchParams.get('date') // formato YYYY-MM-DD
     const serviceDuration = Number(searchParams.get('serviceDuration')) || 30
-    const showOcupados = searchParams.get('showOcupados') !== 'false' // true por padrão
 
-    console.log('🔍 API Disponibilidade:', { slug, professionalId, date, serviceDuration, showOcupados })
+    console.log('🔍 API Disponibilidade:', { slug, professionalId, date, serviceDuration })
 
     // ===== VALIDAÇÕES BÁSICAS =====
     if (!slug) {
@@ -79,11 +78,26 @@ export async function GET(
     })
 
     if (!workingHours) {
+      // Se não há horário de funcionamento, retornar todos os horários como ocupados
+      const allTimeSlots = []
+      
+      for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 5) {
+          const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+          allTimeSlots.push({
+            hora: timeSlot,
+            ocupado: true // Todos ocupados se estabelecimento fechado
+          })
+        }
+      }
+
       return NextResponse.json({
+        horarios: allTimeSlots,
         date,
-        dayOfWeek: dayName,
-        isWorkingDay: false,
-        slots: [],
+        professionalId: professionalId || 'all',
+        totalAppointments: 0,
+        workingHours: null,
+        businessName: business.businessName,
         message: 'Estabelecimento fechado neste dia'
       })
     }
@@ -197,53 +211,45 @@ export async function GET(
       }
     })
 
-    // ===== GERAR LISTA COMPLETA DE SLOTS =====
-    const allSlots = []
+    // ===== GERAR LISTA COMPLETA DE HORÁRIOS DO DIA =====
+    const allTimeSlots = []
     
-    for (let minutes = startMinutes; minutes < endMinutes; minutes += 5) {
-      const hour = Math.floor(minutes / 60)
-      const minute = minutes % 60
-      const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-      
-      const isOccupied = occupiedSlots.has(timeSlot)
-      
-      // Verificar se há tempo suficiente para o serviço
-      const remainingMinutes = endMinutes - minutes
-      const hasEnoughTime = remainingMinutes >= serviceDuration
-      
-      const slot = {
-        time: timeSlot,
-        available: !isOccupied && hasEnoughTime,
-        occupied: isOccupied,
-        reason: isOccupied ? 'Agendamento existente' : (!hasEnoughTime ? 'Tempo insuficiente' : null)
-      }
-
-      // Incluir slot se showOcupados=true OU se não estiver ocupado
-      if (showOcupados || !isOccupied) {
-        allSlots.push(slot)
+    // Gerar todos os horários possíveis de 5 em 5 minutos (00:00 até 23:55)
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 5) {
+        const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        
+        // Verificar se está dentro do horário de funcionamento
+        const currentMinutes = hour * 60 + minute
+        const isWithinWorkingHours = currentMinutes >= startMinutes && currentMinutes < endMinutes
+        
+        // Verificar se está ocupado
+        const isOccupied = occupiedSlots.has(timeSlot)
+        
+        // Verificar se há tempo suficiente para o serviço (apenas para horários de funcionamento)
+        const remainingMinutes = endMinutes - currentMinutes
+        const hasEnoughTime = remainingMinutes >= serviceDuration
+        
+        allTimeSlots.push({
+          hora: timeSlot,
+          ocupado: isOccupied || !isWithinWorkingHours || !hasEnoughTime
+        })
       }
     }
 
-    console.log(`✅ Gerados ${allSlots.length} slots (${occupiedSlots.size} ocupados)`)
+    console.log(`✅ Gerados ${allTimeSlots.length} horários (${occupiedSlots.size} ocupados)`)
 
-    // ===== RESPOSTA FINAL =====
+    // ===== RESPOSTA FINAL (FORMATO SIMPLES PARA O FRONTEND) =====
     return NextResponse.json({
+      horarios: allTimeSlots,
       date,
-      dayOfWeek: dayName,
-      isWorkingDay: true,
+      professionalId: professionalId || 'all',
+      totalAppointments: existingAppointments.length,
       workingHours: {
         start: startTime,
         end: endTime
       },
-      slots: allSlots,
-      summary: {
-        total: allSlots.length,
-        available: allSlots.filter(s => s.available).length,
-        occupied: allSlots.filter(s => s.occupied).length,
-        serviceDuration: serviceDuration
-      },
-      businessName: business.businessName,
-      professionalId: professionalId || 'all'
+      businessName: business.businessName
     })
 
   } catch (error: any) {

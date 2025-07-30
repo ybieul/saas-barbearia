@@ -91,10 +91,6 @@ async function testAvailability() {
     {
       name: '🔍 4. Serviço Longo (60 min)',
       url: `${serverUrl}/api/public/business/${tenantId}/availability?date=${tomorrowStr}&serviceDuration=60`
-    },
-    {
-      name: '🔍 5. Esconder Ocupados',
-      url: `${serverUrl}/api/public/business/${tenantId}/availability?date=${tomorrowStr}&serviceDuration=30&showOcupados=false`
     }
   ];
 
@@ -112,26 +108,29 @@ async function testAvailability() {
         
         const data = result.data;
         
-        if (data.isWorkingDay === false) {
+        if (data.message && data.message.includes('fechado')) {
           console.log(`🏢 ${data.message}`);
-        } else if (data.slots) {
-          const totalSlots = data.slots.length;
-          const availableSlots = data.slots.filter(s => s.available).length;
-          const occupiedSlots = data.slots.filter(s => s.occupied).length;
+        } else if (data.horarios) {
+          const totalSlots = data.horarios.length;
+          const availableSlots = data.horarios.filter(h => !h.ocupado).length;
+          const occupiedSlots = data.horarios.filter(h => h.ocupado).length;
           
           console.log(`📊 Resultados:`);
-          console.log(`   🕐 Horário funcionamento: ${data.workingHours?.start} - ${data.workingHours?.end}`);
-          console.log(`   📈 Total de slots: ${totalSlots}`);
+          if (data.workingHours) {
+            console.log(`   🕐 Horário funcionamento: ${data.workingHours.start} - ${data.workingHours.end}`);
+          }
+          console.log(`   📈 Total de horários: ${totalSlots}`);
           console.log(`   ✅ Disponíveis: ${availableSlots}`);
           console.log(`   🚫 Ocupados: ${occupiedSlots}`);
+          console.log(`   📋 Total agendamentos: ${data.totalAppointments || 0}`);
           
           if (occupiedSlots > 0) {
-            const occupiedTimes = data.slots.filter(s => s.occupied).map(s => s.time).slice(0, 5);
+            const occupiedTimes = data.horarios.filter(h => h.ocupado).map(h => h.hora).slice(0, 5);
             console.log(`   🕰️ Primeiros ocupados: ${occupiedTimes.join(', ')}${occupiedSlots > 5 ? '...' : ''}`);
           }
           
           if (availableSlots > 0) {
-            const availableTimes = data.slots.filter(s => s.available).map(s => s.time).slice(0, 5);
+            const availableTimes = data.horarios.filter(h => !h.ocupado).map(h => h.hora).slice(0, 5);
             console.log(`   🆓 Primeiros disponíveis: ${availableTimes.join(', ')}${availableSlots > 5 ? '...' : ''}`);
           }
         }

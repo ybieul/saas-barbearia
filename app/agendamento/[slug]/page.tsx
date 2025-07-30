@@ -179,8 +179,7 @@ export default function AgendamentoPage() {
     try {
       const queryParams = new URLSearchParams({
         date,
-        serviceDuration: selectedService.duration.toString(),
-        showOcupados: 'true' // Incluir horários ocupados na resposta
+        serviceDuration: selectedService.duration.toString()
       })
       
       if (professionalId) {
@@ -194,8 +193,8 @@ export default function AgendamentoPage() {
         const data = await response.json()
         console.log('✅ Disponibilidade carregada:', data)
         
-        // Extrair apenas horários ocupados da nova API
-        const occupied = data.slots ? data.slots.filter((slot: any) => slot.occupied).map((slot: any) => slot.time) : []
+        // Extrair apenas horários ocupados do novo formato
+        const occupied = data.horarios ? data.horarios.filter((slot: any) => slot.ocupado).map((slot: any) => slot.hora) : []
         setOccupiedSlots(occupied)
         
         console.log('🚫 Horários ocupados:', occupied)

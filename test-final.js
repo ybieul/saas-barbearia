@@ -125,8 +125,13 @@ async function testSystem() {
         if (result.data && typeof result.data === 'object') {
           if (Array.isArray(result.data)) {
             console.log(`📊 Retornou: ${result.data.length} item(s)`);
+          } else if (result.data.horarios) {
+            // Nova API de disponibilidade
+            const available = result.data.horarios.filter(h => !h.ocupado).length;
+            const occupied = result.data.horarios.filter(h => h.ocupado).length;
+            console.log(`📊 Horários: ${available} disponíveis, ${occupied} ocupados`);
           } else if (result.data.slots) {
-            // API de disponibilidade
+            // API de disponibilidade antiga (fallback)
             const available = result.data.slots.filter(s => s.available).length;
             const occupied = result.data.slots.filter(s => s.occupied).length;
             console.log(`📊 Slots: ${available} disponíveis, ${occupied} ocupados`);
