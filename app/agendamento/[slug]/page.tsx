@@ -339,16 +339,12 @@ export default function AgendamentoPage() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const selectedDateOnly = new Date(selectedDateParsed.getFullYear(), selectedDateParsed.getMonth(), selectedDateParsed.getDate())
     
-    // Se não é hoje, abrir apenas seções com horários disponíveis
+    // Se não é hoje, manter todas as seções minimizadas
     if (selectedDateOnly.getTime() !== today.getTime()) {
-      const morningHasAvailable = groupedSlots.morning.some((slot: any) => slot.available)
-      const afternoonHasAvailable = groupedSlots.afternoon.some((slot: any) => slot.available)
-      const nightHasAvailable = groupedSlots.night.some((slot: any) => slot.available)
-      
       return { 
-        morning: morningHasAvailable, 
-        afternoon: afternoonHasAvailable, 
-        night: nightHasAvailable 
+        morning: false, 
+        afternoon: false, 
+        night: false 
       }
     }
     
