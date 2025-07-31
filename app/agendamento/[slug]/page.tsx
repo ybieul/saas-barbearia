@@ -95,7 +95,7 @@ export default function AgendamentoPage() {
   
   // Estados do formulário
   const [selectedService, setSelectedService] = useState<Service | null>(null)
-  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
+  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null | undefined>(undefined)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
   const [customerData, setCustomerData] = useState<CustomerData>({
