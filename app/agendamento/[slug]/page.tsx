@@ -366,6 +366,16 @@ export default function AgendamentoPage() {
     }
   }
 
+  // Determinar qual período pertence o horário selecionado
+  const getSelectedTimePeriod = (time: string) => {
+    if (!time) return null;
+    const hour = parseInt(time.split(':')[0]);
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    if (hour >= 18 || hour < 6) return 'night';
+    return null;
+  }
+
   // Busca inteligente de cliente por telefone
   const searchClientByPhone = async (phone: string) => {
     if (phone.length < 10) {
@@ -1084,6 +1094,23 @@ export default function AgendamentoPage() {
                                       {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
                                     </Button>
                                   ))}
+                                  
+                                  {/* Botão contextual para manhã */}
+                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'morning' && (
+                                    <div className="col-span-3 mt-4">
+                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                        <p className="text-emerald-400 text-sm text-center">
+                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                        </p>
+                                      </div>
+                                      <Button
+                                        onClick={() => setStep(5)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                      >
+                                        Avançar para próxima etapa
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1158,6 +1185,23 @@ export default function AgendamentoPage() {
                                       {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
                                     </Button>
                                   ))}
+                                  
+                                  {/* Botão contextual para tarde */}
+                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'afternoon' && (
+                                    <div className="col-span-3 mt-4">
+                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                        <p className="text-emerald-400 text-sm text-center">
+                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                        </p>
+                                      </div>
+                                      <Button
+                                        onClick={() => setStep(5)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                      >
+                                        Avançar para próxima etapa
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1232,6 +1276,23 @@ export default function AgendamentoPage() {
                                       {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
                                     </Button>
                                   ))}
+                                  
+                                  {/* Botão contextual para noite */}
+                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'night' && (
+                                    <div className="col-span-3 mt-4">
+                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                        <p className="text-emerald-400 text-sm text-center">
+                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                        </p>
+                                      </div>
+                                      <Button
+                                        onClick={() => setStep(5)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                      >
+                                        Avançar para próxima etapa
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1242,23 +1303,6 @@ export default function AgendamentoPage() {
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-[#71717a]">Selecione uma data primeiro</p>
-                    </div>
-                  )}
-                  
-                  {/* Botão Avançar Contextual - Aparece apenas quando horário for selecionado */}
-                  {selectedTime && (
-                    <div className="mt-6 animate-fade-in">
-                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4 mb-4">
-                        <p className="text-emerald-400 text-sm text-center">
-                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => setStep(5)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        Avançar para próxima etapa
-                      </Button>
                     </div>
                   )}
                 </div>
