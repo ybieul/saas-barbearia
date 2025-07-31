@@ -160,6 +160,11 @@ export default function AgendamentoPage() {
       if (professionalsRes.ok) {
         const professionalsData = await professionalsRes.json()
         setProfessionals(professionalsData)
+        
+        // Auto-selecionar se houver apenas um profissional
+        if (professionalsData.length === 1) {
+          setSelectedProfessional(professionalsData[0])
+        }
       }
 
       if (workingHoursRes.ok) {
@@ -232,25 +237,42 @@ export default function AgendamentoPage() {
     }
     
     // Verificar se há conflito com algum agendamento existente
-    return !occupiedSlots.some(slot => {
-      const aptStartMinutes = timeToMinutes(slot.startTime)
-      const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
-      
-      // Conflito se:
-      // 1. Novo agendamento começa durante um existente
-      // 2. Novo agendamento termina durante um existente  
-      // 3. Novo agendamento engloba um existente
-      const hasConflict = (
-        (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
-        (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
-        (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+    if (selectedProfessional === null) {
+      // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
+      // Se pelo menos um profissional estiver livre, o horário está disponível
+      const allProfessionalsOccupied = professionals.every(prof => 
+        occupiedSlots.some(slot => {
+          if (slot.professionalId !== prof.id) return false
+          
+          const aptStartMinutes = timeToMinutes(slot.startTime)
+          const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+          
+          return (
+            (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+            (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+            (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+          )
+        })
       )
-      
-      // Verificar filtro de profissional (se "qualquer profissional" foi selecionado, considerar todos)
-      const matchesProfessional = !selectedProfessional || slot.professionalId === selectedProfessional.id
-      
-      return hasConflict && matchesProfessional
-    })
+      return !allProfessionalsOccupied
+    } else if (selectedProfessional) {
+      // Profissional específico: verificar apenas conflitos com este profissional
+      return !occupiedSlots.some(slot => {
+        if (slot.professionalId !== selectedProfessional.id) return false
+        
+        const aptStartMinutes = timeToMinutes(slot.startTime)
+        const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+        
+        return (
+          (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+          (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+          (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+        )
+      })
+    } else {
+      // selectedProfessional === undefined (não selecionado): não mostrar disponibilidade
+      return false
+    }
   }
 
   // Carregar disponibilidade quando data ou profissional mudarem
@@ -819,48 +841,50 @@ export default function AgendamentoPage() {
                     Escolha o profissional
                   </h3>
                   
-                  {/* Opção "Qualquer profissional" */}
-                  <div>
-                    <div
-                      onClick={() => setSelectedProfessional(null)}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
-                        ${selectedProfessional === null 
-                          ? 'border-emerald-600 bg-emerald-600/10' 
-                          : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
-                          <Users className="h-6 w-6 text-[#71717a]" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-[#ededed]">
-                            Qualquer profissional
-                          </h4>
-                          <p className="text-sm text-[#a1a1aa]">
-                            Próximo disponível
-                          </p>
+                  {/* Mostrar "Qualquer profissional" apenas se houver mais de um profissional */}
+                  {professionals.length > 1 && (
+                    <div>
+                      <div
+                        onClick={() => setSelectedProfessional(null)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
+                          ${selectedProfessional === null 
+                            ? 'border-emerald-600 bg-emerald-600/10' 
+                            : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
+                            <Users className="h-6 w-6 text-[#71717a]" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-[#ededed]">
+                              Qualquer profissional
+                            </h4>
+                            <p className="text-sm text-[#a1a1aa]">
+                              Próximo disponível
+                            </p>
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Botão contextual para "Qualquer profissional" */}
+                      {selectedProfessional === null && (
+                        <div className="mt-3 mb-6">
+                          <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                            <p className="text-emerald-400 text-sm text-center">
+                              ✅ Profissional selecionado: <span className="font-semibold">Qualquer profissional</span>
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => setStep(3)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            Avançar
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Botão contextual para "Qualquer profissional" */}
-                    {selectedProfessional === null && (
-                      <div className="mt-3 mb-6">
-                        <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                          <p className="text-emerald-400 text-sm text-center">
-                            ✅ Profissional selecionado: <span className="font-semibold">Qualquer profissional</span>
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => setStep(3)}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          Avançar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                   
                   {professionals.length === 0 ? (
                     <div className="text-center py-8">

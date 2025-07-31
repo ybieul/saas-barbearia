@@ -187,30 +187,54 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    for (const existingApt of conflictingAppointments) {
-      const existingStart = new Date(existingApt.dateTime)
-      const existingDuration = existingApt.service?.duration || 30
-      const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
-      
-      // Verificar sobreposição
-      const hasOverlap = (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
-      
-      if (hasOverlap) {
-        // Se há profissional especificado, verificar se é o mesmo
-        if (professionalId && existingApt.professionalId === professionalId) {
-          return NextResponse.json(
-            { message: 'Horário já ocupado por outro agendamento' },
-            { status: 400 }
-          )
-        }
+    if (professionalId) {
+      // Profissional específico: verificar conflitos apenas com este profissional
+      for (const existingApt of conflictingAppointments) {
+        if (existingApt.professionalId !== professionalId) continue
         
-        // Se não há profissional, qualquer conflito impede
-        if (!professionalId) {
+        const existingStart = new Date(existingApt.dateTime)
+        const existingDuration = existingApt.service?.duration || 30
+        const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
+        
+        // Verificar sobreposição
+        const hasOverlap = (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
+        
+        if (hasOverlap) {
           return NextResponse.json(
             { message: 'Horário já ocupado por outro agendamento' },
             { status: 400 }
           )
         }
+      }
+    } else {
+      // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
+      // Buscar todos os profissionais do estabelecimento
+      const allProfessionals = await prisma.professional.findMany({
+        where: { tenantId: business.id, isActive: true },
+        select: { id: true }
+      })
+      
+      // Verificar se pelo menos um profissional está livre
+      const hasAvailableProfessional = allProfessionals.some(prof => {
+        // Verificar se este profissional tem conflito
+        const hasConflict = conflictingAppointments.some(existingApt => {
+          if (existingApt.professionalId !== prof.id) return false
+          
+          const existingStart = new Date(existingApt.dateTime)
+          const existingDuration = existingApt.service?.duration || 30
+          const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
+          
+          return (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
+        })
+        
+        return !hasConflict // Este profissional está livre
+      })
+      
+      if (!hasAvailableProfessional) {
+        return NextResponse.json(
+          { message: 'Horário já ocupado - todos os profissionais estão indisponíveis' },
+          { status: 400 }
+        )
       }
     }
 
