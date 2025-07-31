@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET - Buscar dados do negócio por slug (ID do tenant)
+// GET - Buscar dados do negócio por slug (customLink personalizado)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -16,14 +16,14 @@ export async function GET(
       )
     }
 
-    // Buscar tenant por ID ou email
+    // Buscar tenant por customLink no businessConfig
     const business = await prisma.tenant.findFirst({
       where: {
-        OR: [
-          { id: slug },
-          { email: slug }
-        ],
-        isActive: true
+        isActive: true,
+        businessConfig: {
+          path: '$.customLink',
+          equals: slug
+        }
       },
       select: {
         id: true,

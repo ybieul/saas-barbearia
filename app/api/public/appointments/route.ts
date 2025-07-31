@@ -24,14 +24,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar tenant por slug
+    // Buscar tenant por customLink
     const business = await prisma.tenant.findFirst({
       where: {
-        OR: [
-          { id: businessSlug },
-          { email: businessSlug }
-        ],
-        isActive: true
+        isActive: true,
+        businessConfig: {
+          path: '$.customLink',
+          equals: businessSlug
+        }
       }
     })
 
