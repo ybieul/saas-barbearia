@@ -106,10 +106,14 @@ export default function AgendamentoPage() {
   })
   
   // Estados de UI
-  const [expandedPeriods, setExpandedPeriods] = useState({
-    morning: true,
-    afternoon: true,
-    night: true
+  const [expandedPeriods, setExpandedPeriods] = useState<{
+    morning: boolean | undefined,
+    afternoon: boolean | undefined,
+    night: boolean | undefined
+  }>({
+    morning: undefined,
+    afternoon: undefined,
+    night: undefined
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -256,13 +260,13 @@ export default function AgendamentoPage() {
     }
   }, [selectedDate, selectedProfessional?.id, params.slug])
 
-  // Resetar estado das seções quando a data mudar
+  // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
     if (selectedDate) {
       setExpandedPeriods({
-        morning: true,
-        afternoon: true,
-        night: true
+        morning: undefined,
+        afternoon: undefined,
+        night: undefined
       })
     }
   }, [selectedDate])
@@ -327,7 +331,7 @@ export default function AgendamentoPage() {
 
   // Calcular estado inicial inteligente das seções baseado na hora atual
   const calculateInitialExpandedState = (groupedSlots: any) => {
-    if (!selectedDate) return { morning: true, afternoon: true, night: true }
+    if (!selectedDate) return { morning: false, afternoon: false, night: false }
     
     // Verificar se é hoje
     const selectedDateParsed = parseDate(selectedDate)
@@ -335,9 +339,17 @@ export default function AgendamentoPage() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const selectedDateOnly = new Date(selectedDateParsed.getFullYear(), selectedDateParsed.getMonth(), selectedDateParsed.getDate())
     
-    // Se não é hoje, manter todas abertas
+    // Se não é hoje, abrir apenas seções com horários disponíveis
     if (selectedDateOnly.getTime() !== today.getTime()) {
-      return { morning: true, afternoon: true, night: true }
+      const morningHasAvailable = groupedSlots.morning.some((slot: any) => slot.available)
+      const afternoonHasAvailable = groupedSlots.afternoon.some((slot: any) => slot.available)
+      const nightHasAvailable = groupedSlots.night.some((slot: any) => slot.available)
+      
+      return { 
+        morning: morningHasAvailable, 
+        afternoon: afternoonHasAvailable, 
+        night: nightHasAvailable 
+      }
     }
     
     const nowHour = now.getHours()
@@ -348,9 +360,9 @@ export default function AgendamentoPage() {
     const nightHasAvailable = groupedSlots.night.some((slot: any) => slot.available)
     
     return {
-      morning: morningHasAvailable && nowHour < 12, // Abrir se tem horários disponíveis E é de manhã
-      afternoon: afternoonHasAvailable && (nowHour >= 12 && nowHour < 18), // Abrir se tem horários disponíveis E é de tarde
-      night: nightHasAvailable && nowHour >= 18 // Abrir se tem horários disponíveis E é de noite
+      morning: morningHasAvailable && nowHour < 12, // Só abrir se tem horários E é manhã
+      afternoon: afternoonHasAvailable && (nowHour >= 12 && nowHour < 18), // Só abrir se tem horários E é tarde
+      night: nightHasAvailable && nowHour >= 18 // Só abrir se tem horários E é noite
     }
   }
 
@@ -994,6 +1006,13 @@ export default function AgendamentoPage() {
                       // Calcular estado inteligente das seções
                       const intelligentExpandedState = calculateInitialExpandedState(groupedSlots)
                       
+                      // Usar estado inteligente diretamente (sem depender do state)
+                      const currentExpandedState = {
+                        morning: expandedPeriods.morning !== undefined ? expandedPeriods.morning : intelligentExpandedState.morning,
+                        afternoon: expandedPeriods.afternoon !== undefined ? expandedPeriods.afternoon : intelligentExpandedState.afternoon,
+                        night: expandedPeriods.night !== undefined ? expandedPeriods.night : intelligentExpandedState.night
+                      }
+                      
                       return (
                         <div className="space-y-4">
                           {/* Manhã */}
@@ -1005,10 +1024,10 @@ export default function AgendamentoPage() {
                                 className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
                               >
                                 <span className="font-medium">Manhã ({groupedSlots.morning.length} horários)</span>
-                                {(expandedPeriods.morning ?? intelligentExpandedState.morning) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                {currentExpandedState.morning ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                               </Button>
                               
-                              {(expandedPeriods.morning ?? intelligentExpandedState.morning) && (
+                              {currentExpandedState.morning && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.morning.map((slot) => (
                                     <Button
@@ -1050,10 +1069,10 @@ export default function AgendamentoPage() {
                                 className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
                               >
                                 <span className="font-medium">Tarde ({groupedSlots.afternoon.length} horários)</span>
-                                {(expandedPeriods.afternoon ?? intelligentExpandedState.afternoon) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                {currentExpandedState.afternoon ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                               </Button>
                               
-                              {(expandedPeriods.afternoon ?? intelligentExpandedState.afternoon) && (
+                              {currentExpandedState.afternoon && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.afternoon.map((slot) => (
                                     <Button
@@ -1095,10 +1114,10 @@ export default function AgendamentoPage() {
                                 className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
                               >
                                 <span className="font-medium">Noite ({groupedSlots.night.length} horários)</span>
-                                {(expandedPeriods.night ?? intelligentExpandedState.night) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                {currentExpandedState.night ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                               </Button>
                               
-                              {(expandedPeriods.night ?? intelligentExpandedState.night) && (
+                              {currentExpandedState.night && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                   {groupedSlots.night.map((slot) => (
                                     <Button
