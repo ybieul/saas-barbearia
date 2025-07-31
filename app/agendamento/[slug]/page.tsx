@@ -112,7 +112,6 @@ export default function AgendamentoPage() {
     night: true
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
   
   // Estados para verificação de disponibilidade
   const [occupiedSlots, setOccupiedSlots] = useState<any[]>([])
@@ -494,7 +493,8 @@ export default function AgendamentoPage() {
         description: "Agendamento criado com sucesso!",
       })
 
-      setShowSuccess(true)
+      // Navegar para a etapa de sucesso
+      setStep(7)
 
     } catch (error: any) {
       console.error('❌ Erro ao criar agendamento:', error)
@@ -1271,53 +1271,115 @@ export default function AgendamentoPage() {
                 </div>
               )}
 
-              {/* Página de Sucesso */}
-              {showSuccess && (
+              {/* Etapa 7: Página de Sucesso */}
+              {step === 7 && (
                 <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="h-8 w-8 text-white" />
+                  {/* Animação de sucesso */}
+                  <div className="relative animate-bounce-in">
+                    <div className="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Check className="h-10 w-10 text-white" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
                   </div>
                   
-                  <h3 className="text-xl font-bold mb-2 text-[#ededed]">
-                    Agendamento confirmado!
-                  </h3>
+                  <h2 className="text-2xl font-bold mb-3 text-[#ededed] animate-fade-in animate-delay-200">
+                    🎉 Agendamento Confirmado!
+                  </h2>
                   
-                  <p className="text-[#a1a1aa] mb-6">
-                    Seu agendamento foi realizado com sucesso. Você receberá uma confirmação por WhatsApp.
+                  <p className="text-[#a1a1aa] mb-6 text-lg animate-fade-in animate-delay-400">
+                    Seu agendamento foi realizado com <span className="text-emerald-400 font-semibold">sucesso</span>!<br />
+                    Você receberá uma confirmação via WhatsApp em breve.
                   </p>
                   
-                  <div className="bg-[#27272a] rounded-lg p-4 mb-6">
-                    <p className="text-sm text-[#a1a1aa] mb-2">
-                      <strong className="text-[#ededed]">Data e horário:</strong><br />
-                      {formatBrazilDate(parseDate(selectedDate))} às {selectedTime}
-                    </p>
-                    <p className="text-sm text-[#a1a1aa]">
-                      <strong className="text-[#ededed]">Serviço:</strong> {selectedService?.name}
-                    </p>
-                    <p className="text-sm text-[#a1a1aa]">
-                      <strong className="text-[#ededed]">Profissional:</strong> {selectedProfessional?.name || "Qualquer profissional"}
-                    </p>
-                    <p className="text-sm text-[#a1a1aa]">
-                      <strong className="text-[#ededed]">Valor:</strong> {formatCurrency(selectedService?.price)}
-                    </p>
+                  {/* Card com detalhes do agendamento */}
+                  <div className="bg-gradient-to-r from-emerald-600/10 to-emerald-700/10 border border-emerald-600/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
+                    <h3 className="text-lg font-semibold text-emerald-400 mb-4 text-center">
+                      📅 Detalhes do Agendamento
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
+                        <span className="text-[#a1a1aa] font-medium">📅 Data e horário:</span>
+                        <span className="text-[#ededed] font-bold">
+                          {formatBrazilDate(parseDate(selectedDate))} às {selectedTime}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
+                        <span className="text-[#a1a1aa] font-medium">✂️ Serviço:</span>
+                        <span className="text-[#ededed] font-bold">{selectedService?.name}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
+                        <span className="text-[#a1a1aa] font-medium">👨‍💼 Profissional:</span>
+                        <span className="text-[#ededed] font-bold">
+                          {selectedProfessional?.name || "Qualquer profissional"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
+                        <span className="text-[#a1a1aa] font-medium">⏱️ Duração:</span>
+                        <span className="text-[#ededed] font-bold">{selectedService?.duration} minutos</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-emerald-600/20 border border-emerald-600/40 rounded-lg">
+                        <span className="text-emerald-300 font-bold">💰 Valor:</span>
+                        <span className="text-emerald-300 font-bold text-xl">
+                          {formatCurrency(selectedService?.price)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <Button
-                    onClick={() => {
-                      // Reset do formulário
-                      setStep(1)
-                      setSelectedService(null)
-                      setSelectedProfessional(null)
-                      setSelectedDate("")
-                      setSelectedTime("")
-                      setCustomerData({name: "", phone: "", email: "", notes: ""})
-                      setShowSuccess(false)
-                    }}
-                    variant="outline"
-                    className="border-[#27272a] text-[#ededed] hover:bg-[#27272a]"
-                  >
-                    Fazer novo agendamento
-                  </Button>
+
+                  {/* Informações importantes */}
+                  <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mb-6 animate-slide-up animate-delay-600">
+                    <h4 className="text-blue-400 font-semibold mb-2 flex items-center justify-center gap-2">
+                      ℹ️ Informações Importantes
+                    </h4>
+                    <div className="text-sm text-[#a1a1aa] space-y-1">
+                      <p>• Você receberá um lembrete 24h antes do agendamento</p>
+                      <p>• Em caso de cancelamento, avise com pelo menos 2h de antecedência</p>
+                      <p>• Chegue com 5 minutos de antecedência</p>
+                    </div>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="space-y-3 animate-fade-in animate-delay-600">
+                    <Button
+                      onClick={() => {
+                        // Reset completo do formulário
+                        setStep(1)
+                        setSelectedService(null)
+                        setSelectedProfessional(null)
+                        setSelectedDate("")
+                        setSelectedTime("")
+                        setCustomerData({name: "", phone: "", email: "", notes: ""})
+                        setSearchingClient(false)
+                        setClientFound(null)
+                        setShowClientForm(false)
+                        if (phoneDebounceTimer) {
+                          clearTimeout(phoneDebounceTimer)
+                          setPhoneDebounceTimer(null)
+                        }
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 transition-all duration-300 hover:scale-105"
+                    >
+                      🎯 Fazer Novo Agendamento
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        // Compartilhar no WhatsApp
+                        const message = `🎉 Agendamento confirmado!\n\n📅 Data: ${formatBrazilDate(parseDate(selectedDate))}\n⏰ Horário: ${selectedTime}\n✂️ Serviço: ${selectedService?.name}\n👨‍💼 Profissional: ${selectedProfessional?.name || "Qualquer profissional"}\n💰 Valor: ${formatCurrency(selectedService?.price)}`
+                        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+                        window.open(whatsappUrl, '_blank')
+                      }}
+                      variant="outline"
+                      className="w-full border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 font-semibold py-3 transition-all duration-300 hover:scale-105"
+                    >
+                      📱 Compartilhar no WhatsApp
+                    </Button>
+                  </div>
                 </div>
               )}
               
