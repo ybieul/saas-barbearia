@@ -118,6 +118,12 @@ export default function AgendamentoPage() {
   const [occupiedSlots, setOccupiedSlots] = useState<any[]>([])
   const [loadingAvailability, setLoadingAvailability] = useState(false)
 
+  // Estados para formulário inteligente de cliente
+  const [searchingClient, setSearchingClient] = useState(false)
+  const [clientFound, setClientFound] = useState<boolean | null>(null)
+  const [showClientForm, setShowClientForm] = useState(false)
+  const [phoneDebounceTimer, setPhoneDebounceTimer] = useState<NodeJS.Timeout | null>(null)
+
   // Carregar dados do negócio
   useEffect(() => {
     loadBusinessData()
@@ -284,32 +290,92 @@ export default function AgendamentoPage() {
     return groups
   }
 
-  // Carregar dados do cliente por telefone
-  const handlePhoneChange = async (phone: string) => {
-    setCustomerData(prev => ({ ...prev, phone }))
-    
-    if (phone.length >= 11) { // Telefone completo
-      try {
-        const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`)
-        if (response.ok) {
-          const clientData = await response.json()
-          setCustomerData(prev => ({
-            ...prev,
-            name: clientData.name || "",
-            email: clientData.email || "",
-            notes: clientData.notes || ""
-          }))
-          
-          toast({
-            title: "Cliente encontrado!",
-            description: "Dados preenchidos automaticamente.",
-          })
-        }
-      } catch (error) {
-        console.error('Erro ao buscar cliente:', error)
+  // Busca inteligente de cliente por telefone
+  const searchClientByPhone = async (phone: string) => {
+    if (phone.length < 10) {
+      setClientFound(null)
+      setShowClientForm(false)
+      return
+    }
+
+    setSearchingClient(true)
+    setClientFound(null)
+
+    try {
+      const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`)
+      
+      if (response.ok) {
+        const clientData = await response.json()
+        
+        // Cliente encontrado
+        setCustomerData(prev => ({
+          ...prev,
+          name: clientData.name || "",
+          email: clientData.email || "",
+          notes: clientData.notes || ""
+        }))
+        
+        setClientFound(true)
+        setShowClientForm(true)
+        
+        toast({
+          title: "Cliente encontrado!",
+          description: "Dados preenchidos automaticamente.",
+        })
+      } else {
+        // Cliente não encontrado
+        setCustomerData(prev => ({
+          ...prev,
+          name: "",
+          email: "",
+          notes: ""
+        }))
+        
+        setClientFound(false)
+        setShowClientForm(true)
       }
+    } catch (error) {
+      console.error('Erro ao buscar cliente:', error)
+      setClientFound(false)
+      setShowClientForm(true)
+    } finally {
+      setSearchingClient(false)
     }
   }
+
+  // Handler com debounce para busca de cliente
+  const handlePhoneChange = (phone: string) => {
+    setCustomerData(prev => ({ ...prev, phone }))
+    
+    // Limpar timer anterior
+    if (phoneDebounceTimer) {
+      clearTimeout(phoneDebounceTimer)
+    }
+
+    // Resetar estados se telefone estiver vazio
+    if (phone.length === 0) {
+      setClientFound(null)
+      setShowClientForm(false)
+      setSearchingClient(false)
+      return
+    }
+
+    // Configurar novo timer para busca com debounce
+    const timer = setTimeout(() => {
+      searchClientByPhone(phone)
+    }, 800) // 800ms de debounce
+    
+    setPhoneDebounceTimer(timer)
+  }
+
+  // Limpar timer ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (phoneDebounceTimer) {
+        clearTimeout(phoneDebounceTimer)
+      }
+    }
+  }, [phoneDebounceTimer])
 
   // Validar formulário
   const validateAppointmentData = () => {
@@ -559,10 +625,7 @@ export default function AgendamentoPage() {
                       {services.map((service) => (
                         <div
                           key={service.id}
-                          onClick={() => {
-                            setSelectedService(service)
-                            setStep(2)
-                          }}
+                          onClick={() => setSelectedService(service)}
                           className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
                             ${selectedService?.id === service.id 
                               ? 'border-emerald-600 bg-emerald-600/10' 
@@ -603,6 +666,17 @@ export default function AgendamentoPage() {
                       ))}
                     </div>
                   )}
+                  
+                  {/* Botão Avançar para Etapa 1 */}
+                  <div className="mt-6">
+                    <Button
+                      onClick={() => setStep(2)}
+                      disabled={!selectedService}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Avançar
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -627,10 +701,7 @@ export default function AgendamentoPage() {
                   
                   {/* Opção "Qualquer profissional" */}
                   <div
-                    onClick={() => {
-                      setSelectedProfessional(null)
-                      setStep(3)
-                    }}
+                    onClick={() => setSelectedProfessional(null)}
                     className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
                       ${selectedProfessional === null 
                         ? 'border-emerald-600 bg-emerald-600/10' 
@@ -661,10 +732,7 @@ export default function AgendamentoPage() {
                       {professionals.map((professional) => (
                         <div
                           key={professional.id}
-                          onClick={() => {
-                            setSelectedProfessional(professional)
-                            setStep(3)
-                          }}
+                          onClick={() => setSelectedProfessional(professional)}
                           className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
                             ${selectedProfessional?.id === professional.id 
                               ? 'border-emerald-600 bg-emerald-600/10' 
@@ -699,6 +767,17 @@ export default function AgendamentoPage() {
                       ))}
                     </div>
                   )}
+                  
+                  {/* Botão Avançar para Etapa 2 */}
+                  <div className="mt-6">
+                    <Button
+                      onClick={() => setStep(3)}
+                      disabled={selectedProfessional === undefined}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Avançar
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -743,7 +822,6 @@ export default function AgendamentoPage() {
                           onClick={() => {
                             if (isAvailable) {
                               setSelectedDate(dateString)
-                              setStep(4)
                             }
                           }}
                           disabled={!isAvailable}
@@ -767,6 +845,17 @@ export default function AgendamentoPage() {
                         </Button>
                       )
                     })}
+                  </div>
+                  
+                  {/* Botão Avançar para Etapa 3 */}
+                  <div className="mt-6">
+                    <Button
+                      onClick={() => setStep(4)}
+                      disabled={!selectedDate}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Avançar
+                    </Button>
                   </div>
                 </div>
               )}
@@ -924,7 +1013,6 @@ export default function AgendamentoPage() {
                                       onClick={() => {
                                         if (slot.available && !slot.occupied) {
                                           setSelectedTime(slot.time)
-                                          setStep(5)
                                         }
                                       }}
                                       disabled={!slot.available || slot.occupied}
@@ -957,10 +1045,21 @@ export default function AgendamentoPage() {
                       <p className="text-[#71717a]">Selecione uma data primeiro</p>
                     </div>
                   )}
+                  
+                  {/* Botão Avançar para Etapa 4 */}
+                  <div className="mt-6">
+                    <Button
+                      onClick={() => setStep(5)}
+                      disabled={!selectedTime}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Avançar
+                    </Button>
+                  </div>
                 </div>
               )}
 
-              {/* Etapa 5: Dados do Cliente */}
+              {/* Etapa 5: Dados do Cliente - Formulário Inteligente */}
               {step === 5 && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
@@ -980,72 +1079,97 @@ export default function AgendamentoPage() {
                   </h3>
                   
                   <div className="space-y-4">
-                    {/* Telefone - primeiro campo */}
+                    {/* Telefone - primeiro campo sempre visível */}
                     <div>
                       <Label htmlFor="phone" className="text-[#ededed]">
                         Telefone *
                       </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="(11) 99999-9999"
-                        value={customerData.phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          value={customerData.phone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                        />
+                        {searchingClient && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Loader2 className="h-4 w-4 animate-spin text-[#71717a]" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Feedback da busca */}
+                      {clientFound === true && (
+                        <p className="text-sm text-emerald-400 mt-1">
+                          ✓ Cliente encontrado! Dados preenchidos automaticamente.
+                        </p>
+                      )}
+                      {clientFound === false && (
+                        <p className="text-sm text-[#a1a1aa] mt-1">
+                          Cliente não encontrado. Preencha os dados abaixo.
+                        </p>
+                      )}
                     </div>
 
-                    {/* Nome */}
-                    <div>
-                      <Label htmlFor="name" className="text-[#ededed]">
-                        Nome completo *
-                      </Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Seu nome completo"
-                        value={customerData.name}
-                        onChange={(e) => setCustomerData(prev => ({...prev, name: e.target.value}))}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
-                      />
-                    </div>
+                    {/* Campos adicionais - aparecem após busca ou telefone válido */}
+                    {showClientForm && (
+                      <>
+                        {/* Nome */}
+                        <div>
+                          <Label htmlFor="name" className="text-[#ededed]">
+                            Nome completo *
+                          </Label>
+                          <Input
+                            id="name"
+                            type="text"
+                            placeholder="Seu nome completo"
+                            value={customerData.name}
+                            onChange={(e) => setCustomerData(prev => ({...prev, name: e.target.value}))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                          />
+                        </div>
 
-                    {/* Email */}
-                    <div>
-                      <Label htmlFor="email" className="text-[#ededed]">
-                        E-mail *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={customerData.email}
-                        onChange={(e) => setCustomerData(prev => ({...prev, email: e.target.value}))}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
-                      />
-                    </div>
+                        {/* Email */}
+                        <div>
+                          <Label htmlFor="email" className="text-[#ededed]">
+                            E-mail *
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            value={customerData.email}
+                            onChange={(e) => setCustomerData(prev => ({...prev, email: e.target.value}))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                          />
+                        </div>
 
-                    {/* Observações */}
-                    <div>
-                      <Label htmlFor="notes" className="text-[#ededed]">
-                        Observações (opcional)
-                      </Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="Alguma observação especial..."
-                        value={customerData.notes || ""}
-                        onChange={(e) => setCustomerData(prev => ({...prev, notes: e.target.value}))}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a] resize-none"
-                        rows={3}
-                      />
-                    </div>
+                        {/* Observações */}
+                        <div>
+                          <Label htmlFor="notes" className="text-[#ededed]">
+                            Observações (opcional)
+                          </Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Alguma observação especial..."
+                            value={customerData.notes || ""}
+                            onChange={(e) => setCustomerData(prev => ({...prev, notes: e.target.value}))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a] resize-none"
+                            rows={3}
+                          />
+                        </div>
+                      </>
+                    )}
 
+                    {/* Botão Avançar */}
                     <Button
                       onClick={() => setStep(6)}
-                      disabled={!customerData.name || !customerData.phone || !customerData.email}
+                      disabled={!showClientForm || !customerData.name.trim() || !customerData.phone.trim() || !customerData.email.trim()}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
                     >
-                      Continuar
+                      Avançar
                     </Button>
                   </div>
                 </div>
