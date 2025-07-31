@@ -588,7 +588,7 @@ export default function AgendamentoPage() {
           {/* Indicador de Progresso */}
           <div className="flex justify-center mb-6">
             <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5, 6].map((stepNumber) => (
+              {[1, 2, 3, 4, 5, 6, 7].map((stepNumber) => (
                 <div
                   key={stepNumber}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
