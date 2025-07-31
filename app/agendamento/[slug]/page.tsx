@@ -1066,7 +1066,6 @@ export default function AgendamentoPage() {
                                       onClick={() => {
                                         if (slot.available) {
                                           setSelectedTime(slot.time)
-                                          setStep(5)
                                         }
                                       }}
                                       disabled={!slot.available}
@@ -1141,7 +1140,6 @@ export default function AgendamentoPage() {
                                       onClick={() => {
                                         if (slot.available) {
                                           setSelectedTime(slot.time)
-                                          setStep(5)
                                         }
                                       }}
                                       disabled={!slot.available}
@@ -1247,16 +1245,22 @@ export default function AgendamentoPage() {
                     </div>
                   )}
                   
-                  {/* Botão Avançar para Etapa 4 */}
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setStep(5)}
-                      disabled={!selectedTime}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Avançar
-                    </Button>
-                  </div>
+                  {/* Botão Avançar Contextual - Aparece apenas quando horário for selecionado */}
+                  {selectedTime && (
+                    <div className="mt-6 animate-fade-in">
+                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4 mb-4">
+                        <p className="text-emerald-400 text-sm text-center">
+                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setStep(5)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        Avançar para próxima etapa
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
