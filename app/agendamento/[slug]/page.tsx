@@ -1068,49 +1068,52 @@ export default function AgendamentoPage() {
                               </Button>
                               
                               {currentExpandedState.morning && (
-                                <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.morning.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`flex flex-col h-auto py-2 px-1 text-xs
-                                        ${!slot.available
-                                          ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                          : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      <span>{slot.time}</span>
-                                      {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
-                                    </Button>
-                                  ))}
-                                  
-                                  {/* Botão contextual para manhã */}
-                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'morning' && (
-                                    <div className="col-span-3 mt-4">
-                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                        <p className="text-emerald-400 text-sm text-center">
-                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
-                                        </p>
+                                <div className="space-y-2 mt-2">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {groupedSlots.morning.map((slot, index) => (
+                                      <div key={slot.time} className="contents">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            if (slot.available) {
+                                              setSelectedTime(slot.time)
+                                            }
+                                          }}
+                                          disabled={!slot.available}
+                                          className={`flex flex-col h-auto py-2 px-1 text-xs
+                                            ${!slot.available
+                                              ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                            }
+                                            ${selectedTime === slot.time 
+                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              : ''
+                                            }
+                                          `}
+                                        >
+                                          <span>{slot.time}</span>
+                                          {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
+                                        </Button>
+                                        
+                                        {/* Botão contextual aparece logo após o horário selecionado */}
+                                        {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'morning' && (
+                                          <div className="col-span-3 mt-2">
+                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                              <p className="text-emerald-400 text-sm text-center">
+                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              </p>
+                                            </div>
+                                            <Button
+                                              onClick={() => setStep(5)}
+                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                              Avançar para próxima etapa
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
-                                      <Button
-                                        onClick={() => setStep(5)}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
-                                      >
-                                        Avançar para próxima etapa
-                                      </Button>
-                                    </div>
-                                  )}
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -1159,49 +1162,52 @@ export default function AgendamentoPage() {
                               </Button>
                               
                               {currentExpandedState.afternoon && (
-                                <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.afternoon.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`flex flex-col h-auto py-2 px-1 text-xs
-                                        ${!slot.available
-                                          ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                          : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      <span>{slot.time}</span>
-                                      {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
-                                    </Button>
-                                  ))}
-                                  
-                                  {/* Botão contextual para tarde */}
-                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'afternoon' && (
-                                    <div className="col-span-3 mt-4">
-                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                        <p className="text-emerald-400 text-sm text-center">
-                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
-                                        </p>
+                                <div className="space-y-2 mt-2">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {groupedSlots.afternoon.map((slot, index) => (
+                                      <div key={slot.time} className="contents">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            if (slot.available) {
+                                              setSelectedTime(slot.time)
+                                            }
+                                          }}
+                                          disabled={!slot.available}
+                                          className={`flex flex-col h-auto py-2 px-1 text-xs
+                                            ${!slot.available
+                                              ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                            }
+                                            ${selectedTime === slot.time 
+                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              : ''
+                                            }
+                                          `}
+                                        >
+                                          <span>{slot.time}</span>
+                                          {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
+                                        </Button>
+                                        
+                                        {/* Botão contextual aparece logo após o horário selecionado */}
+                                        {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'afternoon' && (
+                                          <div className="col-span-3 mt-2">
+                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                              <p className="text-emerald-400 text-sm text-center">
+                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              </p>
+                                            </div>
+                                            <Button
+                                              onClick={() => setStep(5)}
+                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                              Avançar para próxima etapa
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
-                                      <Button
-                                        onClick={() => setStep(5)}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
-                                      >
-                                        Avançar para próxima etapa
-                                      </Button>
-                                    </div>
-                                  )}
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -1250,49 +1256,52 @@ export default function AgendamentoPage() {
                               </Button>
                               
                               {currentExpandedState.night && (
-                                <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {groupedSlots.night.map((slot) => (
-                                    <Button
-                                      key={slot.time}
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (slot.available) {
-                                          setSelectedTime(slot.time)
-                                        }
-                                      }}
-                                      disabled={!slot.available}
-                                      className={`flex flex-col h-auto py-2 px-1 text-xs
-                                        ${!slot.available
-                                          ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                          : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
-                                        }
-                                        ${selectedTime === slot.time 
-                                          ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
-                                          : ''
-                                        }
-                                      `}
-                                    >
-                                      <span>{slot.time}</span>
-                                      {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
-                                    </Button>
-                                  ))}
-                                  
-                                  {/* Botão contextual para noite */}
-                                  {selectedTime && getSelectedTimePeriod(selectedTime) === 'night' && (
-                                    <div className="col-span-3 mt-4">
-                                      <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                        <p className="text-emerald-400 text-sm text-center">
-                                          ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
-                                        </p>
+                                <div className="space-y-2 mt-2">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {groupedSlots.night.map((slot, index) => (
+                                      <div key={slot.time} className="contents">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            if (slot.available) {
+                                              setSelectedTime(slot.time)
+                                            }
+                                          }}
+                                          disabled={!slot.available}
+                                          className={`flex flex-col h-auto py-2 px-1 text-xs
+                                            ${!slot.available
+                                              ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                            }
+                                            ${selectedTime === slot.time 
+                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              : ''
+                                            }
+                                          `}
+                                        >
+                                          <span>{slot.time}</span>
+                                          {!slot.available && <span className="text-[10px] mt-1">Indisponível</span>}
+                                        </Button>
+                                        
+                                        {/* Botão contextual aparece logo após o horário selecionado */}
+                                        {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'night' && (
+                                          <div className="col-span-3 mt-2">
+                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                              <p className="text-emerald-400 text-sm text-center">
+                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              </p>
+                                            </div>
+                                            <Button
+                                              onClick={() => setStep(5)}
+                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                              Avançar para próxima etapa
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
-                                      <Button
-                                        onClick={() => setStep(5)}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
-                                      >
-                                        Avançar para próxima etapa
-                                      </Button>
-                                    </div>
-                                  )}
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
