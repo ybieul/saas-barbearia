@@ -390,10 +390,20 @@ export default function AgendamentoPage() {
       errors.push("Selecione uma data")
     } else {
       // Verificar se a data não é no passado
-      const selectedDateParsed = parseDate(selectedDate)
-      const now = getBrazilNow()
-      if (selectedDateParsed < now) {
-        errors.push("Data não pode ser no passado")
+      if (selectedTime) {
+        // Se tem horário selecionado, validar data + horário
+        const selectedDateTime = parseDateTime(selectedDate, selectedTime)
+        const now = getBrazilNow()
+        if (selectedDateTime < now) {
+          errors.push("Data e horário não podem ser no passado")
+        }
+      } else {
+        // Se não tem horário, validar apenas a data (modo compatibilidade)
+        const selectedDateParsed = parseDate(selectedDate)
+        const now = getBrazilNow()
+        if (selectedDateParsed < now) {
+          errors.push("Data não pode ser no passado")
+        }
       }
     }
 
