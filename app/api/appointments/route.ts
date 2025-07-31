@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         where: {
           professionalId,
           status: {
-            in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+            in: ['CONFIRMED', 'IN_PROGRESS']
           },
           OR: [
             {
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
             lte: dayEnd
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+            in: ['CONFIRMED', 'IN_PROGRESS']
           }
         },
         include: {
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
         dateTime: appointmentUTC, // Salva em UTC
         duration: service.duration,
         totalPrice: service.price,
-        status: 'SCHEDULED',
+        status: 'CONFIRMED',
         notes,
         tenantId: user.tenantId,
         endUserId,
@@ -441,7 +441,7 @@ export async function PUT(request: NextRequest) {
               lte: dayEnd
             },
             status: {
-              in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+              in: ['CONFIRMED', 'IN_PROGRESS']
             },
             id: {
               not: id // Excluir o próprio agendamento

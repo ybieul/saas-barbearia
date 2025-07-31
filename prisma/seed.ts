@@ -219,7 +219,7 @@ async function main() {
         dateTime: appointmentDate,
         duration: service.duration,
         totalPrice: Number(service.price),
-        status: (i < 5 ? 'COMPLETED' : i < 10 ? 'CONFIRMED' : 'SCHEDULED') as 'COMPLETED' | 'CONFIRMED' | 'SCHEDULED',
+        status: (i < 5 ? 'COMPLETED' : 'CONFIRMED') as 'COMPLETED' | 'CONFIRMED',
         paymentMethod: (['CASH', 'CARD', 'PIX'][i % 3]) as 'CASH' | 'CARD' | 'PIX',
         paymentStatus: (i < 5 ? 'PAID' : 'PENDING') as 'PAID' | 'PENDING',
         tenantId: demoTenant.id,

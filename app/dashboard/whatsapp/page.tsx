@@ -44,7 +44,7 @@ export default function WhatsAppPage() {
     const aptDate = toBrazilDateString(utcToBrazil(new Date(apt.dateTime)))
     return aptDate === today
   })
-  const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'confirmed' || apt.status === 'completed')
+  const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'completed')
   
   // Simular contadores de mensagens baseados nos agendamentos reais
   const confirmationMessages = confirmedAppointments.length

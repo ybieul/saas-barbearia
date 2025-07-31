@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         appointments: {
           where: {
             status: {
-              in: ['SCHEDULED', 'CONFIRMED', 'COMPLETED']
+              in: ['CONFIRMED', 'COMPLETED']
             }
           },
           select: {

@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
+            in: ['CONFIRMED']
           },
           dateTime: {
             gte: getBrazilNow() // Apenas futuros
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
             gte: getBrazilNow()
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
+            in: ['CONFIRMED']
           }
         },
         take: 5,

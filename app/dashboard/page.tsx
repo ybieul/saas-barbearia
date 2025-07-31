@@ -170,16 +170,12 @@ export default function DashboardPage() {
                             className={
                               appointment.status === "completed"
                                 ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
-                                : appointment.status === "confirmed"
-                                ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
-                                : "bg-[#fbbf24]/20 text-[#fbbf24] border-[#fbbf24]/30"
+                                : "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
                             }
                           >
                             {appointment.status === "completed"
-                              ? "Agendado"
-                              : appointment.status === "confirmed"
-                              ? "Agendado"
-                              : "Agendado"}
+                              ? "Concluído"
+                              : "Confirmado"}
                           </Badge>
                         </div>
                         <p className="text-[#ededed] font-medium">{appointment.client}</p>

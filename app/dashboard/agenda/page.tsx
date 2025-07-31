@@ -342,7 +342,7 @@ export default function AgendaPage() {
   const calculateDayStats = () => {
     const today = todayAppointments
     const completed = today.filter(apt => apt.status === 'completed' || apt.status === 'COMPLETED')
-    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED')
+    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'CONFIRMED')
     const inProgress = today.filter(apt => apt.status === 'IN_PROGRESS')
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
@@ -875,7 +875,6 @@ export default function AgendaPage() {
   // Status do agendamento - melhorado
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      SCHEDULED: { label: "Agendado", variant: "secondary" as const, color: "bg-blue-500" },
       CONFIRMED: { label: "Confirmado", variant: "default" as const, color: "bg-[#10b981]" },
       IN_PROGRESS: { label: "Em andamento", variant: "default" as const, color: "bg-yellow-500" },
       COMPLETED: { label: "Concluído", variant: "secondary" as const, color: "bg-[#10b981]" },
@@ -1193,7 +1192,6 @@ export default function AgendaPage() {
           </SelectTrigger>
           <SelectContent className="bg-[#18181b] border-[#27272a]">
             <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="SCHEDULED">Agendado</SelectItem>
             <SelectItem value="CONFIRMED">Confirmado</SelectItem>
             <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
             <SelectItem value="COMPLETED">Concluído</SelectItem>

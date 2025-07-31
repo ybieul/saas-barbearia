@@ -56,7 +56,7 @@ export function WhatsAppStatus() {
           type = "confirmation"
           message = `Agendamento confirmado para ${apt.date} às ${apt.time} - ${apt.serviceName}`
           status = Math.random() > 0.8 ? "read" : "delivered"
-        } else if (apt.status === 'confirmed') {
+        } else if (apt.status === 'CONFIRMED') {
           type = "reminder" 
           message = `Lembrete: seu agendamento é em ${apt.date} às ${apt.time}`
           status = Math.random() > 0.9 ? "failed" : Math.random() > 0.3 ? "delivered" : "sent"

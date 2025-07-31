@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest) {
           gte: new Date()
         },
         status: {
-          in: ['SCHEDULED', 'CONFIRMED']
+          in: ['CONFIRMED']
         }
       }
     })
