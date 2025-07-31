@@ -68,9 +68,10 @@ export async function GET(
     }
 
     // Filtrar por profissional se especificado
-    if (professionalId && professionalId !== 'null') {
+    if (professionalId && professionalId !== 'null' && professionalId !== 'undefined') {
       whereClause.professionalId = professionalId
     }
+    // Para "qualquer profissional" (null), buscar agendamentos de TODOS os profissionais
 
     const appointments = await prisma.appointment.findMany({
       where: whereClause,

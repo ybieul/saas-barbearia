@@ -237,24 +237,21 @@ export default function AgendamentoPage() {
     }
     
     // Verificar se há conflito com algum agendamento existente
+    // Como o backend sempre aloca um profissional específico, 
+    // verificamos conflitos baseado na seleção atual
     if (selectedProfessional === null) {
-      // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
-      // Se pelo menos um profissional estiver livre, o horário está disponível
-      const allProfessionalsOccupied = professionals.every(prof => 
-        occupiedSlots.some(slot => {
-          if (slot.professionalId !== prof.id) return false
-          
-          const aptStartMinutes = timeToMinutes(slot.startTime)
-          const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
-          
-          return (
-            (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
-            (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
-            (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
-          )
-        })
-      )
-      return !allProfessionalsOccupied
+      // "Qualquer profissional": mostrar disponibilidade global
+      // (backend cuidará da alocação específica)
+      return !occupiedSlots.some(slot => {
+        const aptStartMinutes = timeToMinutes(slot.startTime)
+        const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+        
+        return (
+          (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+          (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+          (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+        )
+      })
     } else if (selectedProfessional) {
       // Profissional específico: verificar apenas conflitos com este profissional
       return !occupiedSlots.some(slot => {
