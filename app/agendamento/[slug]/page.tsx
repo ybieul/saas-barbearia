@@ -740,60 +740,67 @@ export default function AgendamentoPage() {
                   ) : (
                     <div className="space-y-3">
                       {services.map((service) => (
-                        <div
-                          key={service.id}
-                          onClick={() => setSelectedService(service)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
-                            ${selectedService?.id === service.id 
-                              ? 'border-emerald-600 bg-emerald-600/10' 
-                              : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                            }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-[#ededed] mb-1">
-                                {service.name}
-                              </h4>
-                              {service.description && (
-                                <p className="text-sm text-[#a1a1aa] mb-2">
-                                  {service.description}
-                                </p>
+                        <div key={service.id}>
+                          <div
+                            onClick={() => setSelectedService(service)}
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
+                              ${selectedService?.id === service.id 
+                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
+                              }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-[#ededed] mb-1">
+                                  {service.name}
+                                </h4>
+                                {service.description && (
+                                  <p className="text-sm text-[#a1a1aa] mb-2">
+                                    {service.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-4 text-sm text-[#71717a]">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{service.duration}min</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{formatCurrency(service.price)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {service.image && (
+                                <div className="w-16 h-16 ml-4 rounded-lg overflow-hidden bg-[#27272a]">
+                                  <img 
+                                    src={service.image} 
+                                    alt={service.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
                               )}
-                              <div className="flex items-center gap-4 text-sm text-[#71717a]">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{service.duration}min</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span>{formatCurrency(service.price)}</span>
-                                </div>
-                              </div>
                             </div>
-                            {service.image && (
-                              <div className="w-16 h-16 ml-4 rounded-lg overflow-hidden bg-[#27272a]">
-                                <img 
-                                  src={service.image} 
-                                  alt={service.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
                           </div>
+                          
+                          {/* Botão contextual aparece logo após o serviço selecionado */}
+                          {selectedService?.id === service.id && (
+                            <div className="mt-3">
+                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                <p className="text-emerald-400 text-sm text-center">
+                                  ✅ Serviço selecionado: <span className="font-semibold">{service.name}</span>
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setStep(2)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                Avançar
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
-                  
-                  {/* Botão Avançar para Etapa 1 */}
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setStep(2)}
-                      disabled={!selectedService}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Avançar
-                    </Button>
-                  </div>
                 </div>
               )}
 
