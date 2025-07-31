@@ -1021,10 +1021,42 @@ export default function AgendamentoPage() {
                               <Button
                                 variant="ghost"
                                 onClick={() => setExpandedPeriods(prev => ({...prev, morning: !prev.morning}))}
-                                className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
+                                className={`w-full justify-between p-4 h-auto rounded-xl transition-all duration-300 hover:scale-[1.02] ${
+                                  currentExpandedState.morning 
+                                    ? 'bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border-2 border-orange-400/50 shadow-lg shadow-orange-500/20' 
+                                    : 'bg-gradient-to-r from-[#27272a] to-[#3f3f46] border border-[#27272a] hover:border-orange-400/30 hover:shadow-md'
+                                }`}
                               >
-                                <span className="font-medium">Manhã ({groupedSlots.morning.length} horários)</span>
-                                {currentExpandedState.morning ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    currentExpandedState.morning 
+                                      ? 'bg-gradient-to-r from-orange-400 to-yellow-400 shadow-lg' 
+                                      : 'bg-[#3f3f46] border border-[#52525b]'
+                                  }`}>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.morning ? 'text-white' : 'text-orange-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M10 2L13 6h4l-3 3 3 3h-4l-3 4-3-4H3l3-3-3-3h4l3-4z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="text-left">
+                                    <span className={`font-semibold text-base ${
+                                      currentExpandedState.morning ? 'text-orange-100' : 'text-[#ededed]'
+                                    }`}>
+                                      Manhã
+                                    </span>
+                                    <p className={`text-sm ${
+                                      currentExpandedState.morning ? 'text-orange-200' : 'text-[#a1a1aa]'
+                                    }`}>
+                                      {groupedSlots.morning.length} horários disponíveis
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className={`transition-transform duration-300 ${
+                                  currentExpandedState.morning ? 'rotate-180' : ''
+                                }`}>
+                                  <ChevronDown className={`h-5 w-5 ${
+                                    currentExpandedState.morning ? 'text-orange-200' : 'text-[#71717a]'
+                                  }`} />
+                                </div>
                               </Button>
                               
                               {currentExpandedState.morning && (
@@ -1066,10 +1098,43 @@ export default function AgendamentoPage() {
                               <Button
                                 variant="ghost"
                                 onClick={() => setExpandedPeriods(prev => ({...prev, afternoon: !prev.afternoon}))}
-                                className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
+                                className={`w-full justify-between p-4 h-auto rounded-xl transition-all duration-300 hover:scale-[1.02] ${
+                                  currentExpandedState.afternoon 
+                                    ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20' 
+                                    : 'bg-gradient-to-r from-[#27272a] to-[#3f3f46] border border-[#27272a] hover:border-blue-400/30 hover:shadow-md'
+                                }`}
                               >
-                                <span className="font-medium">Tarde ({groupedSlots.afternoon.length} horários)</span>
-                                {currentExpandedState.afternoon ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    currentExpandedState.afternoon 
+                                      ? 'bg-gradient-to-r from-blue-400 to-cyan-400 shadow-lg' 
+                                      : 'bg-[#3f3f46] border border-[#52525b]'
+                                  }`}>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.afternoon ? 'text-white' : 'text-blue-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M10 15a5 5 0 100-10 5 5 0 000 10z"/>
+                                      <path d="M10 5a1 1 0 011 1v3a1 1 0 11-2 0V6a1 1 0 011-1zM10 13a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464a1 1 0 111.414-1.414L7.88 6.464a1 1 0 11-1.414 1.414L5.05 6.464z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="text-left">
+                                    <span className={`font-semibold text-base ${
+                                      currentExpandedState.afternoon ? 'text-blue-100' : 'text-[#ededed]'
+                                    }`}>
+                                      Tarde
+                                    </span>
+                                    <p className={`text-sm ${
+                                      currentExpandedState.afternoon ? 'text-blue-200' : 'text-[#a1a1aa]'
+                                    }`}>
+                                      {groupedSlots.afternoon.length} horários disponíveis
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className={`transition-transform duration-300 ${
+                                  currentExpandedState.afternoon ? 'rotate-180' : ''
+                                }`}>
+                                  <ChevronDown className={`h-5 w-5 ${
+                                    currentExpandedState.afternoon ? 'text-blue-200' : 'text-[#71717a]'
+                                  }`} />
+                                </div>
                               </Button>
                               
                               {currentExpandedState.afternoon && (
@@ -1111,10 +1176,42 @@ export default function AgendamentoPage() {
                               <Button
                                 variant="ghost"
                                 onClick={() => setExpandedPeriods(prev => ({...prev, night: !prev.night}))}
-                                className="w-full justify-between text-[#ededed] hover:text-[#ededed] hover:bg-[#27272a] p-3"
+                                className={`w-full justify-between p-4 h-auto rounded-xl transition-all duration-300 hover:scale-[1.02] ${
+                                  currentExpandedState.night 
+                                    ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/50 shadow-lg shadow-purple-500/20' 
+                                    : 'bg-gradient-to-r from-[#27272a] to-[#3f3f46] border border-[#27272a] hover:border-purple-400/30 hover:shadow-md'
+                                }`}
                               >
-                                <span className="font-medium">Noite ({groupedSlots.night.length} horários)</span>
-                                {currentExpandedState.night ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    currentExpandedState.night 
+                                      ? 'bg-gradient-to-r from-purple-400 to-indigo-400 shadow-lg' 
+                                      : 'bg-[#3f3f46] border border-[#52525b]'
+                                  }`}>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.night ? 'text-white' : 'text-purple-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="text-left">
+                                    <span className={`font-semibold text-base ${
+                                      currentExpandedState.night ? 'text-purple-100' : 'text-[#ededed]'
+                                    }`}>
+                                      Noite
+                                    </span>
+                                    <p className={`text-sm ${
+                                      currentExpandedState.night ? 'text-purple-200' : 'text-[#a1a1aa]'
+                                    }`}>
+                                      {groupedSlots.night.length} horários disponíveis
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className={`transition-transform duration-300 ${
+                                  currentExpandedState.night ? 'rotate-180' : ''
+                                }`}>
+                                  <ChevronDown className={`h-5 w-5 ${
+                                    currentExpandedState.night ? 'text-purple-200' : 'text-[#71717a]'
+                                  }`} />
+                                </div>
                               </Button>
                               
                               {currentExpandedState.night && (
