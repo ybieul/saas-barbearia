@@ -952,7 +952,7 @@ export default function AgendamentoPage() {
                   
                   {/* Seletor de data simples */}
                   <div className="space-y-3">
-                    {Array.from({ length: 7 }, (_, i) => {
+                    {Array.from({ length: 30 }, (_, i) => {
                       const date = new Date()
                       date.setDate(date.getDate() + i)
                       const dateString = toBrazilDateString(date)
@@ -966,46 +966,53 @@ export default function AgendamentoPage() {
                       const isAvailable = workingHours.some(wh => wh.dayOfWeek === dayNameEn && wh.isActive)
                       
                       return (
-                        <Button
-                          key={dateString}
-                          variant="outline"
-                          onClick={() => {
-                            if (isAvailable) {
-                              setSelectedDate(dateString)
-                            }
-                          }}
-                          disabled={!isAvailable}
-                          className={`w-full p-4 h-auto flex items-center justify-between
-                            ${selectedDate === dateString 
-                              ? 'border-emerald-600 bg-emerald-600/10' 
-                              : isAvailable 
-                                ? 'border-[#27272a] bg-[#27272a]/50 hover:border-emerald-600 hover:bg-emerald-600/10' 
-                                : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600'
-                            }`}
-                        >
-                          <div className="text-left">
-                            <div className={`font-medium ${isAvailable ? 'text-[#ededed]' : 'text-white'}`}>
-                              {dayName}, {formatBrazilDate(date)}
+                        <div key={dateString}>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              if (isAvailable) {
+                                setSelectedDate(dateString)
+                              }
+                            }}
+                            disabled={!isAvailable}
+                            className={`w-full p-4 h-auto flex items-center justify-between
+                              ${selectedDate === dateString 
+                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                : isAvailable 
+                                  ? 'border-[#27272a] bg-[#27272a]/50 hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                  : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600'
+                              }`}
+                          >
+                            <div className="text-left">
+                              <div className={`font-medium ${isAvailable ? 'text-[#ededed]' : 'text-white'}`}>
+                                {dayName}, {formatBrazilDate(date)}
+                              </div>
+                              <div className={`text-sm ${isAvailable ? 'text-[#a1a1aa]' : 'text-red-200'}`}>
+                                {isAvailable ? 'Disponível' : 'Fechado'}
+                              </div>
                             </div>
-                            <div className={`text-sm ${isAvailable ? 'text-[#a1a1aa]' : 'text-red-200'}`}>
-                              {isAvailable ? 'Disponível' : 'Fechado'}
+                            <Calendar className={`h-5 w-5 ${isAvailable ? 'text-[#71717a]' : 'text-red-200'}`} />
+                          </Button>
+                          
+                          {/* Botão contextual aparece logo após a data selecionada */}
+                          {selectedDate === dateString && (
+                            <div className="mt-3">
+                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                <p className="text-emerald-400 text-sm text-center">
+                                  ✅ Data selecionada: <span className="font-semibold">{dayName}, {formatBrazilDate(date)}</span>
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setStep(4)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                Avançar
+                              </Button>
                             </div>
-                          </div>
-                          <Calendar className={`h-5 w-5 ${isAvailable ? 'text-[#71717a]' : 'text-red-200'}`} />
-                        </Button>
+                          )}
+                        </div>
                       )
                     })}
-                  </div>
-                  
-                  {/* Botão Avançar para Etapa 3 */}
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setStep(4)}
-                      disabled={!selectedDate}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Avançar
-                    </Button>
                   </div>
                 </div>
               )}
