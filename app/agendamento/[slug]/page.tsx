@@ -1033,8 +1033,8 @@ export default function AgendamentoPage() {
                                       ? 'bg-gradient-to-r from-orange-400 to-yellow-400 shadow-lg' 
                                       : 'bg-[#3f3f46] border border-[#52525b]'
                                   }`}>
-                                    <svg className={`w-5 h-5 ${currentExpandedState.morning ? 'text-white' : 'text-orange-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M10 2L13 6h4l-3 3 3 3h-4l-3 4-3-4H3l3-3-3-3h4l3-4z"/>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.morning ? 'text-white' : 'text-orange-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 2.25A.75.75 0 0113 3v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
                                     </svg>
                                   </div>
                                   <div className="text-left">
@@ -1110,9 +1110,8 @@ export default function AgendamentoPage() {
                                       ? 'bg-gradient-to-r from-blue-400 to-cyan-400 shadow-lg' 
                                       : 'bg-[#3f3f46] border border-[#52525b]'
                                   }`}>
-                                    <svg className={`w-5 h-5 ${currentExpandedState.afternoon ? 'text-white' : 'text-blue-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M10 15a5 5 0 100-10 5 5 0 000 10z"/>
-                                      <path d="M10 5a1 1 0 011 1v3a1 1 0 11-2 0V6a1 1 0 011-1zM10 13a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464a1 1 0 111.414-1.414L7.88 6.464a1 1 0 11-1.414 1.414L5.05 6.464z"/>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.afternoon ? 'text-white' : 'text-blue-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 18.75a6.75 6.75 0 100-13.5 6.75 6.75 0 000 13.5zM12 1.5c.75 0 1.35.6 1.35 1.35v3.3a.15.15 0 01-.15.15h-2.4a.15.15 0 01-.15-.15v-3.3c0-.75.6-1.35 1.35-1.35zm6.894 2.857a.75.75 0 011.06 1.061l-2.333 2.334a.15.15 0 01-.212 0L15.773 6.116a.15.15 0 010-.212l2.334-2.333a.75.75 0 011.06 0l.727.786zm3.356 6.143c.75 0 1.35.6 1.35 1.35s-.6 1.35-1.35 1.35h-3.3a.15.15 0 01-.15-.15v-2.4a.15.15 0 01.15-.15h3.3z"/>
                                     </svg>
                                   </div>
                                   <div className="text-left">
@@ -1188,8 +1187,8 @@ export default function AgendamentoPage() {
                                       ? 'bg-gradient-to-r from-purple-400 to-indigo-400 shadow-lg' 
                                       : 'bg-[#3f3f46] border border-[#52525b]'
                                   }`}>
-                                    <svg className={`w-5 h-5 ${currentExpandedState.night ? 'text-white' : 'text-purple-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                                    <svg className={`w-5 h-5 ${currentExpandedState.night ? 'text-white' : 'text-purple-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"/>
                                     </svg>
                                   </div>
                                   <div className="text-left">
