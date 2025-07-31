@@ -824,27 +824,46 @@ export default function AgendamentoPage() {
                   </h3>
                   
                   {/* Opção "Qualquer profissional" */}
-                  <div
-                    onClick={() => setSelectedProfessional(null)}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
-                      ${selectedProfessional === null 
-                        ? 'border-emerald-600 bg-emerald-600/10' 
-                        : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
-                        <Users className="h-6 w-6 text-[#71717a]" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-[#ededed]">
-                          Qualquer profissional
-                        </h4>
-                        <p className="text-sm text-[#a1a1aa]">
-                          Próximo disponível
-                        </p>
+                  <div>
+                    <div
+                      onClick={() => setSelectedProfessional(null)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
+                        ${selectedProfessional === null 
+                          ? 'border-emerald-600 bg-emerald-600/10' 
+                          : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
+                          <Users className="h-6 w-6 text-[#71717a]" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-[#ededed]">
+                            Qualquer profissional
+                          </h4>
+                          <p className="text-sm text-[#a1a1aa]">
+                            Próximo disponível
+                          </p>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* Botão contextual para "Qualquer profissional" */}
+                    {selectedProfessional === null && (
+                      <div className="mt-3 mb-6">
+                        <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                          <p className="text-emerald-400 text-sm text-center">
+                            ✅ Profissional selecionado: <span className="font-semibold">Qualquer profissional</span>
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => setStep(3)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          Avançar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
                   {professionals.length === 0 ? (
@@ -854,54 +873,61 @@ export default function AgendamentoPage() {
                   ) : (
                     <div className="space-y-3">
                       {professionals.map((professional) => (
-                        <div
-                          key={professional.id}
-                          onClick={() => setSelectedProfessional(professional)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
-                            ${selectedProfessional?.id === professional.id 
-                              ? 'border-emerald-600 bg-emerald-600/10' 
-                              : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-12 h-12">
-                              {professional.avatar ? (
-                                <AvatarImage 
-                                  src={professional.avatar} 
-                                  alt={professional.name} 
-                                />
-                              ) : (
-                                <AvatarFallback className="bg-[#27272a] text-[#71717a]">
-                                  {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <h4 className="font-medium text-[#ededed]">
-                                {professional.name}
-                              </h4>
-                              {professional.specialty && (
-                                <p className="text-sm text-[#a1a1aa]">
-                                  {professional.specialty}
-                                </p>
-                              )}
+                        <div key={professional.id}>
+                          <div
+                            onClick={() => setSelectedProfessional(professional)}
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
+                              ${selectedProfessional?.id === professional.id 
+                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
+                              }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-12 h-12">
+                                {professional.avatar ? (
+                                  <AvatarImage 
+                                    src={professional.avatar} 
+                                    alt={professional.name} 
+                                  />
+                                ) : (
+                                  <AvatarFallback className="bg-[#27272a] text-[#71717a]">
+                                    {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                              <div>
+                                <h4 className="font-medium text-[#ededed]">
+                                  {professional.name}
+                                </h4>
+                                {professional.specialty && (
+                                  <p className="text-sm text-[#a1a1aa]">
+                                    {professional.specialty}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          
+                          {/* Botão contextual aparece logo após o profissional selecionado */}
+                          {selectedProfessional?.id === professional.id && (
+                            <div className="mt-3">
+                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
+                                <p className="text-emerald-400 text-sm text-center">
+                                  ✅ Profissional selecionado: <span className="font-semibold">{professional.name}</span>
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setStep(3)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                Avançar
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
-                  
-                  {/* Botão Avançar para Etapa 2 */}
-                  <div className="mt-6">
-                    <Button
-                      onClick={() => setStep(3)}
-                      disabled={selectedProfessional === undefined}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Avançar
-                    </Button>
-                  </div>
                 </div>
               )}
 
