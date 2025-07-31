@@ -211,6 +211,22 @@ export default function AgendamentoPage() {
     const slotStartMinutes = timeToMinutes(time)
     const slotEndMinutes = slotStartMinutes + (selectedService.duration || 30)
     
+    // 🕒 Verificar se o horário já passou (apenas para hoje)
+    if (selectedDate) {
+      const selectedDateParsed = parseDate(selectedDate)
+      const now = getBrazilNow()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const selectedDateOnly = new Date(selectedDateParsed.getFullYear(), selectedDateParsed.getMonth(), selectedDateParsed.getDate())
+      
+      // Se é hoje, verificar se o horário já passou
+      if (selectedDateOnly.getTime() === today.getTime()) {
+        const nowMinutes = now.getHours() * 60 + now.getMinutes()
+        if (slotStartMinutes <= nowMinutes) {
+          return false // Horário já passou
+        }
+      }
+    }
+    
     // Verificar se há conflito com algum agendamento existente
     return !occupiedSlots.some(slot => {
       const aptStartMinutes = timeToMinutes(slot.startTime)
