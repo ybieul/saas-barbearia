@@ -437,9 +437,14 @@ export default function AgendamentoPage() {
 
   // Criar agendamento público
   const handleCreateAppointment = async () => {
+    console.log('🚀 [DEBUG] Iniciando handleCreateAppointment')
+    
     // Validar dados
     const validationErrors = validateAppointmentData()
+    console.log('📝 [DEBUG] Validação:', validationErrors)
+    
     if (validationErrors.length > 0) {
+      console.log('❌ [DEBUG] Validação falhou, parando execução')
       toast({
         title: "Dados inválidos",
         description: validationErrors.join(", "),
@@ -448,12 +453,19 @@ export default function AgendamentoPage() {
       return
     }
 
+    console.log('⚡ [DEBUG] isSubmitting estado atual:', isSubmitting)
+    
     // Verificar se já não está processando (evitar múltiplos submits)
-    if (isSubmitting) return
+    if (isSubmitting) {
+      console.log('⚠️ [DEBUG] Já está processando, parando execução')
+      return
+    }
 
+    console.log('✅ [DEBUG] Iniciando processo de criação do agendamento')
     setIsSubmitting(true)
     
     try {
+      console.log('🔄 [DEBUG] Criando dateTime...')
       // 🇧🇷 Criar dateTime usando timezone brasileiro e converter para UTC
       const appointmentDateTime = parseDateTime(selectedDate, selectedTime)
       debugTimezone(appointmentDateTime, 'Frontend Público - Criando agendamento')
@@ -470,7 +482,8 @@ export default function AgendamentoPage() {
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
 
-      console.log('🚀 Criando agendamento público:', sanitizedData)
+      console.log('🚀 [DEBUG] Dados sanitizados:', sanitizedData)
+      console.log('📡 [DEBUG] Fazendo chamada para API...')
 
       const response = await fetch('/api/public/appointments', {
         method: 'POST',
@@ -480,24 +493,30 @@ export default function AgendamentoPage() {
         body: JSON.stringify(sanitizedData)
       })
 
+      console.log('📨 [DEBUG] Resposta da API recebida - Status:', response.status)
+      
       const result = await response.json()
+      console.log('📄 [DEBUG] Resultado da API:', result)
 
       if (!response.ok) {
+        console.log('❌ [DEBUG] API retornou erro, indo para catch')
         throw new Error(result.message || 'Erro ao criar agendamento')
       }
 
-      console.log('✅ Agendamento criado com sucesso:', result)
+      console.log('✅ [DEBUG] Agendamento criado com sucesso:', result)
 
       toast({
         title: "✅ Sucesso!",
         description: "Agendamento criado com sucesso!",
       })
 
+      console.log('🎯 [DEBUG] Navegando para etapa 7...')
       // Navegar para a etapa de sucesso
       setStep(7)
+      console.log('🎯 [DEBUG] setStep(7) executado!')
 
     } catch (error: any) {
-      console.error('❌ Erro ao criar agendamento:', error)
+      console.error('❌ [DEBUG] Erro capturado no catch:', error)
       
       toast({
         title: "❌ Erro",
@@ -505,6 +524,7 @@ export default function AgendamentoPage() {
         variant: "destructive"
       })
     } finally {
+      console.log('🔄 [DEBUG] Executando finally - setIsSubmitting(false)')
       setIsSubmitting(false)
     }
   }
