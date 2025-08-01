@@ -198,17 +198,32 @@ export default function AgendamentoPage() {
 
   // Obter serviço principal selecionado
   const getMainService = () => {
+    if (!selectedServiceId || !services || services.length === 0) {
+      return null
+    }
     return services.find(service => service.id === selectedServiceId) || null
   }
 
   // Calcular totais do pacote (principal + complementos)
   const calculateTotals = () => {
     const mainService = getMainService()
-    const mainPrice = mainService ? Number(mainService.price) : 0
-    const mainDuration = mainService ? Number(mainService.duration) : 0
     
-    const upsellPrice = addedUpsells.reduce((sum, service) => sum + Number(service.price), 0)
-    const upsellDuration = addedUpsells.reduce((sum, service) => sum + Number(service.duration), 0)
+    // Verificar se o serviço principal existe e tem propriedades válidas
+    const mainPrice = mainService?.price ? Number(mainService.price) : 0
+    const mainDuration = mainService?.duration ? Number(mainService.duration) : 0
+    
+    // Calcular preços e durações dos upsells com verificação de segurança
+    const upsellPrice = Array.isArray(addedUpsells) 
+      ? addedUpsells.reduce((sum, service) => {
+          return sum + (service?.price ? Number(service.price) : 0)
+        }, 0)
+      : 0
+      
+    const upsellDuration = Array.isArray(addedUpsells)
+      ? addedUpsells.reduce((sum, service) => {
+          return sum + (service?.duration ? Number(service.duration) : 0)
+        }, 0)
+      : 0
     
     return { 
       totalPrice: mainPrice + upsellPrice, 
@@ -218,9 +233,13 @@ export default function AgendamentoPage() {
 
   // Obter opções de upsell para o serviço selecionado
   const getUpsellOptions = (mainServiceId: string) => {
+    if (!services || services.length === 0 || !mainServiceId) {
+      return []
+    }
+    
     return services.filter(service => 
-      service.id !== mainServiceId && 
-      !addedUpsells.some(added => added.id === service.id)
+      service?.id !== mainServiceId && 
+      !addedUpsells.some(added => added?.id === service?.id)
     )
   }
 
@@ -578,6 +597,46 @@ export default function AgendamentoPage() {
     // Validar serviço principal
     if (!selectedServiceId) {
       errors.push("Selecione um serviço")
+    } else {
+      // Verificar se o serviço existe e é válido
+      const mainService = getMainService()
+      if (!mainService) {
+        errors.push("Serviço selecionado não encontrado")
+      } else {
+        // Verificar se o serviço tem dados essenciais
+        if (!mainService.price || mainService.price <= 0) {
+          errors.push("Serviço selecionado não possui preço válido")
+        }
+        if (!mainService.duration || mainService.duration <= 0) {
+          errors.push("Serviço selecionado não possui duração válida")
+        }
+      }
+    }
+
+    // Validar upsells adicionados
+    if (Array.isArray(addedUpsells) && addedUpsells.length > 0) {
+      addedUpsells.forEach((upsell, index) => {
+        if (!upsell || !upsell.id) {
+          errors.push(`Complemento ${index + 1} inválido`)
+        } else if (!upsell.price || upsell.price <= 0) {
+          errors.push(`Complemento "${upsell.name || 'sem nome'}" não possui preço válido`)
+        } else if (!upsell.duration || upsell.duration <= 0) {
+          errors.push(`Complemento "${upsell.name || 'sem nome'}" não possui duração válida`)
+        }
+      })
+    }
+
+    // Validar totais calculados
+    try {
+      const { totalPrice, totalDuration } = calculateTotals()
+      if (!totalPrice || totalPrice <= 0) {
+        errors.push("Preço total inválido")
+      }
+      if (!totalDuration || totalDuration <= 0) {
+        errors.push("Duração total inválida")
+      }
+    } catch (error) {
+      errors.push("Erro ao calcular totais do agendamento")
     }
 
     // Validar data
@@ -677,7 +736,27 @@ export default function AgendamentoPage() {
 
       // Sanitizar dados de entrada
       const mainService = getMainService()
-      const allServices = mainService ? [mainService, ...addedUpsells] : []
+      
+      // Verificar se o serviço principal existe
+      if (!mainService) {
+        throw new Error("Serviço principal não encontrado")
+      }
+      
+      // Filtrar upsells válidos (remover qualquer item null/undefined)
+      const validUpsells = Array.isArray(addedUpsells) 
+        ? addedUpsells.filter(upsell => upsell && upsell.id && upsell.price && upsell.duration)
+        : []
+      
+      const allServices = [mainService, ...validUpsells]
+      
+      // Verificar se todos os serviços são válidos
+      const allServiceIds = allServices
+        .filter(service => service && service.id)
+        .map(service => service.id)
+        
+      if (allServiceIds.length === 0) {
+        throw new Error("Nenhum serviço válido encontrado")
+      }
       
       const sanitizedData = {
         businessSlug: params.slug as string,
@@ -685,7 +764,7 @@ export default function AgendamentoPage() {
         clientPhone: sanitizeInput(customerData.phone),
         clientEmail: sanitizeInput(customerData.email),
         professionalId: selectedProfessional?.id || null,
-        services: allServices.map(service => service.id), // Serviço principal + complementos
+        services: allServiceIds, // Serviço principal + complementos válidos
         appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
