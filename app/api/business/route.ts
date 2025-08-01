@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         businessCnpj, 
         businessInstagram,
         businessConfig
-      FROM Tenant 
+      FROM tenants 
       WHERE id = ${user.tenantId}
     ` as any[]
     

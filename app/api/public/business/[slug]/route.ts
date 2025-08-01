@@ -30,7 +30,7 @@ export async function GET(
         businessConfig,
         businessPlan,
         subscriptionEnd
-      FROM Tenant 
+      FROM tenants 
       WHERE isActive = 1 
       AND JSON_EXTRACT(businessConfig, '$.customLink') = ${slug}
     ` as any[]
