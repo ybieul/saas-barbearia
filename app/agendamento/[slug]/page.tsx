@@ -1489,14 +1489,15 @@ export default function AgendamentoPage() {
                             const rawValue = e.target.value.replace(/\D/g, '')
                             handlePhoneChange(rawValue)
                           }}
+                          id="phone"
+                          name="phone"
                         >
                           {(inputProps: any) => (
-                            <Input
+                            <input
                               {...inputProps}
-                              id="phone"
                               type="tel"
                               placeholder="(11) 99999-9999"
-                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a] flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                           )}
                         </InputMask>
