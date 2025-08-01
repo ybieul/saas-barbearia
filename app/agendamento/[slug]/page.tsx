@@ -975,29 +975,30 @@ export default function AgendamentoPage() {
 
               {/* Modal de Upsell */}
               <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
-                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-lg mx-auto rounded-xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-emerald-400 text-center">
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[95vw] max-w-md mx-auto rounded-xl h-[85vh] max-h-[600px] flex flex-col">
+                  <DialogHeader className="flex-shrink-0">
+                    <DialogTitle className="text-xl font-bold text-emerald-400 text-center">
                       🎯 Monte seu pacote ideal
                     </DialogTitle>
                   </DialogHeader>
                   
-                  <div className="space-y-5">
+                  {/* Conteúdo scrollável */}
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {/* Serviço Principal Selecionado */}
                     {(() => {
                       const mainService = getMainService()
                       return mainService && (
-                        <div className="bg-gradient-to-r from-emerald-600/15 to-emerald-500/10 border border-emerald-600/40 rounded-xl p-4 shadow-lg">
-                          <h4 className="font-semibold text-emerald-400 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <div className="bg-gradient-to-r from-emerald-600/15 to-emerald-500/10 border border-emerald-600/40 rounded-xl p-3 shadow-lg">
+                          <h4 className="font-semibold text-emerald-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
                             ✅ Serviço Principal
                           </h4>
                           <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className="font-bold text-[#ededed] text-lg">{mainService.name}</p>
-                              <p className="text-emerald-300 text-sm font-medium">{mainService.duration} minutos</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-[#ededed] text-base truncate">{mainService.name}</p>
+                              <p className="text-emerald-300 text-xs font-medium">{mainService.duration} min</p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-2xl text-emerald-400">{formatCurrency(mainService.price)}</p>
+                            <div className="text-right flex-shrink-0 ml-2">
+                              <p className="font-bold text-xl text-emerald-400">{formatCurrency(mainService.price)}</p>
                             </div>
                           </div>
                         </div>
@@ -1006,26 +1007,26 @@ export default function AgendamentoPage() {
 
                     {/* Complementos Adicionados */}
                     {addedUpsells.length > 0 && (
-                      <div className="bg-gradient-to-r from-blue-600/15 to-cyan-500/10 border border-blue-600/40 rounded-xl p-4 shadow-lg">
-                        <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                      <div className="bg-gradient-to-r from-blue-600/15 to-cyan-500/10 border border-blue-600/40 rounded-xl p-3 shadow-lg">
+                        <h4 className="font-semibold text-blue-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
                           🌟 Complementos Selecionados
                         </h4>
-                        <div className="space-y-3">
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
                           {addedUpsells.map((upsell) => (
-                            <div key={upsell.id} className="flex items-center justify-between p-3 bg-[#27272a]/60 rounded-lg border border-blue-600/20 hover:border-blue-600/40 transition-all">
-                              <div className="flex-1">
-                                <p className="font-semibold text-[#ededed]">{upsell.name}</p>
-                                <p className="text-blue-300 text-sm">{upsell.duration} min</p>
+                            <div key={upsell.id} className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-blue-600/20 hover:border-blue-600/40 transition-all">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-[#ededed] text-sm truncate">{upsell.name}</p>
+                                <p className="text-blue-300 text-xs">{upsell.duration} min</p>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="font-bold text-blue-400">{formatCurrency(upsell.price)}</span>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                <span className="font-bold text-blue-400 text-sm">{formatCurrency(upsell.price)}</span>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleRemoveUpsell(upsell.id)}
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 h-8 w-8 p-0 rounded-full transition-all hover:scale-110"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 h-7 w-7 p-0 rounded-full transition-all hover:scale-110"
                                 >
-                                  <X className="h-4 w-4" />
+                                  <X className="h-3 w-3" />
                                 </Button>
                               </div>
                             </div>
@@ -1038,22 +1039,22 @@ export default function AgendamentoPage() {
                     {(() => {
                       const upsellOptions = selectedServiceId ? getUpsellOptions(selectedServiceId) : []
                       return upsellOptions.length > 0 && (
-                        <div className="bg-gradient-to-r from-orange-600/15 to-amber-500/10 border border-orange-600/40 rounded-xl p-4 shadow-lg">
-                          <h4 className="font-semibold text-orange-400 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <div className="bg-gradient-to-r from-orange-600/15 to-amber-500/10 border border-orange-600/40 rounded-xl p-3 shadow-lg">
+                          <h4 className="font-semibold text-orange-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
                             💡 Recomendamos Adicionar
                           </h4>
-                          <div className="grid gap-3 max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                             {upsellOptions.map((upsellService) => (
                               <div
                                 key={upsellService.id}
-                                className="flex items-center justify-between p-3 bg-[#27272a]/60 rounded-lg border border-orange-600/20 hover:border-orange-600/60 transition-all cursor-pointer group hover:bg-[#3f3f46]/50"
+                                className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-orange-600/20 hover:border-orange-600/60 transition-all cursor-pointer group hover:bg-[#3f3f46]/50"
                                 onClick={() => handleAddUpsell(upsellService)}
                               >
-                                <div className="flex-1">
-                                  <p className="font-semibold text-[#ededed] group-hover:text-orange-300 transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-[#ededed] group-hover:text-orange-300 transition-colors text-sm truncate">
                                     {upsellService.name}
                                   </p>
-                                  <div className="flex items-center gap-4 text-sm">
+                                  <div className="flex items-center gap-3 text-xs">
                                     <span className="text-orange-300">{upsellService.duration} min</span>
                                     <span className="font-bold text-orange-400">{formatCurrency(upsellService.price)}</span>
                                   </div>
@@ -1061,9 +1062,9 @@ export default function AgendamentoPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="border-orange-600/50 text-orange-400 hover:bg-orange-600/20 hover:border-orange-400 h-10 w-10 p-0 rounded-full group-hover:scale-110 transition-all shadow-lg"
+                                  className="border-orange-600/50 text-orange-400 hover:bg-orange-600/20 hover:border-orange-400 h-8 w-8 p-0 rounded-full group-hover:scale-110 transition-all shadow-lg flex-shrink-0 ml-2"
                                 >
-                                  <Plus className="h-5 w-5" />
+                                  <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
                             ))}
@@ -1071,18 +1072,21 @@ export default function AgendamentoPage() {
                         </div>
                       )
                     })()}
+                  </div>
 
+                  {/* Footer fixo */}
+                  <div className="flex-shrink-0 pt-3 border-t border-[#27272a]/50">
                     {/* Resumo Total */}
-                    <div className="bg-gradient-to-r from-emerald-600/25 to-blue-600/20 border-2 border-emerald-600/50 rounded-xl p-5 shadow-xl">
+                    <div className="bg-gradient-to-r from-emerald-600/25 to-blue-600/20 border-2 border-emerald-600/50 rounded-xl p-3 mb-3 shadow-xl">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-xl text-emerald-300 flex items-center gap-2">
+                        <h4 className="font-bold text-lg text-emerald-300 flex items-center gap-2">
                           💰 Total
                         </h4>
                         <div className="text-right">
-                          <div className="font-bold text-3xl text-emerald-400 leading-tight">
+                          <div className="font-bold text-2xl text-emerald-400 leading-tight">
                             {formatCurrency(calculateTotals().totalPrice)}
                           </div>
-                          <div className="text-emerald-300 text-sm font-medium">
+                          <div className="text-emerald-300 text-xs font-medium">
                             {calculateTotals().totalDuration} minutos
                           </div>
                         </div>
@@ -1090,11 +1094,11 @@ export default function AgendamentoPage() {
                     </div>
 
                     {/* Botões de Ação */}
-                    <div className="flex gap-3 pt-3">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         onClick={() => setShowUpsellModal(false)}
-                        className="flex-1 border-[#3f3f46] text-[#a1a1aa] hover:text-[#ededed] hover:border-[#52525b] bg-transparent transition-all"
+                        className="flex-1 border-[#3f3f46] text-[#a1a1aa] hover:text-[#ededed] hover:border-[#52525b] bg-transparent transition-all text-sm"
                       >
                         Continuar editando
                       </Button>
@@ -1103,9 +1107,9 @@ export default function AgendamentoPage() {
                           setShowUpsellModal(false)
                           setStep(2)
                         }}
-                        className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold py-3 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                        className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm"
                       >
-                        Avançar → Profissional
+                        Avançar →
                       </Button>
                     </div>
                   </div>
