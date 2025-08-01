@@ -32,6 +32,7 @@ model Tenant {
   businessPhone     String?
   businessLogo      String?   @db.LongText
   businessCnpj      String?   // CNPJ da empresa
+  businessInstagram String?   // URL do Instagram
   businessPlan      String    @default("BASIC") // Plano contratado
   subscriptionStart DateTime  @default(now())
   subscriptionEnd   DateTime?

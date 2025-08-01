@@ -986,6 +986,19 @@ export default function ConfiguracoesPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="instagram" className="text-[#ededed]">
+                    Instagram
+                  </Label>
+                  <Input
+                    id="instagram"
+                    value={businessData.instagram}
+                    onChange={(e) => updateField('instagram', e.target.value)}
+                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                    placeholder="https://instagram.com/seuperfil ou @seuperfil"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label className="text-[#ededed]">Logo do Estabelecimento</Label>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center border-2 border-dashed border-[#3f3f46] overflow-hidden">

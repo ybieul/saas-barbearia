@@ -9,30 +9,31 @@ export async function GET(request: NextRequest) {
     
     console.log('GET business data - TenantID:', user.tenantId)
     
-    const tenant = await prisma.tenant.findUnique({
-      where: {
-        id: user.tenantId
-      },
-      select: {
-        businessName: true,
-        email: true,
-        businessPhone: true,
-        businessAddress: true,
-        businessLogo: true,
-        businessCnpj: true,
-        businessConfig: true
-      }
-    })
+    const result = await prisma.$queryRaw`
+      SELECT 
+        businessName, 
+        email, 
+        businessPhone, 
+        businessAddress, 
+        businessLogo, 
+        businessCnpj, 
+        businessInstagram,
+        businessConfig
+      FROM Tenant 
+      WHERE id = ${user.tenantId}
+    ` as any[]
     
-    if (!tenant) {
+    if (!result || result.length === 0) {
       return NextResponse.json(
         { message: 'Estabelecimento não encontrado' },
         { status: 404 }
       )
     }
     
+    const tenant = result[0]
+    
     // Extrair customLink do businessConfig se existir
-    const businessConfig = tenant.businessConfig as any
+    const businessConfig = tenant.businessConfig ? JSON.parse(tenant.businessConfig as string) : {}
     const customLink = businessConfig?.customLink || ''
     
     const businessData = {
@@ -42,7 +43,8 @@ export async function GET(request: NextRequest) {
       address: tenant.businessAddress || '',
       customLink: customLink,
       logo: tenant.businessLogo || '',
-      cnpj: tenant.businessCnpj || ''
+      cnpj: tenant.businessCnpj || '',
+      instagram: tenant.businessInstagram || ''
     }
     
     console.log('Business data encontrado:', businessData)
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const user = verifyToken(request)
-    const { name, email, phone, address, customLink, logo } = await request.json()
+    const { name, email, phone, address, customLink, logo, instagram } = await request.json()
     
     console.log('PUT business data - Dados:', { name, email, phone, address, customLink, logo: logo ? 'Logo incluída' : 'Sem logo', tenantId: user.tenantId })
     
@@ -101,10 +103,11 @@ export async function PUT(request: NextRequest) {
         email: email?.trim() || null,
         businessPhone: phone?.trim() || null,
         businessAddress: address?.trim() || null,
+        businessInstagram: instagram?.trim() || null,
         businessLogo: processedLogo,
         businessConfig: updatedConfig,
         updatedAt: new Date()
-      }
+      } as any
     })
     
     console.log('Dados do estabelecimento atualizados:', tenant.id)

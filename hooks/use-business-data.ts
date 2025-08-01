@@ -10,6 +10,7 @@ export interface BusinessData {
   customLink: string
   logo?: string
   cnpj?: string
+  instagram: string
 }
 
 export function useBusinessData() {
@@ -20,7 +21,8 @@ export function useBusinessData() {
     address: "",
     customLink: "",
     logo: "",
-    cnpj: ""
+    cnpj: "",
+    instagram: ""
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -58,7 +60,8 @@ export function useBusinessData() {
         address: "",
         customLink: "",
         logo: "",
-        cnpj: ""
+        cnpj: "",
+        instagram: ""
       })
     } catch (err) {
       console.error('Erro ao buscar dados do estabelecimento:', err)

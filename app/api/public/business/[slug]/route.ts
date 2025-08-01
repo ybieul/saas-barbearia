@@ -17,43 +17,37 @@ export async function GET(
     }
 
     // Buscar tenant por customLink no businessConfig
-    const business = await prisma.tenant.findFirst({
-      where: {
-        isActive: true,
-        businessConfig: {
-          path: '$.customLink',
-          equals: slug
-        }
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        businessName: true,
-        businessPhone: true,
-        businessAddress: true,
-        businessLogo: true,
-        businessConfig: true,
-        businessPlan: true,
-        subscriptionEnd: true
-      }
-    })
+    const result = await prisma.$queryRaw`
+      SELECT 
+        id,
+        name,
+        email,
+        businessName, 
+        businessPhone, 
+        businessAddress, 
+        businessLogo, 
+        businessInstagram,
+        businessConfig,
+        businessPlan,
+        subscriptionEnd
+      FROM Tenant 
+      WHERE isActive = 1 
+      AND JSON_EXTRACT(businessConfig, '$.customLink') = ${slug}
+    ` as any[]
 
-    if (!business) {
+    if (!result || result.length === 0) {
       return NextResponse.json(
         { message: 'Estabelecimento não encontrado ou inativo' },
         { status: 404 }
       )
     }
 
-    // Extrair Instagram do businessConfig se existir
-    const businessConfig = business.businessConfig as any
-    const businessInstagram = businessConfig?.instagram || null
+    const business = result[0]
 
-    // Retornar dados com Instagram incluído
+    // Usar campo direto businessInstagram
     const responseData = {
       ...business,
-      businessInstagram
+      businessInstagram: business.businessInstagram || null
     }
 
     return NextResponse.json(responseData)
