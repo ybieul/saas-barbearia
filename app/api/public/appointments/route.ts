@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       clientPhone,
       clientEmail,
       professionalId,
-      serviceId,
+      serviceId,      // Serviço principal (compatibilidade)
+      services,       // Array com todos os serviços (principal + upsells)
       appointmentDateTime,
       notes
     } = await request.json()
@@ -75,22 +76,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Buscar serviço e profissional (se especificado)
-    const [service, professional] = await Promise.all([
-      prisma.service.findFirst({
-        where: { id: serviceId, tenantId: business.id }
-      }),
-      professionalId ? prisma.professional.findFirst({
-        where: { id: professionalId, tenantId: business.id }
-      }) : null
-    ])
+    // ✅ NOVO: Calcular duração e preço total de TODOS os serviços
+    let totalDuration = 0
+    let totalPrice = 0
+    let mainService = null
 
-    if (!service) {
-      return NextResponse.json(
-        { message: 'Serviço não encontrado' },
-        { status: 404 }
-      )
+    if (services && Array.isArray(services) && services.length > 0) {
+      // Se veio array de serviços (principal + upsells), calcular tudo
+      const allServices = await prisma.service.findMany({
+        where: { 
+          id: { in: services },
+          tenantId: business.id 
+        }
+      })
+
+      if (allServices.length !== services.length) {
+        return NextResponse.json(
+          { message: 'Um ou mais serviços não foram encontrados' },
+          { status: 404 }
+        )
+      }
+
+      // Calcular totais
+      totalDuration = allServices.reduce((sum, s) => sum + (s.duration || 0), 0)
+      totalPrice = allServices.reduce((sum, s) => sum + Number(s.price || 0), 0)
+      
+      // Serviço principal é o primeiro do array
+      mainService = allServices.find(s => s.id === serviceId) || allServices[0]
+      
+      console.log('🎯 Agendamento com upsells:', {
+        totalServices: allServices.length,
+        serviceNames: allServices.map(s => s.name),
+        totalDuration: `${totalDuration} min`,
+        totalPrice: `R$ ${totalPrice}`
+      })
+    } else {
+      // Fallback: apenas serviço principal
+      mainService = await prisma.service.findFirst({
+        where: { id: serviceId, tenantId: business.id }
+      })
+
+      if (!mainService) {
+        return NextResponse.json(
+          { message: 'Serviço não encontrado' },
+          { status: 404 }
+        )
+      }
+
+      totalDuration = mainService.duration || 30
+      totalPrice = Number(mainService.price || 0)
     }
+
+    // Buscar profissional (se especificado)
+    const professional = professionalId ? await prisma.professional.findFirst({
+      where: { id: professionalId, tenantId: business.id }
+    }) : null
 
     if (professionalId && !professional) {
       return NextResponse.json(
@@ -167,7 +207,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 🔒 VALIDAÇÃO DE CONFLITOS (mesmo sistema do dashboard)
-    const serviceDuration = service.duration || 30
+    const serviceDuration = totalDuration // Usar duração total calculada
     const appointmentEndTime = new Date(appointmentUTC.getTime() + (serviceDuration * 60000))
     
     // Buscar agendamentos conflitantes
@@ -261,11 +301,11 @@ export async function POST(request: NextRequest) {
       data: {
         tenantId: business.id,
         endUserId: client.id,
-        serviceId: service.id,
+        serviceId: mainService.id, // Serviço principal
         professionalId: finalProfessionalId, // Sempre salva com um profissional específico
         dateTime: appointmentUTC, // Salva em UTC no banco
-        duration: serviceDuration,
-        totalPrice: service.price,
+        duration: totalDuration, // ✅ Duração total (principal + upsells)
+        totalPrice: totalPrice, // ✅ Preço total (principal + upsells)
         status: 'CONFIRMED',
         notes: notes || null,
         paymentStatus: 'PENDING'
@@ -280,7 +320,9 @@ export async function POST(request: NextRequest) {
     console.log('✅ Agendamento público criado:', {
       id: appointment.id,
       clientName: client.name,
-      serviceName: service.name,
+      serviceName: mainService.name,
+      totalDuration: `${totalDuration} min`,
+      totalPrice: `R$ ${totalPrice}`,
       dateTimeUTC: appointment.dateTime.toISOString(),
       dateTimeBrazil: utcToBrazil(appointment.dateTime).toString()
     })
