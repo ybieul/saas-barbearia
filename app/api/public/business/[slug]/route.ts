@@ -44,10 +44,18 @@ export async function GET(
 
     const business = result[0]
 
-    // Usar campo direto businessInstagram
+    // Retornar dados estruturados sem spread do objeto completo
     const responseData = {
-      ...business,
-      businessInstagram: business.businessInstagram || null
+      id: business.id,
+      name: business.name,
+      email: business.email,
+      businessName: business.businessName,
+      businessPhone: business.businessPhone,
+      businessAddress: business.businessAddress,
+      businessLogo: business.businessLogo,
+      businessInstagram: business.businessInstagram,
+      businessPlan: business.businessPlan,
+      subscriptionEnd: business.subscriptionEnd
     }
 
     return NextResponse.json(responseData)
