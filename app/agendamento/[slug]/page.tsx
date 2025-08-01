@@ -104,7 +104,7 @@ export default function AgendamentoPage() {
   
   // Estados do formulário
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
-  const [addedUpsells, setAddedUpsells] = useState<Service[]>([])
+  const [addedUpsells, setAddedUpsells] = useState<Service[]>([]) // ✅ Inicia com um array vazio
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null | undefined>(undefined)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
@@ -212,22 +212,16 @@ export default function AgendamentoPage() {
     const mainPrice = mainService?.price ? Number(mainService.price) : 0
     const mainDuration = mainService?.duration ? Number(mainService.duration) : 0
     
-    // Calcular preços e durações dos upsells com verificação de segurança
-    const upsellPrice = Array.isArray(addedUpsells) 
-      ? addedUpsells.reduce((sum, service) => {
-          return sum + (service?.price ? Number(service.price) : 0)
-        }, 0)
-      : 0
-      
-    const upsellDuration = Array.isArray(addedUpsells)
-      ? addedUpsells.reduce((sum, service) => {
-          return sum + (service?.duration ? Number(service.duration) : 0)
-        }, 0)
-      : 0
+    // A expressão (addedUpsells || []) garante que se 'addedUpsells' for null, usaremos um array vazio
+    const upsellPrice = (addedUpsells || []).reduce((total, service) => total + (service?.price ? Number(service.price) : 0), 0)
+    const upsellDuration = (addedUpsells || []).reduce((total, service) => total + (service?.duration ? Number(service.duration) : 0), 0)
+    
+    const totalPrice = mainPrice + upsellPrice
+    const totalDuration = mainDuration + upsellDuration
     
     return { 
-      totalPrice: mainPrice + upsellPrice, 
-      totalDuration: mainDuration + upsellDuration 
+      totalPrice, 
+      totalDuration 
     }
   }
 
@@ -614,8 +608,8 @@ export default function AgendamentoPage() {
     }
 
     // Validar upsells adicionados
-    if (Array.isArray(addedUpsells) && addedUpsells.length > 0) {
-      addedUpsells.forEach((upsell, index) => {
+    if (addedUpsells && addedUpsells.length > 0) {
+      (addedUpsells || []).forEach((upsell, index) => {
         if (!upsell || !upsell.id) {
           errors.push(`Complemento ${index + 1} inválido`)
         } else if (!upsell.price || upsell.price <= 0) {
@@ -743,20 +737,10 @@ export default function AgendamentoPage() {
       }
       
       // Filtrar upsells válidos (remover qualquer item null/undefined)
-      const validUpsells = Array.isArray(addedUpsells) 
-        ? addedUpsells.filter(upsell => upsell && upsell.id && upsell.price && upsell.duration)
-        : []
+      const validUpsells = (addedUpsells || []).filter(upsell => upsell && upsell.id && upsell.price && upsell.duration)
       
-      const allServices = [mainService, ...validUpsells]
-      
-      // Verificar se todos os serviços são válidos
-      const allServiceIds = allServices
-        .filter(service => service && service.id)
-        .map(service => service.id)
-        
-      if (allServiceIds.length === 0) {
-        throw new Error("Nenhum serviço válido encontrado")
-      }
+      // Preparar IDs dos serviços de upsell
+      const upsellServiceIds = validUpsells.map(upsell => upsell.id)
       
       const sanitizedData = {
         businessSlug: params.slug as string,
@@ -764,7 +748,8 @@ export default function AgendamentoPage() {
         clientPhone: sanitizeInput(customerData.phone),
         clientEmail: sanitizeInput(customerData.email),
         professionalId: selectedProfessional?.id || null,
-        services: allServiceIds, // Serviço principal + complementos válidos
+        mainServiceId: mainService.id, // Serviço principal
+        upsellServiceIds: upsellServiceIds, // Array com IDs dos complementos
         appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
