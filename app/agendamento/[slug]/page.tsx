@@ -233,7 +233,7 @@ export default function AgendamentoPage() {
     
     return services.filter(service => 
       service?.id !== mainServiceId && 
-      !addedUpsells.some(added => added?.id === service?.id)
+      !(addedUpsells || []).some(added => added?.id === service?.id)
     )
   }
 
@@ -251,7 +251,7 @@ export default function AgendamentoPage() {
 
   // Remover complemento
   const handleRemoveUpsell = (serviceId: string) => {
-    setAddedUpsells(prev => prev.filter(service => service.id !== serviceId))
+    setAddedUpsells(prev => (prev || []).filter(service => service.id !== serviceId))
   }
 
   // Função para buscar horários ocupados
@@ -739,8 +739,8 @@ export default function AgendamentoPage() {
       // Filtrar upsells válidos (remover qualquer item null/undefined)
       const validUpsells = (addedUpsells || []).filter(upsell => upsell && upsell.id && upsell.price && upsell.duration)
       
-      // Preparar IDs dos serviços de upsell
-      const upsellServiceIds = validUpsells.map(upsell => upsell.id)
+      // Combinar todos os serviços em um array (compatível com API existente)
+      const allServiceIds = [mainService.id, ...validUpsells.map(upsell => upsell.id)]
       
       const sanitizedData = {
         businessSlug: params.slug as string,
@@ -748,8 +748,8 @@ export default function AgendamentoPage() {
         clientPhone: sanitizeInput(customerData.phone),
         clientEmail: sanitizeInput(customerData.email),
         professionalId: selectedProfessional?.id || null,
-        mainServiceId: mainService.id, // Serviço principal
-        upsellServiceIds: upsellServiceIds, // Array com IDs dos complementos
+        serviceId: mainService.id, // Serviço principal (compatível com API)
+        services: allServiceIds, // Array completo com principal + complementos
         appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
