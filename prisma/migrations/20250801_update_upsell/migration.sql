@@ -1,45 +1,26 @@
--- VERIFICAÇÃO DA MIGRAÇÃO MANY-TO-MANY
--- ======================================
+/*
+  Warnings:
 
--- 1. Verificar se a tabela de relacionamento foi criada
-SHOW TABLES LIKE '%AppointmentService%';
-SHOW TABLES LIKE '%_AppointmentToService%';
+  - You are about to drop the column `serviceId` on the `appointments` table. All the data in this column will be lost.
 
--- 2. Verificar estrutura da nova tabela de relacionamento
-DESCRIBE _AppointmentToService;
+*/
+-- DropForeignKey
+ALTER TABLE `appointments` DROP FOREIGN KEY `appointments_serviceId_fkey`;
 
--- 3. Verificar se campo serviceId foi removido da tabela appointments
-DESCRIBE appointments;
+-- CreateTable
+CREATE TABLE `_AppointmentToService` (
+    `A` VARCHAR(191) NOT NULL,
+    `B` VARCHAR(191) NOT NULL,
 
--- 4. Contar agendamentos existentes
-SELECT COUNT(*) as total_appointments FROM appointments;
+    UNIQUE INDEX `_AppointmentToService_AB_unique`(`A`, `B`),
+    INDEX `_AppointmentToService_B_index`(`B`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 5. Verificar se há agendamentos órfãos (sem serviços conectados)
-SELECT a.id, a.dateTime, a.totalPrice 
-FROM appointments a 
-LEFT JOIN _AppointmentToService ats ON a.id = ats.A 
-WHERE ats.A IS NULL 
-LIMIT 5;
+-- AlterTable
+ALTER TABLE `appointments` DROP COLUMN `serviceId`;
 
--- 6. Verificar agendamentos com múltiplos serviços
-SELECT 
-    a.id,
-    a.dateTime,
-    a.totalPrice,
-    COUNT(ats.B) as service_count
-FROM appointments a 
-LEFT JOIN _AppointmentToService ats ON a.id = ats.A 
-GROUP BY a.id 
-HAVING service_count > 1 
-LIMIT 5;
+-- AddForeignKey
+ALTER TABLE `_AppointmentToService` ADD CONSTRAINT `_AppointmentToService_A_fkey` FOREIGN KEY (`A`) REFERENCES `appointments`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- 7. Verificar integridade dos dados
-SELECT 
-    DATE(a.dateTime) as data_agendamento,
-    COUNT(*) as total_agendamentos,
-    AVG(a.totalPrice) as preco_medio,
-    AVG(a.duration) as duracao_media
-FROM appointments a 
-WHERE a.createdAt >= CURDATE() - INTERVAL 7 DAY
-GROUP BY DATE(a.dateTime)
-ORDER BY data_agendamento DESC;
+-- AddForeignKey
+ALTER TABLE `_AppointmentToService` ADD CONSTRAINT `_AppointmentToService_B_fkey` FOREIGN KEY (`B`) REFERENCES `services`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -7,7 +7,16 @@
 mysqldump -u u102726947_agenda -p u102726947_agenda > backup_antes_many_to_many.sql
 ```
 
-## 📋 COMANDOS PARA EXECUTAR NO VPS:
+# MIGRAÇÃO MANY-TO-MANY PARA UPSELLS
+# =====================================
+
+## ⚠️ IMPORTANTE: BACKUP ANTES DE EXECUTAR
+```bash
+# Fazer backup do banco de dados ANTES da migração
+mysqldump -u u102726947_agenda -p u102726947_agenda > backup_antes_many_to_many.sql
+```
+
+## 📋 COMANDOS PARA EXECUTAR NO VPS (ORDEM CORRETA):
 
 ### 1. Parar a aplicação
 ```bash
@@ -19,25 +28,45 @@ pm2 stop all
 git pull origin main
 ```
 
-### 3. Executar migração Prisma
+### 3. ⚠️ PRESERVAR DADOS EXISTENTES (EXECUTAR PRIMEIRO)
+```bash
+# Conectar ao MySQL e executar script de backup dos relacionamentos
+mysql -u u102726947_agenda -p u102726947_agenda < migracao_dados_many_to_many.sql
+```
+
+### 4. Executar migração Prisma
 ```bash
 # Gerar cliente Prisma com novo schema
 npx prisma generate
 
-# Executar migração (vai criar tabela de relacionamento)
+# Executar migração (remove serviceId e cria _AppointmentToService)
 npx prisma migrate deploy
-
-# OU se preferir push direto:
-# npx prisma db push
 ```
 
-### 4. Verificar migração
+### 5. ⚠️ RESTAURAR RELACIONAMENTOS
 ```bash
-# Verificar se tabela de relacionamento foi criada
-mysql -u u102726947_agenda -p u102726947_agenda -e "SHOW TABLES LIKE '%Service%';"
+# Conectar ao MySQL e executar os comandos de restauração:
+mysql -u u102726947_agenda -p u102726947_agenda -e "
+INSERT INTO _AppointmentToService (A, B)
+SELECT appointmentId, serviceId 
+FROM _temp_appointment_service_backup
+WHERE appointmentId IN (SELECT id FROM appointments)
+  AND serviceId IN (SELECT id FROM services);
+"
 ```
 
-### 5. Reiniciar aplicação
+### 6. Verificar migração
+```bash
+# Executar verificações
+mysql -u u102726947_agenda -p u102726947_agenda < verificacao_migracao.sql
+```
+
+### 7. Limpar dados temporários (se tudo estiver OK)
+```bash
+mysql -u u102726947_agenda -p u102726947_agenda -e "DROP TABLE _temp_appointment_service_backup;"
+```
+
+### 8. Reiniciar aplicação
 ```bash
 pm2 restart all
 ```
