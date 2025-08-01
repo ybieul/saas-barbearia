@@ -46,7 +46,17 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(business)
+    // Extrair Instagram do businessConfig se existir
+    const businessConfig = business.businessConfig as any
+    const businessInstagram = businessConfig?.instagram || null
+
+    // Retornar dados com Instagram incluído
+    const responseData = {
+      ...business,
+      businessInstagram
+    }
+
+    return NextResponse.json(responseData)
 
   } catch (error) {
     console.error('❌ Erro ao buscar dados do negócio:', error)
