@@ -1,2 +1,2 @@
 -- AddBusinessInstagram
-ALTER TABLE `Tenant` ADD COLUMN `businessInstagram` VARCHAR(191) NULL;
+ALTER TABLE `tenants` ADD COLUMN `businessInstagram` VARCHAR(191) NULL;
