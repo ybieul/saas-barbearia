@@ -32,8 +32,21 @@ export async function GET(request: NextRequest) {
     
     const tenant = result[0]
     
-    // Extrair customLink do businessConfig se existir
-    const businessConfig = tenant.businessConfig ? JSON.parse(tenant.businessConfig as string) : {}
+    // Extrair customLink do businessConfig de forma segura
+    let businessConfig: any = {}
+    try {
+      if (tenant.businessConfig) {
+        if (typeof tenant.businessConfig === 'string') {
+          businessConfig = JSON.parse(tenant.businessConfig)
+        } else {
+          businessConfig = tenant.businessConfig
+        }
+      }
+    } catch (error) {
+      console.warn('Erro ao parsear businessConfig:', error)
+      businessConfig = {}
+    }
+    
     const customLink = businessConfig?.customLink || ''
     
     const businessData = {
