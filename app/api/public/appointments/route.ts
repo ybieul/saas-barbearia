@@ -296,31 +296,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Criar o agendamento
+    // ✅ CRIAR AGENDAMENTO COM RELACIONAMENTO MANY-TO-MANY
+    const appointmentData: any = {
+      tenantId: business.id,
+      endUserId: client.id,
+      professionalId: finalProfessionalId, // Sempre salva com um profissional específico
+      dateTime: appointmentUTC, // Salva em UTC no banco
+      duration: totalDuration, // ✅ Duração total (principal + upsells)
+      totalPrice: totalPrice, // ✅ Preço total (principal + upsells)
+      status: 'CONFIRMED',
+      notes: notes || null,
+      paymentStatus: 'PENDING'
+    }
+
+    // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
+    if (services && Array.isArray(services) && services.length > 0) {
+      // Usar todos os serviços (principal + upsells)
+      appointmentData.services = {
+        connect: services.map(serviceId => ({ id: serviceId }))
+      }
+    } else {
+      // Fallback: apenas serviço principal
+      appointmentData.services = {
+        connect: [{ id: serviceId }]
+      }
+    }
+
     const appointment = await prisma.appointment.create({
-      data: {
-        tenantId: business.id,
-        endUserId: client.id,
-        serviceId: mainService.id, // Serviço principal
-        professionalId: finalProfessionalId, // Sempre salva com um profissional específico
-        dateTime: appointmentUTC, // Salva em UTC no banco
-        duration: totalDuration, // ✅ Duração total (principal + upsells)
-        totalPrice: totalPrice, // ✅ Preço total (principal + upsells)
-        status: 'CONFIRMED',
-        notes: notes || null,
-        paymentStatus: 'PENDING'
-      },
+      data: appointmentData,
       include: {
         endUser: true,
-        service: true,
+        service: true, // ✅ Manter compatibilidade até migração
         professional: true
       }
     })
 
-    console.log('✅ Agendamento público criado:', {
+    console.log('✅ Agendamento público criado com many-to-many:', {
       id: appointment.id,
-      clientName: client.name,
-      serviceName: mainService.name,
+      clientName: appointment.endUser.name,
+      serviceNames: services ? `${services.length} serviços` : appointment.service.name,
       totalDuration: `${totalDuration} min`,
       totalPrice: `R$ ${totalPrice}`,
       dateTimeUTC: appointment.dateTime.toISOString(),
@@ -335,7 +349,10 @@ export async function POST(request: NextRequest) {
         client: appointment.endUser,
         service: appointment.service,
         professional: appointment.professional,
-        status: appointment.status
+        status: appointment.status,
+        totalServices: services ? services.length : 1,
+        totalDuration,
+        totalPrice
       }
     }, { status: 201 })
 
