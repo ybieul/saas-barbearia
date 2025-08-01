@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import InputMask from "react-input-mask"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -482,6 +481,34 @@ export default function AgendamentoPage() {
     }, 800) // 800ms de debounce
     
     setPhoneDebounceTimer(timer)
+  }
+
+  // Função para aplicar máscara de telefone brasileiro
+  const formatPhoneNumber = (value: string) => {
+    // Remove tudo que não for dígito
+    const cleaned = value.replace(/\D/g, '')
+    
+    // Aplica a máscara (99) 99999-9999
+    if (cleaned.length <= 2) {
+      return cleaned
+    } else if (cleaned.length <= 7) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`
+    } else if (cleaned.length <= 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+    }
+    
+    // Limita a 11 dígitos
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`
+  }
+
+  // Handler para input de telefone com máscara
+  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '')
+    
+    // Limita a 11 dígitos
+    if (rawValue.length <= 11) {
+      handlePhoneChange(rawValue)
+    }
   }
 
   // Limpar timer ao desmontar componente
@@ -1481,26 +1508,15 @@ export default function AgendamentoPage() {
                         Telefone *
                       </Label>
                       <div className="relative">
-                        <InputMask
-                          mask="(99) 99999-9999"
-                          value={customerData.phone}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            // Remove tudo que não for dígito para manter estado limpo
-                            const rawValue = e.target.value.replace(/\D/g, '')
-                            handlePhoneChange(rawValue)
-                          }}
+                        <Input
                           id="phone"
                           name="phone"
-                        >
-                          {(inputProps: any) => (
-                            <input
-                              {...inputProps}
-                              type="tel"
-                              placeholder="(11) 99999-9999"
-                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a] flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                          )}
-                        </InputMask>
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          value={formatPhoneNumber(customerData.phone)}
+                          onChange={handlePhoneInputChange}
+                          className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                        />
                         {searchingClient && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <Loader2 className="h-4 w-4 animate-spin text-[#71717a]" />
