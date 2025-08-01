@@ -1080,7 +1080,7 @@ export default function AgendamentoPage() {
                     <div className="bg-gradient-to-r from-emerald-600/25 to-blue-600/20 border-2 border-emerald-600/50 rounded-xl p-3 mb-3 shadow-xl">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-lg text-emerald-300 flex items-center gap-2">
-                          💰 Total
+                          💰 Total:
                         </h4>
                         <div className="text-right">
                           <div className="font-bold text-2xl text-emerald-400 leading-tight">
