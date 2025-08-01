@@ -140,6 +140,9 @@ export default function AgendamentoPage() {
   // Estado para controlar visibilidade dos detalhes do estabelecimento
   const [isDetailsVisible, setIsDetailsVisible] = useState(false)
 
+  // Estado para controlar o modal de upsell
+  const [showUpsellModal, setShowUpsellModal] = useState(false)
+
   // Carregar dados do negócio
   useEffect(() => {
     loadBusinessData()
@@ -225,6 +228,7 @@ export default function AgendamentoPage() {
   const handleSelectMainService = (serviceId: string) => {
     setSelectedServiceId(serviceId)
     setAddedUpsells([]) // Reset complementos ao trocar serviço principal
+    setShowUpsellModal(true) // Abrir modal para upsells
   }
 
   // Adicionar complemento (upsell)
@@ -897,7 +901,7 @@ export default function AgendamentoPage() {
 
           {/* Conteúdo das Etapas */}
           <Card className="bg-[#18181b] border-[#27272a]">
-            <CardContent className={`p-6 ${selectedServiceId && step === 1 ? 'pb-32' : ''}`}>
+            <CardContent className="p-6">
               
               {/* Etapa 1: Seleção de Serviço Principal com Upsell Integrado */}
               {step === 1 && (
@@ -962,70 +966,6 @@ export default function AgendamentoPage() {
                               )}
                             </div>
                           </div>
-
-                          {/* Seção de Upsell Integrada (só aparece no serviço selecionado) */}
-                          {selectedServiceId === service.id && (
-                            <div className="mt-3 ml-4 space-y-3">
-                              {/* Complementos Adicionados */}
-                              {addedUpsells.length > 0 && (
-                                <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3">
-                                  <h5 className="font-medium text-emerald-400 mb-2 text-sm">Complementos adicionados:</h5>
-                                  <div className="space-y-1">
-                                    {addedUpsells.map((upsell) => (
-                                      <div key={upsell.id} className="flex items-center justify-between text-sm">
-                                        <span className="text-[#ededed]">{upsell.name}</span>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[#a1a1aa]">{formatCurrency(upsell.price)}</span>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => handleRemoveUpsell(upsell.id)}
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-6 w-6 p-0"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Opções de Upsell */}
-                              {(() => {
-                                const upsellOptions = getUpsellOptions(service.id)
-                                return upsellOptions.length > 0 && (
-                                  <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-3">
-                                    <h5 className="font-medium text-blue-400 mb-2 text-sm">Adicionar complemento:</h5>
-                                    <div className="space-y-2">
-                                      {upsellOptions.slice(0, 3).map((upsellService) => (
-                                        <div
-                                          key={upsellService.id}
-                                          className="flex items-center justify-between bg-[#18181b]/50 rounded-lg p-2 hover:bg-[#27272a]/50 transition-all cursor-pointer"
-                                          onClick={() => handleAddUpsell(upsellService)}
-                                        >
-                                          <div className="flex-1">
-                                            <p className="font-medium text-[#ededed] text-sm">{upsellService.name}</p>
-                                            <div className="flex items-center gap-2 text-xs text-[#a1a1aa]">
-                                              <span>{upsellService.duration}min</span>
-                                              <span>{formatCurrency(upsellService.price)}</span>
-                                            </div>
-                                          </div>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="border-blue-600/50 text-blue-400 hover:bg-blue-600/20 h-7 w-7 p-0"
-                                          >
-                                            <Plus className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )
-                              })()}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -1033,51 +973,140 @@ export default function AgendamentoPage() {
                 </div>
               )}
 
-              {/* Resumo Fixo do Pacote (aparece quando há serviço selecionado) */}
-              {selectedServiceId && step === 1 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-[#18181b] border-t border-[#27272a] p-4 z-50">
-                  <div className="container mx-auto px-4">
-                    <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-emerald-400">Pacote Selecionado</h4>
+              {/* Modal de Upsell */}
+              <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-lg mx-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-emerald-400">
+                      🎯 Monte seu pacote ideal
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6">
+                    {/* Serviço Principal Selecionado */}
+                    {(() => {
+                      const mainService = getMainService()
+                      return mainService && (
+                        <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4">
+                          <h4 className="font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                            ✅ Serviço Selecionado
+                          </h4>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-[#ededed]">{mainService.name}</p>
+                              <p className="text-sm text-[#a1a1aa]">{mainService.duration}min</p>
+                            </div>
+                            <p className="font-bold text-emerald-400">{formatCurrency(mainService.price)}</p>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Complementos Adicionados */}
+                    {addedUpsells.length > 0 && (
+                      <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                          🌟 Complementos Adicionados
+                        </h4>
+                        <div className="space-y-2">
+                          {addedUpsells.map((upsell) => (
+                            <div key={upsell.id} className="flex items-center justify-between p-2 bg-[#27272a]/50 rounded-lg">
+                              <div>
+                                <p className="font-medium text-[#ededed]">{upsell.name}</p>
+                                <p className="text-xs text-[#a1a1aa]">{upsell.duration}min</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-blue-400">{formatCurrency(upsell.price)}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveUpsell(upsell.id)}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sugestões de Complementos */}
+                    {(() => {
+                      const upsellOptions = selectedServiceId ? getUpsellOptions(selectedServiceId) : []
+                      return upsellOptions.length > 0 && (
+                        <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
+                          <h4 className="font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                            💡 Que tal adicionar?
+                          </h4>
+                          <div className="grid gap-2 max-h-48 overflow-y-auto">
+                            {upsellOptions.map((upsellService) => (
+                              <div
+                                key={upsellService.id}
+                                className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg hover:bg-[#3f3f46]/50 transition-all cursor-pointer group"
+                                onClick={() => handleAddUpsell(upsellService)}
+                              >
+                                <div className="flex-1">
+                                  <p className="font-medium text-[#ededed] group-hover:text-purple-300 transition-colors">
+                                    {upsellService.name}
+                                  </p>
+                                  <div className="flex items-center gap-3 text-xs text-[#a1a1aa]">
+                                    <span>{upsellService.duration}min</span>
+                                    <span className="font-medium text-purple-400">{formatCurrency(upsellService.price)}</span>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-purple-600/50 text-purple-400 hover:bg-purple-600/20 h-8 w-8 p-0 group-hover:scale-110 transition-all"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Resumo Total */}
+                    <div className="bg-gradient-to-r from-emerald-600/20 to-blue-600/20 border border-emerald-600/40 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-emerald-400">Total do Pacote</h4>
                         <div className="text-right">
-                          <div className="font-bold text-lg text-emerald-400">
+                          <div className="font-bold text-2xl text-emerald-400">
                             {formatCurrency(calculateTotals().totalPrice)}
                           </div>
                           <div className="text-sm text-[#a1a1aa]">
-                            {calculateTotals().totalDuration}min
+                            {calculateTotals().totalDuration} minutos
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="space-y-1 mb-4 max-h-24 overflow-y-auto">
-                        {(() => {
-                          const mainService = getMainService()
-                          return mainService && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-[#ededed] truncate mr-2">{mainService.name}</span>
-                              <span className="text-[#a1a1aa] flex-shrink-0">{formatCurrency(mainService.price)}</span>
-                            </div>
-                          )
-                        })()}
-                        {addedUpsells.map((upsell) => (
-                          <div key={upsell.id} className="flex justify-between text-sm">
-                            <span className="text-[#a1a1aa] truncate mr-2">+ {upsell.name}</span>
-                            <span className="text-[#a1a1aa] flex-shrink-0">{formatCurrency(upsell.price)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      
+                    </div>
+
+                    {/* Botões de Ação */}
+                    <div className="flex gap-3 pt-2">
                       <Button
-                        onClick={() => setStep(2)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        variant="outline"
+                        onClick={() => setShowUpsellModal(false)}
+                        className="flex-1 border-[#3f3f46] text-[#a1a1aa] hover:text-[#ededed] bg-transparent"
                       >
-                        Continuar
+                        Continuar editando
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowUpsellModal(false)
+                          setStep(2)
+                        }}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                      >
+                        Avançar →
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
+                </DialogContent>
+              </Dialog>
 
               {/* Etapa 2: Seleção de Profissional */}
               {step === 2 && (
