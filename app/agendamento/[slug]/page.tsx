@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import InputMask from "react-input-mask"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1480,14 +1481,25 @@ export default function AgendamentoPage() {
                         Telefone *
                       </Label>
                       <div className="relative">
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="(11) 99999-9999"
+                        <InputMask
+                          mask="(99) 99999-9999"
                           value={customerData.phone}
-                          onChange={(e) => handlePhoneChange(e.target.value)}
-                          className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
-                        />
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            // Remove tudo que não for dígito para manter estado limpo
+                            const rawValue = e.target.value.replace(/\D/g, '')
+                            handlePhoneChange(rawValue)
+                          }}
+                        >
+                          {(inputProps: any) => (
+                            <Input
+                              {...inputProps}
+                              id="phone"
+                              type="tel"
+                              placeholder="(11) 99999-9999"
+                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                            />
+                          )}
+                        </InputMask>
                         {searchingClient && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <Loader2 className="h-4 w-4 animate-spin text-[#71717a]" />
