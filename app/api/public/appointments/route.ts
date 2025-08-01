@@ -322,19 +322,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ✅ CRIAR AGENDAMENTO
     const appointment = await prisma.appointment.create({
-      data: appointmentData,
-      include: {
-        endUser: true,
-        service: true, // ✅ Manter compatibilidade até migração
-        professional: true
+      data: appointmentData
+    })
+
+    // ✅ BUSCAR DADOS RELACIONADOS SEPARADAMENTE
+    const appointmentClient = await prisma.endUser.findUnique({
+      where: { id: appointment.endUserId }
+    })
+
+    const appointmentProfessional = await prisma.professional.findUnique({
+      where: { id: appointment.professionalId || '' }
+    })
+
+    // ✅ BUSCAR SERVIÇOS CONECTADOS
+    const appointmentServices = await prisma.service.findMany({
+      where: {
+        appointments: {
+          some: { id: appointment.id }
+        }
       }
     })
 
     console.log('✅ Agendamento público criado com many-to-many:', {
       id: appointment.id,
-      clientName: appointment.endUser.name,
-      serviceNames: services ? `${services.length} serviços` : appointment.service.name,
+      clientName: appointmentClient?.name || 'Nome não encontrado',
+      serviceNames: appointmentServices.map(s => s.name).join(', '),
+      serviceCount: appointmentServices.length,
       totalDuration: `${totalDuration} min`,
       totalPrice: `R$ ${totalPrice}`,
       dateTimeUTC: appointment.dateTime.toISOString(),
@@ -346,11 +361,12 @@ export async function POST(request: NextRequest) {
       appointment: {
         id: appointment.id,
         dateTime: appointment.dateTime,
-        client: appointment.endUser,
-        service: appointment.service,
-        professional: appointment.professional,
+        client: appointmentClient,
+        services: appointmentServices,
+        mainService: appointmentServices[0], // Primeiro serviço para compatibilidade
+        professional: appointmentProfessional,
         status: appointment.status,
-        totalServices: services ? services.length : 1,
+        totalServices: appointmentServices.length,
         totalDuration,
         totalPrice
       }

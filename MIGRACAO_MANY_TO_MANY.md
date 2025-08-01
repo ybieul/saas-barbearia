@@ -46,7 +46,7 @@ npx prisma migrate deploy
 ### 5. ⚠️ RESTAURAR RELACIONAMENTOS
 ```bash
 # Conectar ao MySQL e executar os comandos de restauração:
-mysql -u u102726947_agenda -p u102726947_agenda -e "
+mysql -u agenda -p agendasaas -e "
 INSERT INTO _AppointmentToService (A, B)
 SELECT appointmentId, serviceId 
 FROM _temp_appointment_service_backup
@@ -58,17 +58,38 @@ WHERE appointmentId IN (SELECT id FROM appointments)
 ### 6. Verificar migração
 ```bash
 # Executar verificações
-mysql -u u102726947_agenda -p u102726947_agenda < verificacao_migracao.sql
+mysql -u agenda -p agendasaas < verificacao_migracao.sql
 ```
 
 ### 7. Limpar dados temporários (se tudo estiver OK)
 ```bash
-mysql -u u102726947_agenda -p u102726947_agenda -e "DROP TABLE _temp_appointment_service_backup;"
+mysql -u agenda -p agendasaas -e "DROP TABLE _temp_appointment_service_backup;"
 ```
 
 ### 8. Reiniciar aplicação
 ```bash
 pm2 restart all
+```
+
+## ✅ CORREÇÕES PÓS-MIGRAÇÃO APLICADAS:
+
+### 🔧 **API Corrigida (route.ts):**
+- ✅ Removido include com tipos antigos
+- ✅ Busca de relacionamentos separada para evitar conflitos de tipos
+- ✅ Logs detalhados para debugging
+- ✅ Retorno com array de serviços + compatibilidade
+
+### 📝 **Mudanças na Resposta da API:**
+```json
+{
+  "appointment": {
+    "services": [...],        // ✅ Array completo de serviços
+    "mainService": {...},     // ✅ Primeiro serviço (compatibilidade)
+    "totalServices": 3,       // ✅ Quantidade de serviços
+    "totalDuration": 65,      // ✅ Duração total
+    "totalPrice": 75.00       // ✅ Preço total
+  }
+}
 ```
 
 ## 🔍 MUDANÇAS IMPLEMENTADAS:
