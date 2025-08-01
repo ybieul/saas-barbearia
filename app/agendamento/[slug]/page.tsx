@@ -1531,9 +1531,15 @@ export default function AgendamentoPage() {
                         </p>
                       )}
                       {clientFound === false && (
-                        <p className="text-sm text-[#a1a1aa] mt-1">
-                          Cliente não encontrado. Preencha os dados abaixo.
-                        </p>
+                        <div className="mt-2 p-3 bg-blue-600/10 border border-blue-600/30 rounded-lg">
+                          <p className="text-sm text-blue-300 font-medium flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Novo cliente! Vamos conhecê-lo melhor
+                          </p>
+                          <p className="text-xs text-blue-200/80 mt-1">
+                            Preencha seus dados abaixo para finalizar o agendamento
+                          </p>
+                        </div>
                       )}
                     </div>
 
