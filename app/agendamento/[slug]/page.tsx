@@ -1041,7 +1041,7 @@ export default function AgendamentoPage() {
                       return upsellOptions.length > 0 && (
                         <div className="bg-gradient-to-r from-orange-600/15 to-amber-500/10 border border-orange-600/40 rounded-xl p-3 shadow-lg">
                           <h4 className="font-semibold text-orange-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
-                            💡 Recomendamos Adicionar
+                            💡 Que tal adicionar?
                           </h4>
                           <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                             {upsellOptions.map((upsellService) => (
