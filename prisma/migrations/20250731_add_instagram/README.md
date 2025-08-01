@@ -1,5 +1,18 @@
 # 🚀 Deploy - Migração Instagram
 
+## ⚠️ **IMPORTANTE: Verificar Nome da Tabela**
+
+Baseado no erro que você recebeu, seu banco de produção pode ter uma estrutura diferente do desenvolvimento.
+
+**ANTES DE EXECUTAR:** Verifique qual tabela principal seu banco usa:
+
+```sql
+SHOW TABLES;
+```
+
+- Se você tem uma tabela chamada `Tenant` → Use o arquivo `migration.sql`
+- Se você tem uma tabela chamada `users` → Use o arquivo `migration_for_users_table.sql`
+
 ## 📋 **Checklist de Deploy**
 
 ### 1. **Backup do Banco** ⚠️
@@ -8,21 +21,36 @@
 mysqldump -u usuario -p nome_banco > backup_antes_instagram.sql
 ```
 
-### 2. **Aplicar Migração**
+### 2. **Verificar Estrutura**
+```sql
+-- Verificar quais tabelas existem
+SHOW TABLES;
+
+-- Verificar estrutura da tabela principal
+DESCRIBE Tenant;  -- ou DESCRIBE users;
+```
+
+### 3. **Aplicar Migração**
+
+**Se sua tabela principal é `Tenant`:**
 ```bash
-# Conecte no MySQL e execute:
 mysql -u usuario -p nome_banco < migration.sql
 ```
 
-### 3. **Verificar Migração**
-```sql
--- Verificar se o campo foi criado
-DESCRIBE Tenant;
+**Se sua tabela principal é `users`:**
+```bash
+mysql -u usuario -p nome_banco < migration_for_users_table.sql
+```
 
--- Verificar dados migrados
-SELECT businessName, businessInstagram 
-FROM Tenant 
-WHERE businessInstagram IS NOT NULL;
+### 4. **Verificar Migração**
+```sql
+-- Para tabela Tenant:
+DESCRIBE Tenant;
+SELECT businessName, businessInstagram FROM Tenant WHERE businessInstagram IS NOT NULL;
+
+-- Para tabela users:
+DESCRIBE users;
+SELECT businessName, businessInstagram FROM users WHERE businessInstagram IS NOT NULL;
 ```
 
 ### 4. **Deploy do Código**
