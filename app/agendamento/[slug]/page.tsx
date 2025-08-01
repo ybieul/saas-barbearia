@@ -30,7 +30,8 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
-  Loader2
+  Loader2,
+  X
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -102,7 +103,7 @@ export default function AgendamentoPage() {
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
   
   // Estados do formulário
-  const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [selectedServices, setSelectedServices] = useState<Service[]>([])
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null | undefined>(undefined)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
@@ -219,9 +220,36 @@ export default function AgendamentoPage() {
     }
   }
 
+  // Calcular totais do agendamento
+  const calculateTotals = () => {
+    const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0)
+    const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 30), 0)
+    return { totalPrice, totalDuration }
+  }
+
+  // Obter serviços disponíveis para upsell
+  const getUpsellOptions = () => {
+    return services.filter(service => 
+      !selectedServices.find(selected => selected.id === service.id)
+    )
+  }
+
+  // Manipular seleção de serviços (adicionar/remover)
+  const handleSelectService = (service: Service) => {
+    const isAlreadySelected = selectedServices.find(s => s.id === service.id)
+    
+    if (isAlreadySelected) {
+      // Remover serviço
+      setSelectedServices(selectedServices.filter(s => s.id !== service.id))
+    } else {
+      // Adicionar serviço
+      setSelectedServices([...selectedServices, service])
+    }
+  }
+
   // Função para verificar se um horário está disponível (considerando duração do serviço)
   const isTimeSlotAvailable = (time: string) => {
-    if (!selectedService) return false
+    if (selectedServices.length === 0) return false
     
     const timeToMinutes = (timeStr: string) => {
       const [hours, minutes] = timeStr.split(':').map(Number)
@@ -229,7 +257,8 @@ export default function AgendamentoPage() {
     }
     
     const slotStartMinutes = timeToMinutes(time)
-    const slotEndMinutes = slotStartMinutes + (selectedService.duration || 30)
+    const { totalDuration } = calculateTotals()
+    const slotEndMinutes = slotStartMinutes + totalDuration
     
     // 🕒 Verificar se o horário já passou (apenas para hoje)
     if (selectedDate) {
@@ -306,7 +335,7 @@ export default function AgendamentoPage() {
 
   // Gerar horários disponíveis baseados nos horários de funcionamento
   const generateAvailableSlots = (date: string) => {
-    if (!selectedService || workingHours.length === 0) return []
+    if (selectedServices.length === 0 || workingHours.length === 0) return []
 
     // Converter data para timezone brasileiro
     const selectedDateBrazil = parseDate(date)
@@ -328,9 +357,9 @@ export default function AgendamentoPage() {
     // Gerar slots de 5 em 5 minutos
     let currentTime = startHour * 60 + startMinute // em minutos
     const endTime = endHour * 60 + endMinute
-    const serviceDuration = selectedService.duration || 30
+    const { totalDuration } = calculateTotals()
     
-    while (currentTime + serviceDuration <= endTime) {
+    while (currentTime + totalDuration <= endTime) {
       const hour = Math.floor(currentTime / 60)
       const minute = currentTime % 60
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
@@ -524,9 +553,9 @@ export default function AgendamentoPage() {
   const validateAppointmentData = () => {
     const errors = []
 
-    // Validar serviço
-    if (!selectedService) {
-      errors.push("Selecione um serviço")
+    // Validar serviços
+    if (!selectedServices || selectedServices.length === 0) {
+      errors.push("Selecione pelo menos um serviço")
     }
 
     // Validar data
@@ -631,7 +660,7 @@ export default function AgendamentoPage() {
         clientPhone: sanitizeInput(customerData.phone),
         clientEmail: sanitizeInput(customerData.email),
         professionalId: selectedProfessional?.id || null,
-        serviceId: selectedService!.id,
+        services: selectedServices.map(service => service.id), // Múltiplos serviços
         appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
@@ -849,11 +878,11 @@ export default function AgendamentoPage() {
           <Card className="bg-[#18181b] border-[#27272a]">
             <CardContent className="p-6">
               
-              {/* Etapa 1: Seleção de Serviços */}
+              {/* Etapa 1: Seleção de Serviços com Upsell */}
               {step === 1 && (
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-[#ededed]">
-                    Escolha o serviço
+                    Escolha seus serviços
                   </h3>
                   
                   {services.length === 0 ? (
@@ -861,67 +890,167 @@ export default function AgendamentoPage() {
                       <p className="text-[#71717a]">Nenhum serviço disponível</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {services.map((service) => (
-                        <div key={service.id}>
-                          <div
-                            onClick={() => setSelectedService(service)}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
-                              ${selectedService?.id === service.id 
-                                ? 'border-emerald-600 bg-emerald-600/10' 
-                                : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                              }`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-[#ededed] mb-1">
-                                  {service.name}
-                                </h4>
-                                {service.description && (
-                                  <p className="text-sm text-[#a1a1aa] mb-2">
-                                    {service.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-4 text-sm text-[#71717a]">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
+                    <div className="space-y-6">
+                      {/* Carrinho de Serviços */}
+                      {selectedServices.length > 0 && (
+                        <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4 mb-6">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            <h4 className="font-semibold text-emerald-400">Serviços Selecionados</h4>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {selectedServices.map((service) => (
+                              <div key={service.id} className="flex items-center justify-between bg-[#18181b]/50 rounded-lg p-3">
+                                <div className="flex-1">
+                                  <p className="font-medium text-[#ededed]">{service.name}</p>
+                                  <div className="flex items-center gap-3 text-sm text-[#a1a1aa]">
                                     <span>{service.duration}min</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
                                     <span>{formatCurrency(service.price)}</span>
                                   </div>
                                 </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleSelectService(service)}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
                               </div>
-                              {service.image && (
-                                <div className="w-16 h-16 ml-4 rounded-lg overflow-hidden bg-[#27272a]">
-                                  <img 
-                                    src={service.image} 
-                                    alt={service.name}
-                                    className="w-full h-full object-cover"
-                                  />
+                            ))}
+                          </div>
+                          
+                          {/* Totais */}
+                          <div className="mt-4 pt-3 border-t border-emerald-600/30">
+                            <div className="flex justify-between items-center text-[#ededed]">
+                              <span className="font-semibold">Total:</span>
+                              <div className="text-right">
+                                <div className="font-semibold text-lg text-emerald-400">
+                                  {formatCurrency(calculateTotals().totalPrice)}
                                 </div>
-                              )}
+                                <div className="text-sm text-[#a1a1aa]">
+                                  {calculateTotals().totalDuration}min
+                                </div>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* Botão contextual aparece logo após o serviço selecionado */}
-                          {selectedService?.id === service.id && (
-                            <div className="mt-3">
-                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                <p className="text-emerald-400 text-sm text-center">
-                                  ✅ Serviço selecionado: <span className="font-semibold">{service.name}</span>
-                                </p>
-                              </div>
-                              <Button
-                                onClick={() => setStep(2)}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                              >
-                                Avançar
-                              </Button>
-                            </div>
-                          )}
+                          {/* Botão Avançar */}
+                          <Button
+                            onClick={() => setStep(2)}
+                            className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            Continuar com {selectedServices.length} serviço{selectedServices.length > 1 ? 's' : ''}
+                          </Button>
                         </div>
-                      ))}
+                      )}
+                      
+                      {/* Lista de Serviços Disponíveis */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-[#ededed] mb-3">
+                          {selectedServices.length > 0 ? 'Adicionar mais serviços:' : 'Selecione um serviço:'}
+                        </h4>
+                        
+                        {services.map((service) => {
+                          const isSelected = selectedServices.some(s => s.id === service.id)
+                          
+                          return (
+                            <div key={service.id}>
+                              <div
+                                onClick={() => handleSelectService(service)}
+                                className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
+                                  ${isSelected 
+                                    ? 'border-emerald-600 bg-emerald-600/10' 
+                                    : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
+                                  }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-medium text-[#ededed]">
+                                        {service.name}
+                                      </h4>
+                                      {isSelected && (
+                                        <div className="w-5 h-5 bg-emerald-600 rounded-full flex items-center justify-center">
+                                          <Check className="h-3 w-3 text-white" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    {service.description && (
+                                      <p className="text-sm text-[#a1a1aa] mb-2">
+                                        {service.description}
+                                      </p>
+                                    )}
+                                    <div className="flex items-center gap-4 text-sm text-[#71717a]">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{service.duration}min</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <span>{formatCurrency(service.price)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {service.image && (
+                                    <div className="w-16 h-16 ml-4 rounded-lg overflow-hidden bg-[#27272a]">
+                                      <img 
+                                        src={service.image} 
+                                        alt={service.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      {/* Sugestões de Upsell */}
+                      {selectedServices.length > 0 && getUpsellOptions().length > 0 && (
+                        <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <h4 className="font-semibold text-blue-400">Que tal adicionar também?</h4>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {getUpsellOptions().slice(0, 3).map((service) => (
+                              <div
+                                key={service.id}
+                                onClick={() => handleSelectService(service)}
+                                className="flex items-center justify-between bg-[#18181b]/50 rounded-lg p-3 cursor-pointer hover:bg-[#27272a]/50 transition-all border border-transparent hover:border-blue-600/30"
+                              >
+                                <div className="flex-1">
+                                  <p className="font-medium text-[#ededed] mb-1">{service.name}</p>
+                                  <div className="flex items-center gap-3 text-sm text-[#a1a1aa]">
+                                    <span>{service.duration}min</span>
+                                    <span>{formatCurrency(service.price)}</span>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-600/50 text-blue-400 hover:bg-blue-600/20"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Caso nenhum serviço selecionado, mostrar botão para primeiro serviço */}
+                      {selectedServices.length === 0 && (
+                        <div className="text-center pt-4">
+                          <p className="text-[#71717a] text-sm">
+                            Selecione um serviço para continuar
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1628,8 +1757,15 @@ export default function AgendamentoPage() {
                     {/* Resumo do agendamento */}
                     <div className="bg-[#27272a] rounded-lg p-4 space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-[#a1a1aa]">Serviço:</span>
-                        <span className="text-[#ededed] font-medium">{selectedService?.name}</span>
+                        <span className="text-[#a1a1aa]">Serviços:</span>
+                        <div className="text-right">
+                          {selectedServices.map((service, index) => (
+                            <div key={service.id} className="text-[#ededed] font-medium">
+                              {service.name}
+                              {index < selectedServices.length - 1 && ', '}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       
                       <div className="flex justify-between">
@@ -1652,14 +1788,14 @@ export default function AgendamentoPage() {
                       </div>
                       
                       <div className="flex justify-between">
-                        <span className="text-[#a1a1aa]">Duração:</span>
-                        <span className="text-[#ededed] font-medium">{selectedService?.duration}min</span>
+                        <span className="text-[#a1a1aa]">Duração Total:</span>
+                        <span className="text-[#ededed] font-medium">{calculateTotals().totalDuration}min</span>
                       </div>
                       
                       <div className="flex justify-between border-t border-[#3f3f46] pt-3">
-                        <span className="text-[#a1a1aa]">Valor:</span>
+                        <span className="text-[#a1a1aa]">Valor Total:</span>
                         <span className="text-[#ededed] font-bold text-lg">
-                          {formatCurrency(selectedService?.price)}
+                          {formatCurrency(calculateTotals().totalPrice)}
                         </span>
                       </div>
                     </div>
@@ -1736,8 +1872,15 @@ export default function AgendamentoPage() {
                       </div>
                       
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">✂️ Serviço:</span>
-                        <span className="text-[#ededed] font-bold">{selectedService?.name}</span>
+                        <span className="text-[#a1a1aa] font-medium">✂️ Serviços:</span>
+                        <div className="text-right">
+                          {selectedServices.map((service, index) => (
+                            <div key={service.id} className="text-[#ededed] font-bold">
+                              {service.name}
+                              {index < selectedServices.length - 1 && <br />}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
@@ -1748,14 +1891,14 @@ export default function AgendamentoPage() {
                       </div>
                       
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">⏱️ Duração:</span>
-                        <span className="text-[#ededed] font-bold">{selectedService?.duration} minutos</span>
+                        <span className="text-[#a1a1aa] font-medium">⏱️ Duração Total:</span>
+                        <span className="text-[#ededed] font-bold">{calculateTotals().totalDuration} minutos</span>
                       </div>
                       
                       <div className="flex items-center justify-between p-3 bg-emerald-600/20 border border-emerald-600/40 rounded-lg">
-                        <span className="text-emerald-300 font-bold">💰 Valor:</span>
+                        <span className="text-emerald-300 font-bold">💰 Valor Total:</span>
                         <span className="text-emerald-300 font-bold text-xl">
-                          {formatCurrency(selectedService?.price)}
+                          {formatCurrency(calculateTotals().totalPrice)}
                         </span>
                       </div>
                     </div>
@@ -1779,7 +1922,7 @@ export default function AgendamentoPage() {
                       onClick={() => {
                         // Reset completo do formulário
                         setStep(1)
-                        setSelectedService(null)
+                        setSelectedServices([])
                         setSelectedProfessional(null)
                         setSelectedDate("")
                         setSelectedTime("")
@@ -1800,7 +1943,8 @@ export default function AgendamentoPage() {
                     <Button
                       onClick={() => {
                         // Compartilhar no WhatsApp
-                        const message = `🎉 Agendamento confirmado!\n\n📅 Data: ${formatBrazilDate(parseDate(selectedDate))}\n⏰ Horário: ${selectedTime}\n✂️ Serviço: ${selectedService?.name}\n👨‍💼 Profissional: ${selectedProfessional?.name || "Qualquer profissional"}\n💰 Valor: ${formatCurrency(selectedService?.price)}`
+                        const servicesText = selectedServices.map(s => s.name).join(', ')
+                        const message = `🎉 Agendamento confirmado!\n\n📅 Data: ${formatBrazilDate(parseDate(selectedDate))}\n⏰ Horário: ${selectedTime}\n✂️ Serviços: ${servicesText}\n👨‍💼 Profissional: ${selectedProfessional?.name || "Qualquer profissional"}\n💰 Valor Total: ${formatCurrency(calculateTotals().totalPrice)}`
                         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
                         window.open(whatsappUrl, '_blank')
                       }}
