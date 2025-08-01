@@ -897,7 +897,7 @@ export default function AgendamentoPage() {
 
           {/* Conteúdo das Etapas */}
           <Card className="bg-[#18181b] border-[#27272a]">
-            <CardContent className="p-6">
+            <CardContent className={`p-6 ${selectedServiceId && step === 1 ? 'pb-32' : ''}`}>
               
               {/* Etapa 1: Seleção de Serviço Principal com Upsell Integrado */}
               {step === 1 && (
@@ -1036,7 +1036,7 @@ export default function AgendamentoPage() {
               {/* Resumo Fixo do Pacote (aparece quando há serviço selecionado) */}
               {selectedServiceId && step === 1 && (
                 <div className="fixed bottom-0 left-0 right-0 bg-[#18181b] border-t border-[#27272a] p-4 z-50">
-                  <div className="container mx-auto max-w-md">
+                  <div className="container mx-auto px-4">
                     <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-emerald-400">Pacote Selecionado</h4>
@@ -1050,20 +1050,20 @@ export default function AgendamentoPage() {
                         </div>
                       </div>
                       
-                      <div className="space-y-1 mb-4">
+                      <div className="space-y-1 mb-4 max-h-24 overflow-y-auto">
                         {(() => {
                           const mainService = getMainService()
                           return mainService && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-[#ededed]">{mainService.name}</span>
-                              <span className="text-[#a1a1aa]">{formatCurrency(mainService.price)}</span>
+                              <span className="text-[#ededed] truncate mr-2">{mainService.name}</span>
+                              <span className="text-[#a1a1aa] flex-shrink-0">{formatCurrency(mainService.price)}</span>
                             </div>
                           )
                         })()}
                         {addedUpsells.map((upsell) => (
                           <div key={upsell.id} className="flex justify-between text-sm">
-                            <span className="text-[#a1a1aa]">+ {upsell.name}</span>
-                            <span className="text-[#a1a1aa]">{formatCurrency(upsell.price)}</span>
+                            <span className="text-[#a1a1aa] truncate mr-2">+ {upsell.name}</span>
+                            <span className="text-[#a1a1aa] flex-shrink-0">{formatCurrency(upsell.price)}</span>
                           </div>
                         ))}
                       </div>
