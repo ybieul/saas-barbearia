@@ -24,10 +24,10 @@ interface Client {
   appointments: Array<{
     id: string
     dateTime: string
-    service: {
+    services: Array<{
       name: string
       price: number
-    }
+    }>
   }>
 }
 
@@ -113,7 +113,10 @@ export default function ClientesPage() {
   }
 
   const calculateClientStats = (client: Client) => {
-    const totalSpent = client.appointments.reduce((total, app) => total + app.service.price, 0)
+    const totalSpent = client.appointments.reduce((total, app) => {
+      const appointmentTotal = app.services?.reduce((sum, service) => sum + (service.price || 0), 0) || 0
+      return total + appointmentTotal
+    }, 0)
     const totalAppointments = client.appointments.length
     const averageTicket = totalAppointments > 0 ? totalSpent / totalAppointments : 0
     
@@ -314,8 +317,10 @@ export default function ClientesPage() {
                     currency: 'BRL' 
                   }).format(
                     clients.reduce((total, client) => 
-                      total + client.appointments.reduce((clientTotal: number, app: any) => 
-                        clientTotal + app.service.price, 0), 0)
+                      total + client.appointments.reduce((clientTotal: number, app: any) => {
+                        const appointmentTotal = app.services?.reduce((sum: number, service: any) => sum + (service.price || 0), 0) || 0
+                        return clientTotal + appointmentTotal
+                      }, 0), 0)
                   )}
                 </p>
               </div>

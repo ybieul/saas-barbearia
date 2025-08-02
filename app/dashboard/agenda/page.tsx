@@ -758,7 +758,7 @@ export default function AgendaPage() {
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
-    const serviceName = appointment?.services?.map(s => s.name).join(' + ') || 'Serviço'
+    const serviceName = appointment?.services?.map((s: any) => s.name).join(' + ') || 'Serviço'
     
     setConfirmDialog({
       isOpen: true,
@@ -773,7 +773,7 @@ export default function AgendaPage() {
   const handleCancelAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
-    const serviceName = appointment?.services?.map(s => s.name).join(' + ') || 'Serviço'
+    const serviceName = appointment?.services?.map((s: any) => s.name).join(' + ') || 'Serviço'
     
     setConfirmDialog({
       isOpen: true,
@@ -1255,7 +1255,7 @@ export default function AgendaPage() {
                             {appointment.endUser?.name || appointment.clientName || 'Cliente'}
                           </p>
                           <p className="text-[#a1a1aa] text-sm">
-                            {appointment.services?.map(s => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
+                            {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
                             <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
                             {(appointment.professional?.name || appointment.professionalName) && 
                               ` • ${appointment.professional?.name || appointment.professionalName}`
@@ -1356,7 +1356,7 @@ export default function AgendaPage() {
                           <strong>Cliente:</strong> {appointment.endUser?.name}
                         </p>
                         <p className="text-[#a1a1aa]">
-                          <strong>Serviço:</strong> {appointment.services?.map(s => s.name).join(' + ') || 'Serviço'}
+                          <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
                         {appointment.professional && (
                           <p className="text-[#a1a1aa]">
