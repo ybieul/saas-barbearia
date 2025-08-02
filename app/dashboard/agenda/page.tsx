@@ -213,7 +213,7 @@ export default function AgendaPage() {
     return aptDateOnly.getTime() === currentDateOnly.getTime()
   })
 
-  // 🇧🇷 CORREÇÃO: Função para verificar se um horário está ocupado (considerando duração do serviço)
+  // 🇧🇷 CORREÇÃO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
       // Converter UTC do banco para timezone brasileiro
@@ -221,8 +221,13 @@ export default function AgendaPage() {
       const aptStartTimeBrazil = utcToBrazil(aptStartTimeUTC)
       const aptStartTimeString = aptStartTimeBrazil.toTimeString().substring(0, 5) // HH:mm
       
-      // Obter duração do serviço (em minutos)
-      const serviceDuration = apt.service?.duration || apt.duration || 30
+      // 🇧🇷 CORREÇÃO: Usar apt.duration diretamente (já salvo no agendamento) 
+      // ou calcular da soma dos serviços se não existir
+      let appointmentDuration = apt.duration
+      if (!appointmentDuration && apt.services?.length > 0) {
+        appointmentDuration = apt.services.reduce((total: number, service: any) => total + (service.duration || 0), 0)
+      }
+      const serviceDuration = appointmentDuration || 30 // fallback para 30 min
       
       // Calcular horário de fim do agendamento (em timezone brasileiro)
       const aptEndTimeBrazil = new Date(aptStartTimeBrazil.getTime() + (serviceDuration * 60000))
@@ -289,7 +294,7 @@ export default function AgendaPage() {
       // Verificar conflitos
       return dayAppointments.some(existingApt => {
         const existingStartTime = new Date(existingApt.dateTime)
-        const existingServiceDuration = existingApt.service?.duration || 30
+        const existingServiceDuration = existingApt.duration || 30
         const existingEndTime = new Date(existingStartTime.getTime() + (existingServiceDuration * 60000))
         
         // Verificar sobreposição de horários
@@ -349,7 +354,7 @@ export default function AgendaPage() {
     // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
     const totalSlotsInDay = generateTimeSlots().length
     const totalOccupiedSlots = today.reduce((sum, apt) => {
-      const serviceDuration = apt.service?.duration || apt.duration || 30
+      const serviceDuration = apt.duration || 30
       const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
       return sum + slotsNeeded
     }, 0)
@@ -649,7 +654,7 @@ export default function AgendaPage() {
     setNewAppointment({
       endUserId: appointment.endUserId || appointment.endUser?.id || "",
       professionalId: appointment.professionalId || "",
-      serviceId: appointment.serviceId || appointment.service?.id || "",
+      serviceId: appointment.services?.[0]?.id || "", // pegar primeiro serviço por compatibilidade
       date: formattedDate,
       time: formattedTime,
       notes: appointment.notes || ""
@@ -753,7 +758,7 @@ export default function AgendaPage() {
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
-    const serviceName = appointment?.service?.name || 'Serviço'
+    const serviceName = appointment?.services?.map(s => s.name).join(' + ') || 'Serviço'
     
     setConfirmDialog({
       isOpen: true,
@@ -768,7 +773,7 @@ export default function AgendaPage() {
   const handleCancelAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     const clientName = appointment?.endUser?.name || 'Cliente'
-    const serviceName = appointment?.service?.name || 'Serviço'
+    const serviceName = appointment?.services?.map(s => s.name).join(' + ') || 'Serviço'
     
     setConfirmDialog({
       isOpen: true,
@@ -1250,8 +1255,8 @@ export default function AgendaPage() {
                             {appointment.endUser?.name || appointment.clientName || 'Cliente'}
                           </p>
                           <p className="text-[#a1a1aa] text-sm">
-                            {appointment.service?.name || appointment.serviceName || 'Serviço'} 
-                            <span className="text-[#10b981]"> • {appointment.service?.duration || appointment.duration || 30}min</span>
+                            {appointment.services?.map(s => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
+                            <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
                             {(appointment.professional?.name || appointment.professionalName) && 
                               ` • ${appointment.professional?.name || appointment.professionalName}`
                             }
@@ -1351,7 +1356,7 @@ export default function AgendaPage() {
                           <strong>Cliente:</strong> {appointment.endUser?.name}
                         </p>
                         <p className="text-[#a1a1aa]">
-                          <strong>Serviço:</strong> {appointment.service?.name}
+                          <strong>Serviço:</strong> {appointment.services?.map(s => s.name).join(' + ') || 'Serviço'}
                         </p>
                         {appointment.professional && (
                           <p className="text-[#a1a1aa]">
@@ -1375,7 +1380,7 @@ export default function AgendaPage() {
                           }).format(appointment.totalPrice || 0)}
                         </p>
                         <p className="text-[#a1a1aa] text-sm">
-                          {appointment.duration || appointment.service?.duration || 0} min
+                          {appointment.duration || 0} min
                         </p>
                       </div>
 

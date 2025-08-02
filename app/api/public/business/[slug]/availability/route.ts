@@ -78,12 +78,8 @@ export async function GET(
       select: {
         id: true,
         dateTime: true,
-        professionalId: true,
-        service: {
-          select: {
-            duration: true
-          }
-        }
+        duration: true,
+        professionalId: true
       },
       orderBy: {
         dateTime: 'asc'
@@ -100,7 +96,7 @@ export async function GET(
         id: apt.id,
         professionalId: apt.professionalId,
         startTime: aptStartTimeBrazil.toTimeString().substring(0, 5), // HH:mm
-        duration: apt.service?.duration || 30,
+        duration: apt.duration || 30, // usar duração salva no agendamento
         dateTime: apt.dateTime
       }
     })

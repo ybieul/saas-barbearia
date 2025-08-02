@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
             email: true
           }
         },
-        service: {
+        services: {  // ✅ CORRIGIDO: usar services (plural) para many-to-many
           select: {
             id: true,
             name: true,
