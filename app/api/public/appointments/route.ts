@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     const serviceDuration = totalDuration // Usar duração total calculada
     const appointmentEndTime = new Date(appointmentUTC.getTime() + (serviceDuration * 60000))
     
-    // Buscar agendamentos conflitantes
+    // Buscar agendamentos conflitantes (sem include para evitar problemas de schema)
     const conflictingAppointments = await prisma.appointment.findMany({
       where: {
         tenantId: business.id,
@@ -221,9 +221,6 @@ export async function POST(request: NextRequest) {
         status: {
           not: 'CANCELLED'
         }
-      },
-      include: {
-        service: true
       }
     })
     
@@ -253,7 +250,7 @@ export async function POST(request: NextRequest) {
           if (existingApt.professionalId !== prof.id) return false
           
           const existingStart = new Date(existingApt.dateTime)
-          const existingDuration = existingApt.service?.duration || 30
+          const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
           const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
           
           return (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
@@ -281,7 +278,7 @@ export async function POST(request: NextRequest) {
         if (existingApt.professionalId !== professionalId) continue
         
         const existingStart = new Date(existingApt.dateTime)
-        const existingDuration = existingApt.service?.duration || 30
+        const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         
         // Verificar sobreposição
@@ -297,53 +294,41 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ CRIAR AGENDAMENTO COM RELACIONAMENTO MANY-TO-MANY
+    // Nota: Usar 'any' é necessário devido ao cache de tipos do Prisma local
+    // Em produção, após deploy + migrate, os tipos estarão corretos
     const appointmentData: any = {
       tenantId: business.id,
       endUserId: client.id,
-      professionalId: finalProfessionalId, // Sempre salva com um profissional específico
-      dateTime: appointmentUTC, // Salva em UTC no banco
-      duration: totalDuration, // ✅ Duração total (principal + upsells)
-      totalPrice: totalPrice, // ✅ Preço total (principal + upsells)
+      professionalId: finalProfessionalId,
+      dateTime: appointmentUTC,
+      duration: totalDuration,
+      totalPrice: totalPrice,
       status: 'CONFIRMED',
       notes: notes || null,
-      paymentStatus: 'PENDING'
-    }
-
-    // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
-    if (services && Array.isArray(services) && services.length > 0) {
-      // Usar todos os serviços (principal + upsells)
-      appointmentData.services = {
-        connect: services.map(serviceId => ({ id: serviceId }))
-      }
-    } else {
-      // Fallback: apenas serviço principal
-      appointmentData.services = {
-        connect: [{ id: serviceId }]
+      paymentStatus: 'PENDING',
+      // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
+      services: {
+        connect: services && Array.isArray(services) && services.length > 0
+          ? services.map((serviceId: string) => ({ id: serviceId }))
+          : [{ id: serviceId }]
       }
     }
 
-    // ✅ CRIAR AGENDAMENTO
+    // ✅ CRIAR AGENDAMENTO (sem include para evitar conflitos de tipos)
     const appointment = await prisma.appointment.create({
       data: appointmentData
     })
 
-    // ✅ BUSCAR DADOS RELACIONADOS SEPARADAMENTE
-    const appointmentClient = await prisma.endUser.findUnique({
-      where: { id: appointment.endUserId }
-    })
-
-    const appointmentProfessional = await prisma.professional.findUnique({
-      where: { id: appointment.professionalId || '' }
-    })
-
-    // ✅ BUSCAR SERVIÇOS CONECTADOS
-    const appointmentServices = await prisma.service.findMany({
-      where: {
-        appointments: {
-          some: { id: appointment.id }
-        }
-      }
-    })
+    // ✅ BUSCAR DADOS RELACIONADOS APÓS CRIAÇÃO
+    const [appointmentClient, appointmentProfessional, appointmentServices] = await Promise.all([
+      prisma.endUser.findUnique({ where: { id: appointment.endUserId } }),
+      appointment.professionalId 
+        ? prisma.professional.findUnique({ where: { id: appointment.professionalId } })
+        : null,
+      prisma.service.findMany({
+        where: { appointments: { some: { id: appointment.id } } }
+      })
+    ])
 
     console.log('✅ Agendamento público criado com many-to-many:', {
       id: appointment.id,
@@ -363,7 +348,7 @@ export async function POST(request: NextRequest) {
         dateTime: appointment.dateTime,
         client: appointmentClient,
         services: appointmentServices,
-        mainService: appointmentServices[0], // Primeiro serviço para compatibilidade
+        mainService: appointmentServices[0],
         professional: appointmentProfessional,
         status: appointment.status,
         totalServices: appointmentServices.length,
