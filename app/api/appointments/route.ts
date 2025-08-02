@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
           }
         },
         include: {
-          service: {
+          services: {
             select: { duration: true }
           }
         }
@@ -243,7 +243,8 @@ export async function POST(request: NextRequest) {
       // Verificar sobreposição de horários
       for (const existing of dayAppointments) {
         const existingStart = new Date(existing.dateTime)
-        const existingEnd = new Date(existingStart.getTime() + (existing.service?.duration || existing.duration || 30) * 60000)
+        const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
+        const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
         
         // Verificar se há sobreposição
         if ((appointmentUTC < existingEnd) && (endTime > existingStart)) {
@@ -448,7 +449,7 @@ export async function PUT(request: NextRequest) {
             }
           },
           include: {
-            service: {
+            services: {
               select: { duration: true }
             }
           }
@@ -457,7 +458,8 @@ export async function PUT(request: NextRequest) {
         // Verificar sobreposição de horários
         for (const existing of dayAppointments) {
           const existingStart = new Date(existing.dateTime)
-          const existingEnd = new Date(existingStart.getTime() + (existing.service?.duration || existing.duration || 30) * 60000)
+          const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
+          const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
           
           // Verificar se há sobreposição
           if ((appointmentUTC < existingEnd) && (endTime > existingStart)) {

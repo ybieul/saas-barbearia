@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
           orderBy: { dateTime: 'desc' },
           take: 1,
           include: {
-            service: true
+            services: true
           }
         }
       }

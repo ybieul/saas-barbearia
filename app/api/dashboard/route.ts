@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
               phone: true
             }
           },
-          service: {
+          services: {
             select: {
               name: true,
               duration: true
