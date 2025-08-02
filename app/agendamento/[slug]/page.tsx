@@ -871,7 +871,7 @@ export default function AgendamentoPage() {
                   </Button>
                 </DialogTrigger>
                 
-                <DialogContent className="w-[95vw] max-w-md mx-auto bg-gradient-to-br from-[#18181b] via-[#1f1f23] to-[#18181b] border-[#27272a] rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+                <DialogContent className="w-[90vw] max-w-sm mx-auto bg-gradient-to-br from-[#18181b] via-[#1f1f23] to-[#18181b] border-[#27272a] rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
                   <DialogHeader className="text-center pb-4">
                     {/* Logo da empresa (se disponível) */}
                     {businessData.businessLogo && (
