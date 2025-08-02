@@ -83,26 +83,26 @@ export async function POST(request: NextRequest) {
     const user = verifyToken(request)
     const { 
       endUserId, 
-      serviceId, 
+      services: serviceIds, // ✅ NOVO: Array de IDs dos serviços
       professionalId, 
       dateTime, 
       notes 
     } = await request.json()
 
-    if (!endUserId || !serviceId || !dateTime) {
+    if (!endUserId || !serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0 || !dateTime) {
       return NextResponse.json(
-        { message: 'Cliente, serviço e data/hora são obrigatórios' },
+        { message: 'Cliente, serviços e data/hora são obrigatórios' },
         { status: 400 }
       )
     }
 
-    // Verificar se cliente, serviço e profissional pertencem ao tenant
-    const [client, service, professional] = await Promise.all([
+    // Verificar se cliente, serviços e profissional pertencem ao tenant
+    const [client, services, professional] = await Promise.all([
       prisma.endUser.findFirst({
         where: { id: endUserId, tenantId: user.tenantId }
       }),
-      prisma.service.findFirst({
-        where: { id: serviceId, tenantId: user.tenantId }
+      prisma.service.findMany({
+        where: { id: { in: serviceIds }, tenantId: user.tenantId }
       }),
       professionalId ? prisma.professional.findFirst({
         where: { id: professionalId, tenantId: user.tenantId }
@@ -116,9 +116,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!service) {
+    if (!services || services.length === 0) {
       return NextResponse.json(
-        { message: 'Serviço não encontrado' },
+        { message: 'Serviços não encontrados' },
+        { status: 404 }
+      )
+    }
+
+    if (services.length !== serviceIds.length) {
+      return NextResponse.json(
+        { message: 'Alguns serviços não foram encontrados' },
         { status: 404 }
       )
     }
@@ -194,9 +201,13 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
 
+    // Calcular duração e preço totais
+    const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
+    const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
+
     // Verificar conflitos de horário se profissional foi especificado
     if (professionalId) {
-      const endTime = new Date(appointmentUTC.getTime() + service.duration * 60000)
+      const endTime = new Date(appointmentUTC.getTime() + totalDuration * 60000)
 
       const conflictingAppointment = await prisma.appointment.findFirst({
         where: {
@@ -260,14 +271,17 @@ export async function POST(request: NextRequest) {
     const appointment = await prisma.appointment.create({
       data: {
         dateTime: appointmentUTC, // Salva em UTC
-        duration: service.duration,
-        totalPrice: service.price,
+        duration: totalDuration,
+        totalPrice: totalPrice,
         status: 'CONFIRMED',
         notes,
         tenantId: user.tenantId,
         endUserId,
-        serviceId,
-        professionalId: professionalId || null
+        professionalId: professionalId || null,
+        // ✅ NOVO: Conectar múltiplos serviços
+        services: {
+          connect: serviceIds.map(id => ({ id }))
+        }
       },
       include: {
         endUser: {
@@ -278,7 +292,7 @@ export async function POST(request: NextRequest) {
             email: true
           }
         },
-        service: {
+        services: {
           select: {
             id: true,
             name: true,
@@ -314,7 +328,7 @@ export async function PUT(request: NextRequest) {
     const { 
       id, 
       endUserId, 
-      serviceId, 
+      services: serviceIds, // ✅ NOVO: Array de IDs dos serviços
       professionalId, 
       dateTime, 
       status, 
@@ -414,19 +428,37 @@ export async function PUT(request: NextRequest) {
       const finalProfessionalId = professionalId !== undefined ? professionalId : existingAppointment.professionalId
       
       if (finalProfessionalId) {
-        // Obter dados do serviço para calcular duração
-        const service = serviceId 
-          ? await prisma.service.findFirst({ where: { id: serviceId, tenantId: user.tenantId }})
-          : await prisma.service.findFirst({ where: { id: existingAppointment.serviceId, tenantId: user.tenantId }})
+        // Obter dados dos serviços para calcular duração
+        let totalDuration = 0
         
-        if (!service) {
-          return NextResponse.json(
-            { message: 'Serviço não encontrado' },
-            { status: 404 }
-          )
+        if (serviceIds && Array.isArray(serviceIds)) {
+          // Novos serviços sendo definidos
+          const newServices = await prisma.service.findMany({
+            where: { id: { in: serviceIds }, tenantId: user.tenantId }
+          })
+          if (newServices.length !== serviceIds.length) {
+            return NextResponse.json(
+              { message: 'Alguns serviços não foram encontrados' },
+              { status: 404 }
+            )
+          }
+          totalDuration = newServices.reduce((sum, s) => sum + s.duration, 0)
+        } else {
+          // Manter serviços existentes
+          const currentAppointment = await prisma.appointment.findFirst({
+            where: { id, tenantId: user.tenantId },
+            include: { services: { select: { duration: true } } }
+          })
+          if (!currentAppointment) {
+            return NextResponse.json(
+              { message: 'Agendamento não encontrado' },
+              { status: 404 }
+            )
+          }
+          totalDuration = currentAppointment.services.reduce((sum, s) => sum + s.duration, 0)
         }
         
-        const endTime = new Date(appointmentUTC.getTime() + service.duration * 60000)
+        const endTime = new Date(appointmentUTC.getTime() + totalDuration * 60000)
         
         // 🇧🇷 CORREÇÃO: Buscar todos os agendamentos do dia (UTC para busca no banco)
         const dayStart = new Date(appointmentUTC)
@@ -475,13 +507,37 @@ export async function PUT(request: NextRequest) {
     // 🇧🇷 CORREÇÃO: Preparar dados de update
     const updateData: any = {
       endUserId,
-      serviceId,
       professionalId: professionalId || null,
       dateTime: dateTime ? new Date(dateTime) : undefined, // Salva em UTC
       status,
       notes,
       paymentMethod,
       paymentStatus
+    }
+
+    // Atualizar serviços se fornecidos
+    if (serviceIds && Array.isArray(serviceIds)) {
+      // Verificar se todos os serviços existem
+      const newServices = await prisma.service.findMany({
+        where: { id: { in: serviceIds }, tenantId: user.tenantId }
+      })
+      
+      if (newServices.length !== serviceIds.length) {
+        return NextResponse.json(
+          { message: 'Alguns serviços não foram encontrados' },
+          { status: 404 }
+        )
+      }
+      
+      // Calcular novos totais
+      const newTotalDuration = newServices.reduce((sum, s) => sum + s.duration, 0)
+      const newTotalPrice = newServices.reduce((sum, s) => sum + Number(s.price), 0)
+      
+      updateData.duration = newTotalDuration
+      updateData.totalPrice = newTotalPrice
+      updateData.services = {
+        set: serviceIds.map(id => ({ id }))
+      }
     }
 
     if (status === 'COMPLETED') {
@@ -500,7 +556,7 @@ export async function PUT(request: NextRequest) {
             email: true
           }
         },
-        service: {
+        services: {
           select: {
             id: true,
             name: true,
