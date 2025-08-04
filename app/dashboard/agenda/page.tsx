@@ -891,7 +891,11 @@ export default function AgendaPage() {
         description: `Agendamento ${confirmDialog.type === 'complete' ? 'concluído' : 'cancelado'} com sucesso!`,
       })
       
-      fetchAppointments() // Recarregar dados
+      // ✅ Recarregar dados com os mesmos filtros aplicados
+      const currentDateString = currentDate.toISOString().split('T')[0]
+      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
+      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+      await fetchAppointments(currentDateString, statusParam, professionalParam)
     } catch (error) {
       toast({
         title: "Erro",
@@ -923,7 +927,11 @@ export default function AgendaPage() {
         description: "Agendamento excluído com sucesso!",
       })
       
-      fetchAppointments() // Recarregar dados
+      // ✅ Recarregar dados com os mesmos filtros aplicados
+      const currentDateString = currentDate.toISOString().split('T')[0]
+      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
+      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+      await fetchAppointments(currentDateString, statusParam, professionalParam)
     } catch (error) {
       toast({
         title: "Erro",
@@ -1386,9 +1394,15 @@ export default function AgendaPage() {
                           <p className="text-[#a1a1aa] text-sm">
                             {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
                             <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
-                            {(appointment.professional?.name || appointment.professionalName) && 
-                              ` • ${appointment.professional?.name || appointment.professionalName}`
-                            }
+                            {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
+                            {appointment.professionalId && (
+                              ` • ${
+                                appointment.professional?.name || 
+                                appointment.professionalName || 
+                                professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                                `Prof. ${appointment.professionalId.substring(0, 8)}`
+                              }`
+                            )}
                           </p>
                           <p className="text-xs text-[#71717a]">
                             Status: {getStatusBadge(appointment.status).label}
@@ -1469,6 +1483,17 @@ export default function AgendaPage() {
             const appointmentBrazil = utcToBrazil(appointmentUTC)
             const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:mm
 
+            // 🔍 DEBUG: Log dos dados do profissional
+            console.log('🔍 Dados do appointment:', {
+              id: appointment.id,
+              status: appointment.status,
+              professionalId: appointment.professionalId,
+              professional: appointment.professional,
+              professionalName: appointment.professionalName,
+              professionalsData: professionalsData?.length,
+              foundProfessional: professionalsData?.find(p => p.id === appointment.professionalId)
+            })
+
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
                 <CardContent className="p-4">
@@ -1487,15 +1512,14 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa]">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
-                        {/* ✅ Melhorar exibição do profissional - tentar diferentes campos */}
-                        {(appointment.professional?.name || appointment.professionalName || 
-                          (appointment.professionalId && professionalsData?.find(p => p.id === appointment.professionalId)?.name)) && (
+                        {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
+                        {appointment.professionalId && (
                           <p className="text-[#a1a1aa]">
                             <strong>Profissional:</strong> {
                               appointment.professional?.name || 
                               appointment.professionalName || 
                               professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
-                              'Profissional não identificado'
+                              `Profissional (ID: ${appointment.professionalId})`
                             }
                           </p>
                         )}
