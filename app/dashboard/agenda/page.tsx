@@ -1011,6 +1011,31 @@ export default function AgendaPage() {
     return null
   }
 
+  // ✅ NOVA: Função para verificar se um horário é passado
+  const isTimeInPast = (date: string, time: string): boolean => {
+    try {
+      const selectedDate = new Date(date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      
+      // Se não é hoje, não é passado
+      if (selectedDate.getTime() !== today.getTime()) {
+        return selectedDate.getTime() < today.getTime()
+      }
+      
+      // Se é hoje, verificar o horário
+      const [hours, minutes] = time.split(':').map(Number)
+      const slotTime = new Date()
+      slotTime.setHours(hours, minutes, 0, 0)
+      const now = new Date()
+      
+      return slotTime < now
+    } catch (error) {
+      return false
+    }
+  }
+
   // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = () => {
     try {
@@ -1041,37 +1066,29 @@ export default function AgendaPage() {
         return []
       }
       
-      // Verificar se a data não é no passado
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      selectedDate.setHours(0, 0, 0, 0)
-      
-      if (selectedDate < today) {
-        console.log('🚫 getAvailableTimeSlots: Data no passado')
-        return []
-      }
+      // ✅ PERMITIR datas passadas para retroagendamento no dashboard
+      // Não bloquear mais datas passadas - permitir retroagendamento
       
       // Gerar slots para a data específica
       const allSlots = generateTimeSlotsForDate(selectedDate)
       console.log(`🔍 getAvailableTimeSlots: ${allSlots.length} slots gerados para ${selectedDate.toDateString()}`)
       
-      // Se é hoje, filtrar horários que já passaram
+      // ✅ MODIFICAÇÃO: Permitir horários passados com indicador visual
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      
+      // Se é hoje, marcar quais horários já passaram (mas ainda incluí-los)
       const now = new Date()
       const isToday = selectedDate.getTime() === today.getTime()
       
-      const futureSlots = isToday 
-        ? allSlots.filter(time => {
-            const [hours, minutes] = time.split(':').map(Number)
-            const slotTime = new Date()
-            slotTime.setHours(hours, minutes, 0, 0)
-            return slotTime > now
-          })
-        : allSlots
+      // ✅ NÃO filtrar horários passados - incluir todos para retroagendamento
+      const allAvailableSlots = allSlots
       
-      console.log(`🔍 getAvailableTimeSlots: ${futureSlots.length} slots futuros`)
+      console.log(`🔍 getAvailableTimeSlots: ${allAvailableSlots.length} slots incluindo passados`)
       
       // Filtrar slots que não têm conflito
-      const availableSlots = futureSlots.filter(time => {
+      const availableSlots = allAvailableSlots.filter((time: string) => {
         const testAppointment = {
           date: newAppointment.date,
           time: time,
@@ -1692,7 +1709,7 @@ export default function AgendaPage() {
                     id="date"
                     type="date"
                     value={newAppointment.date}
-                    min={new Date().toISOString().split('T')[0]} // Não permitir datas passadas
+                    // ✅ PERMITIR datas passadas para retroagendamento
                     onChange={(e) => {
                       console.log('🔍 Data selecionada:', e.target.value)
                       setNewAppointment({...newAppointment, date: e.target.value, time: ""})
@@ -1743,11 +1760,15 @@ export default function AgendaPage() {
                     </SelectTrigger>
                     <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60">
                       {getAvailableTimeSlots().length > 0 ? (
-                        getAvailableTimeSlots().map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))
+                        getAvailableTimeSlots().map((time: string) => {
+                          const isPast = isTimeInPast(newAppointment.date, time)
+                          return (
+                            <SelectItem key={time} value={time}>
+                              {isPast ? '⏱️ ' : ''}{time}
+                              {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
+                            </SelectItem>
+                          )
+                        })
                       ) : (
                         <div className="p-2 text-center text-[#a1a1aa] text-sm">
                           {!newAppointment.date ? "Selecione uma data" :
@@ -1760,12 +1781,20 @@ export default function AgendaPage() {
                     </SelectContent>
                   </Select>
                   {newAppointment.date && newAppointment.serviceId && (
-                    <p className="text-xs text-[#a1a1aa] mt-1">
-                      {getDateStatus().isOpen ? 
-                        `${getAvailableTimeSlots().length} horários disponíveis` : 
-                        'Estabelecimento fechado neste dia'
-                      }
-                    </p>
+                    <div className="mt-1 space-y-1">
+                      <p className="text-xs text-[#a1a1aa]">
+                        {getDateStatus().isOpen ? 
+                          `${getAvailableTimeSlots().length} horários disponíveis` : 
+                          'Estabelecimento fechado neste dia'
+                        }
+                      </p>
+                      {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
+                        <p className="text-xs text-[#d97706] flex items-center gap-1">
+                          <span>⏱️</span>
+                          <span>Horários com ⏱️ são retroativos (já passaram)</span>
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
