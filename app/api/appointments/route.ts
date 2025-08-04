@@ -504,15 +504,29 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // 🇧🇷 CORREÇÃO: Preparar dados de update
+    // 🇧🇷 CORREÇÃO: Preparar dados de update - só incluir campos que foram fornecidos
     const updateData: any = {
-      endUserId,
-      professionalId: professionalId || null,
-      dateTime: dateTime ? new Date(dateTime) : undefined, // Salva em UTC
-      status,
-      notes,
-      paymentMethod,
-      paymentStatus
+      status
+    }
+
+    // ✅ CORREÇÃO: Só atualizar campos se fornecidos, caso contrário manter os existentes
+    if (endUserId !== undefined) {
+      updateData.endUserId = endUserId
+    }
+    if (professionalId !== undefined) {
+      updateData.professionalId = professionalId || null
+    }
+    if (dateTime !== undefined) {
+      updateData.dateTime = new Date(dateTime) // Salva em UTC
+    }
+    if (notes !== undefined) {
+      updateData.notes = notes
+    }
+    if (paymentMethod !== undefined) {
+      updateData.paymentMethod = paymentMethod
+    }
+    if (paymentStatus !== undefined) {
+      updateData.paymentStatus = paymentStatus
     }
 
     // Atualizar serviços se fornecidos

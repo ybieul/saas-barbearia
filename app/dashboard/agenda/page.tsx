@@ -1483,17 +1483,6 @@ export default function AgendaPage() {
             const appointmentBrazil = utcToBrazil(appointmentUTC)
             const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:mm
 
-            // 🔍 DEBUG ESPECÍFICO: Log para agendamentos concluídos
-            if (appointment.status === 'COMPLETED') {
-              console.log('🟢 AGENDAMENTO CONCLUÍDO - DEBUG:', {
-                id: appointment.id,
-                professionalId: appointment.professionalId,
-                professional: appointment.professional,
-                professionalName: appointment.professionalName,
-                professionalsData: professionalsData?.map(p => ({ id: p.id, name: p.name }))
-              });
-            }
-
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
                 <CardContent className="p-4">
