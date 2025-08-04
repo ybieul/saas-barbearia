@@ -133,6 +133,27 @@ export default function AgendaPage() {
     }
   }, [isNewAppointmentOpen])
 
+  // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
+  useEffect(() => {
+    const loadFilteredData = async () => {
+      try {
+        // Formatar data atual para enviar para API
+        const currentDateString = currentDate.toISOString().split('T')[0]
+        
+        // Preparar parâmetros para a API
+        const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
+        const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+        
+        // Buscar agendamentos filtrados
+        await fetchAppointments(currentDateString, statusParam, professionalParam)
+      } catch (error) {
+        console.error('Erro ao carregar dados filtrados:', error)
+      }
+    }
+    
+    loadFilteredData()
+  }, [selectedProfessional, selectedStatus, currentDate, fetchAppointments])
+
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
     try {
@@ -344,27 +365,47 @@ export default function AgendaPage() {
   }
 
   // Calcular estatísticas do dia
+  // ✅ Calcular estatísticas do dia com base no filtro de profissional selecionado
   const calculateDayStats = () => {
-    const today = todayAppointments
-    const completed = today.filter(apt => apt.status === 'completed' || apt.status === 'COMPLETED')
-    const pending = today.filter(apt => apt.status === 'pending' || apt.status === 'CONFIRMED')
-    const inProgress = today.filter(apt => apt.status === 'IN_PROGRESS')
+    // 🔍 Filtrar agendamentos do dia atual por profissional selecionado
+    let filteredTodayAppointments = todayAppointments
+    
+    // Se um profissional específico está selecionado, filtrar por ele
+    if (selectedProfessional !== "todos") {
+      filteredTodayAppointments = todayAppointments.filter(apt => 
+        apt.professionalId === selectedProfessional
+      )
+    }
+    
+    // ⚠️ Excluir agendamentos cancelados dos cálculos conforme solicitado
+    const activeAppointments = filteredTodayAppointments.filter(apt => 
+      apt.status !== 'CANCELLED' && apt.status !== 'cancelled'
+    )
+    
+    const completed = activeAppointments.filter(apt => 
+      apt.status === 'completed' || apt.status === 'COMPLETED'
+    )
+    const pending = activeAppointments.filter(apt => 
+      apt.status === 'pending' || apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS'
+    )
+    
+    // 💰 Receita apenas de agendamentos concluídos
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
-    // Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
+    // 📊 Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
     const totalSlotsInDay = generateTimeSlots().length
-    const totalOccupiedSlots = today.reduce((sum, apt) => {
+    const totalOccupiedSlots = activeAppointments.reduce((sum, apt) => {
       const serviceDuration = apt.duration || 30
       const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
       return sum + slotsNeeded
     }, 0)
     
-    const occupancyRate = Math.round((totalOccupiedSlots / totalSlotsInDay) * 100)
+    const occupancyRate = totalSlotsInDay > 0 ? Math.round((totalOccupiedSlots / totalSlotsInDay) * 100) : 0
 
     return {
-      appointmentsToday: today.length,
+      appointmentsToday: activeAppointments.length,
       completed: completed.length,
-      pending: pending.length + inProgress.length,
+      pending: pending.length,
       occupancyRate: Math.min(occupancyRate, 100),
       revenueToday: totalRevenue
     }
@@ -1132,7 +1173,14 @@ export default function AgendaPage() {
                 <Calendar className="w-5 h-5 text-[#10b981]" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">Agendamentos Hoje</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  Agendamentos Hoje
+                  {selectedProfessional !== "todos" && (
+                    <span className="ml-1 text-xs text-[#10b981]">
+                      • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
+                    </span>
+                  )}
+                </p>
                 <p className="text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
               </div>
             </div>
@@ -1146,7 +1194,14 @@ export default function AgendaPage() {
                 <CheckCircle className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">Concluídos</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  Concluídos
+                  {selectedProfessional !== "todos" && (
+                    <span className="ml-1 text-xs text-[#10b981]">
+                      • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
+                    </span>
+                  )}
+                </p>
                 <p className="text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
               </div>
             </div>
@@ -1160,7 +1215,14 @@ export default function AgendaPage() {
                 <AlertCircle className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">Pendentes</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  Pendentes
+                  {selectedProfessional !== "todos" && (
+                    <span className="ml-1 text-xs text-[#10b981]">
+                      • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
+                    </span>
+                  )}
+                </p>
                 <p className="text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
               </div>
             </div>
@@ -1174,7 +1236,14 @@ export default function AgendaPage() {
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">Taxa de Ocupação</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  Taxa de Ocupação
+                  {selectedProfessional !== "todos" && (
+                    <span className="ml-1 text-xs text-[#10b981]">
+                      • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
+                    </span>
+                  )}
+                </p>
                 <p className="text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
               </div>
             </div>
@@ -1188,7 +1257,14 @@ export default function AgendaPage() {
                 <span className="text-[#10b981] font-bold text-lg">R$</span>
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">Receita Hoje</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  Receita Hoje
+                  {selectedProfessional !== "todos" && (
+                    <span className="ml-1 text-xs text-[#10b981]">
+                      • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
+                    </span>
+                  )}
+                </p>
                 <p className="text-2xl font-bold text-[#ededed]">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
@@ -1411,9 +1487,16 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa]">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
-                        {appointment.professional && (
+                        {/* ✅ Melhorar exibição do profissional - tentar diferentes campos */}
+                        {(appointment.professional?.name || appointment.professionalName || 
+                          (appointment.professionalId && professionalsData?.find(p => p.id === appointment.professionalId)?.name)) && (
                           <p className="text-[#a1a1aa]">
-                            <strong>Profissional:</strong> {appointment.professional.name}
+                            <strong>Profissional:</strong> {
+                              appointment.professional?.name || 
+                              appointment.professionalName || 
+                              professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                              'Profissional não identificado'
+                            }
                           </p>
                         )}
                         {appointment.notes && (
@@ -1513,19 +1596,6 @@ export default function AgendaPage() {
                   </div>
                 </div>
               )}
-              
-              {/* 🔍 DEBUG: Mostrar estado atual do formulário */}
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-400">🔍</span>
-                  <p className="text-blue-400 text-sm">
-                    Debug: Cliente={!!newAppointment.endUserId} | 
-                    Serviço={!!newAppointment.serviceId} | 
-                    Data={!!newAppointment.date} | 
-                    Hora={!!newAppointment.time}
-                  </p>
-                </div>
-              </div>
               
               <div>
                 <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
