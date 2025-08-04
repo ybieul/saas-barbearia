@@ -1364,7 +1364,8 @@ export default function AgendaPage() {
           <div className="max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
-              const appointment = filteredAppointments.find(apt => {
+              // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
+              const appointmentsAtTime = filteredAppointments.filter(apt => {
                 // 🇧🇷 CORREÇÃO: Converter UTC para timezone brasileiro antes de comparar horários
                 const aptDateTimeUTC = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
                 const aptDateTimeBrazil = utcToBrazil(aptDateTimeUTC)
@@ -1375,40 +1376,45 @@ export default function AgendaPage() {
               return (
                 <div
                   key={time}
-                  className={`flex items-center justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                  className={`flex items-start justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                    appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
                     isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
-                  }`}
+                  } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 text-[#ededed] font-medium">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-16 text-[#ededed] font-medium mt-1">
                       {time}
                     </div>
-                    {appointment ? (
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
-                        ></div>
-                        <div>
-                          <p className="text-[#ededed] font-medium">
-                            {appointment.endUser?.name || appointment.clientName || 'Cliente'}
-                          </p>
-                          <p className="text-[#a1a1aa] text-sm">
-                            {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
-                            <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
-                            {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
-                            {appointment.professionalId && (
-                              ` • ${
-                                appointment.professional?.name || 
-                                appointment.professionalName || 
-                                professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
-                                `Prof. ${appointment.professionalId.substring(0, 8)}`
-                              }`
-                            )}
-                          </p>
-                          <p className="text-xs text-[#71717a]">
-                            Status: {getStatusBadge(appointment.status).label}
-                          </p>
-                        </div>
+                    {appointmentsAtTime.length > 0 ? (
+                      <div className="flex-1">
+                        {appointmentsAtTime.map((appointment, index) => (
+                          <div key={appointment.id} className={`flex items-center gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
+                            <div 
+                              className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                            ></div>
+                            <div className="flex-1">
+                              <p className="text-[#ededed] font-medium">
+                                {appointment.endUser?.name || appointment.clientName || 'Cliente'}
+                              </p>
+                              <p className="text-[#a1a1aa] text-sm">
+                                {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
+                                <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
+                                {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
+                                {appointment.professionalId && (
+                                  ` • ${
+                                    appointment.professional?.name || 
+                                    appointment.professionalName || 
+                                    professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                                    `Prof. ${appointment.professionalId.substring(0, 8)}`
+                                  }`
+                                )}
+                              </p>
+                              <p className="text-xs text-[#71717a]">
+                                Status: {getStatusBadge(appointment.status).label}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : isOccupied ? (
                       <div className="flex items-center gap-3">
@@ -1423,7 +1429,7 @@ export default function AgendaPage() {
                     )}
                   </div>
                   
-                  {!isOccupied && (
+                  {appointmentsAtTime.length === 0 && !isOccupied && (
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
