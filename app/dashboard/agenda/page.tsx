@@ -1483,16 +1483,16 @@ export default function AgendaPage() {
             const appointmentBrazil = utcToBrazil(appointmentUTC)
             const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:mm
 
-            // 🔍 DEBUG: Log dos dados do profissional
-            console.log('🔍 Dados do appointment:', {
-              id: appointment.id,
-              status: appointment.status,
-              professionalId: appointment.professionalId,
-              professional: appointment.professional,
-              professionalName: appointment.professionalName,
-              professionalsData: professionalsData?.length,
-              foundProfessional: professionalsData?.find(p => p.id === appointment.professionalId)
-            })
+            // 🔍 DEBUG ESPECÍFICO: Log para agendamentos concluídos
+            if (appointment.status === 'COMPLETED') {
+              console.log('🟢 AGENDAMENTO CONCLUÍDO - DEBUG:', {
+                id: appointment.id,
+                professionalId: appointment.professionalId,
+                professional: appointment.professional,
+                professionalName: appointment.professionalName,
+                professionalsData: professionalsData?.map(p => ({ id: p.id, name: p.name }))
+              });
+            }
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
@@ -1512,17 +1512,19 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa]">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
-                        {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
-                        {appointment.professionalId && (
-                          <p className="text-[#a1a1aa]">
-                            <strong>Profissional:</strong> {
+                        {/* ✅ SEMPRE exibir profissional - versão simplificada para debug */}
+                        <p className="text-[#a1a1aa]">
+                          <strong>Profissional:</strong> {
+                            appointment.professionalId ? (
                               appointment.professional?.name || 
                               appointment.professionalName || 
                               professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
                               `Profissional (ID: ${appointment.professionalId})`
-                            }
-                          </p>
-                        )}
+                            ) : (
+                              <span className="text-red-400">Não informado</span>
+                            )
+                          }
+                        </p>
                         {appointment.notes && (
                           <p className="text-[#a1a1aa]">
                             <strong>Observações:</strong> {appointment.notes}
