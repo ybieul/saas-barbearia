@@ -651,27 +651,12 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Em vez de deletar, marcar como cancelado se o agendamento for futuro
-    const appointmentDate = new Date(existingAppointment.dateTime)
-    const now = new Date()
-
-    if (appointmentDate > now) {
-      await prisma.appointment.update({
-        where: { id },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: new Date(),
-          cancelReason: 'Cancelado pelo sistema'
-        }
-      })
-      return NextResponse.json({ message: 'Agendamento cancelado com sucesso' })
-    } else {
-      // Agendamentos passados podem ser deletados
-      await prisma.appointment.delete({
-        where: { id }
-      })
-      return NextResponse.json({ message: 'Agendamento removido com sucesso' })
-    }
+    // Em vez de apenas cancelar, deletar completamente o agendamento
+    await prisma.appointment.delete({
+      where: { id }
+    })
+    
+    return NextResponse.json({ message: 'Agendamento excluído com sucesso' })
   } catch (error) {
     console.error('Erro ao remover agendamento:', error)
     return NextResponse.json(

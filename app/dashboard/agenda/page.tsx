@@ -48,7 +48,7 @@ export default function AgendaPage() {
   const [isValidating, setIsValidating] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
-    type: 'complete' | 'cancel' | null
+    type: 'complete' | 'cancel' | 'delete' | null
     appointmentId: string
     clientName: string
     serviceName: string
@@ -883,13 +883,24 @@ export default function AgendaPage() {
     if (!confirmDialog.appointmentId || !confirmDialog.type) return
 
     try {
-      const status = confirmDialog.type === 'complete' ? 'COMPLETED' : 'CANCELLED'
-      await updateAppointment({ id: confirmDialog.appointmentId, status })
-      
-      toast({
-        title: "Sucesso",
-        description: `Agendamento ${confirmDialog.type === 'complete' ? 'concluído' : 'cancelado'} com sucesso!`,
-      })
+      if (confirmDialog.type === 'delete') {
+        // ✅ EXCLUSÃO: Deletar agendamento permanentemente
+        await deleteAppointment(confirmDialog.appointmentId)
+        
+        toast({
+          title: "Sucesso",
+          description: "Agendamento excluído com sucesso!",
+        })
+      } else {
+        // ✅ ATUALIZAÇÃO: Concluir ou cancelar agendamento
+        const status = confirmDialog.type === 'complete' ? 'COMPLETED' : 'CANCELLED'
+        await updateAppointment({ id: confirmDialog.appointmentId, status })
+        
+        toast({
+          title: "Sucesso",
+          description: `Agendamento ${confirmDialog.type === 'complete' ? 'concluído' : 'cancelado'} com sucesso!`,
+        })
+      }
       
       // ✅ Recarregar dados com os mesmos filtros aplicados
       const currentDateString = currentDate.toISOString().split('T')[0]
@@ -897,9 +908,12 @@ export default function AgendaPage() {
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
     } catch (error) {
+      const actionText = confirmDialog.type === 'delete' ? 'excluir' : 
+                        confirmDialog.type === 'complete' ? 'concluir' : 'cancelar'
+      
       toast({
         title: "Erro",
-        description: `Erro ao ${confirmDialog.type === 'complete' ? 'concluir' : 'cancelar'} agendamento`,
+        description: `Erro ao ${actionText} agendamento`,
         variant: "destructive",
       })
     } finally {
@@ -915,30 +929,17 @@ export default function AgendaPage() {
 
   // Deletar agendamento permanentemente
   const handleDeleteAppointment = async (appointmentId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento permanentemente?')) {
-      return
-    }
-
-    try {
-      await deleteAppointment(appointmentId)
-      
-      toast({
-        title: "Sucesso",
-        description: "Agendamento excluído com sucesso!",
-      })
-      
-      // ✅ Recarregar dados com os mesmos filtros aplicados
-      const currentDateString = currentDate.toISOString().split('T')[0]
-      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
-      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
-      await fetchAppointments(currentDateString, statusParam, professionalParam)
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao excluir agendamento",
-        variant: "destructive",
-      })
-    }
+    const appointment = appointments.find(apt => apt.id === appointmentId)
+    const clientName = appointment?.endUser?.name || 'Cliente'
+    const serviceName = appointment?.services?.map((s: any) => s.name).join(' + ') || 'Serviço'
+    
+    setConfirmDialog({
+      isOpen: true,
+      type: 'delete',
+      appointmentId,
+      clientName,
+      serviceName
+    })
   }
 
   // Formatar data para exibição
@@ -1840,12 +1841,16 @@ export default function AgendaPage() {
         <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
           <DialogHeader>
             <DialogTitle className="text-[#ededed]">
-              {confirmDialog.type === 'complete' ? 'Concluir Serviço' : 'Cancelar Serviço'}
+              {confirmDialog.type === 'complete' ? 'Concluir Serviço' : 
+               confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 
+               'Excluir Agendamento'}
             </DialogTitle>
             <DialogDescription className="text-[#a1a1aa]">
               {confirmDialog.type === 'complete' 
                 ? 'Tem certeza que deseja marcar este serviço como concluído?' 
-                : 'Tem certeza que deseja cancelar este serviço?'
+                : confirmDialog.type === 'cancel'
+                ? 'Tem certeza que deseja cancelar este serviço?'
+                : 'Tem certeza que deseja excluir este agendamento permanentemente? Esta ação não pode ser desfeita.'
               }
             </DialogDescription>
           </DialogHeader>
@@ -1882,7 +1887,9 @@ export default function AgendaPage() {
                 : "bg-red-600 hover:bg-red-700"
               }
             >
-              {confirmDialog.type === 'complete' ? 'Concluir' : 'Cancelar Serviço'}
+              {confirmDialog.type === 'complete' ? 'Concluir' : 
+               confirmDialog.type === 'cancel' ? 'Cancelar Serviço' :
+               'Excluir Permanentemente'}
             </Button>
           </DialogFooter>
         </DialogContent>
