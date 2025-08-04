@@ -392,7 +392,18 @@ export default function AgendaPage() {
     try {
       console.log('🔍 Iniciando validação do formulário:', newAppointment)
       
+      // ✅ DEBUG: Verificar se os valores realmente existem
+      console.log('🔍 Validação detalhada:', {
+        endUserId: { value: newAppointment.endUserId, type: typeof newAppointment.endUserId, empty: !newAppointment.endUserId },
+        serviceId: { value: newAppointment.serviceId, type: typeof newAppointment.serviceId, empty: !newAppointment.serviceId },
+        date: { value: newAppointment.date, type: typeof newAppointment.date, empty: !newAppointment.date },
+        time: { value: newAppointment.time, type: typeof newAppointment.time, empty: !newAppointment.time },
+        professionalId: { value: newAppointment.professionalId, type: typeof newAppointment.professionalId },
+        notes: { value: newAppointment.notes, type: typeof newAppointment.notes }
+      })
+      
       if (!newAppointment.endUserId) {
+        console.log('❌ Cliente não selecionado')
         toast({
           title: "❌ Cliente Obrigatório",
           description: "Selecione um cliente para continuar",
@@ -402,6 +413,7 @@ export default function AgendaPage() {
       }
       
       if (!newAppointment.serviceId) {
+        console.log('❌ Serviço não selecionado')
         toast({
           title: "❌ Serviço Obrigatório", 
           description: "Selecione um serviço para continuar",
@@ -411,6 +423,7 @@ export default function AgendaPage() {
       }
 
       if (!newAppointment.date) {
+        console.log('❌ Data não selecionada')
         toast({
           title: "❌ Data Obrigatória",
           description: "Selecione uma data para o agendamento",
@@ -420,6 +433,7 @@ export default function AgendaPage() {
       }
 
       if (!newAppointment.time) {
+        console.log('❌ Horário não selecionado')
         toast({
           title: "❌ Horário Obrigatório",
           description: "Selecione um horário para o agendamento",
@@ -548,6 +562,17 @@ export default function AgendaPage() {
     // Limpar erro anterior
     setBackendError(null)
     
+    // 🔍 DEBUG: Log do estado atual do formulário antes da validação
+    console.log('🔍 Estado do formulário ANTES da validação:', {
+      endUserId: newAppointment.endUserId,
+      serviceId: newAppointment.serviceId, 
+      professionalId: newAppointment.professionalId,
+      date: newAppointment.date,
+      time: newAppointment.time,
+      notes: newAppointment.notes,
+      isComplete: !!(newAppointment.endUserId && newAppointment.serviceId && newAppointment.date && newAppointment.time)
+    })
+    
     if (!(await validateForm())) return
 
     setIsCreating(true)
@@ -576,13 +601,33 @@ export default function AgendaPage() {
 
       const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
-        serviceId: newAppointment.serviceId,
+        services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
         dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: newAppointment.notes || undefined
       }
 
       console.log('🚀 Criando agendamento:', finalAppointmentData)
+      console.log('🔍 Debug do formulário:', {
+        endUserId: newAppointment.endUserId,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes
+      })
+      
+      // ✅ Validação final antes de enviar
+      if (!finalAppointmentData.endUserId || !finalAppointmentData.services || finalAppointmentData.services.length === 0 || !finalAppointmentData.dateTime) {
+        console.error('❌ Dados inválidos para envio:', finalAppointmentData)
+        toast({
+          title: "❌ Erro de Validação",
+          description: "Campos obrigatórios não preenchidos. Verifique o formulário.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       await createAppointment(finalAppointmentData)
       
       toast({
@@ -698,13 +743,21 @@ export default function AgendaPage() {
       const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
-        serviceId: newAppointment.serviceId,
+        services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
         dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: newAppointment.notes || undefined
       }
 
       console.log('🔄 Atualizando agendamento:', finalAppointmentData)
+      console.log('🔍 Debug do formulário (update):', {
+        endUserId: newAppointment.endUserId,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes
+      })
       await updateAppointment(finalAppointmentData)
       
       toast({
@@ -1461,11 +1514,27 @@ export default function AgendaPage() {
                 </div>
               )}
               
+              {/* 🔍 DEBUG: Mostrar estado atual do formulário */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400">🔍</span>
+                  <p className="text-blue-400 text-sm">
+                    Debug: Cliente={!!newAppointment.endUserId} | 
+                    Serviço={!!newAppointment.serviceId} | 
+                    Data={!!newAppointment.date} | 
+                    Hora={!!newAppointment.time}
+                  </p>
+                </div>
+              </div>
+              
               <div>
                 <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
                 <Select 
                   value={newAppointment.endUserId} 
-                  onValueChange={(value) => setNewAppointment({...newAppointment, endUserId: value})}
+                  onValueChange={(value) => {
+                    console.log('🔍 Cliente selecionado:', value)
+                    setNewAppointment({...newAppointment, endUserId: value})
+                  }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
                     <SelectValue placeholder="Selecione um cliente" />
@@ -1484,7 +1553,10 @@ export default function AgendaPage() {
                 <Label htmlFor="service" className="text-[#ededed]">Serviço *</Label>
                 <Select 
                   value={newAppointment.serviceId} 
-                  onValueChange={(value) => setNewAppointment({...newAppointment, serviceId: value})}
+                  onValueChange={(value) => {
+                    console.log('🔍 Serviço selecionado:', value)
+                    setNewAppointment({...newAppointment, serviceId: value})
+                  }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
                     <SelectValue placeholder="Selecione um serviço" />
@@ -1503,7 +1575,10 @@ export default function AgendaPage() {
                 <Label htmlFor="professional" className="text-[#ededed]">Profissional</Label>
                 <Select 
                   value={newAppointment.professionalId} 
-                  onValueChange={(value) => setNewAppointment({...newAppointment, professionalId: value})}
+                  onValueChange={(value) => {
+                    console.log('🔍 Profissional selecionado:', value)
+                    setNewAppointment({...newAppointment, professionalId: value})
+                  }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
                     <SelectValue placeholder="Selecione um profissional (opcional)" />
@@ -1527,6 +1602,7 @@ export default function AgendaPage() {
                     value={newAppointment.date}
                     min={new Date().toISOString().split('T')[0]} // Não permitir datas passadas
                     onChange={(e) => {
+                      console.log('🔍 Data selecionada:', e.target.value)
                       setNewAppointment({...newAppointment, date: e.target.value, time: ""})
                     }}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
@@ -1559,7 +1635,10 @@ export default function AgendaPage() {
                   <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>
                   <Select 
                     value={newAppointment.time} 
-                    onValueChange={(value) => setNewAppointment({...newAppointment, time: value})}
+                    onValueChange={(value) => {
+                      console.log('🔍 Horário selecionado:', value)
+                      setNewAppointment({...newAppointment, time: value})
+                    }}
                     disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
                     <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
@@ -1624,7 +1703,20 @@ export default function AgendaPage() {
                 Cancelar
               </Button>
               <Button
-                onClick={editingAppointment ? handleUpdateAppointment : handleCreateAppointment}
+                onClick={() => {
+                  console.log('🔍 Botão clicado - Estado atual:', {
+                    endUserId: newAppointment.endUserId,
+                    serviceId: newAppointment.serviceId,
+                    date: newAppointment.date,
+                    time: newAppointment.time,
+                    isEditing: !!editingAppointment
+                  })
+                  if (editingAppointment) {
+                    handleUpdateAppointment()
+                  } else {
+                    handleCreateAppointment()
+                  }
+                }}
                 disabled={
                   !newAppointment.endUserId || 
                   !newAppointment.serviceId || 

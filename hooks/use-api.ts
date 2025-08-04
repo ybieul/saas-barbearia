@@ -122,7 +122,7 @@ export function useAppointments() {
 
   const createAppointment = useCallback(async (appointmentData: {
     endUserId: string
-    serviceId: string
+    services: string[] // ✅ CORREÇÃO: Aceitar array de serviços conforme backend espera
     professionalId?: string
     dateTime: string
     notes?: string
@@ -149,7 +149,7 @@ export function useAppointments() {
   const updateAppointment = useCallback((appointmentData: {
     id: string
     endUserId?: string
-    serviceId?: string
+    services?: string[] // ✅ CORREÇÃO: Aceitar array de serviços conforme backend espera
     professionalId?: string
     dateTime?: string
     status?: string
