@@ -1011,20 +1011,28 @@ export default function AgendaPage() {
     return null
   }
 
-  // ✅ NOVA: Função para verificar se um horário é passado
+  // ✅ CORRIGIDA: Função para verificar se um horário é passado
   const isTimeInPast = (date: string, time: string): boolean => {
     try {
-      const selectedDate = new Date(date)
+      // ✅ CORREÇÃO: Usar mesma lógica de criação de data do resto do código
+      const [year, month, day] = date.split('-').map(Number)
+      const selectedDate = new Date(year, month - 1, day)
+      
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       selectedDate.setHours(0, 0, 0, 0)
       
-      // Se não é hoje, não é passado
-      if (selectedDate.getTime() !== today.getTime()) {
-        return selectedDate.getTime() < today.getTime()
+      // ✅ CORREÇÃO: Se é data futura, definitivamente não é passado
+      if (selectedDate.getTime() > today.getTime()) {
+        return false
       }
       
-      // Se é hoje, verificar o horário
+      // ✅ CORREÇÃO: Se é data passada, definitivamente é passado
+      if (selectedDate.getTime() < today.getTime()) {
+        return true
+      }
+      
+      // ✅ Se é hoje, verificar o horário
       const [hours, minutes] = time.split(':').map(Number)
       const slotTime = new Date()
       slotTime.setHours(hours, minutes, 0, 0)
@@ -1032,6 +1040,7 @@ export default function AgendaPage() {
       
       return slotTime < now
     } catch (error) {
+      console.error('Erro ao verificar se horário é passado:', error)
       return false
     }
   }
