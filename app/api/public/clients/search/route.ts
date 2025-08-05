@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         phone: true,
+        birthday: true,
         notes: true
       }
     })

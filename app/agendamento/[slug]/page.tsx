@@ -488,6 +488,9 @@ export default function AgendamentoPage() {
       if (response.ok) {
         const clientData = await response.json()
         
+        // Debug temporário - remover após teste
+        console.log('🔍 Dados retornados da API:', clientData)
+        
         // Cliente encontrado
         setCustomerData(prev => ({
           ...prev,
@@ -510,6 +513,7 @@ export default function AgendamentoPage() {
           ...prev,
           name: "",
           email: "",
+          birthDate: "",
           notes: ""
         }))
         
