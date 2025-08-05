@@ -78,11 +78,13 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Agendamentos concluídos
+      // Agendamentos concluídos - incluir mais status
       prisma.appointment.count({
         where: {
           tenantId: user.tenantId,
-          status: 'COMPLETED',
+          status: {
+            in: ['COMPLETED', 'IN_PROGRESS']
+          },
           dateTime: {
             gte: startDate,
             lte: endDate
@@ -90,14 +92,19 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Receita total do período
+      // Receita total do período - incluir mais status
       prisma.appointment.aggregate({
         where: {
           tenantId: user.tenantId,
-          status: 'COMPLETED',
+          status: {
+            in: ['COMPLETED', 'IN_PROGRESS'] // Incluir em andamento também
+          },
           dateTime: {
             gte: startDate,
             lte: endDate
+          },
+          totalPrice: {
+            gt: 0 // Apenas com valor > 0
           }
         },
         _sum: {
@@ -262,54 +269,64 @@ export async function GET(request: NextRequest) {
     const cancellationRate = totalAppointments > 0 ? (cancelledAppointments / totalAppointments) * 100 : 0
 
     // Dados para sparklines - últimos 7 dias (simplificado)
-    const sparklineData = []
+    const sparklineData: Array<{
+      date: string
+      revenue: number
+      appointments: number
+      clients: number
+    }> = []
     for (let i = 6; i >= 0; i--) {
       const date = getBrazilStartOfDay(getBrazilNow())
       date.setDate(date.getDate() - i)
       const endOfDay = getBrazilEndOfDay(date)
       
-      // Simplificar - fazer uma query por vez
-      const dayRevenue = await prisma.appointment.aggregate({
-        where: {
-          tenantId: user.tenantId,
-          status: 'COMPLETED',
-          dateTime: {
-            gte: date,
-            lte: endOfDay
-          }
-        },
-        _sum: {
-          totalPrice: true
-        }
-      })
-      
-      const dayAppointments = await prisma.appointment.count({
-        where: {
-          tenantId: user.tenantId,
-          dateTime: {
-            gte: date,
-            lte: endOfDay
+        // Simplificar - fazer uma query por vez
+        const dayRevenue = await prisma.appointment.aggregate({
+          where: {
+            tenantId: user.tenantId,
+            status: {
+              in: ['COMPLETED', 'IN_PROGRESS'] // Incluir mais status
+            },
+            dateTime: {
+              gte: date,
+              lte: endOfDay
+            },
+            totalPrice: {
+              gt: 0
+            }
           },
-          status: {
-            in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
+          _sum: {
+            totalPrice: true
           }
-        }
-      })
-      
-      sparklineData.push({
-        date: date.toISOString().split('T')[0],
-        revenue: dayRevenue._sum.totalPrice || 0,
-        appointments: dayAppointments,
-        clients: 0 // Simplificar por agora
-      })
+        })
+        
+        const dayAppointments = await prisma.appointment.count({
+          where: {
+            tenantId: user.tenantId,
+            dateTime: {
+              gte: date,
+              lte: endOfDay
+            }
+            // Remover filtro de status - contar todos
+          }
+        })
+        
+        sparklineData.push({
+          date: date.toISOString().split('T')[0],
+          revenue: Number(dayRevenue._sum.totalPrice || 0),
+          appointments: dayAppointments,
+          clients: 0 // Simplificar por agora
+        })
     }
 
-    // Calcular taxa de ocupação por profissional (simplificado)
+    // Calcular taxa de ocupação por profissional (melhorada)
     const professionalsWithOccupancy = professionals.map((prof) => {
-      // Simplificar - 10 slots por dia base
-      const totalSlots = 10
+      // Base mais realista - 8 slots por dia útil
+      const totalSlots = 8
       const occupiedSlots = prof._count.appointments
       const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0
+      
+      console.log(`🔍 Professional ${prof.name}: ${occupiedSlots}/${totalSlots} slots = ${occupancyRate}%`)
       
       return {
         id: prof.id,
@@ -350,15 +367,22 @@ export async function GET(request: NextRequest) {
     //   })
     // }
 
-    console.log('🔍 Resultados das queries:', {
+    console.log('🔍 Resultados das queries (DETALHADO):', {
       totalClients,
       activeClients,
       totalAppointments,
       completedAppointments,
       revenue: Number(revenue),
+      revenueRaw: totalRevenue._sum.totalPrice,
       todayAppointmentsCount: todayAppointments.length,
       professionalsCount: professionals.length,
-      nextAppointmentExists: !!nextAppointment
+      nextAppointmentExists: !!nextAppointment,
+      period,
+      dateRange: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        brazilNow: getBrazilNow().toISOString()
+      }
     })
 
     console.log('🔍 Today appointments raw:', todayAppointments.slice(0, 2)) // Primeiros 2 para debug
