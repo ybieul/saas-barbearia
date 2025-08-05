@@ -8,11 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
+import { useAppointments } from "@/hooks/use-api"
 import { Sparkline, TrendIndicator } from "@/components/ui/sparkline"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
+  const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
+  const { updateAppointment } = useAppointments()
+  const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
@@ -38,6 +43,31 @@ export default function DashboardPage() {
 
   const handleReports = () => {
     router.push('/dashboard/relatorios')
+  }
+
+  // Função para concluir agendamento
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    setIsCompletingAppointment(true)
+    try {
+      await updateAppointment({ id: appointmentId, status: 'COMPLETED' })
+      
+      toast({
+        title: "✅ Sucesso",
+        description: "Agendamento concluído com sucesso!",
+      })
+      
+      // Recarregar dados do dashboard
+      await fetchDashboardData('today')
+    } catch (error) {
+      console.error('Erro ao concluir agendamento:', error)
+      toast({
+        title: "❌ Erro",
+        description: "Erro ao concluir agendamento. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCompletingAppointment(false)
+    }
   }
 
   const today = new Date().toLocaleDateString("pt-BR", {
@@ -134,8 +164,12 @@ export default function DashboardPage() {
   const nextAppointment = dashboardData?.nextAppointment
   const professionals = dashboardData?.professionals || []
 
-  // Debug temporário - pode ser removido depois
+  // Debug detalhado
   console.log('🔍 Dashboard data recebido:', dashboardData)
+  console.log('🔍 Today appointments:', todayAppointments)
+  console.log('🔍 Next appointment:', nextAppointment)
+  console.log('🔍 Professionals:', professionals)
+  console.log('🔍 Summary:', dashboardData?.summary)
 
   return (
     <div className="space-y-8">
@@ -207,15 +241,26 @@ export default function DashboardPage() {
                   <span className="ml-2 text-xs">({nextAppointment.duration} min)</span>
                 </p>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
-                onClick={() => router.push('/dashboard/clientes')}
-              >
-                <User className="w-4 h-4 mr-1" />
-                Ver Histórico
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
+                  onClick={() => router.push('/dashboard/clientes')}
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  Ver Histórico
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="bg-[#10b981] hover:bg-[#059669]"
+                  onClick={() => handleCompleteAppointment(nextAppointment.id)}
+                  disabled={isCompletingAppointment}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  {isCompletingAppointment ? "Concluindo..." : "Concluir"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

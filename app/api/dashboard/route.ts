@@ -6,7 +6,7 @@ import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, utcToBrazil } fro
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 API Dashboard chamada!')
+    console.log('� === API DASHBOARD CHAMADA ===')
     const user = verifyToken(request)
     console.log('🔍 User tenant:', user.tenantId)
     
@@ -171,10 +171,8 @@ export async function GET(request: NextRequest) {
           dateTime: {
             gte: getBrazilStartOfDay(getBrazilNow()),
             lte: getBrazilEndOfDay(getBrazilNow())
-          },
-          status: {
-            in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
           }
+          // Remover filtro de status para pegar todos os agendamentos
         },
         orderBy: { dateTime: 'asc' },
         include: {
@@ -202,8 +200,8 @@ export async function GET(request: NextRequest) {
       // Profissionais com estatísticas
       prisma.professional.findMany({
         where: {
-          tenantId: user.tenantId,
-          isActive: true
+          tenantId: user.tenantId
+          // Remover filtro isActive para pegar todos
         },
         select: {
           id: true,
@@ -215,10 +213,8 @@ export async function GET(request: NextRequest) {
                   dateTime: {
                     gte: getBrazilStartOfDay(getBrazilNow()),
                     lte: getBrazilEndOfDay(getBrazilNow())
-                  },
-                  status: {
-                    in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
                   }
+                  // Remover filtro de status
                 }
               }
             }
@@ -365,6 +361,9 @@ export async function GET(request: NextRequest) {
       nextAppointmentExists: !!nextAppointment
     })
 
+    console.log('🔍 Today appointments raw:', todayAppointments.slice(0, 2)) // Primeiros 2 para debug
+    console.log('🔍 Professionals raw:', professionals.slice(0, 2)) // Primeiros 2 para debug
+
     return NextResponse.json({
       data: {
         // Estrutura simplificada que o frontend espera
@@ -392,20 +391,20 @@ export async function GET(request: NextRequest) {
         todayAppointments: todayAppointments.map(apt => ({
           id: apt.id,
           time: utcToBrazil(new Date(apt.dateTime)).toTimeString().substring(0, 5),
-          client: apt.endUser?.name || 'Cliente',
-          service: apt.services?.map(s => s.name).join(' + ') || 'Serviço',
-          professional: apt.professional?.name || 'Profissional',
+          client: apt.endUser?.name || 'Cliente sem nome',
+          service: apt.services?.length > 0 ? apt.services.map(s => s.name).join(' + ') : 'Serviço não informado',
+          professional: apt.professional?.name || 'Sem profissional',
           status: apt.status,
-          totalPrice: apt.totalPrice
+          totalPrice: apt.totalPrice || 0
         })),
         nextAppointment: nextAppointment ? {
           id: nextAppointment.id,
           time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
           date: utcToBrazil(new Date(nextAppointment.dateTime)).toDateString(),
-          client: nextAppointment.endUser?.name || 'Cliente',
-          service: nextAppointment.services?.map(s => s.name).join(' + ') || 'Serviço',
-          professional: nextAppointment.professional?.name || 'Profissional',
-          duration: nextAppointment.services?.reduce((total, s) => total + (s.duration || 0), 0) || 30
+          client: nextAppointment.endUser?.name || 'Cliente sem nome',
+          service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
+          professional: nextAppointment.professional?.name || 'Sem profissional',
+          duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30
         } : null,
         professionals: professionalsWithOccupancy,
         sparklines: {
