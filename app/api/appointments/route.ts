@@ -636,11 +636,15 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Verificar se o agendamento pertence ao tenant
+    // Verificar se o agendamento pertence ao tenant e buscar dados completos
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         id,
         tenantId: user.tenantId
+      },
+      include: {
+        endUser: true,
+        services: true
       }
     })
 
@@ -651,9 +655,66 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Em vez de apenas cancelar, deletar completamente o agendamento
-    await prisma.appointment.delete({
-      where: { id }
+    // ✅ USAR TRANSAÇÃO PARA REVERTER DADOS AGREGADOS
+    await prisma.$transaction(async (tx) => {
+      // Se agendamento estava COMPLETED, reverter dados do cliente
+      if (existingAppointment.status === 'COMPLETED') {
+        const totalPrice = existingAppointment.totalPrice || 0
+
+        console.log('🔄 Revertendo dados do cliente:', {
+          appointmentId: id,
+          clientId: existingAppointment.endUserId,
+          clientName: existingAppointment.endUser.name,
+          totalPrice,
+          status: existingAppointment.status
+        })
+
+        // Decrementar dados agregados do cliente
+        await tx.endUser.update({
+          where: { id: existingAppointment.endUserId },
+          data: {
+            totalVisits: {
+              decrement: 1, // Decrementar número de visitas
+            },
+            totalSpent: {
+              decrement: totalPrice, // Decrementar gasto total
+            },
+          },
+        })
+
+        // Recalcular lastVisit (buscar último agendamento concluído restante)
+        const lastCompletedAppointment = await tx.appointment.findFirst({
+          where: {
+            endUserId: existingAppointment.endUserId,
+            status: 'COMPLETED',
+            id: { not: id }, // Excluir o agendamento que será deletado
+          },
+          orderBy: { completedAt: 'desc' },
+        })
+
+        // Atualizar lastVisit
+        await tx.endUser.update({
+          where: { id: existingAppointment.endUserId },
+          data: {
+            lastVisit: lastCompletedAppointment?.completedAt || null,
+          },
+        })
+
+        // Remover FinancialRecord associado
+        await tx.financialRecord.deleteMany({
+          where: {
+            reference: id,
+            tenantId: user.tenantId,
+          },
+        })
+
+        console.log('✅ Dados do cliente revertidos com sucesso')
+      }
+
+      // Deletar o agendamento
+      await tx.appointment.delete({
+        where: { id }
+      })
     })
     
     return NextResponse.json({ message: 'Agendamento excluído com sucesso' })
