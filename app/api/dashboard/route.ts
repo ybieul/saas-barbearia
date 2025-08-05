@@ -6,9 +6,13 @@ import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, utcToBrazil } fro
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 API Dashboard chamada!')
     const user = verifyToken(request)
+    console.log('🔍 User tenant:', user.tenantId)
+    
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'today'
+    console.log('🔍 Period solicitado:', period)
 
     let startDate: Date
     let endDate: Date = getBrazilNow()
@@ -261,88 +265,14 @@ export async function GET(request: NextRequest) {
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
     const cancellationRate = totalAppointments > 0 ? (cancelledAppointments / totalAppointments) * 100 : 0
 
-    // Dados para sparklines - últimos 7 dias
+    // Dados para sparklines - últimos 7 dias (simplificado)
     const sparklineData = []
     for (let i = 6; i >= 0; i--) {
       const date = getBrazilStartOfDay(getBrazilNow())
       date.setDate(date.getDate() - i)
       const endOfDay = getBrazilEndOfDay(date)
       
-      const [dayRevenue, dayAppointments, dayClients] = await Promise.all([
-        // Receita do dia
-        prisma.appointment.aggregate({
-          where: {
-            tenantId: user.tenantId,
-            status: 'COMPLETED',
-            dateTime: {
-              gte: date,
-              lte: endOfDay
-            }
-          },
-          _sum: {
-            totalPrice: true
-          }
-        }),
-        
-        // Agendamentos do dia
-        prisma.appointment.count({
-          where: {
-            tenantId: user.tenantId,
-            dateTime: {
-              gte: date,
-              lte: endOfDay
-            },
-            status: {
-              in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
-            }
-          }
-        }),
-        
-        // Novos clientes do dia
-        prisma.endUser.count({
-          where: {
-            tenantId: user.tenantId,
-            createdAt: {
-              gte: date,
-              lte: endOfDay
-            }
-          }
-        })
-      ])
-      
-      sparklineData.push({
-        date: date.toISOString().split('T')[0],
-        revenue: dayRevenue._sum.totalPrice || 0,
-        appointments: dayAppointments,
-        clients: dayClients
-      })
-    }
-
-    // Calcular taxa de ocupação por profissional
-    const professionalsWithOccupancy = await Promise.all(
-      professionals.map(async (prof) => {
-        // Total de slots disponíveis hoje (assumindo 8h de trabalho, slots de 30min)
-        const totalSlots = 16 // 8 horas * 2 slots por hora
-        const occupiedSlots = prof._count.appointments
-        const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0
-        
-        return {
-          id: prof.id,
-          name: prof.name,
-          appointmentsToday: prof._count.appointments,
-          occupancyRate: Math.min(occupancyRate, 100) // Máximo 100%
-        }
-      })
-    )
-
-    // Dados para gráficos - receita por dia (últimos 7 dias)
-    const dailyRevenue = []
-    for (let i = 6; i >= 0; i--) {
-      const date = getBrazilStartOfDay(getBrazilNow())
-      date.setDate(date.getDate() - i)
-      
-      const endOfDay = getBrazilEndOfDay(date)
-      
+      // Simplificar - fazer uma query por vez
       const dayRevenue = await prisma.appointment.aggregate({
         where: {
           tenantId: user.tenantId,
@@ -357,51 +287,137 @@ export async function GET(request: NextRequest) {
         }
       })
       
-      dailyRevenue.push({
+      const dayAppointments = await prisma.appointment.count({
+        where: {
+          tenantId: user.tenantId,
+          dateTime: {
+            gte: date,
+            lte: endOfDay
+          },
+          status: {
+            in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
+          }
+        }
+      })
+      
+      sparklineData.push({
         date: date.toISOString().split('T')[0],
-        revenue: dayRevenue._sum.totalPrice || 0
+        revenue: dayRevenue._sum.totalPrice || 0,
+        appointments: dayAppointments,
+        clients: 0 // Simplificar por agora
       })
     }
 
+    // Calcular taxa de ocupação por profissional (simplificado)
+    const professionalsWithOccupancy = professionals.map((prof) => {
+      // Simplificar - 10 slots por dia base
+      const totalSlots = 10
+      const occupiedSlots = prof._count.appointments
+      const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0
+      
+      return {
+        id: prof.id,
+        name: prof.name,
+        appointmentsToday: prof._count.appointments,
+        occupancyRate: Math.min(occupancyRate, 100) // Máximo 100%
+      }
+    })
+
+    console.log('🔍 Professionals with occupancy:', professionalsWithOccupancy)
+
+    // TODO: Reativar depois se necessário
+    // Dados para gráficos - receita por dia (últimos 7 dias)
+    // const dailyRevenue = []
+    // for (let i = 6; i >= 0; i--) {
+    //   const date = getBrazilStartOfDay(getBrazilNow())
+    //   date.setDate(date.getDate() - i)
+    //   
+    //   const endOfDay = getBrazilEndOfDay(date)
+    //   
+    //   const dayRevenue = await prisma.appointment.aggregate({
+    //     where: {
+    //       tenantId: user.tenantId,
+    //       status: 'COMPLETED',
+    //       dateTime: {
+    //         gte: date,
+    //         lte: endOfDay
+    //       }
+    //     },
+    //     _sum: {
+    //       totalPrice: true
+    //     }
+    //   })
+    //   
+    //   dailyRevenue.push({
+    //     date: date.toISOString().split('T')[0],
+    //     revenue: dayRevenue._sum.totalPrice || 0
+    //   })
+    // }
+
+    console.log('🔍 Resultados das queries:', {
+      totalClients,
+      activeClients,
+      totalAppointments,
+      completedAppointments,
+      revenue: Number(revenue),
+      todayAppointmentsCount: todayAppointments.length,
+      professionalsCount: professionals.length,
+      nextAppointmentExists: !!nextAppointment
+    })
+
     return NextResponse.json({
-      summary: {
-        totalClients,
-        activeClients,
-        totalAppointments,
-        completedAppointments,
-        revenue: Number(revenue),
-        pendingAppointments,
-        conversionRate: Math.round(conversionRate * 100) / 100,
-        cancellationRate: Math.round(cancellationRate * 100) / 100
-      },
-      todayAppointments: todayAppointments.map(apt => ({
-        id: apt.id,
-        time: utcToBrazil(new Date(apt.dateTime)).toTimeString().substring(0, 5),
-        client: apt.endUser?.name || 'Cliente',
-        service: apt.services?.map(s => s.name).join(' + ') || 'Serviço',
-        professional: apt.professional?.name || 'Profissional',
-        status: apt.status,
-        totalPrice: apt.totalPrice
-      })),
-      nextAppointment: nextAppointment ? {
-        id: nextAppointment.id,
-        time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
-        date: utcToBrazil(new Date(nextAppointment.dateTime)).toDateString(),
-        client: nextAppointment.endUser?.name || 'Cliente',
-        service: nextAppointment.services?.map(s => s.name).join(' + ') || 'Serviço',
-        professional: nextAppointment.professional?.name || 'Profissional',
-        duration: nextAppointment.services?.reduce((total, s) => total + (s.duration || 0), 0) || 30
-      } : null,
-      professionals: professionalsWithOccupancy,
-      sparklines: {
-        revenue: sparklineData.map(d => d.revenue),
-        appointments: sparklineData.map(d => d.appointments),
-        clients: sparklineData.map(d => d.clients),
-        dates: sparklineData.map(d => d.date)
-      },
-      recentAppointments,
-      dailyRevenue,
-      period
+      data: {
+        // Estrutura simplificada que o frontend espera
+        summary: {
+          totalClients,
+          activeClients,
+          totalAppointments,
+          completedAppointments,
+          revenue: Number(revenue),
+          pendingAppointments,
+          conversionRate: Math.round(conversionRate * 100) / 100,
+          cancellationRate: Math.round(cancellationRate * 100) / 100,
+          occupancyRate: professionalsWithOccupancy.length > 0 
+            ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
+            : 0
+        },
+        stats: {
+          totalRevenue: Number(revenue),
+          totalClients,
+          totalAppointments,
+          occupancyRate: professionalsWithOccupancy.length > 0 
+            ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
+            : 0
+        },
+        todayAppointments: todayAppointments.map(apt => ({
+          id: apt.id,
+          time: utcToBrazil(new Date(apt.dateTime)).toTimeString().substring(0, 5),
+          client: apt.endUser?.name || 'Cliente',
+          service: apt.services?.map(s => s.name).join(' + ') || 'Serviço',
+          professional: apt.professional?.name || 'Profissional',
+          status: apt.status,
+          totalPrice: apt.totalPrice
+        })),
+        nextAppointment: nextAppointment ? {
+          id: nextAppointment.id,
+          time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
+          date: utcToBrazil(new Date(nextAppointment.dateTime)).toDateString(),
+          client: nextAppointment.endUser?.name || 'Cliente',
+          service: nextAppointment.services?.map(s => s.name).join(' + ') || 'Serviço',
+          professional: nextAppointment.professional?.name || 'Profissional',
+          duration: nextAppointment.services?.reduce((total, s) => total + (s.duration || 0), 0) || 30
+        } : null,
+        professionals: professionalsWithOccupancy,
+        sparklines: {
+          revenue: sparklineData.map(d => d.revenue),
+          appointments: sparklineData.map(d => d.appointments),
+          clients: sparklineData.map(d => d.clients),
+          dates: sparklineData.map(d => d.date)
+        },
+        // Dados para compatibilidade
+        recentAppointments,
+        period
+      }
     })
   } catch (error) {
     console.error('Erro ao buscar dados do dashboard:', error)

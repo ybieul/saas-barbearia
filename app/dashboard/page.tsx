@@ -134,8 +134,8 @@ export default function DashboardPage() {
   const nextAppointment = dashboardData?.nextAppointment
   const professionals = dashboardData?.professionals || []
 
-  console.log('Dashboard data recebido:', dashboardData)
-  console.log('Today appointments:', todayAppointments)
+  // Debug temporário - pode ser removido depois
+  console.log('🔍 Dashboard data recebido:', dashboardData)
 
   return (
     <div className="space-y-8">
