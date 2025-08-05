@@ -43,37 +43,65 @@ export async function PATCH(
       servicesCount: existingAppointment.services.length,
       servicesPrices: existingAppointment.services.map(s => ({ name: s.name, price: s.price })),
       totalPrice,
-      paymentMethod
+      paymentMethod,
+      clientId: existingAppointment.endUserId,
+      clientName: existingAppointment.endUser.name
     })
 
-    // Atualizar o agendamento com status COMPLETED, forma de pagamento e preço total
-    const updatedAppointment = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: "COMPLETED",
-        paymentMethod: paymentMethod,
-        paymentStatus: "PAID",
-        completedAt: new Date(),
-        totalPrice: totalPrice // Atualizar com preço calculado
-      },
-      include: {
-        endUser: true,
-        professional: true,
-        services: true
-      }
+    // ✅ USA UMA TRANSAÇÃO PARA GARANTIR A INTEGRIDADE DOS DADOS
+    const updatedAppointment = await prisma.$transaction(async (tx) => {
+      // Operação 1: Atualizar o Agendamento
+      const appointment = await tx.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status: "COMPLETED",
+          paymentMethod: paymentMethod,
+          paymentStatus: "PAID",
+          completedAt: new Date(),
+          totalPrice: totalPrice // Atualizar com preço calculado
+        },
+        include: {
+          endUser: true,
+          professional: true,
+          services: true
+        }
+      })
+
+      // Operação 2: Atualizar os dados agregados do Cliente
+      await tx.endUser.update({
+        where: { id: existingAppointment.endUserId },
+        data: {
+          totalVisits: {
+            increment: 1, // Incrementa o número de visitas
+          },
+          totalSpent: {
+            increment: totalPrice, // Incrementa o gasto total
+          },
+          lastVisit: new Date(), // Atualiza a data da última visita
+        },
+      })
+
+      // Operação 3: Criar registro financeiro com o valor calculado
+      await tx.financialRecord.create({
+        data: {
+          type: "INCOME",
+          amount: totalPrice,
+          description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
+          paymentMethod: paymentMethod,
+          reference: appointmentId,
+          tenantId: appointment.tenantId,
+          date: new Date()
+        }
+      })
+
+      return appointment
     })
 
-    // Criar registro financeiro com o valor calculado
-    await prisma.financialRecord.create({
-      data: {
-        type: "INCOME",
-        amount: totalPrice,
-        description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
-        paymentMethod: paymentMethod,
-        reference: appointmentId,
-        tenantId: updatedAppointment.tenantId,
-        date: new Date()
-      }
+    console.log('✅ Transação concluída com sucesso:', {
+      appointmentId,
+      totalPrice,
+      clientUpdated: existingAppointment.endUserId,
+      message: 'Cliente atualizado: +1 visita, +' + totalPrice + ' gasto total'
     })
 
     return NextResponse.json({
