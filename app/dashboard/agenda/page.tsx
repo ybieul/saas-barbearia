@@ -37,6 +37,7 @@ import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 import { utcToBrazil, brazilToUtc, formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
+import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -46,6 +47,9 @@ export default function AgendaPage() {
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
+  const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     type: 'complete' | 'cancel' | 'delete' | null
@@ -851,16 +855,66 @@ export default function AgendaPage() {
   }
   const handleCompleteAppointment = async (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId)
-    const clientName = appointment?.endUser?.name || 'Cliente'
-    const serviceName = appointment?.services?.map((s: any) => s.name).join(' + ') || 'Serviço'
-    
-    setConfirmDialog({
-      isOpen: true,
-      type: 'complete',
-      appointmentId,
-      clientName,
-      serviceName
-    })
+    if (!appointment) return
+
+    // Preparar dados do agendamento para o modal
+    const appointmentData = {
+      id: appointmentId,
+      client: appointment.endUser?.name || 'Cliente',
+      service: appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço',
+      totalPrice: Number(appointment.totalPrice) || 0,
+      time: utcToBrazil(new Date(appointment.dateTime)).toTimeString().substring(0, 5)
+    }
+
+    setAppointmentToComplete(appointmentData)
+    setIsPaymentModalOpen(true)
+  }
+
+  // Função para concluir agendamento com forma de pagamento
+  const handleCompleteWithPayment = async (paymentMethod: string) => {
+    if (!appointmentToComplete) return
+
+    setIsCompletingAppointment(true)
+    try {
+      // Chamar nova API de conclusão com pagamento
+      const response = await fetch(`/api/appointments/${appointmentToComplete.id}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentMethod })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao concluir agendamento')
+      }
+
+      toast({
+        title: "✅ Sucesso",
+        description: "Agendamento concluído e pagamento registrado!",
+      })
+      
+      // Fechar modal e limpar estado
+      setIsPaymentModalOpen(false)
+      setAppointmentToComplete(null)
+      
+      // Recarregar dados da agenda
+      const currentDateString = currentDate.toISOString().split('T')[0]
+      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
+      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+      await fetchAppointments(currentDateString, statusParam, professionalParam)
+    } catch (error) {
+      console.error('Erro ao concluir agendamento:', error)
+      toast({
+        title: "❌ Erro",
+        description: error instanceof Error ? error.message : "Erro ao concluir agendamento. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCompletingAppointment(false)
+    }
   }
 
   // Abrir diálogo de confirmação para cancelar
@@ -891,16 +945,16 @@ export default function AgendaPage() {
           title: "Sucesso",
           description: "Agendamento excluído com sucesso!",
         })
-      } else {
-        // ✅ ATUALIZAÇÃO: Concluir ou cancelar agendamento
-        const status = confirmDialog.type === 'complete' ? 'COMPLETED' : 'CANCELLED'
-        await updateAppointment({ id: confirmDialog.appointmentId, status })
+      } else if (confirmDialog.type === 'cancel') {
+        // ✅ CANCELAMENTO: Cancelar agendamento
+        await updateAppointment({ id: confirmDialog.appointmentId, status: 'CANCELLED' })
         
         toast({
           title: "Sucesso",
-          description: `Agendamento ${confirmDialog.type === 'complete' ? 'concluído' : 'cancelado'} com sucesso!`,
+          description: "Agendamento cancelado com sucesso!",
         })
       }
+      // Nota: A conclusão agora é feita através do modal de pagamento
       
       // ✅ Recarregar dados com os mesmos filtros aplicados
       const currentDateString = currentDate.toISOString().split('T')[0]
@@ -908,8 +962,7 @@ export default function AgendaPage() {
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
     } catch (error) {
-      const actionText = confirmDialog.type === 'delete' ? 'excluir' : 
-                        confirmDialog.type === 'complete' ? 'concluir' : 'cancelar'
+      const actionText = confirmDialog.type === 'delete' ? 'excluir' : 'cancelar'
       
       toast({
         title: "Erro",
@@ -1885,14 +1938,10 @@ export default function AgendaPage() {
         <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
           <DialogHeader>
             <DialogTitle className="text-[#ededed]">
-              {confirmDialog.type === 'complete' ? 'Concluir Serviço' : 
-               confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 
-               'Excluir Agendamento'}
+              {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Agendamento'}
             </DialogTitle>
             <DialogDescription className="text-[#a1a1aa]">
-              {confirmDialog.type === 'complete' 
-                ? 'Tem certeza que deseja marcar este serviço como concluído?' 
-                : confirmDialog.type === 'cancel'
+              {confirmDialog.type === 'cancel'
                 ? 'Tem certeza que deseja cancelar este serviço?'
                 : 'Tem certeza que deseja excluir este agendamento permanentemente? Esta ação não pode ser desfeita.'
               }
@@ -1926,18 +1975,30 @@ export default function AgendaPage() {
             </Button>
             <Button
               onClick={handleConfirmAction}
-              className={confirmDialog.type === 'complete' 
-                ? "bg-[#10b981] hover:bg-[#059669]" 
-                : "bg-red-600 hover:bg-red-700"
-              }
+              className="bg-red-600 hover:bg-red-700"
             >
-              {confirmDialog.type === 'complete' ? 'Concluir' : 
-               confirmDialog.type === 'cancel' ? 'Cancelar Serviço' :
-               'Excluir Permanentemente'}
+              {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Permanentemente'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Forma de Pagamento */}
+      <PaymentMethodModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false)
+          setAppointmentToComplete(null)
+        }}
+        onSelectPayment={handleCompleteWithPayment}
+        appointmentData={appointmentToComplete ? {
+          client: appointmentToComplete.client,
+          service: appointmentToComplete.service,
+          totalPrice: appointmentToComplete.totalPrice || 0,
+          time: appointmentToComplete.time
+        } : undefined}
+        isLoading={isCompletingAppointment}
+      />
     </div>
   )
 }
