@@ -84,6 +84,7 @@ interface CustomerData {
   name: string
   phone: string
   email: string
+  birthDate?: string
   notes?: string
 }
 
@@ -112,6 +113,7 @@ export default function AgendamentoPage() {
     name: "",
     phone: "",
     email: "",
+    birthDate: "",
     notes: ""
   })
   
@@ -491,6 +493,7 @@ export default function AgendamentoPage() {
           ...prev,
           name: clientData.name || "",
           email: clientData.email || "",
+          birthDate: clientData.birthday ? new Date(clientData.birthday).toISOString().split('T')[0] : "",
           notes: clientData.notes || ""
         }))
         
@@ -747,6 +750,7 @@ export default function AgendamentoPage() {
         clientName: sanitizeInput(customerData.name),
         clientPhone: sanitizeInput(customerData.phone),
         clientEmail: sanitizeInput(customerData.email),
+        clientBirthDate: customerData.birthDate || null,
         professionalId: selectedProfessional?.id || null,
         serviceId: mainService.id, // Serviço principal (compatível com API)
         services: allServiceIds, // Array completo com principal + complementos
@@ -1879,6 +1883,21 @@ export default function AgendamentoPage() {
                           />
                         </div>
 
+                        {/* Data de Nascimento */}
+                        <div>
+                          <Label htmlFor="birthDate" className="text-[#ededed]">
+                            Data de nascimento
+                          </Label>
+                          <Input
+                            id="birthDate"
+                            type="date"
+                            value={customerData.birthDate || ""}
+                            onChange={(e) => setCustomerData(prev => ({...prev, birthDate: e.target.value}))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
+                            max={new Date().toISOString().split('T')[0]} // Não permitir datas futuras
+                          />
+                        </div>
+
                         {/* Observações */}
                         <div>
                           <Label htmlFor="notes" className="text-[#ededed]">
@@ -1990,6 +2009,11 @@ export default function AgendamentoPage() {
                       <p className="text-sm text-[#a1a1aa]">
                         <strong className="text-[#ededed]">E-mail:</strong> {customerData.email}
                       </p>
+                      {customerData.birthDate && (
+                        <p className="text-sm text-[#a1a1aa]">
+                          <strong className="text-[#ededed]">Data de nascimento:</strong> {new Date(customerData.birthDate).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
                       {customerData.notes && (
                         <p className="text-sm text-[#a1a1aa]">
                           <strong className="text-[#ededed]">Observações:</strong> {customerData.notes}

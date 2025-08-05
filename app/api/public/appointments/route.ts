@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
       clientName,
       clientPhone,
       clientEmail,
+      clientBirthDate,
       professionalId,
       serviceId,      // Serviço principal (compatibilidade)
       services,       // Array com todos os serviços (principal + upsells)
@@ -59,17 +60,19 @@ export async function POST(request: NextRequest) {
           name: clientName,
           phone: clientPhone,
           email: clientEmail || null,
+          birthday: clientBirthDate ? new Date(clientBirthDate) : null,
           notes: notes || null
         }
       })
     } else {
       // Atualizar dados do cliente existente se necessário
-      if (client.name !== clientName || client.email !== clientEmail) {
+      if (client.name !== clientName || client.email !== clientEmail || (clientBirthDate && !client.birthday)) {
         client = await prisma.endUser.update({
           where: { id: client.id },
           data: {
             name: clientName,
             email: clientEmail || client.email,
+            birthday: clientBirthDate ? new Date(clientBirthDate) : client.birthday,
             notes: notes || client.notes
           }
         })
