@@ -534,25 +534,26 @@ export default function AgendaPage() {
         return false
       }
 
+      // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
       // Validar se é hoje e o horário já passou
-      const now = new Date()
-      const isToday = selectedDate.getTime() === today.getTime()
+      // const now = new Date()
+      // const isToday = selectedDate.getTime() === today.getTime()
       
-      if (isToday) {
-        const [hours, minutes] = newAppointment.time.split(':').map(Number)
-        const appointmentTime = new Date()
-        appointmentTime.setHours(hours, minutes, 0, 0)
-        
-        if (appointmentTime <= now) {
-          toast({
-            title: "⏰ Horário Já Passou",
-            description: "Selecione um horário futuro para hoje",
-            variant: "destructive",
-          })
-          setNewAppointment(prev => ({...prev, time: ""}))
-          return false
-        }
-      }
+      // if (isToday) {
+      //   const [hours, minutes] = newAppointment.time.split(':').map(Number)
+      //   const appointmentTime = new Date()
+      //   appointmentTime.setHours(hours, minutes, 0, 0)
+      //   
+      //   if (appointmentTime <= now) {
+      //     toast({
+      //       title: "⏰ Horário Já Passou",
+      //       description: "Selecione um horário futuro para hoje",
+      //       variant: "destructive",
+      //     })
+      //     setNewAppointment(prev => ({...prev, time: ""}))
+      //     return false
+      //   }
+      // }
 
       // Verificar conflitos com dados atuais (sem recarregar)
       const appointmentData = {

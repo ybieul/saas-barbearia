@@ -144,14 +144,15 @@ export async function POST(request: NextRequest) {
     const appointmentBrazil = utcToBrazil(appointmentUTC)
     debugTimezone(appointmentUTC, 'Agendamento recebido')
     
+    // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
     // Verificar se a data não é no passado (usando timezone brasileiro)
-    const nowBrazil = utcToBrazil(new Date())
-    if (appointmentBrazil < nowBrazil) {
-      return NextResponse.json(
-        { message: 'Não é possível agendar em datas/horários passados' },
-        { status: 400 }
-      )
-    }
+    // const nowBrazil = utcToBrazil(new Date())
+    // if (appointmentBrazil < nowBrazil) {
+    //   return NextResponse.json(
+    //     { message: 'Não é possível agendar em datas/horários passados' },
+    //     { status: 400 }
+    //   )
+    // }
     
     // Obter horários de funcionamento do estabelecimento
     const workingHours = await prisma.workingHours.findMany({
@@ -367,14 +368,15 @@ export async function PUT(request: NextRequest) {
       const appointmentBrazil = utcToBrazil(appointmentUTC)
       debugTimezone(appointmentUTC, 'Update de agendamento recebido')
       
+      // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
       // Verificar se a data não é no passado (usando timezone brasileiro)
-      const nowBrazil = utcToBrazil(new Date())
-      if (appointmentBrazil < nowBrazil) {
-        return NextResponse.json(
-          { message: 'Não é possível agendar em datas/horários passados' },
-          { status: 400 }
-        )
-      }
+      // const nowBrazil = utcToBrazil(new Date())
+      // if (appointmentBrazil < nowBrazil) {
+      //   return NextResponse.json(
+      //     { message: 'Não é possível agendar em datas/horários passados' },
+      //     { status: 400 }
+      //   )
+      // }
       
       // Obter horários de funcionamento do estabelecimento
       const workingHours = await prisma.workingHours.findMany({
