@@ -137,12 +137,13 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Próximos agendamentos
+      // Próximos agendamentos - APENAS DO DIA ATUAL
       prisma.appointment.findMany({
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilNow()
+            gte: getBrazilNow(), // A partir de agora
+            lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
           },
           status: {
             in: ['CONFIRMED']
@@ -217,12 +218,13 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // Próximo agendamento
+      // Próximo agendamento - APENAS DO DIA ATUAL
       prisma.appointment.findFirst({
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilNow()
+            gte: getBrazilNow(), // A partir de agora
+            lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
           },
           status: {
             in: ['CONFIRMED']
@@ -251,7 +253,7 @@ export async function GET(request: NextRequest) {
       })
     ])
 
-    // Buscar próximos agendamentos por profissional
+    // Buscar próximos agendamentos por profissional - APENAS DO DIA ATUAL
     const nextAppointmentsByProfessional = await Promise.all(
       professionals.map(async (prof) => {
         const nextAppointment = await prisma.appointment.findFirst({
@@ -259,7 +261,8 @@ export async function GET(request: NextRequest) {
             tenantId: user.tenantId,
             professionalId: prof.id,
             dateTime: {
-              gte: getBrazilNow()
+              gte: getBrazilNow(), // A partir de agora
+              lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
             },
             status: {
               in: ['CONFIRMED', 'IN_PROGRESS']
