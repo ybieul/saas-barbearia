@@ -33,14 +33,28 @@ export async function PATCH(
       )
     }
 
-    // Atualizar o agendamento com status COMPLETED e forma de pagamento
+    // Calcular preço total baseado nos serviços do agendamento
+    const totalPrice = existingAppointment.services.reduce((total, service) => {
+      return total + Number(service.price || 0)
+    }, 0)
+
+    console.log('💰 Calculando preço total na conclusão:', {
+      appointmentId,
+      servicesCount: existingAppointment.services.length,
+      servicesPrices: existingAppointment.services.map(s => ({ name: s.name, price: s.price })),
+      totalPrice,
+      paymentMethod
+    })
+
+    // Atualizar o agendamento com status COMPLETED, forma de pagamento e preço total
     const updatedAppointment = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         status: "COMPLETED",
         paymentMethod: paymentMethod,
         paymentStatus: "PAID",
-        completedAt: new Date()
+        completedAt: new Date(),
+        totalPrice: totalPrice // Atualizar com preço calculado
       },
       include: {
         endUser: true,
@@ -49,11 +63,11 @@ export async function PATCH(
       }
     })
 
-    // Opcional: Criar registro financeiro
+    // Criar registro financeiro com o valor calculado
     await prisma.financialRecord.create({
       data: {
         type: "INCOME",
-        amount: updatedAppointment.totalPrice,
+        amount: totalPrice,
         description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
         paymentMethod: paymentMethod,
         reference: appointmentId,
