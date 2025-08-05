@@ -15,11 +15,30 @@ export async function GET(request: NextRequest) {
         ...(active !== null && { isActive: active === 'true' })
       },
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        birthday: true,
+        notes: true,
+        isActive: true,
+        createdAt: true,
+        totalSpent: true,
+        totalVisits: true,
+        lastVisit: true,
         appointments: {
           orderBy: { dateTime: 'desc' },
-          include: {
-            services: true
+          select: {
+            id: true,
+            dateTime: true,
+            status: true,
+            services: {
+              select: {
+                name: true,
+                price: true
+              }
+            }
           }
         }
       }

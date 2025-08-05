@@ -21,9 +21,13 @@ interface Client {
   notes?: string
   isActive: boolean
   createdAt: string
+  totalSpent?: number
+  totalVisits?: number
+  lastVisit?: string
   appointments: Array<{
     id: string
     dateTime: string
+    status: string
     services: Array<{
       name: string
       price: number
@@ -113,14 +117,26 @@ export default function ClientesPage() {
   }
 
   const calculateClientStats = (client: Client) => {
-    const totalSpent = client.appointments.reduce((total, app) => {
+    // Usar dados do banco quando disponíveis, senão calcular apenas dos COMPLETED
+    if (client.totalSpent !== undefined && client.totalVisits !== undefined) {
+      const averageTicket = client.totalVisits > 0 ? client.totalSpent / client.totalVisits : 0
+      return {
+        totalSpent: Number(client.totalSpent) || 0,
+        totalAppointments: Number(client.totalVisits) || 0,
+        averageTicket: Number(averageTicket) || 0
+      }
+    }
+
+    // Fallback: calcular apenas dos agendamentos COMPLETED
+    const completedAppointments = client.appointments.filter(app => app.status === 'COMPLETED')
+    const totalSpent = completedAppointments.reduce((total, app) => {
       const appointmentTotal = app.services?.reduce((sum, service) => {
         const price = Number(service.price) || 0
         return sum + price
       }, 0) || 0
       return total + appointmentTotal
     }, 0)
-    const totalAppointments = client.appointments.length
+    const totalAppointments = completedAppointments.length
     const averageTicket = totalAppointments > 0 ? totalSpent / totalAppointments : 0
     
     return {
