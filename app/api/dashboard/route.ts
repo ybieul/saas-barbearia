@@ -212,7 +212,8 @@ export async function GET(request: NextRequest) {
         },
         select: {
           id: true,
-          name: true
+          name: true,
+          avatar: true // Incluir avatar dos profissionais
         }
       }),
 
@@ -284,7 +285,8 @@ export async function GET(request: NextRequest) {
         return {
           professional: {
             id: prof.id,
-            name: prof.name
+            name: prof.name,
+            avatar: prof.avatar // Incluir avatar
           },
           nextAppointment: nextAppointment ? {
             id: nextAppointment.id,

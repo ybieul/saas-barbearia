@@ -11,6 +11,7 @@ import { useDashboard } from "@/hooks/use-api"
 import { useAppointments } from "@/hooks/use-api"
 import { Sparkline, TrendIndicator } from "@/components/ui/sparkline"
 import { useToast } from "@/hooks/use-toast"
+import Image from "next/image"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -19,6 +20,33 @@ export default function DashboardPage() {
   const { updateAppointment } = useAppointments()
   const { toast } = useToast()
   const router = useRouter()
+
+  // Componente para foto do profissional com fallback
+  const ProfessionalAvatar = ({ professional, size = "w-10 h-10" }: { professional: any, size?: string }) => {
+    const [imageError, setImageError] = useState(false)
+    
+    if (professional.avatar && !imageError) {
+      return (
+        <div className={`${size} rounded-full overflow-hidden bg-gradient-to-br from-[#10b981] to-[#059669] flex-shrink-0`}>
+          <Image
+            src={professional.avatar}
+            alt={professional.name}
+            width={40}
+            height={40}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      )
+    }
+    
+    // Fallback para avatar genérico
+    return (
+      <div className={`${size} bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center flex-shrink-0`}>
+        <User className="w-5 h-5 text-white" />
+      </div>
+    )
+  }
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -170,7 +198,7 @@ export default function DashboardPage() {
   console.log('🔍 Today appointments:', todayAppointments)
   console.log('🔍 Next appointment:', nextAppointment)
   console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
-  console.log('🔍 Professionals:', professionals)
+  console.log('🔍 Professionals with avatars:', professionals)
   console.log('🔍 Summary:', dashboardData?.summary)
 
   return (
@@ -233,9 +261,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {/* Header do Profissional */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
+                      <ProfessionalAvatar professional={item.professional} />
                       <div className="flex-1">
                         <h4 className="font-semibold text-[#ededed] text-sm">{item.professional.name}</h4>
                         <div className="flex items-center gap-1">
