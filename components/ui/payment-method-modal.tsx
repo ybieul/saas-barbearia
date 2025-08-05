@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, DollarSign, Smartphone, X } from "lucide-react"
+import { CreditCard, DollarSign, Smartphone } from "lucide-react"
 
 interface PaymentMethodModalProps {
   isOpen: boolean
@@ -62,20 +62,9 @@ export function PaymentMethodModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-[#ededed] text-lg">
-              💰 Como foi pago?
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              disabled={isLoading}
-              className="h-6 w-6 p-0 text-[#a1a1aa] hover:text-[#ededed]"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-[#ededed] text-lg">
+            💰 Como foi pago?
+          </DialogTitle>
           
           {appointmentData && (
             <div className="bg-[#0a0a0a]/50 rounded-lg p-3 mt-3 space-y-2">
