@@ -24,23 +24,12 @@ export async function GET(request: NextRequest) {
         notes: true,
         isActive: true,
         createdAt: true,
+        // ✅ CAMPOS AGREGADOS REAIS DO BANCO
         totalSpent: true,
         totalVisits: true,
         lastVisit: true,
-        appointments: {
-          orderBy: { dateTime: 'desc' },
-          select: {
-            id: true,
-            dateTime: true,
-            status: true,
-            services: {
-              select: {
-                name: true,
-                price: true
-              }
-            }
-          }
-        }
+        // ✅ APPOINTMENTS REMOVIDOS - NÃO NECESSÁRIOS PARA LISTAGEM
+        // appointments são desnecessários aqui, causam problema de performance
       }
     })
 

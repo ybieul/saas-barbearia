@@ -21,10 +21,12 @@ interface Client {
   notes?: string
   isActive: boolean
   createdAt: string
-  totalSpent?: number
-  totalVisits?: number
-  lastVisit?: string
-  appointments: Array<{
+  // ✅ DADOS REAIS DO BANCO DE DADOS
+  totalSpent: number    // Convertido do Decimal para Number
+  totalVisits: number   // Diretamente do banco
+  lastVisit?: string    // Diretamente do banco
+  // ✅ Appointments apenas para exibição de histórico (não para cálculos)
+  appointments?: Array<{
     id: string
     dateTime: string
     status: string
@@ -117,31 +119,14 @@ export default function ClientesPage() {
   }
 
   const calculateClientStats = (client: Client) => {
-    // Usar dados do banco quando disponíveis, senão calcular apenas dos COMPLETED
-    if (client.totalSpent !== undefined && client.totalVisits !== undefined) {
-      const averageTicket = client.totalVisits > 0 ? client.totalSpent / client.totalVisits : 0
-      return {
-        totalSpent: Number(client.totalSpent) || 0,
-        totalAppointments: Number(client.totalVisits) || 0,
-        averageTicket: Number(averageTicket) || 0
-      }
-    }
-
-    // Fallback: calcular apenas dos agendamentos COMPLETED
-    const completedAppointments = client.appointments.filter(app => app.status === 'COMPLETED')
-    const totalSpent = completedAppointments.reduce((total, app) => {
-      const appointmentTotal = app.services?.reduce((sum, service) => {
-        const price = Number(service.price) || 0
-        return sum + price
-      }, 0) || 0
-      return total + appointmentTotal
-    }, 0)
-    const totalAppointments = completedAppointments.length
+    // ✅ USAR APENAS DADOS DO BANCO DE DADOS - SEM CÁLCULOS
+    const totalSpent = Number(client.totalSpent) || 0
+    const totalAppointments = Number(client.totalVisits) || 0
     const averageTicket = totalAppointments > 0 ? totalSpent / totalAppointments : 0
     
     return {
-      totalSpent: Number(totalSpent) || 0,
-      totalAppointments,
+      totalSpent,
+      totalAppointments, 
       averageTicket: Number(averageTicket) || 0
     }
   }
@@ -318,7 +303,7 @@ export default function ClientesPage() {
               <div>
                 <p className="text-[#a1a1aa] text-sm">Com Agendamentos</p>
                 <p className="text-2xl font-bold text-[#ededed]">
-                  {clients.filter(client => client.appointments.length > 0).length}
+                  {clients.filter(client => client.totalVisits > 0).length}
                 </p>
               </div>
               <Calendar className="w-8 h-8 text-purple-400" />
@@ -366,9 +351,8 @@ export default function ClientesPage() {
           <div className="divide-y divide-gray-700">
             {filteredClients.map((client) => {
               const stats = calculateClientStats(client)
-              const lastVisit = client.appointments.length > 0 
-                ? utcToBrazil(new Date(Math.max(...client.appointments.map((app: any) => new Date(app.dateTime).getTime()))))
-                : null
+              // ✅ USAR LASTVISIT DO BANCO DE DADOS
+              const lastVisit = client.lastVisit ? utcToBrazil(new Date(client.lastVisit)) : null
               
               return (
                 <div key={client.id} className="grid grid-cols-12 gap-4 p-4 hover:bg-[#27272a]/80 transition-colors">
