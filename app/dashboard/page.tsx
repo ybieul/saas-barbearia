@@ -162,12 +162,14 @@ export default function DashboardPage() {
 
   const todayAppointments = dashboardData?.todayAppointments || []
   const nextAppointment = dashboardData?.nextAppointment
+  const nextAppointmentsByProfessional = dashboardData?.nextAppointmentsByProfessional || []
   const professionals = dashboardData?.professionals || []
 
   // Debug detalhado
   console.log('🔍 Dashboard data recebido:', dashboardData)
   console.log('🔍 Today appointments:', todayAppointments)
   console.log('🔍 Next appointment:', nextAppointment)
+  console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
   console.log('🔍 Professionals:', professionals)
   console.log('🔍 Summary:', dashboardData?.summary)
 
@@ -210,8 +212,110 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Próximo Agendamento em Destaque */}
-      {nextAppointment && (
+      {/* Próximos Agendamentos por Profissional */}
+      {nextAppointmentsByProfessional.length > 0 && (
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
+                <CardTitle className="text-[#ededed] text-lg">Próximos na Fila</CardTitle>
+              </div>
+              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
+                {nextAppointmentsByProfessional.length} profissionais
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {nextAppointmentsByProfessional.map((item: any) => (
+                <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/50 transition-colors">
+                  <div className="space-y-3">
+                    {/* Header do Profissional */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-[#ededed] text-sm">{item.professional.name}</h4>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-[#10b981]" />
+                          <span className="text-xs text-[#a1a1aa]">Próximo</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Informações do Agendamento */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
+                        <Badge
+                          className={
+                            item.nextAppointment.status === "IN_PROGRESS"
+                              ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                              : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          }
+                        >
+                          {item.nextAppointment.status === "IN_PROGRESS" ? "Em andamento" : "Confirmado"}
+                        </Badge>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium text-[#ededed] text-sm">{item.nextAppointment.client}</p>
+                        <p className="text-xs text-[#a1a1aa]">
+                          {item.nextAppointment.service}
+                          <span className="ml-1">({item.nextAppointment.duration} min)</span>
+                        </p>
+                      </div>
+                      
+                      {/* Ações */}
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1 border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50 text-xs"
+                          onClick={() => router.push('/dashboard/clientes')}
+                        >
+                          <User className="w-3 h-3 mr-1" />
+                          Ver Cliente
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-[#10b981] hover:bg-[#059669] text-xs"
+                          onClick={() => handleCompleteAppointment(item.nextAppointment.id)}
+                          disabled={isCompletingAppointment}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {isCompletingAppointment ? "..." : "Concluir"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Mostrar profissionais livres se existirem */}
+            {professionals.filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id)).length > 0 && (
+              <div className="mt-4 pt-4 border-t border-[#27272a]">
+                <p className="text-sm text-[#a1a1aa] mb-2">Profissionais livres hoje:</p>
+                <div className="flex flex-wrap gap-2">
+                  {professionals
+                    .filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id))
+                    .map((prof: any) => (
+                      <Badge key={prof.id} variant="outline" className="border-[#27272a] text-[#a1a1aa]">
+                        {prof.name}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fallback: Próximo Agendamento Geral (caso não haja por profissional) */}
+      {nextAppointmentsByProfessional.length === 0 && nextAppointment && (
         <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
           <CardHeader>
             <div className="flex items-center justify-between">

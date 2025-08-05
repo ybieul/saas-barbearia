@@ -250,6 +250,55 @@ export async function GET(request: NextRequest) {
       })
     ])
 
+    // Buscar próximos agendamentos por profissional
+    const nextAppointmentsByProfessional = await Promise.all(
+      professionals.map(async (prof) => {
+        const nextAppointment = await prisma.appointment.findFirst({
+          where: {
+            tenantId: user.tenantId,
+            professionalId: prof.id,
+            dateTime: {
+              gte: getBrazilNow()
+            },
+            status: {
+              in: ['CONFIRMED', 'IN_PROGRESS']
+            }
+          },
+          orderBy: { dateTime: 'asc' },
+          include: {
+            endUser: {
+              select: {
+                name: true,
+                phone: true
+              }
+            },
+            services: {
+              select: {
+                name: true,
+                duration: true
+              }
+            }
+          }
+        })
+
+        return {
+          professional: {
+            id: prof.id,
+            name: prof.name
+          },
+          nextAppointment: nextAppointment ? {
+            id: nextAppointment.id,
+            time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
+            date: utcToBrazil(new Date(nextAppointment.dateTime)).toLocaleDateString('pt-BR'),
+            client: nextAppointment.endUser?.name || 'Cliente sem nome',
+            service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
+            duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
+            status: nextAppointment.status
+          } : null
+        }
+      })
+    )
+
     // Calcular métricas
     const revenue = totalRevenue._sum.totalPrice || 0
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
@@ -477,6 +526,7 @@ export async function GET(request: NextRequest) {
           professional: nextAppointment.professional?.name || 'Sem profissional',
           duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30
         } : null,
+        nextAppointmentsByProfessional: nextAppointmentsByProfessional.filter(item => item.nextAppointment !== null), // Apenas profissionais com próximos agendamentos
         professionals: professionalsWithOccupancy,
         sparklines: {
           revenue: sparklineData.map(d => d.revenue),
