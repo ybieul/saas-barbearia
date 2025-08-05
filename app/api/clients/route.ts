@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
       include: {
         appointments: {
           orderBy: { dateTime: 'desc' },
-          take: 1,
           include: {
             services: true
           }
