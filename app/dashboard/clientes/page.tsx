@@ -114,16 +114,19 @@ export default function ClientesPage() {
 
   const calculateClientStats = (client: Client) => {
     const totalSpent = client.appointments.reduce((total, app) => {
-      const appointmentTotal = app.services?.reduce((sum, service) => sum + (service.price || 0), 0) || 0
+      const appointmentTotal = app.services?.reduce((sum, service) => {
+        const price = Number(service.price) || 0
+        return sum + price
+      }, 0) || 0
       return total + appointmentTotal
     }, 0)
     const totalAppointments = client.appointments.length
     const averageTicket = totalAppointments > 0 ? totalSpent / totalAppointments : 0
     
     return {
-      totalSpent,
+      totalSpent: Number(totalSpent) || 0,
       totalAppointments,
-      averageTicket
+      averageTicket: Number(averageTicket) || 0
     }
   }
 
@@ -316,11 +319,10 @@ export default function ClientesPage() {
                     style: 'currency', 
                     currency: 'BRL' 
                   }).format(
-                    clients.reduce((total, client) => 
-                      total + client.appointments.reduce((clientTotal: number, app: any) => {
-                        const appointmentTotal = app.services?.reduce((sum: number, service: any) => sum + (service.price || 0), 0) || 0
-                        return clientTotal + appointmentTotal
-                      }, 0), 0)
+                    clients.reduce((total, client) => {
+                      const clientStats = calculateClientStats(client)
+                      return total + clientStats.totalSpent
+                    }, 0)
                   )}
                 </p>
               </div>
