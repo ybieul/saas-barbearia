@@ -12,10 +12,13 @@ import { useAppointments } from "@/hooks/use-api"
 import { Sparkline, TrendIndicator } from "@/components/ui/sparkline"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
+import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
   const { updateAppointment } = useAppointments()
   const { toast } = useToast()
@@ -73,16 +76,41 @@ export default function DashboardPage() {
     router.push('/dashboard/relatorios')
   }
 
-  // Função para concluir agendamento
-  const handleCompleteAppointment = async (appointmentId: string) => {
+  // Função para abrir modal de pagamento
+  const handleCompleteAppointment = (appointment: any) => {
+    setAppointmentToComplete(appointment)
+    setIsPaymentModalOpen(true)
+  }
+
+  // Função para concluir agendamento com forma de pagamento
+  const handleCompleteWithPayment = async (paymentMethod: string) => {
+    if (!appointmentToComplete) return
+
     setIsCompletingAppointment(true)
     try {
-      await updateAppointment({ id: appointmentId, status: 'COMPLETED' })
-      
+      // Chamar nova API de conclusão com pagamento
+      const response = await fetch(`/api/appointments/${appointmentToComplete.id}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentMethod })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao concluir agendamento')
+      }
+
       toast({
         title: "✅ Sucesso",
-        description: "Agendamento concluído com sucesso!",
+        description: "Agendamento concluído e pagamento registrado!",
       })
+      
+      // Fechar modal e limpar estado
+      setIsPaymentModalOpen(false)
+      setAppointmentToComplete(null)
       
       // Recarregar dados do dashboard
       await fetchDashboardData('today')
@@ -90,7 +118,7 @@ export default function DashboardPage() {
       console.error('Erro ao concluir agendamento:', error)
       toast({
         title: "❌ Erro",
-        description: "Erro ao concluir agendamento. Tente novamente.",
+        description: error instanceof Error ? error.message : "Erro ao concluir agendamento. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -308,7 +336,7 @@ export default function DashboardPage() {
                         <Button 
                           size="sm" 
                           className="flex-1 bg-[#10b981] hover:bg-[#059669] text-xs"
-                          onClick={() => handleCompleteAppointment(item.nextAppointment.id)}
+                          onClick={() => handleCompleteAppointment(item.nextAppointment)}
                           disabled={isCompletingAppointment}
                         >
                           <CheckCircle className="w-3 h-3 mr-1" />
@@ -384,7 +412,7 @@ export default function DashboardPage() {
                 <Button 
                   size="sm" 
                   className="bg-[#10b981] hover:bg-[#059669]"
-                  onClick={() => handleCompleteAppointment(nextAppointment.id)}
+                  onClick={() => handleCompleteAppointment(nextAppointment)}
                   disabled={isCompletingAppointment}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
@@ -598,6 +626,23 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Modal de Forma de Pagamento */}
+      <PaymentMethodModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false)
+          setAppointmentToComplete(null)
+        }}
+        onSelectPayment={handleCompleteWithPayment}
+        appointmentData={appointmentToComplete ? {
+          client: appointmentToComplete.client,
+          service: appointmentToComplete.service,
+          totalPrice: appointmentToComplete.totalPrice || 0,
+          time: appointmentToComplete.time
+        } : undefined}
+        isLoading={isCompletingAppointment}
+      />
     </div>
   )
 }

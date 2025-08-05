@@ -295,7 +295,8 @@ export async function GET(request: NextRequest) {
             client: nextAppointment.endUser?.name || 'Cliente sem nome',
             service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
             duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
-            status: nextAppointment.status
+            status: nextAppointment.status,
+            totalPrice: Number(nextAppointment.totalPrice) || 0
           } : null
         }
       })
@@ -526,7 +527,8 @@ export async function GET(request: NextRequest) {
           client: nextAppointment.endUser?.name || 'Cliente sem nome',
           service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: nextAppointment.professional?.name || 'Sem profissional',
-          duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30
+          duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
+          totalPrice: Number(nextAppointment.totalPrice) || 0
         } : null,
         nextAppointmentsByProfessional: nextAppointmentsByProfessional.filter(item => item.nextAppointment !== null), // Apenas profissionais com próximos agendamentos
         professionals: professionalsWithOccupancy,
