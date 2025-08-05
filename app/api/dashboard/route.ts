@@ -212,20 +212,7 @@ export async function GET(request: NextRequest) {
         },
         select: {
           id: true,
-          name: true,
-          _count: {
-            select: {
-              appointments: {
-                where: {
-                  dateTime: {
-                    gte: getBrazilStartOfDay(getBrazilNow()),
-                    lte: getBrazilEndOfDay(getBrazilNow())
-                  }
-                  // Remover filtro de status
-                }
-              }
-            }
-          }
+          name: true
         }
       }),
 
@@ -319,24 +306,88 @@ export async function GET(request: NextRequest) {
         })
     }
 
-    // Calcular taxa de ocupação por profissional (melhorada)
-    const professionalsWithOccupancy = professionals.map((prof) => {
-      // Base mais realista - 8 slots por dia útil
-      const totalSlots = 8
-      const occupiedSlots = prof._count.appointments
-      const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0
-      
-      console.log(`🔍 Professional ${prof.name}: ${occupiedSlots}/${totalSlots} slots = ${occupancyRate}%`)
-      
-      return {
-        id: prof.id,
-        name: prof.name,
-        appointmentsToday: prof._count.appointments,
-        occupancyRate: Math.min(occupancyRate, 100) // Máximo 100%
-      }
-    })
+    // Calcular taxa de ocupação por profissional (usando horário real de funcionamento)
+    const professionalsWithOccupancy = await Promise.all(
+      professionals.map(async (prof) => {
+        // Buscar agendamentos do profissional para hoje
+        const professionalAppointments = await prisma.appointment.findMany({
+          where: {
+            tenantId: user.tenantId,
+            professionalId: prof.id,
+            dateTime: {
+              gte: getBrazilStartOfDay(getBrazilNow()),
+              lte: getBrazilEndOfDay(getBrazilNow())
+            },
+            status: {
+              not: 'CANCELLED' // Excluir cancelados
+            }
+          },
+          include: {
+            services: {
+              select: {
+                duration: true
+              }
+            }
+          }
+        })
 
-    console.log('🔍 Professionals with occupancy:', professionalsWithOccupancy)
+        // Calcular total de minutos ocupados
+        const totalOccupiedMinutes = professionalAppointments.reduce((sum, apt) => {
+          const serviceDuration = apt.services?.reduce((total, service) => total + (service.duration || 30), 0) || 30
+          return sum + serviceDuration
+        }, 0)
+
+        // Buscar horário de funcionamento para hoje
+        const today = getBrazilNow()
+        const dayName = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+        
+        const workingHour = await prisma.workingHours.findFirst({
+          where: {
+            tenantId: user.tenantId,
+            dayOfWeek: dayName,
+            isActive: true
+          }
+        })
+
+        // Calcular minutos disponíveis baseado no horário real
+        let totalAvailableMinutes = 600 // Default 10 horas
+        
+        if (workingHour && workingHour.startTime && workingHour.endTime) {
+          const [startHour, startMinute] = workingHour.startTime.split(':').map(Number)
+          const [endHour, endMinute] = workingHour.endTime.split(':').map(Number)
+          
+          const startTotalMinutes = startHour * 60 + startMinute
+          const endTotalMinutes = endHour * 60 + endMinute
+          
+          totalAvailableMinutes = endTotalMinutes - startTotalMinutes
+          
+          console.log(`🕐 Horário ${dayName}: ${workingHour.startTime} - ${workingHour.endTime} = ${totalAvailableMinutes} minutos`)
+        } else {
+          console.log(`⚠️  Horário não configurado para ${dayName}, usando padrão: ${totalAvailableMinutes} minutos`)
+        }
+        
+        const occupancyRate = totalAvailableMinutes > 0 
+          ? Math.round((totalOccupiedMinutes / totalAvailableMinutes) * 100) 
+          : 0
+        
+        console.log(`🔍 Professional ${prof.name}: ${totalOccupiedMinutes}min/${totalAvailableMinutes}min = ${occupancyRate}%`)
+        
+        return {
+          id: prof.id,
+          name: prof.name,
+          appointmentsToday: professionalAppointments.length,
+          occupancyRate: Math.min(occupancyRate, 100) // Máximo 100%
+        }
+      })
+    )
+
+    // Calcular ocupação geral baseada nos profissionais
+    const averageOccupancyRate = professionalsWithOccupancy.length > 0 
+      ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
+      : 0
+
+    console.log('🔍 Profissionais com ocupação calculada:', professionalsWithOccupancy)
+    console.log('🔍 Taxa de ocupação média:', averageOccupancyRate)
 
     // TODO: Reativar depois se necessário
     // Dados para gráficos - receita por dia (últimos 7 dias)
@@ -400,17 +451,13 @@ export async function GET(request: NextRequest) {
           pendingAppointments,
           conversionRate: Math.round(conversionRate * 100) / 100,
           cancellationRate: Math.round(cancellationRate * 100) / 100,
-          occupancyRate: professionalsWithOccupancy.length > 0 
-            ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
-            : 0
+          occupancyRate: averageOccupancyRate
         },
         stats: {
           totalRevenue: Number(revenue),
           totalClients,
           totalAppointments,
-          occupancyRate: professionalsWithOccupancy.length > 0 
-            ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
-            : 0
+          occupancyRate: averageOccupancyRate
         },
         todayAppointments: todayAppointments.map(apt => ({
           id: apt.id,
