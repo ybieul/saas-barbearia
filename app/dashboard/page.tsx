@@ -4,8 +4,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
+import { Sparkline, TrendIndicator } from "@/components/ui/sparkline"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -78,22 +81,34 @@ export default function DashboardPage() {
     return `${sign}${Math.round(change)}%`
   }
 
+  // Dados dos sparklines
+  const sparklines = dashboardData?.sparklines || {
+    revenue: [],
+    appointments: [],
+    clients: [],
+    dates: []
+  }
+
   const stats = [
     {
       title: "Faturamento Hoje",
-      value: dashboardData?.stats?.totalRevenue ? 
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.stats.totalRevenue) : 
+      value: dashboardData?.summary?.revenue ? 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.summary.revenue) : 
         "R$ 0,00",
-      change: calculateChange(dashboardData?.stats?.totalRevenue || 0, yesterdayRevenue),
+      change: calculateChange(dashboardData?.summary?.revenue || 0, yesterdayRevenue),
       icon: DollarSign,
       color: "text-[#10b981]",
+      sparklineData: sparklines.revenue,
+      trend: sparklines.revenue
     },
     {
       title: "Clientes Ativos",
-      value: dashboardData?.stats?.totalClients?.toString() || "0",
-      change: calculateChange(dashboardData?.stats?.totalClients || 0, yesterdayClients),
+      value: dashboardData?.summary?.totalClients?.toString() || "0",
+      change: calculateChange(dashboardData?.summary?.totalClients || 0, yesterdayClients),
       icon: Users,
       color: "text-[#10b981]",
+      sparklineData: sparklines.clients,
+      trend: sparklines.clients
     },
     {
       title: "Agendamentos Hoje",
@@ -101,17 +116,23 @@ export default function DashboardPage() {
       change: calculateChange(dashboardData?.todayAppointments?.length || 0, yesterdayAppointments),
       icon: Calendar,
       color: "text-[#fbbf24]",
+      sparklineData: sparklines.appointments,
+      trend: sparklines.appointments
     },
     {
       title: "Taxa de Ocupação",
-      value: `${Math.round(dashboardData?.stats?.occupancyRate || 0)}%`,
-      change: calculateChange(dashboardData?.stats?.occupancyRate || 0, yesterdayOccupancy),
+      value: `${Math.round(dashboardData?.summary?.occupancyRate || 0)}%`,
+      change: calculateChange(dashboardData?.summary?.occupancyRate || 0, yesterdayOccupancy),
       icon: TrendingUp,
       color: "text-[#3f3f46]",
+      sparklineData: sparklines.appointments, // Usar dados de agendamentos como proxy
+      trend: sparklines.appointments
     },
   ]
 
   const todayAppointments = dashboardData?.todayAppointments || []
+  const nextAppointment = dashboardData?.nextAppointment
+  const professionals = dashboardData?.professionals || []
 
   console.log('Dashboard data recebido:', dashboardData)
   console.log('Today appointments:', todayAppointments)
@@ -124,138 +145,283 @@ export default function DashboardPage() {
         <p className="text-[#a1a1aa] capitalize">{today}</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards com Sparklines */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="bg-[#18181b] border-[#27272a]">
+          <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#ededed]">{stat.value}</div>
-              <p className="text-xs text-[#10b981]">{stat.change} em relação a ontem</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold text-[#ededed]">{stat.value}</div>
+                  <div className="flex items-center gap-2">
+                    <Sparkline 
+                      data={stat.sparklineData} 
+                      color={stat.color.includes('#10b981') ? '#10b981' : stat.color.includes('#fbbf24') ? '#fbbf24' : '#3f3f46'} 
+                      width={60} 
+                      height={20} 
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#10b981]">{stat.change} vs ontem</p>
+                  <TrendIndicator data={stat.trend} showPercentage={false} />
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Today's Schedule */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-[#18181b] border-[#27272a]">
+      {/* Próximo Agendamento em Destaque */}
+      {nextAppointment && (
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-[#10b981]" />
-                Agenda de Hoje
-              </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
+                <CardTitle className="text-[#ededed] text-lg">O que vem a seguir?</CardTitle>
+              </div>
               <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
-                {todayAppointments.length} agendamentos
+                Próximo
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {todayAppointments.length > 0 ? (
-                todayAppointments.map((appointment: any, index: number) => (
-                  <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-lg font-semibold text-[#ededed]">{appointment.time}</span>
-                          <Badge
-                            className={
-                              appointment.status === "completed"
-                                ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
-                                : "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
-                            }
-                          >
-                            {appointment.status === "completed"
-                              ? "Concluído"
-                              : "Confirmado"}
-                          </Badge>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl font-bold text-[#10b981]">{nextAppointment.time}</span>
+                  <span className="text-sm text-[#a1a1aa]">{nextAppointment.date}</span>
+                </div>
+                <p className="text-lg font-semibold text-[#ededed]">{nextAppointment.client}</p>
+                <p className="text-sm text-[#a1a1aa]">
+                  {nextAppointment.service} 
+                  {nextAppointment.professional && ` com ${nextAppointment.professional}`}
+                  <span className="ml-2 text-xs">({nextAppointment.duration} min)</span>
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
+                onClick={() => router.push('/dashboard/clientes')}
+              >
+                <User className="w-4 h-4 mr-1" />
+                Ver Histórico
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Layout Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Agenda de Hoje - 2 colunas */}
+        <div className="lg:col-span-2">
+          <Card className="bg-[#18181b] border-[#27272a]">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#10b981]" />
+                  Agenda de Hoje
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
+                    {todayAppointments.length} agendamentos
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push('/dashboard/agenda')}
+                    className="border-[#27272a] hover:bg-[#27272a]"
+                  >
+                    Ver Todos
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {todayAppointments.length > 0 ? (
+                  todayAppointments.slice(0, 6).map((appointment: any, index: number) => (
+                    <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/30 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-5 h-5 text-white" />
                         </div>
-                        <p className="text-[#ededed] font-medium">{appointment.client}</p>
-                        <p className="text-sm text-[#a1a1aa]">{appointment.service}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-lg font-semibold text-[#ededed]">{appointment.time}</span>
+                            <Badge
+                              className={
+                                appointment.status === "COMPLETED"
+                                  ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
+                                  : appointment.status === "IN_PROGRESS"
+                                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              }
+                            >
+                              {appointment.status === "COMPLETED"
+                                ? "Concluído"
+                                : appointment.status === "IN_PROGRESS"
+                                ? "Em andamento"
+                                : "Confirmado"}
+                            </Badge>
+                          </div>
+                          <p className="text-[#ededed] font-medium">{appointment.client}</p>
+                          <p className="text-sm text-[#a1a1aa]">
+                            {appointment.service}
+                            {appointment.professional && ` • ${appointment.professional}`}
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-[#a1a1aa]">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 text-[#71717a]" />
+                    <h3 className="text-lg font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
+                    <p className="text-sm">Que tal aproveitar para planejar o amanhã?</p>
+                    <Button 
+                      className="mt-3 bg-[#10b981] hover:bg-[#059669]"
+                      onClick={() => router.push('/dashboard/agenda')}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Criar Agendamento
+                    </Button>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-[#a1a1aa]">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 text-[#71717a]" />
-                  <p>Nenhum agendamento para hoje</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+                {todayAppointments.length > 6 && (
+                  <div className="text-center pt-2">
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => router.push('/dashboard/agenda')}
+                      className="text-[#10b981] hover:bg-[#10b981]/10"
+                    >
+                      Ver mais {todayAppointments.length - 6} agendamentos
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Quick Actions */}
-        <Card className="bg-[#18181b] border-[#27272a]">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-[#a1a1aa] text-lg font-semibold">Ações Rápidas</CardTitle>
-            <CardDescription className="text-[#a1a1aa] text-sm">Acesso rápido às principais funcionalidades</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={handleNewClient}
-                className="group relative p-6 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#10b981]/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <Users className="w-6 h-6 text-white" />
+        {/* Painel Lateral */}
+        <div className="space-y-6">
+          {/* Taxa de Ocupação por Profissional */}
+          <Card className="bg-[#18181b] border-[#27272a]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-[#a1a1aa] text-base font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#10b981]" />
+                Ocupação por Profissional
+              </CardTitle>
+              <CardDescription className="text-[#a1a1aa] text-xs">Distribuição de agendamentos hoje</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {professionals.length > 0 ? (
+                  professionals.map((prof: any) => (
+                    <div key={prof.id} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[#ededed] font-medium">{prof.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#a1a1aa]">{prof.appointmentsToday} agend.</span>
+                          <span className="text-[#10b981] font-semibold">{prof.occupancyRate}%</span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={prof.occupancyRate} 
+                        className="h-2 bg-[#27272a]"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-[#a1a1aa]">
+                    <Users className="w-8 h-8 mx-auto mb-2 text-[#71717a]" />
+                    <p className="text-sm">Nenhum profissional cadastrado</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 border-[#27272a] hover:bg-[#27272a]"
+                      onClick={() => router.push('/dashboard/configuracoes')}
+                    >
+                      Cadastrar Profissional
+                    </Button>
                   </div>
-                  <p className="text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Novo Cliente</p>
-                </div>
-              </button>
-              
-              <button 
-                onClick={handleSchedule}
-                className="group relative p-6 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#10b981]/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <Calendar className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ações Rápidas */}
+          <Card className="bg-[#18181b] border-[#27272a]">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#a1a1aa] text-base font-semibold">Ações Rápidas</CardTitle>
+              <CardDescription className="text-[#a1a1aa] text-xs">Acesso rápido às principais funcionalidades</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={handleNewClient}
+                  className="group relative p-4 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Novo Cliente</p>
                   </div>
-                  <p className="text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Agendar</p>
-                </div>
-              </button>
-              
-              <button 
-                onClick={handleFinancial}
-                className="group relative p-6 bg-gradient-to-br from-[#fbbf24]/10 to-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl hover:from-[#fbbf24]/20 hover:to-[#fbbf24]/10 hover:border-[#fbbf24]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fbbf24]/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#fbbf24]/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <DollarSign className="w-6 h-6 text-white" />
+                </button>
+                
+                <button 
+                  onClick={handleSchedule}
+                  className="group relative p-4 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <Calendar className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Agendar</p>
                   </div>
-                  <p className="text-sm font-medium text-[#ededed] group-hover:text-[#fbbf24] transition-colors">Financeiro</p>
-                </div>
-              </button>
-              
-              <button 
-                onClick={handleReports}
-                className="group relative p-6 bg-gradient-to-br from-[#3f3f46]/10 to-[#3f3f46]/5 border border-[#27272a] rounded-xl hover:from-[#3f3f46]/20 hover:to-[#3f3f46]/10 hover:border-[#3f3f46]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#3f3f46]/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3f3f46]/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#3f3f46] to-[#27272a] rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <TrendingUp className="w-6 h-6 text-white" />
+                </button>
+                
+                <button 
+                  onClick={handleFinancial}
+                  className="group relative p-4 bg-gradient-to-br from-[#fbbf24]/10 to-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl hover:from-[#fbbf24]/20 hover:to-[#fbbf24]/10 hover:border-[#fbbf24]/30 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#fbbf24] transition-colors">Financeiro</p>
                   </div>
-                  <p className="text-sm font-medium text-[#ededed] group-hover:text-[#3f3f46] transition-colors">Relatórios</p>
-                </div>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+                </button>
+                
+                <button 
+                  onClick={handleReports}
+                  className="group relative p-4 bg-gradient-to-br from-[#3f3f46]/10 to-[#3f3f46]/5 border border-[#27272a] rounded-xl hover:from-[#3f3f46]/20 hover:to-[#3f3f46]/10 hover:border-[#3f3f46]/30 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#3f3f46] to-[#27272a] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#3f3f46] transition-colors">Relatórios</p>
+                  </div>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
