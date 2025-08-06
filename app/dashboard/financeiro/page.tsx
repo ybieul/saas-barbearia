@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight } from "lucide-react"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
@@ -159,12 +159,14 @@ export default function FinanceiroPage() {
       const price = parseFloat(app.totalPrice) || 0
       
       // Mapear valores do banco para nomes padronizados
-      if (method === 'CASH' || method === 'NULL') {
+      if (method === 'CASH') {
         method = 'Dinheiro'
       } else if (method === 'CARD') {
         method = 'Cartão'
       } else if (method === 'PIX') {
         method = 'PIX'
+      } else if (method === 'NULL') {
+        method = 'Não informado'
       } else {
         method = 'Outros'
       }
@@ -189,7 +191,8 @@ export default function FinanceiroPage() {
       'Dinheiro': { icon: Banknote, color: 'text-green-400', bgColor: 'bg-green-400' },
       'Cartão': { icon: CreditCard, color: 'text-blue-400', bgColor: 'bg-blue-400' },
       'PIX': { icon: DollarSign, color: 'text-purple-400', bgColor: 'bg-purple-400' },
-      'Outros': { icon: DollarSign, color: 'text-gray-400', bgColor: 'bg-gray-400' }
+      'Não informado': { icon: HelpCircle, color: 'text-gray-400', bgColor: 'bg-gray-400' },
+      'Outros': { icon: DollarSign, color: 'text-orange-400', bgColor: 'bg-orange-400' }
     }
 
     return Object.entries(paymentGroups).map(([method, data]) => ({
@@ -333,12 +336,14 @@ export default function FinanceiroPage() {
       .map(app => {
         // Normalizar método de pagamento
         let paymentMethod = app.paymentMethod || 'NULL'
-        if (paymentMethod === 'CASH' || paymentMethod === 'NULL') {
+        if (paymentMethod === 'CASH') {
           paymentMethod = 'Dinheiro'
         } else if (paymentMethod === 'CARD') {
           paymentMethod = 'Cartão'
         } else if (paymentMethod === 'PIX') {
           paymentMethod = 'PIX'
+        } else if (paymentMethod === 'NULL') {
+          paymentMethod = 'Não informado'
         } else {
           paymentMethod = 'Outros'
         }
