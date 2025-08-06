@@ -203,7 +203,13 @@ export default function FinanceiroPage() {
       count: (data as any).count,
       amount: (data as any).amount,
       percentage: totalRevenue > 0 ? Math.round(((data as any).amount / totalRevenue) * 100) : 0
-    })).sort((a, b) => b.amount - a.amount) // Ordenar por valor decrescente
+    })).sort((a, b) => {
+      // Colocar "Não informado" sempre por último
+      if (a.method === 'Não informado') return 1
+      if (b.method === 'Não informado') return -1
+      // Para os outros, ordenar por valor decrescente
+      return b.amount - a.amount
+    })
   }, [completedAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
