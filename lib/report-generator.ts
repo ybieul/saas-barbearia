@@ -6,7 +6,7 @@ import { formatBrazilDate, getBrazilNow } from './timezone'
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => void
+    autoTable: (options: any) => jsPDF
     lastAutoTable: {
       finalY: number
     }
@@ -120,7 +120,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 20
+  yPos = doc.lastAutoTable.finalY + 20
 
   // 3. RECEITA DIÁRIA
   checkPageBreak(80)
@@ -155,7 +155,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 20
+  yPos = doc.lastAutoTable.finalY + 20
 
   // 4. ANÁLISE MENSAL
   checkPageBreak(60)
@@ -182,7 +182,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 20
+  yPos = doc.lastAutoTable.finalY + 20
 
   // 5. TRANSAÇÕES RECENTES
   checkPageBreak(80)
@@ -209,7 +209,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 20
+  yPos = doc.lastAutoTable.finalY + 20
 
   // 6. SERVIÇOS MAIS VENDIDOS
   checkPageBreak(80)
@@ -235,7 +235,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 20
+  yPos = doc.lastAutoTable.finalY + 20
 
   // 7. FORMAS DE PAGAMENTO
   checkPageBreak(80)
