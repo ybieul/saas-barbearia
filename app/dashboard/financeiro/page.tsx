@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,18 +23,20 @@ export default function FinanceiroPage() {
     fetchAppointments() // Buscar todos os agendamentos para transações
   }, [period, fetchDashboardData, fetchAppointments])
 
-  // Filtrar apenas agendamentos concluídos com dados válidos
-  const completedAppointments = appointments.filter(app => 
-    app.status === 'COMPLETED' && 
-    app.totalPrice > 0 && 
-    app.dateTime &&
-    utcToBrazil(new Date(app.dateTime)) <= getBrazilNow() // Apenas agendamentos já realizados
+  // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados
+  const completedAppointments = useMemo(() => 
+    appointments.filter(app => 
+      app.status === 'COMPLETED' && 
+      app.totalPrice > 0 && 
+      app.dateTime &&
+      utcToBrazil(new Date(app.dateTime)) <= getBrazilNow() // Apenas agendamentos já realizados
+    ), [appointments]
   )
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
     return completedAppointments.filter(app => {
-      const appointmentDate = utcToBrazil(new Date(app.date))
+      const appointmentDate = utcToBrazil(new Date(app.dateTime))
       return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
     })
   }
@@ -52,7 +54,7 @@ export default function FinanceiroPage() {
       
       // Filtrar agendamentos do mês específico
       const monthAppointments = completedAppointments.filter(app => {
-        const appointmentDate = utcToBrazil(new Date(app.date))
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
         return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
       })
       
@@ -90,7 +92,7 @@ export default function FinanceiroPage() {
       
       // Filtrar agendamentos do dia específico
       const dayAppointments = completedAppointments.filter(app => {
-        const appointmentDate = utcToBrazil(new Date(app.date))
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
         return appointmentDate.toDateString() === date.toDateString()
       })
       
@@ -115,15 +117,16 @@ export default function FinanceiroPage() {
     return dailyData
   }
 
-  // Dados diários com cálculos otimizados
-  const dailyData = getDailyData()
-  const totalDailyRevenue = dailyData.reduce((total, day) => total + day.revenue, 0)
+  // ✅ OTIMIZAÇÃO: Usar useMemo para cálculos pesados
+  const dailyData = useMemo(() => getDailyData(), [completedAppointments])
+  const monthlyData = useMemo(() => getMonthlyData(), [completedAppointments])
+  
+  const totalDailyRevenue = useMemo(() => 
+    dailyData.reduce((total, day) => total + day.revenue, 0), [dailyData]
+  )
   const averageDailyRevenue = dailyData.length > 0 ? totalDailyRevenue / dailyData.length : 0
   const maxDailyRevenue = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.revenue)) : 0
   const bestDay = dailyData.find(d => d.revenue === maxDailyRevenue)
-
-  // Dados mensais com cálculos otimizados
-  const monthlyData = getMonthlyData()
   const selectedMonthData = monthlyData.find(m => m.month === selectedMonth && m.year === selectedYear)
   const currentMonthAppointments = selectedMonthData?.appointments || []
 
@@ -266,10 +269,10 @@ export default function FinanceiroPage() {
       ['AGENDAMENTOS CONCLUÍDOS'],
       ['Cliente', 'Serviço', 'Valor', 'Data'],
       ...completedAppointments.slice(0, 50).map(apt => [
-        apt.clientName || 'Cliente',
-        apt.serviceName || 'Serviço',
+        apt.endUser?.name || 'Cliente',
+        apt.services?.[0]?.name || 'Serviço',
         formatCurrency(apt.totalPrice),
-        apt.date
+        utcToBrazil(new Date(apt.dateTime)).toLocaleDateString('pt-BR')
       ])
     ]
 
@@ -324,9 +327,68 @@ export default function FinanceiroPage() {
     },
   ]
 
-  const recentTransactions: any[] = []
+  // ✅ IMPLEMENTAR: Transações recentes com dados reais
+  const recentTransactions = useMemo(() => {
+    const today = getBrazilNow()
+    const todayString = today.toDateString()
+    
+    return completedAppointments
+      .filter(app => {
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
+        return appointmentDate.toDateString() === todayString
+      })
+      .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+      .slice(0, 10)
+      .map(app => ({
+        id: app.id,
+        client: app.endUser?.name || 'Cliente',
+        service: app.services?.[0]?.name || 'Serviço',
+        amount: parseFloat(app.totalPrice) || 0,
+        method: app.paymentMethod || 'Não informado',
+        time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }))
+  }, [completedAppointments])
 
-  const topServices: any[] = []
+  // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais
+  const topServices = useMemo(() => {
+    const serviceStats = new Map()
+    
+    completedAppointments.forEach(app => {
+      app.services?.forEach((service: any) => {
+        const serviceName = service.name
+        const servicePrice = parseFloat(service.price) || 0
+        
+        if (serviceStats.has(serviceName)) {
+          const existing = serviceStats.get(serviceName)
+          serviceStats.set(serviceName, {
+            ...existing,
+            count: existing.count + 1,
+            revenue: existing.revenue + servicePrice
+          })
+        } else {
+          serviceStats.set(serviceName, {
+            service: serviceName,
+            count: 1,
+            revenue: servicePrice
+          })
+        }
+      })
+    })
+    
+    const totalRevenue = Array.from(serviceStats.values())
+      .reduce((total, service) => total + service.revenue, 0)
+    
+    return Array.from(serviceStats.values())
+      .map(service => ({
+        ...service,
+        percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+  }, [completedAppointments])
 
   return (
     <div className="space-y-8">
