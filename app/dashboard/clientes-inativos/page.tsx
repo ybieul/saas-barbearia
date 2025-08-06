@@ -133,12 +133,6 @@ export default function ClientesInativosPage() {
           <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-[#ededed]">Enviar Promoção</DialogTitle>
-              <button 
-                onClick={() => setIsPromotionModalOpen(false)}
-                className="absolute right-4 top-4 text-[#71717a] hover:text-[#ededed]"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </DialogHeader>
             
             <div className="space-y-4">
