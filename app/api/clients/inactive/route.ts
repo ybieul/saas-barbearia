@@ -120,7 +120,22 @@ export async function GET(request: NextRequest) {
     })
 
     // ✅ CALCULAR RECEITA POTENCIAL INDIVIDUAL DE CADA CLIENTE
-    const ticketMedio = Number(averageTicket._avg.totalPrice) || 55
+    // Se não há agendamentos completos, usar média dos preços dos serviços
+    let ticketMedio = Number(averageTicket._avg.totalPrice) || 0
+    
+    if (ticketMedio === 0) {
+      // Buscar média dos preços dos serviços como fallback
+      const servicesAverage = await prisma.service.aggregate({
+        where: {
+          tenantId: user.tenantId,
+          isActive: true
+        },
+        _avg: {
+          price: true
+        }
+      })
+      ticketMedio = Number(servicesAverage._avg.price) || 55
+    }
     
     // Calcular receita potencial como soma individual dos clientes
     const potentialRevenue = inactiveClients.reduce((total, client) => {
