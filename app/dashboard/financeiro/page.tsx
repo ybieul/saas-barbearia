@@ -144,73 +144,64 @@ export default function FinanceiroPage() {
     }
   }
   
-  // Simular métodos de pagamento baseados nos dados existentes (temporário)
-  // Distribui os agendamentos em métodos de pagamento de forma simulada mas consistente
-  const totalAppointments = completedAppointments.length
-  const cashCount = Math.floor(totalAppointments * 0.45) // 45% dinheiro
-  const cardCount = Math.floor(totalAppointments * 0.35) // 35% cartão
-  const pixCount = totalAppointments - cashCount - cardCount // Resto PIX
-  
-  const cashAppointments = completedAppointments.slice(0, cashCount)
-  const cardAppointments = completedAppointments.slice(cashCount, cashCount + cardCount)
-  const pixAppointments = completedAppointments.slice(cashCount + cardCount)
-  
-  // Calcular receita total com dados reais
-  const totalRevenue = completedAppointments.reduce((total, app) => {
-    const price = parseFloat(app.totalPrice) || 0
-    return total + price
-  }, 0)
-  
-  const paymentStats = [
-    {
-      method: 'Dinheiro',
-      icon: Banknote,
-      color: 'text-green-400',
-      bgColor: 'bg-green-400',
-      count: cashAppointments.length,
-      amount: cashAppointments.reduce((total, app) => {
-        const price = parseFloat(app.totalPrice) || 0
-        return total + price
-      }, 0),
-      percentage: totalRevenue > 0 && cashAppointments.length > 0 ? 
-        Math.round((cashAppointments.reduce((total, app) => {
-          const price = parseFloat(app.totalPrice) || 0
-          return total + price
-        }, 0) / totalRevenue) * 100) : 0
-    },
-    {
-      method: 'Cartão', 
-      icon: CreditCard,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-400',
-      count: cardAppointments.length,
-      amount: cardAppointments.reduce((total, app) => {
-        const price = parseFloat(app.totalPrice) || 0
-        return total + price
-      }, 0),
-      percentage: totalRevenue > 0 && cardAppointments.length > 0 ? 
-        Math.round((cardAppointments.reduce((total, app) => {
-          const price = parseFloat(app.totalPrice) || 0
-          return total + price
-        }, 0) / totalRevenue) * 100) : 0
-    },
-    {
-      method: 'PIX',
-      icon: DollarSign, 
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-400',
-      count: pixAppointments.length,
-      amount: pixAppointments.reduce((total, app) => {
-        const price = parseFloat(app.totalPrice) || 0
-        return total + price
-      }, 0),
-      percentage: totalRevenue > 0 && pixAppointments.length > 0 ? 
-        Math.round((pixAppointments.reduce((total, app) => {
-          const price = parseFloat(app.totalPrice) || 0
-          return total + price
-        }, 0) / totalRevenue) * 100) : 0
+  // ✅ USAR DADOS REAIS: Métodos de pagamento baseados no banco de dados
+  const paymentStats = useMemo(() => {
+    // Calcular receita total
+    const totalRevenue = completedAppointments.reduce((total, app) => {
+      const price = parseFloat(app.totalPrice) || 0
+      return total + price
+    }, 0)
+
+    // Agrupar por método de pagamento do banco de dados
+    const paymentGroups = completedAppointments.reduce((groups, app) => {
+      // Normalizar o método de pagamento do banco
+      let method = app.paymentMethod || 'NULL'
+      const price = parseFloat(app.totalPrice) || 0
+      
+      // Mapear valores do banco para nomes padronizados
+      if (method === 'CASH' || method === 'NULL') {
+        method = 'Dinheiro'
+      } else if (method === 'CARD') {
+        method = 'Cartão'
+      } else if (method === 'PIX') {
+        method = 'PIX'
+      } else {
+        method = 'Outros'
+      }
+      
+      if (!groups[method]) {
+        groups[method] = {
+          count: 0,
+          amount: 0,
+          appointments: []
+        }
+      }
+      
+      groups[method].count++
+      groups[method].amount += price
+      groups[method].appointments.push(app)
+      
+      return groups
+    }, {} as Record<string, { count: number; amount: number; appointments: any[] }>)
+
+    // Converter para array com ícones e cores
+    const methodConfig = {
+      'Dinheiro': { icon: Banknote, color: 'text-green-400', bgColor: 'bg-green-400' },
+      'Cartão': { icon: CreditCard, color: 'text-blue-400', bgColor: 'bg-blue-400' },
+      'PIX': { icon: DollarSign, color: 'text-purple-400', bgColor: 'bg-purple-400' },
+      'Outros': { icon: DollarSign, color: 'text-gray-400', bgColor: 'bg-gray-400' }
     }
-  ]
+
+    return Object.entries(paymentGroups).map(([method, data]) => ({
+      method,
+      icon: methodConfig[method as keyof typeof methodConfig]?.icon || DollarSign,
+      color: methodConfig[method as keyof typeof methodConfig]?.color || 'text-gray-400',
+      bgColor: methodConfig[method as keyof typeof methodConfig]?.bgColor || 'bg-gray-400',
+      count: (data as any).count,
+      amount: (data as any).amount,
+      percentage: totalRevenue > 0 ? Math.round(((data as any).amount / totalRevenue) * 100) : 0
+    })).sort((a, b) => b.amount - a.amount) // Ordenar por valor decrescente
+  }, [completedAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
   const previousRevenue = dashboardData?.previousStats?.totalRevenue || 0
@@ -339,17 +330,31 @@ export default function FinanceiroPage() {
       })
       .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
       .slice(0, 10)
-      .map(app => ({
-        id: app.id,
-        client: app.endUser?.name || 'Cliente',
-        service: app.services?.[0]?.name || 'Serviço',
-        amount: parseFloat(app.totalPrice) || 0,
-        method: app.paymentMethod || 'Não informado',
-        time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      }))
+      .map(app => {
+        // Normalizar método de pagamento
+        let paymentMethod = app.paymentMethod || 'NULL'
+        if (paymentMethod === 'CASH' || paymentMethod === 'NULL') {
+          paymentMethod = 'Dinheiro'
+        } else if (paymentMethod === 'CARD') {
+          paymentMethod = 'Cartão'
+        } else if (paymentMethod === 'PIX') {
+          paymentMethod = 'PIX'
+        } else {
+          paymentMethod = 'Outros'
+        }
+        
+        return {
+          id: app.id,
+          client: app.endUser?.name || 'Cliente',
+          service: app.services?.[0]?.name || 'Serviço',
+          amount: parseFloat(app.totalPrice) || 0,
+          method: paymentMethod,
+          time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
+      })
   }, [completedAppointments])
 
   // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais
