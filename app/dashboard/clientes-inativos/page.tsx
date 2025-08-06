@@ -22,7 +22,7 @@ export default function ClientesInativosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [promotionsSent, setPromotionsSent] = useState(0)
   const [returnRate, setReturnRate] = useState(0)
-  const [daysThreshold, setDaysThreshold] = useState(45)
+  const [daysThreshold, setDaysThreshold] = useState(15)
   
   // ✅ USAR HOOK ESPECÍFICO PARA CLIENTES INATIVOS
   const { clients: inactiveClients, stats, loading, error, fetchInactiveClients } = useInactiveClients()
