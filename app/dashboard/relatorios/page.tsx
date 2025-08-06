@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star, FileText, FileSpreadsheet, Loader2 } from "lucide-react"
+import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star, FileText, Loader2 } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
-import { generatePDFReport, generateExcelReport } from "@/lib/report-generator"
+import { generatePDFReport } from "@/lib/report-generator"
 import { DateRange } from "react-day-picker"
 import { format } from "date-fns"
 
@@ -20,7 +20,6 @@ export default function RelatoriosPage() {
   // Estados para controle da exportação
   const [selectedPeriod, setSelectedPeriod] = useState('today')
   const [isExporting, setIsExporting] = useState(false)
-  const [exportType, setExportType] = useState<'pdf' | 'excel' | null>(null)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [useDateRange, setUseDateRange] = useState(false)
 
@@ -126,11 +125,10 @@ export default function RelatoriosPage() {
 
   const timeAnalysisData = calculateTimeAnalysis()
 
-  // Funções para exportação de relatórios
+  // Função para exportação de relatório PDF
   const handleExportPDF = async () => {
     try {
       setIsExporting(true)
-      setExportType('pdf')
       
       // Usar período customizado se selecionado
       if (useDateRange && dateRange?.from && dateRange?.to) {
@@ -146,30 +144,6 @@ export default function RelatoriosPage() {
       alert(message)
     } finally {
       setIsExporting(false)
-      setExportType(null)
-    }
-  }
-
-  const handleExportExcel = async () => {
-    try {
-      setIsExporting(true)
-      setExportType('excel')
-      
-      // Usar período customizado se selecionado
-      if (useDateRange && dateRange?.from && dateRange?.to) {
-        const startDate = format(dateRange.from, 'yyyy-MM-dd')
-        const endDate = format(dateRange.to, 'yyyy-MM-dd')
-        await generateExcelReport('custom', startDate, endDate)
-      } else {
-        await generateExcelReport(selectedPeriod)
-      }
-    } catch (error) {
-      console.error('Erro ao gerar Excel:', error)
-      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório Excel. Tente novamente.'
-      alert(message)
-    } finally {
-      setIsExporting(false)
-      setExportType(null)
     }
   }
 
@@ -275,36 +249,21 @@ export default function RelatoriosPage() {
             </div>
           </div>
 
-          {/* Botões de Exportação */}
+          {/* Botão de Exportação */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-[#a1a1aa]">Exportar Relatório:</label>
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
-              >
-                {isExporting && exportType === 'pdf' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FileText className="w-4 h-4" />
-                )}
-                PDF
-              </Button>
-              
-              <Button 
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-              >
-                {isExporting && exportType === 'excel' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="w-4 h-4" />
-                )}
-                Excel
-              </Button>
-            </div>
+            <Button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 w-fit"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              {isExporting ? 'Gerando PDF...' : 'Exportar PDF'}
+            </Button>
           </div>
         </div>
       </div>

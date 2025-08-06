@@ -9,9 +9,8 @@ import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, D
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
-import { ExportModal } from "@/components/ui/export-modal"
-import { generatePDFReport, generateExcelReport } from "@/lib/report-generator"
-import { ExportModal as NewExportModal } from "@/components/export-modal"
+import { generatePDFReport } from "@/lib/report-generator"
+import { ExportModal } from "@/components/export-modal"
 
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
@@ -313,15 +312,6 @@ export default function FinanceiroPage() {
       await generatePDFReport(period, startDate, endDate)
     } else {
       await generatePDFReport(period || 'today')
-    }
-  }
-
-  // Função para gerar Excel
-  const handleExportExcel = async (period?: string, startDate?: string, endDate?: string) => {
-    if (period && startDate && endDate) {
-      await generateExcelReport(period, startDate, endDate)
-    } else {
-      await generateExcelReport(period || 'today')
     }
   }
 
@@ -953,11 +943,10 @@ export default function FinanceiroPage() {
       </Card>
 
       {/* Export Modal */}
-      <NewExportModal
+      <ExportModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         onExportPDF={handleExportPDF}
-        onExportExcel={handleExportExcel}
         isGenerating={isGeneratingReport}
       />
     </div>
