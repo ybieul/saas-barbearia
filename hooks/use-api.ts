@@ -139,6 +139,34 @@ export function useInactiveClients() {
   }
 }
 
+// Hook específico para estatísticas de promoções (dados reais do banco)
+export function usePromotionStats() {
+  const { data, loading, error, request } = useApi<{
+    promotionsSent: number
+    successfulPromotions: number
+    clientsWhoReturned: number
+    returnRate: number
+    period: string
+  }>()
+
+  const fetchPromotionStats = useCallback(() => {
+    return request('/api/clients/inactive/promotions')
+  }, [request])
+
+  return {
+    stats: data || {
+      promotionsSent: 0,
+      successfulPromotions: 0,
+      clientsWhoReturned: 0,
+      returnRate: 0,
+      period: '30 dias'
+    },
+    loading,
+    error,
+    fetchPromotionStats
+  }
+}
+
 // Hook específico para agendamentos
 export function useAppointments() {
   const { data, loading, error, request } = useApi<{ appointments: any[] }>()
