@@ -270,9 +270,17 @@ export function generatePDFReport(data: ReportData): void {
     doc.text(`Página ${i} de ${totalPages}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' })
   }
 
-  // Salvar arquivo
+  // Gerar o arquivo e fazer download
   const fileName = `relatorio-financeiro-${formatBrazilDate(getBrazilNow()).split('/').reverse().join('-')}.pdf`
-  doc.save(fileName)
+  
+  const pdfBlob = doc.output('blob')
+  const url = window.URL.createObjectURL(pdfBlob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  
+  window.URL.revokeObjectURL(url)
 }
 
 export async function generateExcelReport(data: ReportData): Promise<void> {
