@@ -115,6 +115,8 @@ export function useInactiveClients() {
       totalPotentialRevenue: number
       averageTicket: number
       potentialRevenue: number
+      promotionsSent: number
+      returnRate: number
       daysThreshold: number
     }
   }>()
@@ -131,6 +133,8 @@ export function useInactiveClients() {
       totalPotentialRevenue: 0,
       averageTicket: 55,
       potentialRevenue: 0,
+      promotionsSent: 0,
+      returnRate: 0,
       daysThreshold: 15
     },
     loading,

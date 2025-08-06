@@ -20,8 +20,6 @@ export default function ClientesInativosPage() {
   const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [promotionsSent, setPromotionsSent] = useState(0)
-  const [returnRate, setReturnRate] = useState(0)
   const [daysThreshold, setDaysThreshold] = useState(15)
   
   // ✅ USAR HOOK ESPECÍFICO PARA CLIENTES INATIVOS
@@ -41,13 +39,6 @@ export default function ClientesInativosPage() {
 
   // ✅ USAR ESTATÍSTICAS DO BANCO DE DADOS
   const potentialRevenue = stats.potentialRevenue
-
-  // ✅ SIMULAR DADOS BASEADOS NAS ESTATÍSTICAS REAIS
-  useEffect(() => {
-    // Simular dados baseados na quantidade real de clientes inativos
-    setPromotionsSent(Math.floor(stats.totalInactive * 0.3)) // 30% já receberam promoções
-    setReturnRate(Math.floor(promotionsSent * 0.15)) // 15% de taxa de retorno
-  }, [stats.totalInactive, promotionsSent])
 
   const handleSelectClient = (clientId: string, checked: boolean) => {
     if (checked) {
@@ -75,8 +66,8 @@ export default function ClientesInativosPage() {
       return
     }
     
-    // Atualizar contador de promoções enviadas
-    setPromotionsSent(prev => prev + selectedClients.length)
+    // ✅ USAR DADOS REAIS DO BACKEND - Não precisamos mais atualizar contadores locais
+    // O backend já registra as promoções enviadas na tabela WhatsAppLog
     
     const selectedTemplateData = getTemplate(selectedTemplate)
     notification.success({
@@ -248,7 +239,7 @@ export default function ClientesInativosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[#71717a] text-sm">Promoções Enviadas</p>
-                <p className="text-2xl font-bold text-[#ededed]">{promotionsSent}</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
               </div>
               <Send className="w-8 h-8 text-yellow-400" />
             </div>
@@ -261,7 +252,7 @@ export default function ClientesInativosPage() {
               <div>
                 <p className="text-[#71717a] text-sm">Taxa de Retorno</p>
                 <p className="text-2xl font-bold text-[#ededed]">
-                  {promotionsSent > 0 ? Math.round((returnRate / promotionsSent) * 100) : 0}%
+                  {stats.promotionsSent > 0 ? Math.round((stats.returnRate / stats.promotionsSent) * 100) : 0}%
                 </p>
               </div>
               <AlertTriangle className="w-8 h-8 text-emerald-400" />
