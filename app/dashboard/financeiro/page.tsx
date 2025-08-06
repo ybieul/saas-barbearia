@@ -11,6 +11,7 @@ import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from 
 import { formatCurrency } from "@/lib/currency"
 import { ExportModal } from "@/components/ui/export-modal"
 import { generatePDFReport, generateExcelReport } from "@/lib/report-generator"
+import { ExportModal as NewExportModal } from "@/components/export-modal"
 
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
@@ -307,32 +308,20 @@ export default function FinanceiroPage() {
   }
 
   // Função para gerar PDF
-  const handleExportPDF = async () => {
-    setIsGeneratingReport(true)
-    try {
-      await generatePDFReport(period)
-      setExportModalOpen(false)
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error)
-      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório PDF. Tente novamente.'
-      alert(message)
-    } finally {
-      setIsGeneratingReport(false)
+  const handleExportPDF = async (period?: string, startDate?: string, endDate?: string) => {
+    if (period && startDate && endDate) {
+      await generatePDFReport(period, startDate, endDate)
+    } else {
+      await generatePDFReport(period || 'today')
     }
   }
 
   // Função para gerar Excel
-  const handleExportExcel = async () => {
-    setIsGeneratingReport(true)
-    try {
-      await generateExcelReport(period)
-      setExportModalOpen(false)
-    } catch (error) {
-      console.error('Erro ao gerar Excel:', error)
-      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório Excel. Tente novamente.'
-      alert(message)
-    } finally {
-      setIsGeneratingReport(false)
+  const handleExportExcel = async (period?: string, startDate?: string, endDate?: string) => {
+    if (period && startDate && endDate) {
+      await generateExcelReport(period, startDate, endDate)
+    } else {
+      await generateExcelReport(period || 'today')
     }
   }
 
@@ -964,7 +953,7 @@ export default function FinanceiroPage() {
       </Card>
 
       {/* Export Modal */}
-      <ExportModal
+      <NewExportModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         onExportPDF={handleExportPDF}

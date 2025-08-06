@@ -46,7 +46,7 @@ function getAuthToken(): string | null {
 }
 
 // Função para buscar dados da API
-async function fetchReportData(period: string = 'today'): Promise<FinancialReportData> {
+async function fetchReportData(period: string = 'today', startDate?: string, endDate?: string): Promise<FinancialReportData> {
   // Verificar se está no cliente
   if (typeof window === 'undefined') {
     throw new Error('Esta função só pode ser executada no cliente')
@@ -64,7 +64,13 @@ async function fetchReportData(period: string = 'today'): Promise<FinancialRepor
 
   console.log('🔐 Fazendo requisição com token:', token.substring(0, 20) + '...')
 
-  const response = await fetch(`/api/reports/financial?period=${period}`, {
+  // Construir URL da API
+  let apiUrl = `/api/reports/financial?period=${period}`
+  if (startDate && endDate) {
+    apiUrl += `&startDate=${startDate}&endDate=${endDate}`
+  }
+
+  const response = await fetch(apiUrl, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -88,19 +94,21 @@ async function fetchReportData(period: string = 'today'): Promise<FinancialRepor
 }
 
 // Função para gerar PDF com design profissional
-export async function generatePDFReport(period: string = 'today'): Promise<void> {
+export async function generatePDFReport(period: string = 'today', startDate?: string, endDate?: string): Promise<void> {
   try {
-    const data = await fetchReportData(period)
+    const data = await fetchReportData(period, startDate, endDate)
     
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width
     const pageHeight = doc.internal.pageSize.height
     let yPos = 20
 
-    // Cores do tema profissional (como tuplas)
+    // Cores do tema profissional mais rico (como tuplas)
     const primaryColor: [number, number, number] = [16, 185, 129] // Verde elegante
-    const secondaryColor: [number, number, number] = [55, 65, 81] // Cinza escuro
-    const lightGray: [number, number, number] = [243, 244, 246] // Cinza claro
+    const secondaryColor: [number, number, number] = [30, 41, 59] // Azul escuro moderno
+    const accentColor: [number, number, number] = [99, 102, 241] // Roxo corporativo
+    const lightGray: [number, number, number] = [248, 250, 252] // Cinza muito claro
+    const darkGray: [number, number, number] = [71, 85, 105] // Cinza escuro
 
     // Helper function para verificar quebra de página
     const checkPageBreak = (requiredSpace: number) => {
@@ -110,92 +118,169 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
       }
     }
 
-    // ========== CABEÇALHO PROFISSIONAL ==========
-    doc.setFontSize(28)
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
-    doc.text('RELATÓRIO FINANCEIRO', pageWidth / 2, yPos, { align: 'center' })
-    yPos += 15
-
-    // Linha divisória
-    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2])
-    doc.setLineWidth(2)
-    doc.line(40, yPos, pageWidth - 40, yPos)
-    yPos += 15
-
-    // Informações da empresa
+    // ========== CABEÇALHO PROFISSIONAL COM DESIGN MODERNO ==========
+    // Fundo sutil para o cabeçalho
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2])
+    doc.rect(20, 10, pageWidth - 40, 60, 'F')
+    
+    // Logo placeholder (pode ser substituído por logo real)
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+    doc.circle(50, 35, 12, 'F')
+    doc.setTextColor(255, 255, 255)
     doc.setFontSize(14)
+    doc.text('🏢', 45, 40)
+    
+    // Título principal com design moderno
+    doc.setFontSize(32)
     doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
-    doc.text(`${data.establishment.name}`, 40, yPos)
+    doc.text('RELATÓRIO FINANCEIRO', 80, 35)
+    
+    // Subtítulo elegante
+    doc.setFontSize(14)
+    doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+    doc.text('Análise Profissional de Performance', 80, 45)
+    
+    // Data de geração em destaque
+    doc.setFontSize(10)
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2])
+    doc.text(`Gerado em ${formatBrazilDate(new Date())}`, 80, 55)
+    
+    yPos = 90
+
+    // ========== INFORMAÇÕES DA EMPRESA COM LAYOUT MELHORADO ==========
+    // Card com informações da empresa
+    doc.setFillColor(250, 251, 252) // Fundo muito sutil
+    doc.roundedRect(40, yPos, pageWidth - 80, 40, 3, 3, 'F')
+    
+    // Borda esquerda colorida
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+    doc.rect(40, yPos, 4, 40, 'F')
+    
+    yPos += 10
+    
+    // Nome da empresa em destaque
+    doc.setFontSize(16)
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
+    doc.text(`${data.establishment.name}`, 50, yPos)
     yPos += 8
 
-    doc.setFontSize(10)
-    doc.setTextColor(100, 100, 100)
+    // Informações organizadas em duas colunas
+    doc.setFontSize(9)
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2])
+    
+    let leftColumn = 50
+    let rightColumn = pageWidth / 2 + 20
+    let currentY = yPos
+    
     if (data.establishment.cnpj) {
-      doc.text(`CNPJ: ${data.establishment.cnpj}`, 40, yPos)
-      yPos += 6
+      doc.text(`📄 CNPJ: ${data.establishment.cnpj}`, leftColumn, currentY)
+      currentY += 5
     }
     if (data.establishment.address) {
-      doc.text(`Endereço: ${data.establishment.address}`, 40, yPos)
-      yPos += 6
+      doc.text(`📍 ${data.establishment.address}`, leftColumn, currentY)
+      currentY += 5
     }
+    
+    // Coluna direita
+    currentY = yPos
     if (data.establishment.phone) {
-      doc.text(`Telefone: ${data.establishment.phone}`, 40, yPos)
-      yPos += 6
+      doc.text(`📞 ${data.establishment.phone}`, rightColumn, currentY)
+      currentY += 5
     }
-    doc.text(`E-mail: ${data.establishment.email}`, 40, yPos)
-    yPos += 15
+    doc.text(`📧 ${data.establishment.email}`, rightColumn, currentY)
+    
+    yPos += 35
 
-    // Informações do relatório
-    doc.setFontSize(12)
+    // ========== RESUMO EXECUTIVO COM DESIGN MODERNO ==========
+    checkPageBreak(100)
+    
+    // Título da seção com ícone e linha decorativa
+    doc.setFontSize(20)
     doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
-    doc.text(`Período: ${data.period.label}`, 40, yPos)
-    yPos += 6
-    doc.text(`Gerado em: ${formatBrazilDate(new Date(data.period.generatedAt))} às ${new Date(data.period.generatedAt).toLocaleTimeString('pt-BR')}`, 40, yPos)
-    yPos += 6
-    doc.text(`Gerado por: ${data.generatedBy.name} (${data.generatedBy.email})`, 40, yPos)
+    doc.text('📊 RESUMO EXECUTIVO', 40, yPos)
+    
+    // Linha decorativa
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2])
+    doc.setLineWidth(1)
+    doc.line(40, yPos + 5, pageWidth - 40, yPos + 5)
     yPos += 20
 
-    // ========== RESUMO EXECUTIVO - KPIs ==========
-    checkPageBreak(80)
-    doc.setFontSize(18)
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-    doc.text('📊 RESUMO EXECUTIVO', 40, yPos)
-    yPos += 15
-
-    const kpiData = [
-      ['Faturamento Total', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.totalRevenue))],
-      ['Total de Agendamentos', safeToString(data.summary.totalAppointments)],
-      ['Ticket Médio', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.averageTicket))],
-      ['Taxa de Conversão', `${safeToString(data.summary.conversionRate)}%`]
+    // Cards de KPIs com design moderno
+    const kpiCards = [
+      {
+        title: 'Faturamento Total',
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.totalRevenue)),
+        color: primaryColor,
+        icon: '💰'
+      },
+      {
+        title: 'Total de Agendamentos',
+        value: safeToString(data.summary.totalAppointments),
+        color: accentColor,
+        icon: '📅'
+      },
+      {
+        title: 'Ticket Médio',
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.averageTicket)),
+        color: [34, 197, 94], // Verde claro
+        icon: '🎯'
+      },
+      {
+        title: 'Taxa de Conversão',
+        value: `${safeToString(data.summary.conversionRate)}%`,
+        color: [249, 115, 22], // Laranja
+        icon: '📈'
+      }
     ]
 
-    autoTable(doc, {
-      head: [['Métrica', 'Valor']],
-      body: kpiData,
-      startY: yPos,
-      theme: 'grid',
-      headStyles: { 
-        fillColor: primaryColor, 
-        textColor: 255,
-        fontSize: 12,
-        fontStyle: 'bold'
-      },
-      bodyStyles: {
-        fontSize: 11,
-        textColor: secondaryColor
-      },
-      alternateRowStyles: {
-        fillColor: lightGray
-      },
-      margin: { left: 40, right: 40 },
-      tableWidth: 'auto',
-      columnStyles: {
-        0: { cellWidth: 80, fontStyle: 'bold' },
-        1: { cellWidth: 60, halign: 'right' }
+    // Renderizar cards em grid 2x2
+    const cardWidth = (pageWidth - 100) / 2
+    const cardHeight = 35
+    let cardX = 40
+    let cardY = yPos
+
+    kpiCards.forEach((kpi, index) => {
+      if (index === 2) {
+        cardX = 40
+        cardY += cardHeight + 10
+      } else if (index === 1 || index === 3) {
+        cardX = 40 + cardWidth + 20
       }
+
+      // Fundo do card
+      doc.setFillColor(250, 251, 252)
+      doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 5, 5, 'F')
+      
+      // Borda colorida
+      doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2])
+      doc.rect(cardX, cardY, 4, cardHeight, 'F')
+      
+      // Ícone
+      doc.setFontSize(14)
+      doc.text(kpi.icon, cardX + 10, cardY + 15)
+      
+      // Título
+      doc.setFontSize(10)
+      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2])
+      doc.text(kpi.title, cardX + 25, cardY + 12)
+      
+      // Valor
+      doc.setFontSize(16)
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
+      doc.text(kpi.value, cardX + 25, cardY + 25)
     })
 
-    yPos = (doc as any).lastAutoTable.finalY + 20
+    yPos = cardY + cardHeight + 20
+
+    // ========== INFORMAÇÕES DO PERÍODO ==========
+    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2])
+    doc.rect(40, yPos, pageWidth - 80, 20, 'F')
+    
+    doc.setFontSize(12)
+    doc.setTextColor(255, 255, 255)
+    doc.text(`📊 ${data.period.label} | ⏰ ${formatBrazilDate(new Date(data.period.generatedAt))} | 👤 ${data.generatedBy.name}`, 45, yPos + 13)
+    
+    yPos += 35
 
     // ========== RECEITA DIÁRIA - ÚLTIMOS 30 DIAS ==========
     checkPageBreak(100)
@@ -460,9 +545,9 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
 }
 
 // Função para gerar Excel com múltiplas abas e design profissional
-export async function generateExcelReport(period: string = 'today'): Promise<void> {
+export async function generateExcelReport(period: string = 'today', startDate?: string, endDate?: string): Promise<void> {
   try {
-    const data = await fetchReportData(period)
+    const data = await fetchReportData(period, startDate, endDate)
     
     const workbook = new ExcelJS.Workbook()
     workbook.creator = data.generatedBy.name

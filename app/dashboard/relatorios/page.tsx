@@ -5,10 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star, FileText, FileSpreadsheet, Loader2 } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
 import { generatePDFReport, generateExcelReport } from "@/lib/report-generator"
+import { DateRange } from "react-day-picker"
+import { format } from "date-fns"
 
 export default function RelatoriosPage() {
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
@@ -18,6 +21,8 @@ export default function RelatoriosPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('today')
   const [isExporting, setIsExporting] = useState(false)
   const [exportType, setExportType] = useState<'pdf' | 'excel' | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [useDateRange, setUseDateRange] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -126,7 +131,15 @@ export default function RelatoriosPage() {
     try {
       setIsExporting(true)
       setExportType('pdf')
-      await generatePDFReport(selectedPeriod)
+      
+      // Usar período customizado se selecionado
+      if (useDateRange && dateRange?.from && dateRange?.to) {
+        const startDate = format(dateRange.from, 'yyyy-MM-dd')
+        const endDate = format(dateRange.to, 'yyyy-MM-dd')
+        await generatePDFReport('custom', startDate, endDate)
+      } else {
+        await generatePDFReport(selectedPeriod)
+      }
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
       const message = error instanceof Error ? error.message : 'Erro ao gerar relatório PDF. Tente novamente.'
@@ -141,7 +154,15 @@ export default function RelatoriosPage() {
     try {
       setIsExporting(true)
       setExportType('excel')
-      await generateExcelReport(selectedPeriod)
+      
+      // Usar período customizado se selecionado
+      if (useDateRange && dateRange?.from && dateRange?.to) {
+        const startDate = format(dateRange.from, 'yyyy-MM-dd')
+        const endDate = format(dateRange.to, 'yyyy-MM-dd')
+        await generateExcelReport('custom', startDate, endDate)
+      } else {
+        await generateExcelReport(selectedPeriod)
+      }
     } catch (error) {
       console.error('Erro ao gerar Excel:', error)
       const message = error instanceof Error ? error.message : 'Erro ao gerar relatório Excel. Tente novamente.'
@@ -217,18 +238,41 @@ export default function RelatoriosPage() {
           {/* Seletor de Período */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-[#a1a1aa]">Período:</label>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-white">
-                <SelectValue placeholder="Selecione o período" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                {periodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="text-white hover:bg-[#27272a]">
-                    {option.label}
+            <div className="flex gap-2">
+              <Select 
+                value={useDateRange ? 'custom' : selectedPeriod} 
+                onValueChange={(value) => {
+                  if (value === 'custom') {
+                    setUseDateRange(true)
+                  } else {
+                    setUseDateRange(false)
+                    setSelectedPeriod(value)
+                  }
+                }}
+              >
+                <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-white">
+                  <SelectValue placeholder="Selecione o período" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-[#27272a]">
+                  {periodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="text-white hover:bg-[#27272a]">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom" className="text-white hover:bg-[#27272a]">
+                    📅 Período Customizado
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+              
+              {useDateRange && (
+                <DatePickerWithRange
+                  date={dateRange}
+                  onDateChange={setDateRange}
+                  placeholder="Selecione as datas"
+                />
+              )}
+            </div>
           </div>
 
           {/* Botões de Exportação */}
