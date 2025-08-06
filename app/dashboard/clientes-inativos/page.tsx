@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { UserX, MessageCircle, Calendar, AlertTriangle, Send, Clock, X, Search, Gift } from "lucide-react"
-import { useClients } from "@/hooks/use-api"
+import { useInactiveClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useNotification } from "@/hooks/use-notification"
 import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
@@ -22,41 +22,32 @@ export default function ClientesInativosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [promotionsSent, setPromotionsSent] = useState(0)
   const [returnRate, setReturnRate] = useState(0)
-  const { clients, loading, error, fetchClients } = useClients()
+  const [daysThreshold, setDaysThreshold] = useState(45)
+  
+  // ✅ USAR HOOK ESPECÍFICO PARA CLIENTES INATIVOS
+  const { clients: inactiveClients, stats, loading, error, fetchInactiveClients } = useInactiveClients()
   const { templates: promotionTemplates, getTemplate } = usePromotionTemplates()
   const notification = useNotification()
 
   useEffect(() => {
-    fetchClients(false) // Buscar clientes inativos
-  }, [fetchClients])
+    fetchInactiveClients(daysThreshold) // Buscar clientes inativos com threshold configurável
+  }, [fetchInactiveClients, daysThreshold])
 
-  // Filtrar clientes inativos (sem agendamentos recentes)
-  const inactiveClients = clients.filter(client => {
-    // ✅ USAR DADOS REAIS DO BANCO - lastVisit e totalVisits
-    if (client.totalVisits === 0 || !client.lastVisit) return true
-    
-    const lastVisit = utcToBrazil(new Date(client.lastVisit))
-    const now = utcToBrazil(getBrazilNow())
-    const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24))
-    
-    return daysSinceLastVisit > 45 // Considerar inativo após 45 dias
-  })
-
-  // Filtrar por busca
+  // ✅ FILTRAR APENAS POR BUSCA - LÓGICA DE INATIVIDADE JÁ VEM DO BANCO
   const filteredClients = inactiveClients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone.includes(searchTerm)
   )
 
-  // Calcular receita potencial (ticket médio R$ 45)
-  const potentialRevenue = inactiveClients.length * 45
+  // ✅ USAR ESTATÍSTICAS DO BANCO DE DADOS
+  const potentialRevenue = stats.potentialRevenue
 
-  // Simular dados de promoções e retorno
+  // ✅ SIMULAR DADOS BASEADOS NAS ESTATÍSTICAS REAIS
   useEffect(() => {
-    // Simular dados baseados na quantidade de clientes inativos
-    setPromotionsSent(Math.floor(inactiveClients.length * 0.3)) // 30% já receberam promoções
+    // Simular dados baseados na quantidade real de clientes inativos
+    setPromotionsSent(Math.floor(stats.totalInactive * 0.3)) // 30% já receberam promoções
     setReturnRate(Math.floor(promotionsSent * 0.15)) // 15% de taxa de retorno
-  }, [inactiveClients.length, promotionsSent])
+  }, [stats.totalInactive, promotionsSent])
 
   const handleSelectClient = (clientId: string, checked: boolean) => {
     if (checked) {
@@ -68,7 +59,7 @@ export default function ClientesInativosPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedClients(inactiveClients.map(client => client.id))
+      setSelectedClients(filteredClients.map(client => client.id))
     } else {
       setSelectedClients([])
     }
@@ -245,7 +236,7 @@ export default function ClientesInativosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[#71717a] text-sm">Total Inativos</p>
-                <p className="text-2xl font-bold text-[#ededed]">{inactiveClients.length}</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
               </div>
               <UserX className="w-8 h-8 text-red-400" />
             </div>
@@ -287,7 +278,7 @@ export default function ClientesInativosPage() {
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(potentialRevenue)}
+                  }).format(stats.potentialRevenue)}
                 </p>
               </div>
               <Gift className="w-8 h-8 text-emerald-400" />
@@ -312,8 +303,12 @@ export default function ClientesInativosPage() {
             variant="outline" 
             size="sm"
             className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+            onClick={() => {
+              const newThreshold = daysThreshold === 45 ? 30 : daysThreshold === 30 ? 60 : 45
+              setDaysThreshold(newThreshold)
+            }}
           >
-            Inativos há 45+ dias
+            Inativos há {daysThreshold}+ dias
           </Button>
           <Button 
             variant="outline" 
@@ -334,10 +329,10 @@ export default function ClientesInativosPage() {
         <CardContent className="p-6">
           <div className="space-y-4">
             {filteredClients.map((client) => {
-              // ✅ USAR DADOS REAIS DO BANCO - lastVisit
+              // ✅ CALCULAR DIAS DESDE ÚLTIMA VISITA USANDO DADOS DO BANCO
               const daysSinceLastVisit = client.totalVisits > 0 && client.lastVisit
                 ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.lastVisit)).getTime()) / (1000 * 60 * 60 * 24))
-                : 90; // Padrão para quem nunca visitou
+                : 999; // Valor alto para quem nunca visitou
                 
               return (
                 <div
@@ -373,17 +368,25 @@ export default function ClientesInativosPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Inativo há {daysSinceLastVisit} dias
+                        {client.totalVisits === 0 
+                          ? "Nunca visitou" 
+                          : `Inativo há ${daysSinceLastVisit} dias`
+                        }
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {client.totalVisits === 0 ? "Nunca visitou" : "Última visita há mais de 45 dias"}
+                      {client.totalVisits === 0 ? "Nunca visitou" : `Última visita há ${daysSinceLastVisit} dias`}
                     </p>
                   </div>
                   
                   <div className="text-right">
                     <p className="text-sm font-medium text-emerald-400">Potencial de receita</p>
-                    <p className="text-lg font-bold text-emerald-400">R$ 45,00</p>
+                    <p className="text-lg font-bold text-emerald-400">
+                      {new Intl.NumberFormat('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                      }).format(stats.averageTicket)}
+                    </p>
                   </div>
                 </div>
               )

@@ -106,6 +106,39 @@ export function useClients() {
   }
 }
 
+// Hook específico para clientes inativos
+export function useInactiveClients() {
+  const { data, loading, error, request } = useApi<{ 
+    clients: any[],
+    stats: {
+      totalInactive: number
+      totalPotentialRevenue: number
+      averageTicket: number
+      potentialRevenue: number
+      daysThreshold: number
+    }
+  }>()
+
+  const fetchInactiveClients = useCallback((daysThreshold?: number) => {
+    const params = daysThreshold ? `?days=${daysThreshold}` : ''
+    return request(`/api/clients/inactive${params}`)
+  }, [request])
+
+  return {
+    clients: data?.clients || [],
+    stats: data?.stats || {
+      totalInactive: 0,
+      totalPotentialRevenue: 0,
+      averageTicket: 45,
+      potentialRevenue: 0,
+      daysThreshold: 45
+    },
+    loading,
+    error,
+    fetchInactiveClients
+  }
+}
+
 // Hook específico para agendamentos
 export function useAppointments() {
   const { data, loading, error, request } = useApi<{ appointments: any[] }>()
