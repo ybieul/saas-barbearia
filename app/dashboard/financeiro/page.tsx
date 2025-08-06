@@ -402,7 +402,7 @@ export default function FinanceiroPage() {
         ...service,
         percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
       }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
       .slice(0, 5)
   }, [completedAppointments])
 
