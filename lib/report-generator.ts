@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 import ExcelJS from 'exceljs'
 import { formatBrazilDate, getBrazilNow } from './timezone'
 
@@ -110,7 +110,7 @@ export function generatePDFReport(data: ReportData): void {
     stat.change
   ])
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Métrica', 'Valor', 'Variação']],
     body: financialData,
     startY: yPos,
@@ -120,7 +120,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = doc.lastAutoTable.finalY + 20
+  yPos = (doc as any).lastAutoTable.finalY + 20
 
   // 3. RECEITA DIÁRIA
   checkPageBreak(80)
@@ -145,7 +145,7 @@ export function generatePDFReport(data: ReportData): void {
     day.appointmentCount.toString()
   ])
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Data', 'Receita', 'Agendamentos']],
     body: recentDays,
     startY: yPos,
@@ -155,7 +155,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = doc.lastAutoTable.finalY + 20
+  yPos = (doc as any).lastAutoTable.finalY + 20
 
   // 4. ANÁLISE MENSAL
   checkPageBreak(60)
@@ -172,7 +172,7 @@ export function generatePDFReport(data: ReportData): void {
     data.monthlyAnalysis.mediaDiaria.toString()
   ]]
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Mês', 'Faturamento Total', 'Agendamentos', 'Ticket Médio', 'Média Diária']],
     body: monthlyData,
     startY: yPos,
@@ -182,7 +182,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = doc.lastAutoTable.finalY + 20
+  yPos = (doc as any).lastAutoTable.finalY + 20
 
   // 5. TRANSAÇÕES RECENTES
   checkPageBreak(80)
@@ -199,7 +199,7 @@ export function generatePDFReport(data: ReportData): void {
     transaction.time
   ])
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Cliente', 'Serviço', 'Valor', 'Pagamento', 'Horário']],
     body: transactionData,
     startY: yPos,
@@ -209,7 +209,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = doc.lastAutoTable.finalY + 20
+  yPos = (doc as any).lastAutoTable.finalY + 20
 
   // 6. SERVIÇOS MAIS VENDIDOS
   checkPageBreak(80)
@@ -225,7 +225,7 @@ export function generatePDFReport(data: ReportData): void {
     `${service.percentage}%`
   ])
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Serviço', 'Atendimentos', 'Total Faturado', '% do Total']],
     body: servicesData,
     startY: yPos,
@@ -235,7 +235,7 @@ export function generatePDFReport(data: ReportData): void {
     margin: { left: 20, right: 20 }
   })
 
-  yPos = doc.lastAutoTable.finalY + 20
+  yPos = (doc as any).lastAutoTable.finalY + 20
 
   // 7. FORMAS DE PAGAMENTO
   checkPageBreak(80)
@@ -251,7 +251,7 @@ export function generatePDFReport(data: ReportData): void {
     payment.count.toString()
   ])
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [['Método', '% do Total', 'Valor Total', 'Transações']],
     body: paymentData,
     startY: yPos,
