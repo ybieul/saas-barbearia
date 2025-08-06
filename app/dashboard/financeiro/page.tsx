@@ -638,12 +638,12 @@ export default function FinanceiroPage() {
       {/* Monthly Analysis Card */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#a1a1aa] flex items-center justify-between">
+          <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#10b981]" />
-              Análise Mensal
+              <span className="text-base sm:text-lg">Análise Mensal</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-center sm:justify-end">
               <Button
                 variant="ghost"
                 size="sm"
@@ -653,7 +653,7 @@ export default function FinanceiroPage() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-lg font-semibold text-[#ededed] min-w-[200px] text-center">
+              <span className="text-sm sm:text-lg font-semibold text-[#ededed] min-w-[150px] sm:min-w-[200px] text-center">
                 {selectedMonthData?.monthName || 'Carregando...'}
               </span>
               <Button
@@ -667,7 +667,7 @@ export default function FinanceiroPage() {
               </Button>
             </div>
           </CardTitle>
-          <CardDescription className="text-[#71717a]">
+          <CardDescription className="text-[#71717a] text-sm">
             Faturamento detalhado do mês selecionado
           </CardDescription>
         </CardHeader>
@@ -706,48 +706,107 @@ export default function FinanceiroPage() {
 
           {/* Monthly Chart Preview */}
           <div className="space-y-4">
-            <h4 className="text-[#ededed] font-medium">Últimos 12 Meses</h4>
-            <div className="grid grid-cols-12 gap-2">
-              {monthlyData.map((month, index) => {
-                const maxRevenue = Math.max(...monthlyData.map(m => m.revenue))
-                const height = maxRevenue > 0 ? (month.revenue / maxRevenue) * 100 : 0
-                const isSelected = month.month === selectedMonth && month.year === selectedYear
-                
-                return (
-                  <div key={index} className="group relative flex flex-col items-center">
-                    <div className="w-full h-24 bg-[#27272a] rounded-t flex items-end justify-center relative">
+            <h4 className="text-[#ededed] font-medium text-sm sm:text-base">Últimos 12 Meses</h4>
+            
+            {/* Mobile Chart - Scrollable horizontal list */}
+            <div className="block sm:hidden">
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
+                  {monthlyData.map((month, index) => {
+                    const maxRevenue = Math.max(...monthlyData.map(m => m.revenue))
+                    const height = maxRevenue > 0 ? (month.revenue / maxRevenue) * 100 : 0
+                    const isSelected = month.month === selectedMonth && month.year === selectedYear
+                    
+                    return (
                       <div
-                        className={`w-full transition-all duration-300 cursor-pointer ${
-                          isSelected ? 'bg-[#10b981]' : 'bg-emerald-600/70 hover:bg-[#10b981]/90'
+                        key={index}
+                        className={`flex flex-col items-center min-w-[60px] cursor-pointer transition-all duration-200 ${
+                          isSelected ? 'scale-105' : ''
                         }`}
-                        style={{ height: `${height}%`, minHeight: month.revenue > 0 ? '8px' : '0px' }}
                         onClick={() => {
                           setSelectedMonth(month.month)
                           setSelectedYear(month.year)
                         }}
-                        title={`${month.monthName} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)} - ${month.appointmentCount} agendamentos`}
-                      />
-                    </div>
-                    
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-900 border border-[#3f3f46] text-[#ededed] p-3 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
-                      <div className="text-sm font-medium">{month.monthName}</div>
-                      <div className="text-[#10b981] font-bold">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)}
+                      >
+                        {/* Bar Container */}
+                        <div className="w-10 h-20 bg-[#27272a] rounded-t flex items-end relative mb-2">
+                          <div
+                            className={`w-full transition-all duration-300 cursor-pointer ${
+                              isSelected ? 'bg-[#10b981]' : 'bg-emerald-600/70'
+                            }`}
+                            style={{ height: `${height}%`, minHeight: month.revenue > 0 ? '8px' : '0px' }}
+                          />
+                        </div>
+                        
+                        {/* Month Info */}
+                        <div className="text-center">
+                          <div className={`text-xs font-medium mb-1 ${
+                            isSelected ? 'text-[#10b981]' : 'text-[#71717a]'
+                          }`}>
+                            {month.shortName}
+                          </div>
+                          <div className="text-xs text-[#10b981] font-medium">
+                            {month.revenue > 0 ? `R$ ${Math.round(month.revenue)}` : 'R$ 0'}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {month.appointmentCount} agend.
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#ededed]">
-                        {month.appointmentCount} agendamento{month.appointmentCount !== 1 ? 's' : ''}
+                    )
+                  })}
+                </div>
+              </div>
+              
+              <div className="text-center text-xs text-gray-500 pt-3 border-t border-[#52525b]">
+                Deslize para ver todos os meses • Toque para selecionar
+              </div>
+            </div>
+
+            {/* Desktop Chart - Original layout */}
+            <div className="hidden sm:block">
+              <div className="grid grid-cols-12 gap-2">
+                {monthlyData.map((month, index) => {
+                  const maxRevenue = Math.max(...monthlyData.map(m => m.revenue))
+                  const height = maxRevenue > 0 ? (month.revenue / maxRevenue) * 100 : 0
+                  const isSelected = month.month === selectedMonth && month.year === selectedYear
+                  
+                  return (
+                    <div key={index} className="group relative flex flex-col items-center">
+                      <div className="w-full h-24 bg-[#27272a] rounded-t flex items-end justify-center relative">
+                        <div
+                          className={`w-full transition-all duration-300 cursor-pointer ${
+                            isSelected ? 'bg-[#10b981]' : 'bg-emerald-600/70 hover:bg-[#10b981]/90'
+                          }`}
+                          style={{ height: `${height}%`, minHeight: month.revenue > 0 ? '8px' : '0px' }}
+                          onClick={() => {
+                            setSelectedMonth(month.month)
+                            setSelectedYear(month.year)
+                          }}
+                          title={`${month.monthName} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)} - ${month.appointmentCount} agendamentos`}
+                        />
                       </div>
-                      {/* Tooltip Arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                      
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-900 border border-[#3f3f46] text-[#ededed] p-3 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                        <div className="text-sm font-medium">{month.monthName}</div>
+                        <div className="text-[#10b981] font-bold">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)}
+                        </div>
+                        <div className="text-xs text-[#ededed]">
+                          {month.appointmentCount} agendamento{month.appointmentCount !== 1 ? 's' : ''}
+                        </div>
+                        {/* Tooltip Arrow */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                      </div>
+                      
+                      <span className="text-xs text-[#71717a] mt-1 text-center">
+                        {month.shortName}
+                      </span>
                     </div>
-                    
-                    <span className="text-xs text-[#71717a] mt-1 text-center">
-                      {month.shortName}
-                    </span>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
         </CardContent>
