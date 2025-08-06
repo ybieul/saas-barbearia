@@ -129,9 +129,9 @@ export function useInactiveClients() {
     stats: data?.stats || {
       totalInactive: 0,
       totalPotentialRevenue: 0,
-      averageTicket: 45,
+      averageTicket: 55,
       potentialRevenue: 0,
-      daysThreshold: 45
+      daysThreshold: 15
     },
     loading,
     error,

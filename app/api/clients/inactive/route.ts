@@ -89,14 +89,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const potentialRevenue = (stats._count.id || 0) * (Number(averageTicket._avg.totalPrice) || 45)
+    // ✅ CALCULAR RECEITA POTENCIAL TOTAL (quantidade de inativos × ticket médio)
+    const ticketMedio = Number(averageTicket._avg.totalPrice) || 55
+    const potentialRevenue = (stats._count.id || 0) * ticketMedio
 
     return NextResponse.json({ 
       clients: inactiveClients,
       stats: {
         totalInactive: stats._count.id || 0,
         totalPotentialRevenue: stats._sum.totalSpent || 0,
-        averageTicket: Number(averageTicket._avg.totalPrice) || 45,
+        averageTicket: ticketMedio,
         potentialRevenue,
         daysThreshold
       }

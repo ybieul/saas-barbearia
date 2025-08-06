@@ -338,6 +338,11 @@ export default function ClientesInativosPage() {
                 ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.lastVisit)).getTime()) / (1000 * 60 * 60 * 24))
                 : 999; // Valor alto para quem nunca visitou
                 
+              // ✅ CALCULAR RECEITA POTENCIAL INDIVIDUAL DO CLIENTE
+              const clientPotentialRevenue = client.totalSpent > 0 
+                ? client.totalSpent / Math.max(client.totalVisits, 1) // Média do próprio cliente
+                : stats.averageTicket; // Se nunca gastou, usar média geral
+                
               return (
                 <div
                   key={client.id}
@@ -389,7 +394,7 @@ export default function ClientesInativosPage() {
                       {new Intl.NumberFormat('pt-BR', { 
                         style: 'currency', 
                         currency: 'BRL' 
-                      }).format(stats.averageTicket)}
+                      }).format(clientPotentialRevenue)}
                     </p>
                   </div>
                 </div>
