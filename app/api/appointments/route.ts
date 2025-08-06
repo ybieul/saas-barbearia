@@ -6,16 +6,11 @@ import { getBrazilDayOfWeek, getBrazilDayNameEn, utcToBrazil, debugTimezone } fr
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔄 API /appointments chamada')
     const user = verifyToken(request)
-    console.log('✅ Token verificado para tenant:', user.tenantId)
-    
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     const status = searchParams.get('status')
     const professionalId = searchParams.get('professionalId')
-    
-    console.log('📊 Parâmetros de busca:', { date, status, professionalId })
 
     const where: any = {
       tenantId: user.tenantId
@@ -72,10 +67,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log(`📋 Encontrados ${appointments.length} agendamentos para o tenant ${user.tenantId}`)
     return NextResponse.json({ appointments })
   } catch (error) {
-    console.error('❌ Erro ao buscar agendamentos:', error)
+    console.error('Erro ao buscar agendamentos:', error)
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
       { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }
