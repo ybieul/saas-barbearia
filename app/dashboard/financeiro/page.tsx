@@ -418,15 +418,15 @@ export default function FinanceiroPage() {
       </div>
 
       {/* Financial Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {financialStats.map((stat, index) => (
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
               <stat.icon className="h-4 w-4 text-[#10b981] flex-shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg sm:text-2xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
+              <div className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
               <p
                 className={`text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : "text-red-400"} flex items-center`}
               >
