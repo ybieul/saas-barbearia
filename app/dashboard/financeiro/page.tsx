@@ -445,11 +445,14 @@ export default function FinanceiroPage() {
       {/* Daily Revenue Analysis Card */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#10b981]" />
-            Receita Diária - Últimos 30 Dias
+          <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#10b981]" />
+              <span className="text-base sm:text-lg">Receita Diária</span>
+            </div>
+            <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">- Últimos 30 Dias</span>
           </CardTitle>
-          <CardDescription className="text-[#71717a]">
+          <CardDescription className="text-[#71717a] text-sm">
             Acompanhe o faturamento diário e identifique tendências
           </CardDescription>
         </CardHeader>
@@ -488,15 +491,78 @@ export default function FinanceiroPage() {
 
           {/* Daily Chart */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[#ededed] font-medium">Gráfico de Receita Diária</h4>
-              <div className="flex items-center gap-2 text-sm text-[#71717a]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+              <h4 className="text-[#ededed] font-medium text-sm sm:text-base">Gráfico de Receita Diária</h4>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-[#71717a]">
                 <div className="w-3 h-3 bg-[#10b981] rounded"></div>
                 <span>Receita do dia</span>
               </div>
             </div>
             
-            <div className="relative pt-16 pb-4">
+            {/* Mobile Chart - Scrollable horizontal list */}
+            <div className="block sm:hidden">
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+                  {dailyData.map((day, index) => {
+                    const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
+                    const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
+                    
+                    return (
+                      <div
+                        key={index}
+                        className="flex flex-col items-center min-w-[50px]"
+                      >
+                        {/* Bar Container */}
+                        <div className="w-8 h-24 bg-[#27272a]/30 rounded-t flex items-end relative mb-2">
+                          <div
+                            className={`w-full transition-all duration-300 rounded-t ${
+                              isWeekend 
+                                ? 'bg-emerald-400/70' 
+                                : 'bg-[#10b981]'
+                            }`}
+                            style={{ 
+                              height: `${height}%`, 
+                              minHeight: day.revenue > 0 ? '4px' : '0px' 
+                            }}
+                          />
+                        </div>
+                        
+                        {/* Day Info */}
+                        <div className="text-center">
+                          <div className={`text-xs ${isWeekend ? 'text-orange-400' : 'text-[#71717a]'} font-medium mb-1`}>
+                            {day.dayName.slice(0, 3)}
+                          </div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            {utcToBrazil(new Date(day.date)).getDate()}
+                          </div>
+                          <div className="text-xs text-[#10b981] font-medium">
+                            {day.revenue > 0 ? `R$ ${Math.round(day.revenue)}` : 'R$ 0'}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              {/* Mobile Legend */}
+              <div className="flex flex-col items-center gap-2 text-xs text-[#71717a] pt-3 border-t border-[#52525b]">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-[#10b981] rounded"></div>
+                    <span>Dias úteis</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-emerald-400/70 rounded"></div>
+                    <span>Fins de semana</span>
+                  </div>
+                </div>
+                <span className="text-center text-gray-500">Deslize para ver todos os dias</span>
+              </div>
+            </div>
+
+            {/* Desktop Chart - Original layout */}
+            <div className="hidden sm:block relative pt-16 pb-4">
               {/* Chart Container */}
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
@@ -553,8 +619,8 @@ export default function FinanceiroPage() {
               </div>
             </div>
             
-            {/* Legend */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-xs text-[#71717a] pt-2 border-t border-[#52525b]">
+            {/* Desktop Legend */}
+            <div className="hidden sm:flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-xs text-[#71717a] pt-2 border-t border-[#52525b]">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-[#10b981] rounded"></div>
                 <span>Dias úteis</span>
