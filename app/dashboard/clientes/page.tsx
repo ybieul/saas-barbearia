@@ -43,6 +43,15 @@ export default function ClientesPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    clientId: string
+    clientName: string
+  }>({
+    isOpen: false,
+    clientId: '',
+    clientName: ''
+  })
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -91,10 +100,27 @@ export default function ClientesPage() {
     setShowAddDialog(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja deletar este cliente?')) {
-      await deleteClient(id)
+  const handleDelete = (id: string, name: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      clientId: id,
+      clientName: name
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteClient(confirmDialog.clientId)
       await fetchClients(true)
+      
+      // Fechar o modal
+      setConfirmDialog({
+        isOpen: false,
+        clientId: '',
+        clientName: ''
+      })
+    } catch (error) {
+      console.error('Erro ao deletar cliente:', error)
     }
   }
 
@@ -444,7 +470,7 @@ export default function ClientesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(client.id)}
+                        onClick={() => handleDelete(client.id, client.name)}
                         className="border-red-600 text-red-400 hover:bg-red-600/10 px-2 py-1 h-8"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -599,6 +625,59 @@ export default function ClientesPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação para Excluir Cliente */}
+      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmDialog({
+            isOpen: false,
+            clientId: '',
+            clientName: ''
+          })
+        }
+      }}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <DialogHeader>
+            <DialogTitle className="text-[#ededed]">
+              Excluir Cliente
+            </DialogTitle>
+            <DialogDescription className="text-[#a1a1aa]">
+              Tem certeza que deseja excluir este cliente permanentemente? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-2">
+              <p className="text-[#ededed]">
+                <strong>Cliente:</strong> {confirmDialog.clientName}
+              </p>
+              <p className="text-[#71717a] text-sm">
+                Todos os agendamentos e histórico associados a este cliente serão removidos.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog({
+                isOpen: false,
+                clientId: '',
+                clientName: ''
+              })}
+              className="border-[#27272a] hover:bg-[#27272a]"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir Permanentemente
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
