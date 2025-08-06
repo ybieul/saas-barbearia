@@ -275,6 +275,7 @@ export default function ClientesInativosPage() {
               <div>
                 <p className="text-[#71717a] text-sm">Receita Potencial</p>
                 <p className="text-2xl font-bold text-[#ededed]">
+                  {/* ✅ RECEITA POTENCIAL CALCULADA NO BANCO: total_inativos × ticket_médio_real */}
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
@@ -386,10 +387,11 @@ export default function ClientesInativosPage() {
                   <div className="text-right">
                     <p className="text-sm font-medium text-emerald-400">Potencial de receita</p>
                     <p className="text-lg font-bold text-emerald-400">
+                      {/* ✅ USAR DADOS REAIS DO BANCO: totalSpent do cliente ou ticket médio real */}
                       {new Intl.NumberFormat('pt-BR', { 
                         style: 'currency', 
                         currency: 'BRL' 
-                      }).format(stats.averageTicket)}
+                      }).format(client.totalSpent > 0 ? client.totalSpent : stats.averageTicket)}
                     </p>
                   </div>
                 </div>
