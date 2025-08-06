@@ -310,8 +310,7 @@ export default function FinanceiroPage() {
   const handleExportPDF = async () => {
     setIsGeneratingReport(true)
     try {
-      const reportData = prepareReportData()
-      generatePDFReport(reportData)
+      await generatePDFReport(period)
       setExportModalOpen(false)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
@@ -324,8 +323,7 @@ export default function FinanceiroPage() {
   const handleExportExcel = async () => {
     setIsGeneratingReport(true)
     try {
-      const reportData = prepareReportData()
-      await generateExcelReport(reportData)
+      await generateExcelReport(period)
       setExportModalOpen(false)
     } catch (error) {
       console.error('Erro ao gerar Excel:', error)
