@@ -95,6 +95,7 @@ export default function AgendaPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('🔄 Carregando dados da agenda...')
         await Promise.allSettled([
           fetchAppointments(),
           fetchClients(),
@@ -103,13 +104,14 @@ export default function AgendaPage() {
           fetchEstablishment(),
           fetchWorkingHours()
         ])
+        console.log('✅ Dados carregados com sucesso')
       } catch (error) {
-        console.error('Erro ao carregar dados:', error)
+        console.error('❌ Erro ao carregar dados:', error)
       }
     }
     
     loadData()
-  }, []) // Sem dependências para executar apenas uma vez
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals, fetchEstablishment, fetchWorkingHours]) // Adicionar dependências
 
   // Debug para verificar se os dados estão chegando
   useEffect(() => {
@@ -139,8 +141,12 @@ export default function AgendaPage() {
 
   // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
   useEffect(() => {
+    if (!fetchAppointments) return // Aguardar hook estar pronto
+    
     const loadFilteredData = async () => {
       try {
+        console.log('🔄 Carregando dados filtrados...', { selectedProfessional, selectedStatus, currentDate })
+        
         // Formatar data atual para enviar para API
         const currentDateString = currentDate.toISOString().split('T')[0]
         
@@ -150,8 +156,9 @@ export default function AgendaPage() {
         
         // Buscar agendamentos filtrados
         await fetchAppointments(currentDateString, statusParam, professionalParam)
+        console.log('✅ Dados filtrados carregados')
       } catch (error) {
-        console.error('Erro ao carregar dados filtrados:', error)
+        console.error('❌ Erro ao carregar dados filtrados:', error)
       }
     }
     
