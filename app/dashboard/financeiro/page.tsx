@@ -418,15 +418,15 @@ export default function FinanceiroPage() {
       </div>
 
       {/* Financial Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {financialStats.map((stat, index) => (
-          <Card key={index} className="bg-[#18181b] border-[#27272a]">
+          <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-[#10b981]" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 text-[#10b981] flex-shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#ededed]">{stat.value}</div>
+              <div className="text-lg sm:text-2xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
               <p
                 className={`text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : "text-red-400"} flex items-center`}
               >
@@ -455,34 +455,34 @@ export default function FinanceiroPage() {
         </CardHeader>
         <CardContent>
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-3 bg-gray-900/50 rounded-lg">
-              <DollarSign className="w-6 h-6 text-[#10b981] mx-auto mb-1" />
-              <p className="text-lg font-bold text-[#ededed]">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="text-center p-2 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-[#10b981] mx-auto mb-1" />
+              <p className="text-sm sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDailyRevenue)}
               </p>
-              <p className="text-sm text-[#71717a]">Total 30 Dias</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
             </div>
-            <div className="text-center p-3 bg-gray-900/50 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-              <p className="text-lg font-bold text-[#ededed]">
+            <div className="text-center p-2 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400 mx-auto mb-1" />
+              <p className="text-sm sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageDailyRevenue)}
               </p>
-              <p className="text-sm text-[#71717a]">Média Diária</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
-            <div className="text-center p-3 bg-gray-900/50 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-              <p className="text-lg font-bold text-[#ededed]">
+            <div className="text-center p-2 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400 mx-auto mb-1" />
+              <p className="text-sm sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxDailyRevenue)}
               </p>
-              <p className="text-sm text-[#71717a]">Melhor Dia</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Melhor Dia</p>
             </div>
-            <div className="text-center p-3 bg-gray-900/50 rounded-lg">
-              <Calendar className="w-6 h-6 text-purple-400 mx-auto mb-1" />
-              <p className="text-lg font-bold text-[#ededed]">
+            <div className="text-center p-2 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400 mx-auto mb-1" />
+              <p className="text-sm sm:text-lg font-bold text-[#ededed] truncate">
                 {bestDay?.fullDate || 'N/A'}
               </p>
-              <p className="text-sm text-[#71717a]">Data do Melhor Dia</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Data do Melhor Dia</p>
             </div>
           </div>
 
@@ -606,35 +606,35 @@ export default function FinanceiroPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="text-center p-4 bg-gray-900/50 rounded-lg">
-              <DollarSign className="w-8 h-8 text-[#10b981] mx-auto mb-2" />
-              <p className="text-2xl font-bold text-[#ededed]">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
+            <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981] mx-auto mb-2" />
+              <p className="text-lg sm:text-2xl font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedMonthData?.revenue || 0)}
               </p>
-              <p className="text-[#71717a]">Faturamento Total</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Faturamento Total</p>
             </div>
-            <div className="text-center p-4 bg-gray-900/50 rounded-lg">
-              <Calendar className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-[#ededed]">{selectedMonthData?.appointmentCount || 0}</p>
-              <p className="text-[#71717a]">Agendamentos</p>
+            <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2" />
+              <p className="text-lg sm:text-2xl font-bold text-[#ededed]">{selectedMonthData?.appointmentCount || 0}</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Agendamentos</p>
             </div>
-            <div className="text-center p-4 bg-gray-900/50 rounded-lg">
-              <TrendingUp className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-[#ededed]">
+            <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2" />
+              <p className="text-lg sm:text-2xl font-bold text-[#ededed] truncate">
                 {selectedMonthData?.appointmentCount ? 
                   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedMonthData.revenue / selectedMonthData.appointmentCount)) : 
                   'R$ 0,00'
                 }
               </p>
-              <p className="text-[#71717a]">Ticket Médio</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Ticket Médio</p>
             </div>
-            <div className="text-center p-4 bg-gray-900/50 rounded-lg">
-              <CreditCard className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-[#ededed]">
+            <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+              <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mx-auto mb-2" />
+              <p className="text-lg sm:text-2xl font-bold text-[#ededed]">
                 {selectedMonthData?.appointmentCount ? Math.round(selectedMonthData.appointmentCount / 30) : 0}
               </p>
-              <p className="text-[#71717a]">Média Diária</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
           </div>
 
@@ -771,16 +771,18 @@ export default function FinanceiroPage() {
           <CardDescription className="text-[#71717a]">Distribuição dos pagamentos por método</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {paymentStats.map((payment, index) => (
-              <div key={index} className="text-center p-4 bg-gray-900/50 rounded-lg">
-                <payment.icon className={`w-8 h-8 ${payment.color} mx-auto mb-2`} />
-                <p className="text-2xl font-bold text-[#ededed]">{payment.percentage}%</p>
-                <p className="text-[#71717a]">{payment.method}</p>
-                <p className={`text-sm ${payment.color}`}>
+              <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
+                <payment.icon className={`w-6 h-6 sm:w-8 sm:h-8 ${payment.color} mx-auto mb-2`} />
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1">{payment.percentage}%</p>
+                <p className="text-xs sm:text-sm text-[#71717a] mb-1 font-medium">{payment.method}</p>
+                <p className={`text-xs sm:text-sm ${payment.color} font-semibold`}>
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{payment.count} transações</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {payment.count} transação{payment.count !== 1 ? 'ões' : ''}
+                </p>
               </div>
             ))}
           </div>
