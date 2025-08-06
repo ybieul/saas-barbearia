@@ -203,10 +203,10 @@ export async function GET(request: NextRequest) {
 
     const revenueByService = Array.from(serviceRevenue.entries())
       .map(([service, data]) => ({
-        serviceName: service,
-        total: data.total,
-        count: data.count,
-        percentage: totalRevenue > 0 ? ((data.total / totalRevenue) * 100).toFixed(1) : '0'
+        serviceName: service || 'Serviço não informado',
+        total: Number(data.total) || 0,
+        count: Number(data.count) || 0,
+        percentage: totalRevenue > 0 ? ((Number(data.total) / totalRevenue) * 100).toFixed(1) : '0'
       }))
       .sort((a, b) => b.total - a.total)
 
@@ -223,10 +223,10 @@ export async function GET(request: NextRequest) {
 
     const revenueByProfessional = Array.from(professionalRevenue.entries())
       .map(([professional, data]) => ({
-        professionalName: professional,
-        total: data.total,
-        count: data.count,
-        percentage: totalRevenue > 0 ? ((data.total / totalRevenue) * 100).toFixed(1) : '0'
+        professionalName: professional || 'Profissional não informado',
+        total: Number(data.total) || 0,
+        count: Number(data.count) || 0,
+        percentage: totalRevenue > 0 ? ((Number(data.total) / totalRevenue) * 100).toFixed(1) : '0'
       }))
       .sort((a, b) => b.total - a.total)
 
@@ -263,10 +263,10 @@ export async function GET(request: NextRequest) {
     }
 
     const dailyRevenueStats = {
-      total: last30Days.reduce((sum, day) => sum + day.revenue, 0),
-      average: last30Days.reduce((sum, day) => sum + day.revenue, 0) / 30,
-      best: Math.max(...last30Days.map(day => day.revenue)),
-      bestDate: last30Days.find(day => day.revenue === Math.max(...last30Days.map(d => d.revenue)))?.date || '',
+      total: last30Days.reduce((sum, day) => sum + (day.revenue || 0), 0),
+      average: last30Days.reduce((sum, day) => sum + (day.revenue || 0), 0) / 30,
+      best: Math.max(...last30Days.map(day => day.revenue || 0)),
+      bestDate: last30Days.find(day => day.revenue === Math.max(...last30Days.map(d => d.revenue || 0)))?.date || '',
       data: last30Days
     }
 
@@ -283,10 +283,10 @@ export async function GET(request: NextRequest) {
 
     const paymentMethodsStats = Array.from(paymentMethods.entries())
       .map(([method, data]) => ({
-        method,
-        count: data.count,
-        amount: data.amount,
-        percentage: totalAppointments > 0 ? ((data.count / totalAppointments) * 100).toFixed(1) : '0'
+        method: method || 'Não informado',
+        count: Number(data.count) || 0,
+        amount: Number(data.amount) || 0,
+        percentage: totalAppointments > 0 ? ((Number(data.count) / totalAppointments) * 100).toFixed(1) : '0'
       }))
       .sort((a, b) => b.amount - a.amount)
 
@@ -314,7 +314,7 @@ export async function GET(request: NextRequest) {
         totalRevenue,
         totalAppointments,
         averageTicket,
-        conversionRate: conversionRate.toFixed(1)
+        conversionRate: Number(conversionRate).toFixed(1)
       },
       transactions,
       revenueByService,

@@ -1,10 +1,19 @@
-"use client"
-
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import ExcelJS from 'exceljs'
 import { formatBrazilDate, getBrazilNow } from './timezone'
 import { FinancialReportData } from './types/financial-report'
+
+// Helper functions para conversão segura
+const safeToString = (value: any): string => {
+  if (value === null || value === undefined) return '0'
+  return String(value)
+}
+
+const safeNumber = (value: any): number => {
+  if (value === null || value === undefined || isNaN(Number(value))) return 0
+  return Number(value)
+}
 
 // Função para obter token com múltiplos fallbacks
 function getAuthToken(): string | null {
@@ -154,10 +163,10 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
     yPos += 15
 
     const kpiData = [
-      ['Faturamento Total', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.summary.totalRevenue)],
-      ['Total de Agendamentos', data.summary.totalAppointments.toString()],
-      ['Ticket Médio', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.summary.averageTicket)],
-      ['Taxa de Conversão', `${data.summary.conversionRate}%`]
+      ['Faturamento Total', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.totalRevenue))],
+      ['Total de Agendamentos', safeToString(data.summary.totalAppointments)],
+      ['Ticket Médio', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.averageTicket))],
+      ['Taxa de Conversão', `${safeToString(data.summary.conversionRate)}%`]
     ]
 
     autoTable(doc, {
@@ -207,9 +216,9 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
 
     // Tabela dos últimos 10 dias (para não sobrecarregar)
     const recentDays = data.dailyRevenue.data.slice(-10).map(day => [
-      day.date,
-      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(day.revenue),
-      day.appointmentCount.toString()
+      day.date || 'N/A',
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(day.revenue)),
+      safeToString(day.appointmentCount)
     ])
 
     autoTable(doc, {
@@ -293,10 +302,10 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
     yPos += 15
 
     const servicesData = data.revenueByService.slice(0, 10).map(service => [
-      service.serviceName,
-      service.count.toString(),
-      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.total),
-      `${service.percentage}%`
+      service.serviceName || 'N/A',
+      safeToString(service.count),
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(service.total)),
+      `${safeToString(service.percentage)}%`
     ])
 
     autoTable(doc, {
@@ -337,10 +346,10 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
       yPos += 15
 
       const professionalData = data.revenueByProfessional.map(professional => [
-        professional.professionalName,
-        professional.count.toString(),
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(professional.total),
-        `${professional.percentage}%`
+        professional.professionalName || 'N/A',
+        safeToString(professional.count),
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(professional.total)),
+        `${safeToString(professional.percentage)}%`
       ])
 
       autoTable(doc, {
@@ -382,10 +391,10 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
       yPos += 15
 
       const paymentData = data.paymentMethods.map(payment => [
-        payment.method,
-        payment.count.toString(),
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount),
-        `${payment.percentage}%`
+        payment.method || 'N/A',
+        safeToString(payment.count),
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(payment.amount)),
+        `${safeToString(payment.percentage)}%`
       ])
 
       autoTable(doc, {
@@ -505,10 +514,10 @@ export async function generateExcelReport(period: string = 'today'): Promise<voi
 
     const kpiStartRow = 12
     const kpis = [
-      ['Faturamento Total', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.summary.totalRevenue)],
-      ['Total de Agendamentos', data.summary.totalAppointments.toString()],
-      ['Ticket Médio', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.summary.averageTicket)],
-      ['Taxa de Conversão', `${data.summary.conversionRate}%`]
+      ['Faturamento Total', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.totalRevenue))],
+      ['Total de Agendamentos', safeToString(data.summary.totalAppointments)],
+      ['Ticket Médio', new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.averageTicket))],
+      ['Taxa de Conversão', `${safeToString(data.summary.conversionRate)}%`]
     ]
 
     kpis.forEach((kpi, index) => {
