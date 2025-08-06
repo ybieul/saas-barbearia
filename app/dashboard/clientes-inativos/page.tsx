@@ -32,11 +32,12 @@ export default function ClientesInativosPage() {
 
   // Filtrar clientes inativos (sem agendamentos recentes)
   const inactiveClients = clients.filter(client => {
-    if (client.appointments.length === 0) return true
+    // ✅ USAR DADOS REAIS DO BANCO - lastVisit e totalVisits
+    if (client.totalVisits === 0 || !client.lastVisit) return true
     
-    const lastAppointment = utcToBrazil(new Date(client.appointments[0]?.dateTime || 0))
+    const lastVisit = utcToBrazil(new Date(client.lastVisit))
     const now = utcToBrazil(getBrazilNow())
-    const daysSinceLastVisit = Math.floor((now.getTime() - lastAppointment.getTime()) / (1000 * 60 * 60 * 24))
+    const daysSinceLastVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24))
     
     return daysSinceLastVisit > 45 // Considerar inativo após 45 dias
   })
@@ -333,8 +334,9 @@ export default function ClientesInativosPage() {
         <CardContent className="p-6">
           <div className="space-y-4">
             {filteredClients.map((client) => {
-              const daysSinceLastVisit = client.appointments.length > 0 
-                ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.appointments[0].dateTime)).getTime()) / (1000 * 60 * 60 * 24))
+              // ✅ USAR DADOS REAIS DO BANCO - lastVisit
+              const daysSinceLastVisit = client.totalVisits > 0 && client.lastVisit
+                ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.lastVisit)).getTime()) / (1000 * 60 * 60 * 24))
                 : 90; // Padrão para quem nunca visitou
                 
               return (
@@ -375,7 +377,7 @@ export default function ClientesInativosPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {client.appointments.length === 0 ? "Nunca visitou" : "Última visita há mais de 45 dias"}
+                      {client.totalVisits === 0 ? "Nunca visitou" : "Última visita há mais de 45 dias"}
                     </p>
                   </div>
                   

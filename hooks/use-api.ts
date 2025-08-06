@@ -57,7 +57,7 @@ export function useClients() {
   const { data, loading, error, request } = useApi<{ clients: any[] }>()
 
   const fetchClients = useCallback((isActive?: boolean) => {
-    const params = isActive !== undefined ? `?isActive=${isActive}` : ''
+    const params = isActive !== undefined ? `?active=${isActive}` : ''
     return request(`/api/clients${params}`)
   }, [request])
 
