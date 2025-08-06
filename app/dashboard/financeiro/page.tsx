@@ -314,6 +314,8 @@ export default function FinanceiroPage() {
       setExportModalOpen(false)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
+      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório PDF. Tente novamente.'
+      alert(message)
     } finally {
       setIsGeneratingReport(false)
     }
@@ -327,6 +329,8 @@ export default function FinanceiroPage() {
       setExportModalOpen(false)
     } catch (error) {
       console.error('Erro ao gerar Excel:', error)
+      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório Excel. Tente novamente.'
+      alert(message)
     } finally {
       setIsGeneratingReport(false)
     }

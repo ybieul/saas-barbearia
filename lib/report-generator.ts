@@ -6,6 +6,36 @@ import ExcelJS from 'exceljs'
 import { formatBrazilDate, getBrazilNow } from './timezone'
 import { FinancialReportData } from './types/financial-report'
 
+// Função para obter token com múltiplos fallbacks
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  // Tentar múltiplas chaves de token no localStorage
+  const tokenKeys = ['auth_token', 'token', 'authToken']
+  
+  for (const key of tokenKeys) {
+    const token = localStorage.getItem(key)
+    if (token) {
+      console.log(`✅ Token encontrado na chave: ${key}`)
+      return token
+    }
+  }
+
+  // Fallback: tentar obter de cookies
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === 'auth_token' && value) {
+      console.log('✅ Token encontrado em cookies')
+      return value
+    }
+  }
+
+  return null
+}
+
 // Função para buscar dados da API
 async function fetchReportData(period: string = 'today'): Promise<FinancialReportData> {
   // Verificar se está no cliente
@@ -13,10 +43,17 @@ async function fetchReportData(period: string = 'today'): Promise<FinancialRepor
     throw new Error('Esta função só pode ser executada no cliente')
   }
 
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
+  
   if (!token) {
-    throw new Error('Token de autenticação não encontrado')
+    console.error('❌ Debug de autenticação:')
+    console.error('- localStorage.auth_token:', localStorage.getItem('auth_token'))
+    console.error('- localStorage.token:', localStorage.getItem('token'))
+    console.error('- document.cookie:', document.cookie)
+    throw new Error('Token de autenticação não encontrado. Faça login novamente.')
   }
+
+  console.log('🔐 Fazendo requisição com token:', token.substring(0, 20) + '...')
 
   const response = await fetch(`/api/reports/financial?period=${period}`, {
     headers: {
@@ -26,10 +63,19 @@ async function fetchReportData(period: string = 'today'): Promise<FinancialRepor
   })
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar dados do relatório')
+    const errorData = await response.text()
+    console.error('❌ Erro na API:', response.status, errorData)
+    
+    if (response.status === 401) {
+      throw new Error('Token expirado ou inválido. Faça login novamente.')
+    }
+    
+    throw new Error(`Erro ao buscar dados do relatório: ${response.status}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  console.log('✅ Dados do relatório obtidos com sucesso')
+  return data
 }
 
 // Função para gerar PDF com design profissional
@@ -383,10 +429,24 @@ export async function generatePDFReport(period: string = 'today'): Promise<void>
     // Fazer download do PDF
     const fileName = `relatorio-financeiro-${data.period.label.toLowerCase().replace(/\s+/g, '-')}-${formatBrazilDate(new Date()).replace(/\//g, '-')}.pdf`
     doc.save(fileName)
+    
+    console.log('✅ PDF gerado com sucesso:', fileName)
 
   } catch (error) {
-    console.error('Erro ao gerar relatório PDF:', error)
-    throw error
+    console.error('❌ Erro ao gerar relatório PDF:', error)
+    
+    // Lançar erro mais específico baseado no tipo
+    if (error instanceof Error) {
+      if (error.message.includes('Token')) {
+        throw new Error('Sessão expirada. Faça login novamente para gerar o relatório.')
+      } else if (error.message.includes('buscar dados')) {
+        throw new Error('Erro ao obter dados do servidor. Verifique sua conexão e tente novamente.')
+      } else if (error.message.includes('cliente')) {
+        throw new Error('Erro interno. Recarregue a página e tente novamente.')
+      }
+    }
+    
+    throw new Error('Erro inesperado ao gerar PDF. Tente novamente em alguns instantes.')
   }
 }
 
@@ -724,9 +784,23 @@ export async function generateExcelReport(period: string = 'today'): Promise<voi
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
+    
+    console.log('✅ Excel gerado com sucesso:', fileName)
 
   } catch (error) {
-    console.error('Erro ao gerar relatório Excel:', error)
-    throw error
+    console.error('❌ Erro ao gerar relatório Excel:', error)
+    
+    // Lançar erro mais específico baseado no tipo
+    if (error instanceof Error) {
+      if (error.message.includes('Token')) {
+        throw new Error('Sessão expirada. Faça login novamente para gerar o relatório.')
+      } else if (error.message.includes('buscar dados')) {
+        throw new Error('Erro ao obter dados do servidor. Verifique sua conexão e tente novamente.')
+      } else if (error.message.includes('cliente')) {
+        throw new Error('Erro interno. Recarregue a página e tente novamente.')
+      }
+    }
+    
+    throw new Error('Erro inesperado ao gerar Excel. Tente novamente em alguns instantes.')
   }
 }

@@ -129,7 +129,8 @@ export default function RelatoriosPage() {
       await generatePDFReport(selectedPeriod)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar relatório PDF. Tente novamente.')
+      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório PDF. Tente novamente.'
+      alert(message)
     } finally {
       setIsExporting(false)
       setExportType(null)
@@ -143,7 +144,8 @@ export default function RelatoriosPage() {
       await generateExcelReport(selectedPeriod)
     } catch (error) {
       console.error('Erro ao gerar Excel:', error)
-      alert('Erro ao gerar relatório Excel. Tente novamente.')
+      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório Excel. Tente novamente.'
+      alert(message)
     } finally {
       setIsExporting(false)
       setExportType(null)
