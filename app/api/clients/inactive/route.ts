@@ -119,9 +119,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // ✅ CALCULAR RECEITA POTENCIAL TOTAL (quantidade de inativos × ticket médio)
+    // ✅ CALCULAR RECEITA POTENCIAL INDIVIDUAL DE CADA CLIENTE
     const ticketMedio = Number(averageTicket._avg.totalPrice) || 55
-    const potentialRevenue = (stats._count.id || 0) * ticketMedio
+    
+    // Calcular receita potencial como soma individual dos clientes
+    const potentialRevenue = inactiveClients.reduce((total, client) => {
+      // Se cliente já gastou, usar sua média individual
+      // Se nunca gastou, usar ticket médio geral
+      const totalSpent = Number(client.totalSpent) || 0
+      const clientPotentialRevenue = totalSpent > 0 
+        ? totalSpent / Math.max(client.totalVisits, 1)
+        : ticketMedio
+      return total + clientPotentialRevenue
+    }, 0)
 
     return NextResponse.json({ 
       clients: inactiveClients,
