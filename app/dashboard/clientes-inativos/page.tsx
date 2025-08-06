@@ -299,28 +299,32 @@ export default function ClientesInativosPage() {
           />
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
-            onClick={() => {
-              const newThreshold = daysThreshold === 45 ? 30 : daysThreshold === 30 ? 60 : 45
-              setDaysThreshold(newThreshold)
-            }}
-          >
-            Inativos há {daysThreshold}+ dias
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleSelectAll(selectedClients.length !== filteredClients.length)}
-            className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
-          >
-            {selectedClients.length === filteredClients.length && filteredClients.length > 0 
-              ? "Desmarcar Todos" 
-              : "Selecionar Todos"
-            }
-          </Button>
+          <Select value={daysThreshold.toString()} onValueChange={(value) => setDaysThreshold(parseInt(value))}>
+            <SelectTrigger className="w-52 bg-[#27272a] border-[#3f3f46] text-[#ededed]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#27272a] border-[#3f3f46]">
+              <SelectItem value="15">Inativos há 15+ dias</SelectItem>
+              <SelectItem value="30">Inativos há 30+ dias</SelectItem>
+              <SelectItem value="45">Inativos há 45+ dias</SelectItem>
+              <SelectItem value="60">Inativos há 60+ dias</SelectItem>
+              <SelectItem value="90">Inativos há 90+ dias</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {filteredClients.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleSelectAll(selectedClients.length !== filteredClients.length)}
+              className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+            >
+              {selectedClients.length === filteredClients.length && filteredClients.length > 0 
+                ? "Desmarcar Todos" 
+                : "Selecionar Todos"
+              }
+            </Button>
+          )}
         </div>
       </div>
 
