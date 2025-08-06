@@ -5,9 +5,16 @@ import { formatBrazilDate } from '@/lib/timezone'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Iniciando geração de relatório financeiro...')
+    console.log('Request URL:', request.url)
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()))
+    
     const authUser = verifyToken(request)
+    console.log('👤 Usuário autenticado:', authUser ? 'Sim' : 'Não')
+    console.log('🏢 TenantId:', authUser?.tenantId)
     
     if (!authUser?.tenantId) {
+      console.log('❌ Unauthorized: tenantId não encontrado')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -15,6 +22,8 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const period = searchParams.get('period') || 'today'
+    
+    console.log('📅 Parâmetros recebidos:', { startDate, endDate, period })
 
     // Calcular datas baseado no período
     let dateFilter: any = {}
@@ -22,6 +31,9 @@ export async function GET(request: NextRequest) {
     
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    
+    console.log('🕐 Data atual:', now)
+    console.log('📅 Hoje (início do dia):', today)
     
     if (startDate && endDate) {
       dateFilter = {
@@ -77,7 +89,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log('📊 Filtro de data configurado:', dateFilter)
+    console.log('🏷️ Período selecionado:', periodLabel)
+
     // Buscar dados do estabelecimento
+    console.log('🔍 Buscando dados do estabelecimento...')
     const establishment = await prisma.tenant.findUnique({
       where: { id: authUser.tenantId },
       select: {
@@ -90,11 +106,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log('🏢 Estabelecimento encontrado:', establishment ? establishment.businessName : 'Não encontrado')
+
     if (!establishment) {
+      console.log('❌ Estabelecimento não encontrado para tenantId:', authUser.tenantId)
       return NextResponse.json({ error: 'Establishment not found' }, { status: 404 })
     }
 
     // Buscar transações do período
+    console.log('🔍 Buscando agendamentos concluídos...')
+    console.log('Filtros da query:', {
+      tenantId: authUser.tenantId,
+      status: 'COMPLETED',
+      dateFilter
+    })
     const appointments = await prisma.appointment.findMany({
       where: {
         tenantId: authUser.tenantId,
@@ -114,6 +139,14 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' }
     })
+
+    console.log('📊 Agendamentos encontrados:', appointments.length)
+    console.log('💰 Primeiros 3 agendamentos (amostra):', appointments.slice(0, 3).map(app => ({
+      id: app.id,
+      totalPrice: app.totalPrice,
+      createdAt: app.createdAt,
+      endUser: app.endUser?.name
+    })))
 
     // Calcular resumo financeiro
     const financialSummary = await prisma.appointment.aggregate({
@@ -258,6 +291,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.amount - a.amount)
 
     // Montar resposta final
+    console.log('📋 Montando resposta final...')
     const reportData = {
       establishment: {
         name: establishment.businessName || establishment.name || 'Estabelecimento',
@@ -289,12 +323,86 @@ export async function GET(request: NextRequest) {
       paymentMethods: paymentMethodsStats
     }
 
+    console.log('✅ Relatório montado com sucesso')
+    console.log('📊 Resumo dos dados:', {
+      establishment: reportData.establishment.name,
+      totalRevenue,
+      totalAppointments,
+      transactionsCount: transactions.length,
+      servicesCount: revenueByService.length,
+      professionalsCount: revenueByProfessional.length,
+      dailyRevenueDataCount: dailyRevenueStats.data.length,
+      paymentMethodsCount: paymentMethodsStats.length
+    })
+
     return NextResponse.json(reportData)
 
   } catch (error) {
-    console.error('Error generating financial report:', error)
+    console.error('❌ Erro ao gerar relatório financeiro:')
+    console.error('Tipo do erro:', typeof error)
+    console.error('Mensagem:', error instanceof Error ? error.message : String(error))
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A')
+    
+    // Log do request para debug
+    console.error('Request URL:', request.url)
+    console.error('Request headers:', Object.fromEntries(request.headers.entries()))
+    
+    if (error instanceof Error) {
+      // Erros específicos que podemos tratar
+      if (error.message.includes('prisma') || error.message.includes('database')) {
+        console.error('🔴 Erro de banco de dados detectado')
+        return NextResponse.json(
+          { 
+            error: 'Erro de conexão com banco de dados',
+            details: process.env.NODE_ENV === 'development' ? error.message : 'Erro interno do servidor',
+            timestamp: new Date().toISOString(),
+            code: 'DATABASE_ERROR'
+          },
+          { status: 500 }
+        )
+      }
+      
+      if (error.message.includes('token') || error.message.includes('jwt') || error.message.includes('auth')) {
+        console.error('🔴 Erro de autenticação detectado')
+        return NextResponse.json(
+          { 
+            error: 'Erro de autenticação',
+            details: 'Token inválido ou expirado',
+            timestamp: new Date().toISOString(),
+            code: 'AUTH_ERROR'
+          },
+          { status: 401 }
+        )
+      }
+
+      if (error.message.includes('tenant') || error.message.includes('business')) {
+        console.error('🔴 Erro de tenant/business detectado')
+        return NextResponse.json(
+          { 
+            error: 'Negócio não encontrado',
+            details: 'Verifique se sua conta tem acesso a este negócio',
+            timestamp: new Date().toISOString(),
+            code: 'BUSINESS_NOT_FOUND'
+          },
+          { status: 404 }
+        )
+      }
+    }
+
+    // Erro genérico com ID para rastreamento
+    const errorId = crypto.randomUUID()
+    console.error('🔴 Erro ID para rastreamento:', errorId)
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Erro interno do servidor',
+        details: process.env.NODE_ENV === 'development' ? 
+          (error instanceof Error ? error.message : String(error)) : 
+          'Ocorreu um erro inesperado. Entre em contato com o suporte.',
+        timestamp: new Date().toISOString(),
+        errorId,
+        code: 'INTERNAL_SERVER_ERROR'
+      },
       { status: 500 }
     )
   }
