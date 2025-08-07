@@ -39,6 +39,7 @@ import {
   Edit,
   MessageSquare,
   Camera,
+  X,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -883,7 +884,7 @@ export default function ConfiguracoesPage() {
               }`}
             >
               <Percent className="w-4 h-4" />
-              Promoções (Beta)
+              Promoções
             </button>
           </div>
         </div>
@@ -1015,20 +1016,25 @@ export default function ConfiguracoesPage() {
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Button 
+                          size="sm"
                           variant="outline" 
-                          className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                          className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
                           onClick={() => document.getElementById('logo-upload')?.click()}
+                          title="Alterar logo do estabelecimento"
                         >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {businessData.logo ? 'Alterar Logo' : 'Fazer Upload'}
+                          <Camera className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-2">{businessData.logo ? 'Alterar Logo' : 'Fazer Upload'}</span>
                         </Button>
                         {businessData.logo && (
                           <Button 
+                            size="sm"
                             variant="outline" 
-                            className="border-red-600 text-red-400 hover:text-red-300 bg-transparent"
+                            className="border-red-600 text-red-400 hover:text-red-300 bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
                             onClick={() => updateField('logo', '')}
+                            title="Remover logo"
                           >
-                            Remover
+                            <X className="w-4 h-4" />
+                            <span className="hidden sm:inline ml-2">Remover</span>
                           </Button>
                         )}
                       </div>
@@ -1076,10 +1082,13 @@ export default function ConfiguracoesPage() {
                           Novo Profissional
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
-                        <DialogHeader>
-                          <DialogTitle className="text-[#ededed]">Adicionar Novo Profissional</DialogTitle>
-                          <DialogDescription className="text-[#71717a]">
+                      <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                        <DialogHeader className="text-center pb-4">
+                          <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                            <User className="w-5 h-5 text-[#10b981]" />
+                            Adicionar Novo Profissional
+                          </DialogTitle>
+                          <DialogDescription className="text-[#71717a] text-sm">
                             Preencha os dados do novo profissional
                           </DialogDescription>
                         </DialogHeader>
@@ -1275,10 +1284,13 @@ export default function ConfiguracoesPage() {
               
               {/* Dialog para editar profissional */}
               <Dialog open={isEditProfessionalOpen} onOpenChange={setIsEditProfessionalOpen}>
-                <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed]">
-                  <DialogHeader>
-                    <DialogTitle className="text-[#ededed]">Editar Profissional</DialogTitle>
-                    <DialogDescription className="text-[#71717a]">
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <DialogHeader className="text-center pb-4">
+                    <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                      <Edit className="w-5 h-5 text-[#10b981]" />
+                      Editar Profissional
+                    </DialogTitle>
+                    <DialogDescription className="text-[#71717a] text-sm">{}
                       Atualize os dados do profissional
                     </DialogDescription>
                   </DialogHeader>
@@ -1354,14 +1366,17 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-[#ededed] text-center">Foto de Perfil</DialogTitle>
-                    <DialogDescription className="text-[#71717a] text-center">
-                      {selectedProfessionalForAvatar?.name && `${selectedProfessionalForAvatar.name}`}
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                  <DialogHeader className="text-center pb-2">
+                    <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                      <Camera className="w-5 h-5 text-[#10b981]" />
+                      Foto de Perfil
+                    </DialogTitle>
+                    <DialogDescription className="text-[#71717a] text-sm">
+                      {selectedProfessionalForAvatar?.name && `Alterar foto de perfil de ${selectedProfessionalForAvatar.name}`}
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="py-4">
+                  <div className="py-6">{}
                     {selectedProfessionalForAvatar && (
                       <ProfessionalAvatarUpload
                         currentAvatar={selectedProfessionalForAvatar.avatar}
@@ -1373,11 +1388,11 @@ export default function ConfiguracoesPage() {
                       />
                     )}
                   </div>
-                  <div className="flex justify-center pt-2">
+                  <div className="flex justify-center pt-4 border-t border-[#27272a]">
                     <Button 
                       variant="outline" 
                       onClick={handleCloseAvatarUpload}
-                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
+                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-8 touch-manipulation"
                     >
                       Fechar
                     </Button>
@@ -1401,10 +1416,13 @@ export default function ConfiguracoesPage() {
                         Novo Serviço
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-[#ededed]">Novo Serviço</DialogTitle>
-                        <DialogDescription className="text-[#71717a]">
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                      <DialogHeader className="text-center pb-4">
+                        <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                          <Wrench className="w-5 h-5 text-[#10b981]" />
+                          Novo Serviço
+                        </DialogTitle>
+                        <DialogDescription className="text-[#71717a] text-sm">
                           Preencha os dados do novo serviço
                         </DialogDescription>
                       </DialogHeader>
@@ -1602,10 +1620,13 @@ export default function ConfiguracoesPage() {
             
             {/* Dialog para editar serviço */}
             <Dialog open={isEditServiceOpen} onOpenChange={setIsEditServiceOpen}>
-              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-[#ededed]">Editar Serviço</DialogTitle>
-                  <DialogDescription className="text-[#71717a]">
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                <DialogHeader className="text-center pb-4">
+                  <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                    <Edit className="w-5 h-5 text-[#10b981]" />
+                    Editar Serviço
+                  </DialogTitle>
+                  <DialogDescription className="text-[#71717a] text-sm">
                     Atualize os dados do serviço
                   </DialogDescription>
                 </DialogHeader>
@@ -1677,14 +1698,17 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-[#ededed] text-center">Imagem do Serviço</DialogTitle>
-                  <DialogDescription className="text-[#71717a] text-center">
-                    {selectedServiceForImage?.name && `${selectedServiceForImage.name}`}
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                <DialogHeader className="text-center pb-2">
+                  <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                    <Camera className="w-5 h-5 text-[#10b981]" />
+                    Imagem do Serviço
+                  </DialogTitle>
+                  <DialogDescription className="text-[#71717a] text-sm">
+                    {selectedServiceForImage?.name && `Alterar imagem do serviço ${selectedServiceForImage.name}`}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
+                <div className="py-6">{}
                   {selectedServiceForImage && (
                     <ServiceImageUpload
                       currentImage={selectedServiceForImage.image}
@@ -1696,11 +1720,11 @@ export default function ConfiguracoesPage() {
                     />
                   )}
                 </div>
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-4 border-t border-[#27272a]">
                   <Button 
                     variant="outline" 
                     onClick={handleCloseServiceImageUpload}
-                    className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
+                    className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-8 touch-manipulation"
                   >
                     Fechar
                   </Button>
@@ -1864,12 +1888,13 @@ export default function ConfiguracoesPage() {
                         Novo Template
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-md">
-                      <DialogHeader>
-                        <DialogTitle className="text-[#ededed]">
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                      <DialogHeader className="text-center pb-4">
+                        <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                          <Plus className="w-5 h-5 text-[#10b981]" />
                           {editingTemplate ? 'Editar Template' : 'Novo Template'}
                         </DialogTitle>
-                        <DialogDescription className="text-[#71717a]">
+                        <DialogDescription className="text-[#71717a] text-sm">
                           {editingTemplate ? 'Edite o template de promoção' : 'Crie um novo template de promoção'}
                         </DialogDescription>
                       </DialogHeader>
