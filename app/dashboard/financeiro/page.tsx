@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle } from "lucide-react"
-import { useDashboard, useAppointments, useProfessionals } from "@/hooks/use-api"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star } from "lucide-react"
+import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
@@ -49,6 +49,12 @@ export default function FinanceiroPage() {
   const { dashboardData, loading: dashboardLoading, fetchDashboardData } = useDashboard()
   const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments()
   const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
+  const { fetchProfessionalsReport, fetchTimeAnalysis } = useReports()
+
+  // Estados para os novos cards de relatórios
+  const [professionalPerformance, setProfessionalPerformance] = useState<any[]>([])
+  const [timeAnalysisData, setTimeAnalysisData] = useState<any[]>([])
+  const [reportsLoading, setReportsLoading] = useState(false)
 
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
@@ -73,6 +79,34 @@ export default function FinanceiroPage() {
     
     loadData()
   }, [period, fetchDashboardData, fetchAppointments, fetchProfessionals])
+
+  // Carregar dados de relatórios
+  useEffect(() => {
+    const loadReportsData = async () => {
+      try {
+        setReportsLoading(true)
+        
+        // Buscar performance dos profissionais
+        const professionalsData = await fetchProfessionalsReport(selectedMonth + 1, selectedYear)
+        if (professionalsData?.data?.professionalPerformance) {
+          setProfessionalPerformance(professionalsData.data.professionalPerformance)
+        }
+
+        // Buscar análise de horários
+        const timeAnalysis = await fetchTimeAnalysis(selectedMonth + 1, selectedYear)
+        if (timeAnalysis?.data?.timeAnalysis) {
+          setTimeAnalysisData(timeAnalysis.data.timeAnalysis)
+        }
+
+      } catch (error) {
+        console.error('Erro ao carregar dados de relatórios:', error)
+      } finally {
+        setReportsLoading(false)
+      }
+    }
+
+    loadReportsData()
+  }, [selectedMonth, selectedYear, fetchProfessionalsReport, fetchTimeAnalysis])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
   const completedAppointments = useMemo(() => {
@@ -556,8 +590,8 @@ export default function FinanceiroPage() {
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
-            <p className="text-[#71717a]">Controle completo das suas finanças</p>
+            <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+            <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
           </div>
         </div>
         
@@ -584,8 +618,8 @@ export default function FinanceiroPage() {
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
-            <p className="text-[#71717a]">Controle completo das suas finanças</p>
+            <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+            <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
           </div>
           <div className="animate-pulse bg-[#27272a] rounded-lg h-10 w-40"></div>
         </div>
@@ -625,8 +659,8 @@ export default function FinanceiroPage() {
       {/* Header com filtro por profissional */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
-          <p className="text-[#71717a]">Controle completo das suas finanças</p>
+          <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+          <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -1117,6 +1151,108 @@ export default function FinanceiroPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Professional Performance */}
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardHeader>
+            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-400" />
+              Performance dos Profissionais
+            </CardTitle>
+            <CardDescription className="text-gray-400">Desempenho individual por profissional</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {reportsLoading ? (
+                <div className="text-center py-8 text-gray-400">
+                  <div className="animate-pulse">Carregando...</div>
+                </div>
+              ) : professionalPerformance.length > 0 ? professionalPerformance.map((professional, index) => (
+                <div key={index} className="p-4 bg-gray-900/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{professional.name.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{professional.name}</p>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-400">{professional.rating}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">{professional.growth}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-400">Agendamentos</p>
+                      <p className="text-white font-medium">{professional.appointments}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Faturamento</p>
+                      <p className="text-emerald-400 font-medium">R$ {professional.revenue}</p>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>Nenhum profissional encontrado</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Time Analysis */}
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardHeader>
+            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+              <Clock className="w-5 h-5 text-purple-400" />
+              Análise de Horários
+            </CardTitle>
+            <CardDescription className="text-gray-400">Horários com maior movimento e ocupação</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {reportsLoading ? (
+              <div className="text-center py-8 text-gray-400">
+                <div className="animate-pulse">Carregando...</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {timeAnalysisData.map((period, index) => (
+                  <div key={index} className="text-center p-4 bg-gray-900/50 rounded-lg">
+                    <h4 className="text-white font-medium mb-1">{period.period}</h4>
+                    <p className="text-xs text-gray-400 mb-3">{period.time}</p>
+                    <div className="w-16 h-16 mx-auto mb-2 relative">
+                      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="rgb(55 65 81)"
+                          strokeWidth="2"
+                        />
+                        <path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="rgb(16 185 129)"
+                          strokeWidth="2"
+                          strokeDasharray={`${period.occupancy}, 100`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-emerald-400">{period.occupancy}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400">{period.appointments} agendamentos</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

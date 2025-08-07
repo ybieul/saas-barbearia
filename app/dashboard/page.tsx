@@ -73,7 +73,7 @@ export default function DashboardPage() {
   }
 
   const handleReports = () => {
-    router.push('/dashboard/relatorios')
+    router.push('/dashboard/financeiro')
   }
 
   // Função para abrir modal de pagamento
