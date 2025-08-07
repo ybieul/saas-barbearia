@@ -1366,33 +1366,100 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                  <DialogHeader className="text-center pb-2">
-                    <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                      <Camera className="w-5 h-5 text-[#10b981]" />
-                      Foto de Perfil
-                    </DialogTitle>
-                    <DialogDescription className="text-[#71717a] text-sm">
-                      {selectedProfessionalForAvatar?.name && `Alterar foto de perfil de ${selectedProfessionalForAvatar.name}`}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-6">{}
-                    {selectedProfessionalForAvatar && (
-                      <ProfessionalAvatarUpload
-                        currentAvatar={selectedProfessionalForAvatar.avatar}
-                        professionalName={selectedProfessionalForAvatar.name}
-                        onAvatarChange={(avatarBase64) => 
-                          handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, avatarBase64)
-                        }
-                        size="lg"
-                      />
-                    )}
+                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-lg mx-4 sm:mx-auto backdrop-blur-xl">
+                  {/* Header com gradiente */}
+                  <div className="relative p-6 border-b border-[#1a1a1a]">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Camera className="w-6 h-6 text-white" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-[#ededed] mb-2">Foto de Perfil</h2>
+                      <p className="text-[#71717a] text-sm">
+                        {selectedProfessionalForAvatar?.name && `Alterar foto de perfil de ${selectedProfessionalForAvatar.name}`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-center pt-4 border-t border-[#27272a]">
+
+                  {/* Conteúdo principal */}
+                  <div className="p-6 space-y-6">
+                    {/* Preview da foto */}
+                    <div className="flex justify-center">
+                      <div className="relative">
+                        <div className="w-32 h-32 rounded-full border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+                          {selectedProfessionalForAvatar?.avatar ? (
+                            <img 
+                              src={selectedProfessionalForAvatar.avatar} 
+                              alt={selectedProfessionalForAvatar.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-12 h-12 text-[#71717a]" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botões de ação */}
+                    <div className="flex gap-3 justify-center">
+                      <Button
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/jpeg,image/jpg,image/png,image/gif';
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              try {
+                                const reader = new FileReader();
+                                reader.onload = async (event) => {
+                                  const base64 = event.target?.result as string;
+                                  await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
+                                };
+                                reader.readAsDataURL(file);
+                              } catch (error) {
+                                console.error('Erro ao processar imagem:', error);
+                              }
+                            }
+                          };
+                          input.click();
+                        }}
+                        className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Alterar Foto
+                      </Button>
+                      
+                      {selectedProfessionalForAvatar?.avatar && (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, null)}
+                          className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Remover Foto
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Requisitos com emojis */}
+                    <div className="bg-[#111111] rounded-lg p-4 border border-[#1a1a1a]">
+                      <div className="space-y-2 text-sm text-[#a1a1aa]">
+                        <p className="text-[#ededed] font-medium mb-3 text-center">Requisitos</p>
+                        <div className="space-y-1.5">
+                          <p>📐 <strong>Recomendado:</strong> 150x150px (quadrada)</p>
+                          <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
+                          <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
                     <Button 
                       variant="outline" 
                       onClick={handleCloseAvatarUpload}
-                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-8 touch-manipulation"
+                      className="w-full border-[#3f3f46] text-[#71717a] hover:text-[#ededed] hover:bg-[#1a1a1a] py-2.5"
                     >
                       Fechar
                     </Button>
@@ -1698,33 +1765,104 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
-                <DialogHeader className="text-center pb-2">
-                  <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                    <Camera className="w-5 h-5 text-[#10b981]" />
-                    Imagem do Serviço
-                  </DialogTitle>
-                  <DialogDescription className="text-[#71717a] text-sm">
-                    {selectedServiceForImage?.name && `Alterar imagem do serviço ${selectedServiceForImage.name}`}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-6">{}
-                  {selectedServiceForImage && (
-                    <ServiceImageUpload
-                      currentImage={selectedServiceForImage.image}
-                      serviceName={selectedServiceForImage.name}
-                      onImageChange={(imageBase64: string | null) => 
-                        handleServiceImageChange(selectedServiceForImage.id, imageBase64)
-                      }
-                      size="lg"
-                    />
-                  )}
+              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-lg mx-4 sm:mx-auto backdrop-blur-xl">
+                {/* Header com gradiente */}
+                <div className="relative p-6 border-b border-[#1a1a1a]">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#ededed] mb-2">Imagem do Serviço</h2>
+                    <p className="text-[#71717a] text-sm">
+                      {selectedServiceForImage?.name && `Alterar imagem do serviço ${selectedServiceForImage.name}`}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-center pt-4 border-t border-[#27272a]">
+
+                {/* Conteúdo principal */}
+                <div className="p-6 space-y-6">
+                  {/* Preview da imagem */}
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <div className="w-32 h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+                        {selectedServiceForImage?.image ? (
+                          <img 
+                            src={selectedServiceForImage.image} 
+                            alt={selectedServiceForImage.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-xl">
+                              {selectedServiceForImage?.name?.charAt(0) || 'S'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botões de ação */}
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/jpeg,image/jpg,image/png,image/gif';
+                        input.onchange = async (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            try {
+                              const reader = new FileReader();
+                              reader.onload = async (event) => {
+                                const base64 = event.target?.result as string;
+                                await handleServiceImageChange(selectedServiceForImage.id, base64);
+                              };
+                              reader.readAsDataURL(file);
+                            } catch (error) {
+                              console.error('Erro ao processar imagem:', error);
+                            }
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Alterar Foto
+                    </Button>
+                    
+                    {selectedServiceForImage?.image && (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleServiceImageChange(selectedServiceForImage.id, null)}
+                        className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remover Foto
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Requisitos com emojis */}
+                  <div className="bg-[#111111] rounded-lg p-4 border border-[#1a1a1a]">
+                    <div className="space-y-2 text-sm text-[#a1a1aa]">
+                      <p className="text-[#ededed] font-medium mb-3 text-center">Requisitos</p>
+                      <div className="space-y-1.5">
+                        <p>📐 <strong>Recomendado:</strong> 300x300px (quadrada)</p>
+                        <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
+                        <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
                   <Button 
                     variant="outline" 
                     onClick={handleCloseServiceImageUpload}
-                    className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-8 touch-manipulation"
+                    className="w-full border-[#3f3f46] text-[#71717a] hover:text-[#ededed] hover:bg-[#1a1a1a] py-2.5"
                   >
                     Fechar
                   </Button>
