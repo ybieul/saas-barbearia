@@ -3,9 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { formatBrazilDate, getBrazilNow } from './timezone'
 import { FinancialReportData } from './types/financial-report'
 
-// Helper functions para conversão         icon: '%'
-      }
-    ]ura
+// Helper functions para conversão de dados
 const safeToString = (value: any): string => {
   if (value === null || value === undefined) return '0'
   return String(value)
