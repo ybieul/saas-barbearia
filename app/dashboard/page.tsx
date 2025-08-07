@@ -352,7 +352,7 @@ export default function DashboardPage() {
             {/* Mostrar profissionais livres se existirem */}
             {professionals.filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id)).length > 0 && (
               <div className="mt-4 pt-4 border-t border-[#27272a]">
-                <p className="text-sm text-[#a1a1aa] mb-2">Profissionais livres hoje:</p>
+                <p className="text-sm text-[#a1a1aa] mb-2">Profissionais livres:</p>
                 <div className="flex flex-wrap gap-2">
                   {professionals
                     .filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id))
