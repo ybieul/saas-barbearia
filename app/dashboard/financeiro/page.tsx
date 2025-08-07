@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star } from "lucide-react"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw } from "lucide-react"
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
@@ -43,6 +43,8 @@ export default function FinanceiroPage() {
   const [selectedProfessional, setSelectedProfessional] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const brazilNow = getBrazilNow()
   const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
   const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
@@ -84,7 +86,49 @@ export default function FinanceiroPage() {
     }
     
     loadData()
+    setLastUpdated(getBrazilNow())
   }, [period, fetchDashboardData, fetchAppointments, fetchProfessionals])
+
+  // ✅ FUNÇÃO PARA ATUALIZAR DADOS MANUALMENTE
+  const handleRefreshData = async () => {
+    try {
+      setIsRefreshing(true)
+      setError(null)
+      
+      console.log('🔄 Atualizando dados financeiros manualmente...')
+      
+      await Promise.all([
+        fetchDashboardData(period),
+        fetchAppointments(),
+        fetchProfessionals()
+      ])
+      
+      setLastUpdated(getBrazilNow())
+      console.log('✅ Dados atualizados com sucesso')
+    } catch (err) {
+      console.error('❌ Erro ao atualizar dados:', err)
+      setError('Erro ao atualizar dados. Tente novamente.')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  // ✅ ATUALIZAÇÃO AUTOMÁTICA: Verificar mudanças periodicamente
+  useEffect(() => {
+    // Verificar se há mudanças a cada 30 segundos quando a página está visível
+    const interval = setInterval(() => {
+      if (!document.hidden && !isRefreshing && !loading) {
+        console.log('🔄 Verificação automática de dados...')
+        fetchAppointments().then(() => {
+          console.log('✅ Verificação automática concluída')
+        }).catch(err => {
+          console.error('❌ Erro na verificação automática:', err)
+        })
+      }
+    }, 30000) // 30 segundos
+
+    return () => clearInterval(interval)
+  }, [fetchAppointments, isRefreshing, loading])
 
   // Carregar dados de relatórios
   useEffect(() => {
@@ -169,7 +213,9 @@ export default function FinanceiroPage() {
             return false
           }
           
-          return appointmentDate <= getBrazilNow()
+          // ✅ CORREÇÃO: Remover filtro de data passada - agendamentos concluídos devem aparecer independente da data original
+          // O que importa é o status COMPLETED/IN_PROGRESS, não se a data é passada ou futura
+          return true
         } catch (err) {
           console.log('⚠️ Erro ao processar data:', err)
           return false
@@ -892,10 +938,32 @@ export default function FinanceiroPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
-          <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
+            {lastUpdated && (
+              <span className="text-xs text-[#52525b] sm:ml-2">
+                • Última atualização: {lastUpdated.toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </span>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
+          {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
+          <Button
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+            className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+          
           {/* ✅ FILTRO POR PROFISSIONAL */}
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
             <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
