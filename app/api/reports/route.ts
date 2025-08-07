@@ -102,12 +102,12 @@ async function getOverviewReport(tenantId: string, dates: any) {
     })
   ])
 
-  // 2. Filtrar apenas agendamentos concluídos para faturamento
+  // 2. Filtrar apenas agendamentos concluídos/em andamento para faturamento
   const completedThisMonth = thisMonthAppointments.filter(apt => 
-    apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
+    apt.status === 'COMPLETED' || apt.status === 'IN_PROGRESS'
   )
   const completedLastMonth = lastMonthAppointments.filter(apt => 
-    apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
+    apt.status === 'COMPLETED' || apt.status === 'IN_PROGRESS'
   )
 
   // 3. Calcular faturamento (usar totalPrice dos agendamentos ou somar preços dos serviços)
@@ -232,7 +232,7 @@ async function getMonthlyPerformance(tenantId: string, currentYear: number) {
           lte: monthEnd
         },
         status: {
-          in: ['COMPLETED', 'CONFIRMED']
+          in: ['COMPLETED', 'IN_PROGRESS']
         }
       }
     })
@@ -300,8 +300,8 @@ async function getServicesReport(tenantId: string, monthStart: Date, monthEnd: D
       const stats = serviceStats.get(key)
       stats.count += 1
       
-      // Para receita, considerar apenas agendamentos concluídos
-      if (appointment.status === 'COMPLETED' || appointment.status === 'CONFIRMED') {
+      // Para receita, considerar apenas agendamentos concluídos/em andamento
+      if (appointment.status === 'COMPLETED' || appointment.status === 'IN_PROGRESS') {
         stats.revenue += Number(service.price)
       }
     })
@@ -362,11 +362,11 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
     )
     
     const completedCurrentMonth = currentMonthAppointments.filter(apt => 
-      apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
+      apt.status === 'COMPLETED' || apt.status === 'IN_PROGRESS'
     )
     
     const completedLastMonth = lastMonthAppointments.filter(apt => 
-      apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
+      apt.status === 'COMPLETED' || apt.status === 'IN_PROGRESS'
     )
     
     const currentRevenue = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
@@ -382,7 +382,9 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
       growth = "+100%"
     }
     
-    const appointmentsCount = currentMonthAppointments.length
+    // ✅ CORREÇÃO: Usar apenas agendamentos concluídos/em andamento para o contador
+    // Isso garante consistência com o cálculo de receita - antes estava contando todos os agendamentos
+    const appointmentsCount = completedCurrentMonth.length
     
     return {
       id: professional.id,
