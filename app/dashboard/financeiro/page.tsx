@@ -752,7 +752,7 @@ export default function FinanceiroPage() {
                           <div
                             className={`w-full transition-all duration-300 rounded-t ${
                               isWeekend 
-                                ? 'bg-emerald-400/70' 
+                                ? 'bg-blue-500' 
                                 : 'bg-[#10b981]'
                             }`}
                             style={{ 
@@ -788,7 +788,7 @@ export default function FinanceiroPage() {
                     <span>Dias úteis</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-emerald-400/70 rounded"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
                     <span>Fins de semana</span>
                   </div>
                 </div>
@@ -828,7 +828,7 @@ export default function FinanceiroPage() {
                         <div
                           className={`w-full transition-all duration-300 rounded-t ${
                             isWeekend 
-                              ? 'bg-emerald-400/70 hover:bg-emerald-400' 
+                              ? 'bg-blue-500 hover:bg-blue-400' 
                               : 'bg-[#10b981] hover:bg-emerald-400'
                           } group-hover:shadow-lg cursor-pointer`}
                           style={{ 
@@ -861,7 +861,7 @@ export default function FinanceiroPage() {
                 <span>Dias úteis</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-emerald-400/70 rounded"></div>
+                <div className="w-3 h-3 bg-blue-500 rounded"></div>
                 <span>Fins de semana</span>
               </div>
               <span className="text-center">• Passe o mouse sobre as barras para ver detalhes</span>
