@@ -5,33 +5,106 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react"
-import { useDashboard, useAppointments } from "@/hooks/use-api"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle } from "lucide-react"
+import { useDashboard, useAppointments, useProfessionals } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
+// ✅ SEGURANÇA: Função para sanitizar dados de entrada
+const sanitizeString = (str: string | undefined | null): string => {
+  if (!str) return ''
+  return String(str)
+    .replace(/[<>&"']/g, (char) => {
+      const entities: Record<string, string> = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;',
+        "'": '&#x27;'
+      }
+      return entities[char] || char
+    })
+    .trim()
+}
+
+// ✅ PERFORMANCE: Debounce hook para navegação
+const useDebounce = (callback: Function, delay: number) => {
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null)
+  
+  return (...args: any[]) => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    setDebounceTimer(setTimeout(() => callback(...args), delay))
+  }
+}
+
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
+  const [selectedProfessional, setSelectedProfessional] = useState('todos')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const brazilNow = getBrazilNow()
   const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
   const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
-  const { dashboardData, loading, fetchDashboardData } = useDashboard()
-  const { appointments, fetchAppointments } = useAppointments()
+  
+  const { dashboardData, loading: dashboardLoading, fetchDashboardData } = useDashboard()
+  const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments()
+  const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
+
+  // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
+  const loading = dashboardLoading || appointmentsLoading || professionalsLoading
 
   useEffect(() => {
-    fetchDashboardData(period)
-    fetchAppointments() // Buscar todos os agendamentos para transações
-  }, [period, fetchDashboardData, fetchAppointments])
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        await Promise.all([
+          fetchDashboardData(period),
+          fetchAppointments(),
+          fetchProfessionals()
+        ])
+      } catch (err) {
+        console.error('Erro ao carregar dados financeiros:', err)
+        setError('Erro ao carregar dados. Tente novamente.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadData()
+  }, [period, fetchDashboardData, fetchAppointments, fetchProfessionals])
 
-  // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados
-  const completedAppointments = useMemo(() => 
-    appointments.filter(app => 
-      app.status === 'COMPLETED' && 
-      app.totalPrice > 0 && 
-      app.dateTime &&
-      utcToBrazil(new Date(app.dateTime)) <= getBrazilNow() // Apenas agendamentos já realizados
-    ), [appointments]
-  )
+  // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
+  const completedAppointments = useMemo(() => {
+    try {
+      if (!Array.isArray(appointments)) return []
+      
+      return appointments.filter(app => {
+        // ✅ SEGURANÇA: Validação robusta dos dados
+        if (!app || typeof app !== 'object') return false
+        if (app.status !== 'COMPLETED') return false
+        if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) return false
+        if (!app.dateTime) return false
+        
+        try {
+          const appointmentDate = utcToBrazil(new Date(app.dateTime))
+          if (isNaN(appointmentDate.getTime())) return false
+          
+          // Filtro por profissional
+          if (selectedProfessional !== 'todos' && app.professionalId !== selectedProfessional) {
+            return false
+          }
+          
+          return appointmentDate <= getBrazilNow()
+        } catch {
+          return false
+        }
+      })
+    } catch (err) {
+      console.error('Erro ao filtrar agendamentos:', err)
+      return []
+    }
+  }, [appointments, selectedProfessional])
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
@@ -41,108 +114,142 @@ export default function FinanceiroPage() {
     })
   }
 
-  // Função para obter dados dos últimos 12 meses com dados reais
-  const getMonthlyData = () => {
-    const monthlyData = []
-    const currentDate = getBrazilNow()
-    
-    for (let i = 11; i >= 0; i--) {
-      const brazilCurrentDate = utcToBrazil(currentDate)
-      const date = new Date(brazilCurrentDate.getFullYear(), brazilCurrentDate.getMonth() - i, 1)
-      const month = date.getMonth()
-      const year = date.getFullYear()
+  // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 12 meses
+  const getMonthlyData = useMemo(() => {
+    try {
+      if (!Array.isArray(completedAppointments)) return []
       
-      // Filtrar agendamentos do mês específico
-      const monthAppointments = completedAppointments.filter(app => {
-        const appointmentDate = utcToBrazil(new Date(app.dateTime))
-        return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
-      })
+      const monthlyData = []
+      const currentDate = getBrazilNow()
       
-      // Calcular receita real do mês
-      const revenue = monthAppointments.reduce((total, app) => {
-        const price = parseFloat(app.totalPrice) || 0
-        return total + price
-      }, 0)
+      for (let i = 11; i >= 0; i--) {
+        try {
+          const brazilCurrentDate = utcToBrazil(currentDate)
+          const date = new Date(brazilCurrentDate.getFullYear(), brazilCurrentDate.getMonth() - i, 1)
+          const month = date.getMonth()
+          const year = date.getFullYear()
+          
+          // Filtrar agendamentos do mês específico
+          const monthAppointments = completedAppointments.filter(app => {
+            try {
+              const appointmentDate = utcToBrazil(new Date(app.dateTime))
+              return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
+            } catch {
+              return false
+            }
+          })
+          
+          // Calcular receita real do mês
+          const revenue = monthAppointments.reduce((total, app) => {
+            const price = parseFloat(app.totalPrice) || 0
+            return total + (isNaN(price) ? 0 : price)
+          }, 0)
+          
+          const appointmentCount = monthAppointments.length
+          
+          monthlyData.push({
+            month,
+            year,
+            monthName: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+            shortName: date.toLocaleDateString('pt-BR', { month: 'short' }),
+            revenue: Math.round(revenue * 100) / 100,
+            appointmentCount,
+            appointments: monthAppointments
+          })
+        } catch (err) {
+          console.error(`Erro ao processar mês ${i}:`, err)
+        }
+      }
       
-      const appointmentCount = monthAppointments.length
-      
-      monthlyData.push({
-        month,
-        year,
-        monthName: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-        shortName: date.toLocaleDateString('pt-BR', { month: 'short' }),
-        revenue: Math.round(revenue * 100) / 100, // Arredondar para 2 casas decimais
-        appointmentCount,
-        appointments: monthAppointments
-      })
+      return monthlyData
+    } catch (err) {
+      console.error('Erro ao gerar dados mensais:', err)
+      return []
     }
-    
-    return monthlyData
-  }
+  }, [completedAppointments])
 
-  // Função para obter dados dos últimos 30 dias com dados reais
-  const getDailyData = () => {
-    const dailyData = []
-    const currentDate = getBrazilNow()
-    
-    for (let i = 29; i >= 0; i--) {
-      const brazilCurrentDate = utcToBrazil(currentDate)
-      const date = new Date(brazilCurrentDate)
-      date.setDate(brazilCurrentDate.getDate() - i)
+  // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 30 dias
+  const getDailyData = useMemo(() => {
+    try {
+      if (!Array.isArray(completedAppointments)) return []
       
-      // Filtrar agendamentos do dia específico
-      const dayAppointments = completedAppointments.filter(app => {
-        const appointmentDate = utcToBrazil(new Date(app.dateTime))
-        return appointmentDate.toDateString() === date.toDateString()
-      })
+      const dailyData = []
+      const currentDate = getBrazilNow()
       
-      // Calcular receita real do dia
-      const revenue = dayAppointments.reduce((total, app) => {
-        const price = parseFloat(app.totalPrice) || 0
-        return total + price
-      }, 0)
+      for (let i = 29; i >= 0; i--) {
+        try {
+          const brazilCurrentDate = utcToBrazil(currentDate)
+          const date = new Date(brazilCurrentDate)
+          date.setDate(brazilCurrentDate.getDate() - i)
+          
+          // Filtrar agendamentos do dia específico
+          const dayAppointments = completedAppointments.filter(app => {
+            try {
+              const appointmentDate = utcToBrazil(new Date(app.dateTime))
+              return appointmentDate.toDateString() === date.toDateString()
+            } catch {
+              return false
+            }
+          })
+          
+          // Calcular receita real do dia
+          const revenue = dayAppointments.reduce((total, app) => {
+            const price = parseFloat(app.totalPrice) || 0
+            return total + (isNaN(price) ? 0 : price)
+          }, 0)
+          
+          const appointmentCount = dayAppointments.length
+          
+          dailyData.push({
+            date: date.toISOString().split('T')[0],
+            dayName: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
+            fullDate: date.toLocaleDateString('pt-BR'),
+            revenue: Math.round(revenue * 100) / 100,
+            appointmentCount,
+            appointments: dayAppointments
+          })
+        } catch (err) {
+          console.error(`Erro ao processar dia ${i}:`, err)
+        }
+      }
       
-      const appointmentCount = dayAppointments.length
-      
-      dailyData.push({
-        date: date.toISOString().split('T')[0],
-        dayName: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
-        fullDate: date.toLocaleDateString('pt-BR'),
-        revenue: Math.round(revenue * 100) / 100, // Arredondar para 2 casas decimais
-        appointmentCount,
-        appointments: dayAppointments
-      })
+      return dailyData
+    } catch (err) {
+      console.error('Erro ao gerar dados diários:', err)
+      return []
     }
-    
-    return dailyData
-  }
+  }, [completedAppointments])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para cálculos pesados
-  const dailyData = useMemo(() => getDailyData(), [completedAppointments])
-  const monthlyData = useMemo(() => getMonthlyData(), [completedAppointments])
+  const dailyData = getDailyData
+  const monthlyData = getMonthlyData
   
   const totalDailyRevenue = useMemo(() => 
-    dailyData.reduce((total, day) => total + day.revenue, 0), [dailyData]
+    dailyData.reduce((total: number, day: any) => total + (day.revenue || 0), 0), [dailyData]
   )
   const averageDailyRevenue = dailyData.length > 0 ? totalDailyRevenue / dailyData.length : 0
-  const maxDailyRevenue = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.revenue)) : 0
-  const bestDay = dailyData.find(d => d.revenue === maxDailyRevenue)
-  const selectedMonthData = monthlyData.find(m => m.month === selectedMonth && m.year === selectedYear)
+  const maxDailyRevenue = dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
+  const bestDay = dailyData.find((d: any) => d.revenue === maxDailyRevenue)
+  const selectedMonthData = monthlyData.find((m: any) => m.month === selectedMonth && m.year === selectedYear)
   const currentMonthAppointments = selectedMonthData?.appointments || []
 
-  // Função para navegar entre meses
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const currentIndex = monthlyData.findIndex(m => m.month === selectedMonth && m.year === selectedYear)
-    if (direction === 'prev' && currentIndex > 0) {
-      const prevMonth = monthlyData[currentIndex - 1]
-      setSelectedMonth(prevMonth.month)
-      setSelectedYear(prevMonth.year)
-    } else if (direction === 'next' && currentIndex < monthlyData.length - 1) {
-      const nextMonth = monthlyData[currentIndex + 1]
-      setSelectedMonth(nextMonth.month)
-      setSelectedYear(nextMonth.year)
+  // ✅ PERFORMANCE: Função para navegar entre meses com debounce
+  const debouncedNavigateMonth = useDebounce((direction: 'prev' | 'next') => {
+    try {
+      const currentIndex = monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear)
+      if (direction === 'prev' && currentIndex > 0) {
+        const prevMonth = monthlyData[currentIndex - 1]
+        setSelectedMonth(prevMonth.month)
+        setSelectedYear(prevMonth.year)
+      } else if (direction === 'next' && currentIndex < monthlyData.length - 1) {
+        const nextMonth = monthlyData[currentIndex + 1]
+        setSelectedMonth(nextMonth.month)
+        setSelectedYear(nextMonth.year)
+      }
+    } catch (err) {
+      console.error('Erro ao navegar entre meses:', err)
     }
-  }
+  }, 300)
   
   // ✅ USAR DADOS REAIS: Métodos de pagamento baseados no banco de dados
   const paymentStats = useMemo(() => {
@@ -243,54 +350,69 @@ export default function FinanceiroPage() {
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
 
-  // Função para exportar relatório financeiro
+  // ✅ SEGURANÇA: Função para exportar relatório com sanitização
   const handleExportReport = () => {
-    const today = formatBrazilDate(getBrazilNow())
-    const reportData = [
-      ['RELATÓRIO FINANCEIRO'],
-      [`Data de Geração: ${today}`],
-      [''],
-      ['RESUMO GERAL'],
-      ['Métrica', 'Valor', 'Variação'],
-      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? formatCurrency(dashboardData.stats.totalRevenue) : 'R$ 0,00', revenueChange.change],
-      ['Agendamentos Concluídos', completedAppointments.length.toString(), completedChange.change],
-      ['Taxa de Conversão', `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`, conversionChange.change],
-      ['Ticket Médio', formatCurrency(currentTicketMedio), ticketChange.change],
-      [''],
-      ['FORMAS DE PAGAMENTO'],
-      ['Método', 'Quantidade', 'Valor', 'Percentual'],
-      ...paymentStats.map(payment => [
-        payment.method,
-        payment.count.toString(),
-        formatCurrency(payment.amount),
-        `${payment.percentage}%`
-      ]),
-      [''],
-      ['AGENDAMENTOS CONCLUÍDOS'],
-      ['Cliente', 'Serviço', 'Valor', 'Data'],
-      ...completedAppointments.slice(0, 50).map(apt => [
-        apt.endUser?.name || 'Cliente',
-        apt.services?.[0]?.name || 'Serviço',
-        formatCurrency(apt.totalPrice),
-        utcToBrazil(new Date(apt.dateTime)).toLocaleDateString('pt-BR')
-      ])
-    ]
+    try {
+      const today = formatBrazilDate(getBrazilNow())
+      const reportData = [
+        ['RELATÓRIO FINANCEIRO'],
+        [`Data de Geração: ${today}`],
+        [''],
+        ['RESUMO GERAL'],
+        ['Métrica', 'Valor', 'Variação'],
+        ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? formatCurrency(dashboardData.stats.totalRevenue) : 'R$ 0,00', revenueChange.change],
+        ['Agendamentos Concluídos', completedAppointments.length.toString(), completedChange.change],
+        ['Taxa de Conversão', `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`, conversionChange.change],
+        ['Ticket Médio', formatCurrency(currentTicketMedio), ticketChange.change],
+        [''],
+        ['FORMAS DE PAGAMENTO'],
+        ['Método', 'Quantidade', 'Valor', 'Percentual'],
+        ...paymentStats.map(payment => [
+          sanitizeString(payment.method),
+          payment.count.toString(),
+          formatCurrency(payment.amount),
+          `${payment.percentage}%`
+        ]),
+        [''],
+        ['AGENDAMENTOS CONCLUÍDOS'],
+        ['Cliente', 'Serviço', 'Valor', 'Data'],
+        ...completedAppointments.slice(0, 50).map(apt => [
+          sanitizeString(apt.endUser?.name) || 'Cliente',
+          sanitizeString(apt.services?.[0]?.name) || 'Serviço',
+          formatCurrency(apt.totalPrice),
+          utcToBrazil(new Date(apt.dateTime)).toLocaleDateString('pt-BR')
+        ])
+      ]
 
-    // Converter para CSV
-    const csvContent = reportData.map(row => 
-      row.map(cell => `"${cell}"`).join(',')
-    ).join('\n')
+      // ✅ SEGURANÇA: Sanitização adicional para CSV
+      const csvContent = reportData.map(row => 
+        row.map(cell => {
+          const sanitized = sanitizeString(String(cell))
+          // Prevenir CSV injection
+          if (sanitized.startsWith('=') || sanitized.startsWith('+') || sanitized.startsWith('-') || sanitized.startsWith('@')) {
+            return `"'${sanitized}"`
+          }
+          return `"${sanitized}"`
+        }).join(',')
+      ).join('\n')
 
-    // Criar e baixar arquivo
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `relatorio-financeiro-${formatBrazilDate(getBrazilNow()).split('/').reverse().join('-')}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      // Criar e baixar arquivo
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `relatorio-financeiro-${formatBrazilDate(getBrazilNow()).split('/').reverse().join('-')}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Limpeza de memória
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Erro ao exportar relatório:', err)
+      setError('Erro ao exportar relatório. Tente novamente.')
+    }
   }
 
   const financialStats = [
@@ -327,100 +449,213 @@ export default function FinanceiroPage() {
     },
   ]
 
-  // ✅ IMPLEMENTAR: Transações recentes com dados reais
+  // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
-    const today = getBrazilNow()
-    const todayString = today.toDateString()
-    
-    return completedAppointments
-      .filter(app => {
-        const appointmentDate = utcToBrazil(new Date(app.dateTime))
-        return appointmentDate.toDateString() === todayString
-      })
-      .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-      .slice(0, 10)
-      .map(app => {
-        // Normalizar método de pagamento
-        let paymentMethod = app.paymentMethod || 'NULL'
-        if (paymentMethod === 'CASH') {
-          paymentMethod = 'Dinheiro'
-        } else if (paymentMethod === 'CARD') {
-          paymentMethod = 'Cartão'
-        } else if (paymentMethod === 'PIX') {
-          paymentMethod = 'PIX'
-        } else if (paymentMethod === 'NULL') {
-          paymentMethod = 'Não informado'
-        } else {
-          paymentMethod = 'Outros'
-        }
-        
-        return {
-          id: app.id,
-          client: app.endUser?.name || 'Cliente',
-          service: app.services?.[0]?.name || 'Serviço',
-          amount: parseFloat(app.totalPrice) || 0,
-          method: paymentMethod,
-          time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })
-        }
-      })
+    try {
+      if (!Array.isArray(completedAppointments)) return []
+      
+      const today = getBrazilNow()
+      const todayString = today.toDateString()
+      
+      return completedAppointments
+        .filter(app => {
+          try {
+            const appointmentDate = utcToBrazil(new Date(app.dateTime))
+            return appointmentDate.toDateString() === todayString
+          } catch {
+            return false
+          }
+        })
+        .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+        .slice(0, 10)
+        .map(app => {
+          // Normalizar método de pagamento
+          let paymentMethod = app.paymentMethod || 'NULL'
+          if (paymentMethod === 'CASH') {
+            paymentMethod = 'Dinheiro'
+          } else if (paymentMethod === 'CARD') {
+            paymentMethod = 'Cartão'
+          } else if (paymentMethod === 'PIX') {
+            paymentMethod = 'PIX'
+          } else if (paymentMethod === 'NULL') {
+            paymentMethod = 'Não informado'
+          } else {
+            paymentMethod = 'Outros'
+          }
+          
+          return {
+            id: app.id,
+            client: sanitizeString(app.endUser?.name) || 'Cliente',
+            service: sanitizeString(app.services?.[0]?.name) || 'Serviço',
+            amount: parseFloat(app.totalPrice) || 0,
+            method: paymentMethod,
+            time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          }
+        })
+    } catch (err) {
+      console.error('Erro ao processar transações recentes:', err)
+      return []
+    }
   }, [completedAppointments])
 
-  // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais
+  // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais e sanitização
   const topServices = useMemo(() => {
-    const serviceStats = new Map()
-    
-    completedAppointments.forEach(app => {
-      app.services?.forEach((service: any) => {
-        const serviceName = service.name
-        const servicePrice = parseFloat(service.price) || 0
+    try {
+      if (!Array.isArray(completedAppointments)) return []
+      
+      const serviceStats = new Map()
+      
+      completedAppointments.forEach(app => {
+        if (!app.services || !Array.isArray(app.services)) return
         
-        if (serviceStats.has(serviceName)) {
-          const existing = serviceStats.get(serviceName)
-          serviceStats.set(serviceName, {
-            ...existing,
-            count: existing.count + 1,
-            revenue: existing.revenue + servicePrice
-          })
-        } else {
-          serviceStats.set(serviceName, {
-            service: serviceName,
-            count: 1,
-            revenue: servicePrice
-          })
-        }
+        app.services.forEach((service: any) => {
+          const serviceName = sanitizeString(service.name) || 'Serviço sem nome'
+          const servicePrice = parseFloat(service.price) || 0
+          
+          if (serviceStats.has(serviceName)) {
+            const existing = serviceStats.get(serviceName)
+            serviceStats.set(serviceName, {
+              ...existing,
+              count: existing.count + 1,
+              revenue: existing.revenue + (isNaN(servicePrice) ? 0 : servicePrice)
+            })
+          } else {
+            serviceStats.set(serviceName, {
+              service: serviceName,
+              count: 1,
+              revenue: isNaN(servicePrice) ? 0 : servicePrice
+            })
+          }
+        })
       })
-    })
-    
-    const totalRevenue = Array.from(serviceStats.values())
-      .reduce((total, service) => total + service.revenue, 0)
-    
-    return Array.from(serviceStats.values())
-      .map(service => ({
-        ...service,
-        percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
-      }))
-      .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
-      .slice(0, 5)
+      
+      const totalRevenue = Array.from(serviceStats.values())
+        .reduce((total, service) => total + (service.revenue || 0), 0)
+      
+      return Array.from(serviceStats.values())
+        .map(service => ({
+          ...service,
+          percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
+        }))
+        .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
+        .slice(0, 5)
+    } catch (err) {
+      console.error('Erro ao processar serviços mais vendidos:', err)
+      return []
+    }
   }, [completedAppointments])
+
+  // ✅ TRATAMENTO DE ERROS: Componente de erro
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
+            <p className="text-[#71717a]">Controle completo das suas finanças</p>
+          </div>
+        </div>
+        
+        <Card className="bg-[#18181b] border-red-500/20">
+          <CardContent className="p-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-400 mb-2">Erro ao carregar dados</h3>
+            <p className="text-[#a1a1aa] mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // ✅ ESTADOS DE LOADING: Feedback visual melhorado
+  if (loading || isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
+            <p className="text-[#71717a]">Controle completo das suas finanças</p>
+          </div>
+          <div className="animate-pulse bg-[#27272a] rounded-lg h-10 w-40"></div>
+        </div>
+
+        {/* Financial Stats Skeleton */}
+        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          {[1, 2, 3, 4].map((index) => (
+            <Card key={index} className="bg-[#18181b] border-[#27272a]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="animate-pulse bg-[#27272a] rounded h-4 w-24"></div>
+                <div className="animate-pulse bg-[#27272a] rounded h-4 w-4"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="animate-pulse bg-[#27272a] rounded h-6 w-20 mb-2"></div>
+                <div className="animate-pulse bg-[#27272a] rounded h-3 w-32"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardHeader>
+            <div className="animate-pulse bg-[#27272a] rounded h-6 w-40 mb-2"></div>
+            <div className="animate-pulse bg-[#27272a] rounded h-4 w-64"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse bg-[#27272a] rounded h-64 w-full"></div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header com filtro por profissional */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[#ededed]">Financeiro</h1>
           <p className="text-[#71717a]">Controle completo das suas finanças</p>
         </div>
-        <Button 
-          onClick={handleExportReport}
-          className="bg-[#10b981] hover:bg-[#059669] text-[#ededed]"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Exportar Relatório
-        </Button>
+        
+        <div className="flex items-center gap-3">
+          {/* ✅ FILTRO POR PROFISSIONAL */}
+          <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+              <SelectValue placeholder="Filtrar por profissional" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#18181b] border-[#27272a]">
+              <SelectItem value="todos">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Todos os profissionais
+                </div>
+              </SelectItem>
+              {professionals?.map((professional: any) => (
+                <SelectItem key={professional.id} value={professional.id}>
+                  {sanitizeString(professional.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button 
+            onClick={handleExportReport}
+            className="bg-[#10b981] hover:bg-[#059669] text-[#ededed]"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Relatório
+          </Button>
+        </div>
       </div>
 
       {/* Financial Stats */}
@@ -653,8 +888,8 @@ export default function FinanceiroPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigateMonth('prev')}
-                disabled={monthlyData.findIndex(m => m.month === selectedMonth && m.year === selectedYear) === 0}
+                onClick={() => debouncedNavigateMonth('prev')}
+                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === 0}
                 className="text-[#71717a] hover:text-[#ededed]"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -665,8 +900,8 @@ export default function FinanceiroPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigateMonth('next')}
-                disabled={monthlyData.findIndex(m => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
+                onClick={() => debouncedNavigateMonth('next')}
+                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
                 className="text-[#71717a] hover:text-[#ededed]"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -718,8 +953,8 @@ export default function FinanceiroPage() {
             <div className="block sm:hidden">
               <div className="overflow-x-auto pb-4">
                 <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-                  {monthlyData.map((month, index) => {
-                    const maxRevenue = Math.max(...monthlyData.map(m => m.revenue))
+                  {monthlyData.map((month: any, index: number) => {
+                    const maxRevenue = Math.max(...monthlyData.map((m: any) => m.revenue || 0))
                     const height = maxRevenue > 0 ? (month.revenue / maxRevenue) * 100 : 0
                     const isSelected = month.month === selectedMonth && month.year === selectedYear
                     
@@ -772,8 +1007,8 @@ export default function FinanceiroPage() {
             {/* Desktop Chart - Original layout */}
             <div className="hidden sm:block">
               <div className="grid grid-cols-12 gap-2">
-                {monthlyData.map((month, index) => {
-                  const maxRevenue = Math.max(...monthlyData.map(m => m.revenue))
+                {monthlyData.map((month: any, index: number) => {
+                  const maxRevenue = Math.max(...monthlyData.map((m: any) => m.revenue || 0))
                   const height = maxRevenue > 0 ? (month.revenue / maxRevenue) * 100 : 0
                   const isSelected = month.month === selectedMonth && month.year === selectedYear
                   
