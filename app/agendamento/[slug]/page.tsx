@@ -912,7 +912,7 @@ export default function AgendamentoPage() {
           <Card className="bg-[#18181b] border-[#27272a] mb-6">
             <CardHeader className="text-center">
               {businessData.businessLogo && (
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden bg-[#27272a]">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-[#27272a]">
                   <img 
                     src={businessData.businessLogo} 
                     alt={businessData.businessName}
@@ -943,7 +943,7 @@ export default function AgendamentoPage() {
                   <DialogHeader className="text-center pb-4">
                     {/* Logo da empresa (se disponível) */}
                     {businessData.businessLogo && (
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border-2 border-emerald-600/30 shadow-lg">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border-2 border-emerald-600/30 shadow-lg">
                         <img 
                           src={businessData.businessLogo} 
                           alt={businessData.businessName}
@@ -1329,8 +1329,8 @@ export default function AgendamentoPage() {
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
-                            <Users className="h-6 w-6 text-[#71717a]" />
+                          <div className="w-16 h-16 rounded-lg bg-[#27272a] flex items-center justify-center">
+                            <Users className="h-8 w-8 text-[#71717a]" />
                           </div>
                           <div>
                             <h4 className="font-medium text-[#ededed]">
@@ -1379,18 +1379,21 @@ export default function AgendamentoPage() {
                               }`}
                           >
                             <div className="flex items-center gap-3">
-                              <Avatar className="w-12 h-12">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#27272a] flex-shrink-0">
                                 {professional.avatar ? (
-                                  <AvatarImage 
+                                  <img 
                                     src={professional.avatar} 
-                                    alt={professional.name} 
+                                    alt={professional.name}
+                                    className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <AvatarFallback className="bg-[#27272a] text-[#71717a]">
-                                    {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                  </AvatarFallback>
+                                  <div className="w-full h-full bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 flex items-center justify-center">
+                                    <span className="text-[#71717a] font-bold text-lg">
+                                      {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    </span>
+                                  </div>
                                 )}
-                              </Avatar>
+                              </div>
                               <div>
                                 <h4 className="font-medium text-[#ededed]">
                                   {professional.name}
