@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/hooks/use-auth"
-import { ErrorBoundary } from "@/components/error-boundary"
 
 const menuItems = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", description: "Visão geral do negócio" },
@@ -224,9 +223,7 @@ export default function DashboardLayout({
 
         {/* Conteúdo da Página */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+          {children}
         </main>
       </div>
     </div>
