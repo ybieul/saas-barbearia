@@ -300,7 +300,7 @@ export function ProfessionalAvatarUpload({
       {/* Informações sobre formato e tamanho */}
       <div className={`text-center ${currentSize.text} text-[#71717a] max-w-xs px-4`}>
         <div className="space-y-1">
-          <p className="font-medium">Requisitos:</p>
+          <p className="font-medium text-center">Requisitos:</p>
           <p>• JPG, PNG, WEBP</p>
           <p>• Máximo: 5MB</p>
           <p>• Preferencialmente quadrada</p>

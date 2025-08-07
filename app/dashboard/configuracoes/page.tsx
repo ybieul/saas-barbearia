@@ -1554,7 +1554,7 @@ export default function ConfiguracoesPage() {
                               title="Alterar imagem do serviço"
                             >
                               <Camera className="w-4 h-4" />
-                              <span className="hidden sm:inline ml-2">Imagem</span>
+                              <span className="hidden sm:inline ml-2">Foto</span>
                             </Button>
                             <Button
                               size="sm"

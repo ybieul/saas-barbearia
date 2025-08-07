@@ -339,9 +339,10 @@ export default function ServiceImageUpload({
 
       {/* Dicas de uso */}
       <div className="text-xs text-[#71717a] text-center space-y-1 max-w-xs">
-        <p>📐 <strong>Recomendado:</strong> 300x300px</p>
-        <p>📁 <strong>Formatos:</strong> JPG, PNG, WEBP (máx. 5MB)</p>
-        <p>✨ <strong>Automático:</strong> Redimensionamento e crop centralizado</p>
+        <p className="font-medium text-center">Requisitos:</p>
+        <p>• JPG, PNG, WEBP</p>
+        <p>• Máximo: 5MB</p>
+        <p>• Recomendado: 300x300px</p>
         {previewCandidate && (
           <p className="text-blue-600 dark:text-blue-400 font-medium">
             👆 <strong>Pré-visualização ativa</strong> - Confirme ou cancele acima
