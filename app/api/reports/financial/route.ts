@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando geração de relatório financeiro...')
     console.log('Request URL:', request.url)
-    console.log('Request headers:', Object.fromEntries(request.headers.entries()))
     
     const authUser = verifyToken(request)
     console.log('👤 Usuário autenticado:', authUser ? 'Sim' : 'Não')
@@ -149,6 +148,12 @@ export async function GET(request: NextRequest) {
     })))
 
     // Calcular resumo financeiro
+    console.log('💰 Calculando resumo financeiro com filtros:', {
+      tenantId: authUser.tenantId,
+      status: 'COMPLETED',
+      dateFilter
+    })
+    
     const financialSummary = await prisma.appointment.aggregate({
       _sum: { totalPrice: true },
       _count: { id: true },
@@ -159,9 +164,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log('📊 Resultado da agregação:', {
+      totalPrice: financialSummary._sum.totalPrice,
+      count: financialSummary._count
+    })
+
     const totalRevenue = Number(financialSummary._sum.totalPrice || 0)
     const totalAppointments = Number(financialSummary._count || 0)
     const averageTicket = totalAppointments > 0 ? totalRevenue / totalAppointments : 0
+
+    console.log('🧮 Valores calculados:', {
+      totalRevenue,
+      totalAppointments,
+      averageTicket
+    })
 
     // Calcular taxa de conversão (agendamentos concluídos vs total)
     const totalAllAppointments = await prisma.appointment.count({

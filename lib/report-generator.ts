@@ -3,7 +3,9 @@ import autoTable from 'jspdf-autotable'
 import { formatBrazilDate, getBrazilNow } from './timezone'
 import { FinancialReportData } from './types/financial-report'
 
-// Helper functions para conversão segura
+// Helper functions para conversão         icon: '%'
+      }
+    ]ura
 const safeToString = (value: any): string => {
   if (value === null || value === undefined) return '0'
   return String(value)
@@ -26,7 +28,7 @@ function getAuthToken(): string | null {
   for (const key of tokenKeys) {
     const token = localStorage.getItem(key)
     if (token) {
-      console.log(`✅ Token encontrado na chave: ${key}`)
+      console.log(`TOKEN ENCONTRADO na chave: ${key}`)
       return token
     }
   }
@@ -36,7 +38,7 @@ function getAuthToken(): string | null {
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
     if (name === 'auth_token' && value) {
-      console.log('✅ Token encontrado em cookies')
+      console.log('TOKEN ENCONTRADO em cookies')
       return value
     }
   }
@@ -54,14 +56,22 @@ async function fetchReportData(period: string = 'today', startDate?: string, end
   const token = getAuthToken()
   
   if (!token) {
-    console.error('❌ Debug de autenticação:')
+    console.error('ERRO Debug de autenticação:')
     console.error('- localStorage.auth_token:', localStorage.getItem('auth_token'))
     console.error('- localStorage.token:', localStorage.getItem('token'))
     console.error('- document.cookie:', document.cookie)
+    console.error('- window.location:', window.location.href)
+    
+    // Tentar redirectionar para login se não houver token
+    if (window.location.pathname !== '/login') {
+      alert('Sessão expirada. Você será redirecionado para o login.')
+      window.location.href = '/login'
+    }
+    
     throw new Error('Token de autenticação não encontrado. Faça login novamente.')
   }
 
-  console.log('🔐 Fazendo requisição com token:', token.substring(0, 20) + '...')
+  console.log('REQUISICAO com token:', token.substring(0, 20) + '...')
 
   // Construir URL da API
   let apiUrl = `/api/reports/financial?period=${period}`
@@ -81,7 +91,17 @@ async function fetchReportData(period: string = 'today', startDate?: string, end
     console.error('❌ Erro na API:', response.status, errorData)
     
     if (response.status === 401) {
+      // Token inválido ou expirado
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('token')
+      localStorage.removeItem('authToken')
+      alert('Sua sessão expirou. Você será redirecionado para o login.')
+      window.location.href = '/login'
       throw new Error('Token expirado ou inválido. Faça login novamente.')
+    }
+    
+    if (response.status === 404) {
+      throw new Error('Estabelecimento não encontrado. Verifique sua conta.')
     }
     
     throw new Error(`Erro ao buscar dados do relatório: ${response.status}`)
@@ -172,21 +192,21 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
     let currentY = yPos
     
     if (data.establishment.cnpj) {
-      doc.text(`📄 CNPJ: ${data.establishment.cnpj}`, leftColumn, currentY)
+      doc.text(`CNPJ: ${data.establishment.cnpj}`, leftColumn, currentY)
       currentY += 5
     }
     if (data.establishment.address) {
-      doc.text(`📍 ${data.establishment.address}`, leftColumn, currentY)
+      doc.text(`Endereco: ${data.establishment.address}`, leftColumn, currentY)
       currentY += 5
     }
     
     // Coluna direita
     currentY = yPos
     if (data.establishment.phone) {
-      doc.text(`📞 ${data.establishment.phone}`, rightColumn, currentY)
+      doc.text(`Telefone: ${data.establishment.phone}`, rightColumn, currentY)
       currentY += 5
     }
-    doc.text(`📧 ${data.establishment.email}`, rightColumn, currentY)
+    doc.text(`Email: ${data.establishment.email}`, rightColumn, currentY)
     
     yPos += 35
 
@@ -196,7 +216,7 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
     // Título da seção com ícone e linha decorativa
     doc.setFontSize(20)
     doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
-    doc.text('📊 RESUMO EXECUTIVO', 40, yPos)
+    doc.text('RESUMO EXECUTIVO', 40, yPos)
     
     // Linha decorativa
     doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2])
@@ -210,25 +230,25 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
         title: 'Faturamento Total',
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.totalRevenue)),
         color: primaryColor,
-        icon: '💰'
+        icon: '$'
       },
       {
         title: 'Total de Agendamentos',
         value: safeToString(data.summary.totalAppointments),
         color: accentColor,
-        icon: '📅'
+        icon: '#'
       },
       {
-        title: 'Ticket Médio',
+        title: 'Ticket Medio',
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(safeNumber(data.summary.averageTicket)),
         color: [34, 197, 94], // Verde claro
-        icon: '🎯'
+        icon: 'TM'
       },
       {
-        title: 'Taxa de Conversão',
+        title: 'Taxa de Conversao',
         value: `${safeToString(data.summary.conversionRate)}%`,
         color: [249, 115, 22], // Laranja
-        icon: '📈'
+        icon: '%'
       }
     ]
 
@@ -277,7 +297,7 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
     
     doc.setFontSize(12)
     doc.setTextColor(255, 255, 255)
-    doc.text(`📊 ${data.period.label} | ⏰ ${formatBrazilDate(new Date(data.period.generatedAt))} | 👤 ${data.generatedBy.name}`, 45, yPos + 13)
+    doc.text(`${data.period.label} | ${formatBrazilDate(new Date(data.period.generatedAt))} | ${data.generatedBy.name}`, 45, yPos + 13)
     
     yPos += 35
 
@@ -285,7 +305,7 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
     checkPageBreak(100)
     doc.setFontSize(18)
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-    doc.text('📈 RECEITA DIÁRIA - ÚLTIMOS 30 DIAS', 40, yPos)
+    doc.text('RECEITA DIÁRIA - ÚLTIMOS 30 DIAS', 40, yPos)
     yPos += 10
 
     // Estatísticas da receita diária
@@ -426,7 +446,7 @@ export async function generatePDFReport(period: string = 'today', startDate?: st
       checkPageBreak(80)
       doc.setFontSize(18)
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-      doc.text('👨‍💼 RECEITA POR PROFISSIONAL', 40, yPos)
+      doc.text('RECEITA POR PROFISSIONAL', 40, yPos)
       yPos += 15
 
       const professionalData = data.revenueByProfessional.map(professional => [
