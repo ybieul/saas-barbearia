@@ -65,13 +65,18 @@ export default function FinanceiroPage() {
       try {
         setIsLoading(true)
         setError(null)
+        
+        console.log('🔄 Carregando dados financeiros...')
+        
         await Promise.all([
           fetchDashboardData(period),
           fetchAppointments(),
           fetchProfessionals()
         ])
+        
+        console.log('✅ Dados carregados com sucesso')
       } catch (err) {
-        console.error('Erro ao carregar dados financeiros:', err)
+        console.error('❌ Erro ao carregar dados financeiros:', err)
         setError('Erro ao carregar dados. Tente novamente.')
       } finally {
         setIsLoading(false)
@@ -119,18 +124,45 @@ export default function FinanceiroPage() {
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
   const completedAppointments = useMemo(() => {
     try {
-      if (!Array.isArray(appointments)) return []
+      console.log('🔍 Processando agendamentos:', { 
+        totalAppointments: appointments?.length || 0,
+        selectedProfessional,
+        period 
+      })
       
-      return appointments.filter(app => {
+      if (!Array.isArray(appointments)) {
+        console.log('⚠️ appointments não é um array:', appointments)
+        return []
+      }
+      
+      const filtered = appointments.filter(app => {
         // ✅ SEGURANÇA: Validação robusta dos dados
-        if (!app || typeof app !== 'object') return false
-        if (app.status !== 'COMPLETED') return false
-        if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) return false
-        if (!app.dateTime) return false
+        if (!app || typeof app !== 'object') {
+          console.log('⚠️ Agendamento inválido:', app)
+          return false
+        }
+        
+        // Incluir mais status para contabilizar receita
+        if (!['COMPLETED', 'IN_PROGRESS'].includes(app.status)) {
+          return false
+        }
+        
+        if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) {
+          console.log('⚠️ Agendamento sem valor válido:', { id: app.id, totalPrice: app.totalPrice })
+          return false
+        }
+        
+        if (!app.dateTime) {
+          console.log('⚠️ Agendamento sem data:', app.id)
+          return false
+        }
         
         try {
           const appointmentDate = utcToBrazil(new Date(app.dateTime))
-          if (isNaN(appointmentDate.getTime())) return false
+          if (isNaN(appointmentDate.getTime())) {
+            console.log('⚠️ Data inválida:', app.dateTime)
+            return false
+          }
           
           // Filtro por profissional
           if (selectedProfessional !== 'todos' && app.professionalId !== selectedProfessional) {
@@ -138,12 +170,20 @@ export default function FinanceiroPage() {
           }
           
           return appointmentDate <= getBrazilNow()
-        } catch {
+        } catch (err) {
+          console.log('⚠️ Erro ao processar data:', err)
           return false
         }
       })
+      
+      console.log('✅ Agendamentos filtrados:', { 
+        total: filtered.length,
+        totalValue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0)
+      })
+      
+      return filtered
     } catch (err) {
-      console.error('Erro ao filtrar agendamentos:', err)
+      console.error('❌ Erro ao filtrar agendamentos:', err)
       return []
     }
   }, [appointments, selectedProfessional])
@@ -213,7 +253,12 @@ export default function FinanceiroPage() {
   // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 30 dias
   const getDailyData = useMemo(() => {
     try {
-      if (!Array.isArray(completedAppointments)) return []
+      console.log('📊 Calculando dados diários dos últimos 30 dias...')
+      
+      if (!Array.isArray(completedAppointments)) {
+        console.log('⚠️ completedAppointments não é um array para dados diários')
+        return []
+      }
       
       const dailyData = []
       const currentDate = getBrazilNow()
@@ -242,6 +287,10 @@ export default function FinanceiroPage() {
           
           const appointmentCount = dayAppointments.length
           
+          if (appointmentCount > 0) {
+            console.log(`📅 ${date.toLocaleDateString('pt-BR')}: ${appointmentCount} agendamentos, R$ ${revenue.toFixed(2)}`)
+          }
+          
           dailyData.push({
             date: date.toISOString().split('T')[0],
             dayName: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
@@ -251,13 +300,19 @@ export default function FinanceiroPage() {
             appointments: dayAppointments
           })
         } catch (err) {
-          console.error(`Erro ao processar dia ${i}:`, err)
+          console.error(`❌ Erro ao processar dia ${i}:`, err)
         }
       }
       
+      console.log('✅ Dados diários calculados:', {
+        dias: dailyData.length,
+        receitaTotal: dailyData.reduce((sum, day) => sum + day.revenue, 0),
+        diasComReceita: dailyData.filter(day => day.revenue > 0).length
+      })
+      
       return dailyData
     } catch (err) {
-      console.error('Erro ao gerar dados diários:', err)
+      console.error('❌ Erro ao gerar dados diários:', err)
       return []
     }
   }, [completedAppointments])
@@ -362,10 +417,131 @@ export default function FinanceiroPage() {
   }, [completedAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
-  const previousRevenue = dashboardData?.previousStats?.totalRevenue || 0
-  const previousCompletedCount = dashboardData?.previousStats?.completedAppointments || 0
-  const previousTotalCount = dashboardData?.previousStats?.totalAppointments || 0
-  const previousTicketMedio = previousCompletedCount > 0 ? previousRevenue / previousCompletedCount : 0
+  const previousPeriodData = useMemo(() => {
+    try {
+      if (!Array.isArray(appointments)) return { revenue: 0, completedCount: 0, totalCount: 0 }
+      
+      const today = getBrazilNow()
+      let previousStart: Date
+      let previousEnd: Date
+      
+      // Definir período anterior baseado no período selecionado
+      switch (period) {
+        case 'today':
+          // Ontem
+          previousStart = new Date(today)
+          previousStart.setDate(today.getDate() - 1)
+          previousStart.setHours(0, 0, 0, 0)
+          previousEnd = new Date(today)
+          previousEnd.setDate(today.getDate() - 1)
+          previousEnd.setHours(23, 59, 59, 999)
+          break
+        case 'week':
+          // Semana anterior
+          previousStart = new Date(today)
+          previousStart.setDate(today.getDate() - 14)
+          previousEnd = new Date(today)
+          previousEnd.setDate(today.getDate() - 7)
+          break
+        case 'month':
+          // Mês anterior
+          previousStart = new Date(today)
+          previousStart.setMonth(today.getMonth() - 2)
+          previousEnd = new Date(today)
+          previousEnd.setMonth(today.getMonth() - 1)
+          break
+        default:
+          // Ontem como padrão
+          previousStart = new Date(today)
+          previousStart.setDate(today.getDate() - 1)
+          previousStart.setHours(0, 0, 0, 0)
+          previousEnd = new Date(today)
+          previousEnd.setDate(today.getDate() - 1)
+          previousEnd.setHours(23, 59, 59, 999)
+      }
+      
+      console.log('📊 Calculando período anterior:', { 
+        period, 
+        previousStart: previousStart.toISOString(), 
+        previousEnd: previousEnd.toISOString() 
+      })
+      
+      const previousAppointments = appointments.filter(app => {
+        if (!app?.dateTime) return false
+        try {
+          const appointmentDate = utcToBrazil(new Date(app.dateTime))
+          return appointmentDate >= previousStart && appointmentDate <= previousEnd
+        } catch {
+          return false
+        }
+      })
+      
+      const previousCompleted = previousAppointments.filter(app => 
+        ['COMPLETED', 'IN_PROGRESS'].includes(app.status) && 
+        parseFloat(app.totalPrice) > 0
+      )
+      
+      const previousRevenue = previousCompleted.reduce((total, app) => 
+        total + (parseFloat(app.totalPrice) || 0), 0
+      )
+      
+      console.log('📊 Dados período anterior:', {
+        totalAppointments: previousAppointments.length,
+        completedAppointments: previousCompleted.length,
+        revenue: previousRevenue
+      })
+      
+      return {
+        revenue: previousRevenue,
+        completedCount: previousCompleted.length,
+        totalCount: previousAppointments.length
+      }
+    } catch (err) {
+      console.error('❌ Erro ao calcular período anterior:', err)
+      return { revenue: 0, completedCount: 0, totalCount: 0 }
+    }
+  }, [appointments, period])
+  
+  const currentPeriodRevenue = useMemo(() => {
+    const today = getBrazilNow()
+    let currentStart: Date
+    let currentEnd: Date = today
+    
+    switch (period) {
+      case 'today':
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+        break
+      case 'week':
+        currentStart = new Date(today)
+        currentStart.setDate(today.getDate() - 7)
+        break
+      case 'month':
+        currentStart = new Date(today)
+        currentStart.setMonth(today.getMonth() - 1)
+        break
+      default:
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+    }
+    
+    const currentPeriodAppointments = completedAppointments.filter(app => {
+      try {
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
+        return appointmentDate >= currentStart && appointmentDate <= currentEnd
+      } catch {
+        return false
+      }
+    })
+    
+    return currentPeriodAppointments.reduce((total, app) => 
+      total + (parseFloat(app.totalPrice) || 0), 0
+    )
+  }, [completedAppointments, period])
   
   // Cálculo do ticket médio com dados reais
   const currentTicketMedio = completedAppointments.length > 0 ? 
@@ -373,6 +549,9 @@ export default function FinanceiroPage() {
       const price = parseFloat(app.totalPrice) || 0
       return total + price
     }, 0) / completedAppointments.length : 0
+  
+  const previousTicketMedio = previousPeriodData.completedCount > 0 ? 
+    previousPeriodData.revenue / previousPeriodData.completedCount : 0
   
   const calculateChange = (current: number, previous: number) => {
     if (previous === 0) return { change: "Novo", type: "positive" }
@@ -384,11 +563,11 @@ export default function FinanceiroPage() {
     }
   }
   
-  const revenueChange = calculateChange(dashboardData?.stats?.totalRevenue || 0, previousRevenue)
-  const completedChange = calculateChange(completedAppointments.length, previousCompletedCount)
+  const revenueChange = calculateChange(currentPeriodRevenue, previousPeriodData.revenue)
+  const completedChange = calculateChange(completedAppointments.length, previousPeriodData.completedCount)
   const conversionChange = calculateChange(
     (completedAppointments.length / Math.max(appointments.length, 1)) * 100,
-    previousTotalCount > 0 ? (previousCompletedCount / previousTotalCount) * 100 : 0
+    previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
 
@@ -462,9 +641,26 @@ export default function FinanceiroPage() {
   const financialStats = [
     {
       title: "Faturamento Hoje",
-      value: dashboardData?.stats?.totalRevenue ? 
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.stats.totalRevenue) : 
-        "R$ 0,00",
+      value: (() => {
+        // Calcular faturamento real baseado nos agendamentos concluídos hoje
+        const today = getBrazilNow()
+        const todayString = today.toDateString()
+        
+        const todayRevenue = completedAppointments
+          .filter(app => {
+            try {
+              const appointmentDate = utcToBrazil(new Date(app.dateTime))
+              return appointmentDate.toDateString() === todayString
+            } catch {
+              return false
+            }
+          })
+          .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
+        
+        console.log('💰 Faturamento hoje calculado:', todayRevenue)
+        
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
+      })(),
       change: revenueChange.change,
       changeType: revenueChange.type,
       icon: DollarSign,
@@ -496,12 +692,17 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
     try {
-      if (!Array.isArray(completedAppointments)) return []
+      console.log('💳 Calculando transações recentes...')
+      
+      if (!Array.isArray(completedAppointments)) {
+        console.log('⚠️ completedAppointments não é um array para transações')
+        return []
+      }
       
       const today = getBrazilNow()
       const todayString = today.toDateString()
       
-      return completedAppointments
+      const todayTransactions = completedAppointments
         .filter(app => {
           try {
             const appointmentDate = utcToBrazil(new Date(app.dateTime))
@@ -539,8 +740,15 @@ export default function FinanceiroPage() {
             })
           }
         })
+      
+      console.log('✅ Transações recentes calculadas:', {
+        total: todayTransactions.length,
+        valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
+      })
+      
+      return todayTransactions
     } catch (err) {
-      console.error('Erro ao processar transações recentes:', err)
+      console.error('❌ Erro ao processar transações recentes:', err)
       return []
     }
   }, [completedAppointments])
@@ -548,7 +756,12 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais e sanitização
   const topServices = useMemo(() => {
     try {
-      if (!Array.isArray(completedAppointments)) return []
+      console.log('🎯 Calculando serviços mais vendidos...')
+      
+      if (!Array.isArray(completedAppointments)) {
+        console.log('⚠️ completedAppointments não é um array para serviços')
+        return []
+      }
       
       const serviceStats = new Map()
       
@@ -579,15 +792,26 @@ export default function FinanceiroPage() {
       const totalRevenue = Array.from(serviceStats.values())
         .reduce((total, service) => total + (service.revenue || 0), 0)
       
-      return Array.from(serviceStats.values())
+      const topServicesData = Array.from(serviceStats.values())
         .map(service => ({
           ...service,
           percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
         }))
         .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
         .slice(0, 5)
+      
+      console.log('✅ Serviços mais vendidos calculados:', {
+        totalServicos: serviceStats.size,
+        top5: topServicesData.map(s => ({ 
+          nome: s.service, 
+          vendas: s.count, 
+          receita: s.revenue 
+        }))
+      })
+      
+      return topServicesData
     } catch (err) {
-      console.error('Erro ao processar serviços mais vendidos:', err)
+      console.error('❌ Erro ao processar serviços mais vendidos:', err)
       return []
     }
   }, [completedAppointments])
@@ -1100,30 +1324,40 @@ export default function FinanceiroPage() {
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Últimos atendimentos realizados hoje</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#10b981]/20 rounded-full flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-[#10b981]" />
-                    </div>
-                    <div>
-                      <p className="text-sm sm:text-base text-[#ededed] font-medium">{transaction.client}</p>
-                      <p className="text-xs sm:text-sm text-[#71717a]">{transaction.service}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {transaction.method}
-                        </Badge>
-                        <span className="text-xs text-gray-500">{transaction.time}</span>
+            {recentTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <DollarSign className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-400 mb-2">Nenhuma transação hoje</h3>
+                <p className="text-sm text-gray-500">
+                  As transações aparecerão aqui quando houver agendamentos concluídos
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#10b981]/20 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-[#10b981]" />
+                      </div>
+                      <div>
+                        <p className="text-sm sm:text-base text-[#ededed] font-medium">{transaction.client}</p>
+                        <p className="text-xs sm:text-sm text-[#71717a]">{transaction.service}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.method}
+                          </Badge>
+                          <span className="text-xs text-gray-500">{transaction.time}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {transaction.amount}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {transaction.amount}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1137,28 +1371,38 @@ export default function FinanceiroPage() {
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Ranking dos serviços por quantidade de atendimentos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {topServices.map((service, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm sm:text-base text-[#ededed] font-medium">{service.service}</p>
-                      <p className="text-xs sm:text-sm text-[#71717a]">{service.count} atendimentos</p>
+            {topServices.length === 0 ? (
+              <div className="text-center py-8">
+                <TrendingUp className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-400 mb-2">Nenhum serviço vendido</h3>
+                <p className="text-sm text-gray-500">
+                  Os serviços mais vendidos aparecerão aqui quando houver agendamentos concluídos
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topServices.map((service, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm sm:text-base text-[#ededed] font-medium">{service.service}</p>
+                        <p className="text-xs sm:text-sm text-[#71717a]">{service.count} atendimentos</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {service.revenue}</p>
+                        <p className="text-xs text-[#71717a]">{service.percentage}% do total</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {service.revenue}</p>
-                      <p className="text-xs text-[#71717a]">{service.percentage}% do total</p>
+                    <div className="w-full bg-[#27272a] rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-[#10b981] to-[#059669] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${service.percentage}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="w-full bg-[#27272a] rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-[#10b981] to-[#059669] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${service.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1292,21 +1536,37 @@ export default function FinanceiroPage() {
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">Distribuição dos pagamentos por método</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-            {paymentStats.map((payment, index) => (
-              <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
-                <payment.icon className={`w-6 h-6 sm:w-7 sm:h-7 ${payment.color} mx-auto mb-2`} />
-                <p className="text-lg sm:text-xl font-bold text-[#ededed] mb-1">{payment.percentage}%</p>
-                <p className="text-xs sm:text-sm text-[#71717a] mb-1 font-medium">{payment.method}</p>
-                <p className={`text-xs sm:text-sm ${payment.color} font-semibold`}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {payment.count} transação{payment.count !== 1 ? 'ões' : ''}
-                </p>
-              </div>
-            ))}
-          </div>
+          {paymentStats.length === 0 ? (
+            <div className="text-center py-8">
+              <CreditCard className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-400 mb-2">Nenhum pagamento registrado</h3>
+              <p className="text-sm text-gray-500">
+                Os métodos de pagamento aparecerão aqui quando houver agendamentos concluídos
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              {paymentStats.map((payment, index) => {
+                const Icon = payment.icon
+                return (
+                  <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
+                    <Icon className={`w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 ${payment.color}`} />
+                    <h4 className="text-[#ededed] font-medium mb-1 text-sm sm:text-base">{payment.method}</h4>
+                    <p className="text-[#10b981] font-bold text-base sm:text-lg">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
+                    </p>
+                    <p className="text-xs sm:text-sm text-[#71717a] mb-2">{payment.count} transação{payment.count !== 1 ? 'ões' : ''}</p>
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-1">
+                        <div className={`w-2 h-2 rounded-full ${payment.bgColor}`}></div>
+                        <span className="text-xs text-[#71717a]">{payment.percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
