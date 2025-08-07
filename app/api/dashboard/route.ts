@@ -319,7 +319,7 @@ export async function GET(request: NextRequest) {
         // Ontem
         previousStartDate = getBrazilStartOfDay(getBrazilNow())
         previousStartDate.setDate(previousStartDate.getDate() - 1)
-        previousEndDate = getBrazilEndOfDay(new Date(previousStartDate))
+        previousEndDate = getBrazilEndOfDay(previousStartDate)
         break
       case 'week':
         // Semana anterior
@@ -339,7 +339,7 @@ export async function GET(request: NextRequest) {
         // Padrão: ontem
         previousStartDate = getBrazilStartOfDay(getBrazilNow())
         previousStartDate.setDate(previousStartDate.getDate() - 1)
-        previousEndDate = getBrazilEndOfDay(new Date(previousStartDate))
+        previousEndDate = getBrazilEndOfDay(previousStartDate)
     }
 
     // Buscar métricas do período anterior
@@ -601,7 +601,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Comparação de dados (atual vs anterior):', {
       'Receita': `${revenue} vs ${previousRevenue}`,
-      'Clientes': `${totalClients} vs ${previousActiveClients}`,
+      'Clientes': `${activeClients} vs ${previousActiveClients}`,
       'Agendamentos': `${totalAppointments} vs ${previousTotalAppointments}`,
       'Ocupação': `${averageOccupancyRate}% vs ${previousOccupancyRate}%`
     })

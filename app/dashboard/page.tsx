@@ -189,8 +189,8 @@ export default function DashboardPage() {
     },
     {
       title: "Clientes Ativos",
-      value: dashboardData?.summary?.totalClients?.toString() || "0",
-      change: calculateChange(dashboardData?.summary?.totalClients || 0, yesterdayClients),
+      value: dashboardData?.summary?.activeClients?.toString() || "0",
+      change: calculateChange(dashboardData?.summary?.activeClients || 0, yesterdayClients),
       icon: Users,
       color: "text-[#10b981]",
       sparklineData: sparklines.clients,
@@ -223,11 +223,18 @@ export default function DashboardPage() {
 
   // Debug detalhado
   console.log('🔍 Dashboard data recebido:', dashboardData)
+  console.log('🔍 Previous stats:', dashboardData?.previousStats)
+  console.log('🔍 Summary:', dashboardData?.summary)
+  console.log('🔍 Dados para comparação:', {
+    yesterdayRevenue,
+    yesterdayClients,
+    yesterdayAppointments,
+    yesterdayOccupancy
+  })
   console.log('🔍 Today appointments:', todayAppointments)
   console.log('🔍 Next appointment:', nextAppointment)
   console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
   console.log('🔍 Professionals with avatars:', professionals)
-  console.log('🔍 Summary:', dashboardData?.summary)
 
   return (
     <div className="space-y-8">
