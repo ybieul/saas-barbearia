@@ -428,13 +428,13 @@ export default function FinanceiroPage() {
         {financialStats.map((stat, index) => (
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+              <CardTitle className="text-sm sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
               <stat.icon className="h-4 w-4 text-[#10b981] flex-shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
+              <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
               <p
-                className={`text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : "text-red-400"} flex items-center`}
+                className={`text-xs sm:text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : "text-red-400"} flex items-center`}
               >
                 {stat.changeType === "positive" ? (
                   <TrendingUp className="w-3 h-3 mr-1" />
@@ -454,11 +454,11 @@ export default function FinanceiroPage() {
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-[#10b981]" />
-              <span className="text-base sm:text-lg">Receita Diária</span>
+              <span className="text-lg sm:text-xl">Receita Diária</span>
             </div>
             <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">- Últimos 30 Dias</span>
           </CardTitle>
-          <CardDescription className="text-[#71717a] text-sm">
+          <CardDescription className="text-sm sm:text-sm text-[#71717a]">
             Acompanhe o faturamento diário e identifique tendências
           </CardDescription>
         </CardHeader>
@@ -466,39 +466,39 @@ export default function FinanceiroPage() {
           {/* Summary Stats */}
           <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <DollarSign className="w-6 h-6 sm:w-6 sm:h-6 text-[#10b981] mx-auto mb-1" />
-              <p className="text-lg sm:text-lg font-bold text-[#ededed] truncate">
+              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-1" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDailyRevenue)}
               </p>
-              <p className="text-sm sm:text-sm text-[#71717a]">Total 30 Dias</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <Calendar className="w-6 h-6 sm:w-6 sm:h-6 text-blue-400 mx-auto mb-1" />
-              <p className="text-lg sm:text-lg font-bold text-[#ededed] truncate">
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400 mx-auto mb-1" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageDailyRevenue)}
               </p>
-              <p className="text-sm sm:text-sm text-[#71717a]">Média Diária</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <TrendingUp className="w-6 h-6 sm:w-6 sm:h-6 text-orange-400 mx-auto mb-1" />
-              <p className="text-lg sm:text-lg font-bold text-[#ededed] truncate">
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-orange-400 mx-auto mb-1" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxDailyRevenue)}
               </p>
-              <p className="text-sm sm:text-sm text-[#71717a]">Melhor Dia</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Melhor Dia</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <Calendar className="w-6 h-6 sm:w-6 sm:h-6 text-purple-400 mx-auto mb-1" />
-              <p className="text-lg sm:text-lg font-bold text-[#ededed] truncate">
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 mx-auto mb-1" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {bestDay?.fullDate || 'N/A'}
               </p>
-              <p className="text-sm sm:text-sm text-[#71717a]">Data do Melhor Dia</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Data do Melhor Dia</p>
             </div>
           </div>
 
           {/* Daily Chart */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-              <h4 className="text-[#ededed] font-medium text-sm sm:text-base">Gráfico de Receita Diária</h4>
+              <h4 className="text-base sm:text-lg text-[#ededed] font-medium">Gráfico de Receita Diária</h4>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-[#71717a]">
                 <div className="w-3 h-3 bg-[#10b981] rounded"></div>
                 <span>Receita do dia</span>
@@ -647,7 +647,7 @@ export default function FinanceiroPage() {
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#10b981]" />
-              <span className="text-base sm:text-lg">Análise Mensal</span>
+              <span className="text-lg sm:text-xl">Análise Mensal</span>
             </div>
             <div className="flex items-center gap-2 justify-center sm:justify-end">
               <Button
@@ -659,7 +659,7 @@ export default function FinanceiroPage() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-sm sm:text-lg font-semibold text-[#ededed] min-w-[150px] sm:min-w-[200px] text-center">
+              <span className="text-base sm:text-lg font-semibold text-[#ededed] min-w-[150px] sm:min-w-[200px] text-center">
                 {selectedMonthData?.monthName || 'Carregando...'}
               </span>
               <Button
@@ -673,27 +673,27 @@ export default function FinanceiroPage() {
               </Button>
             </div>
           </CardTitle>
-          <CardDescription className="text-[#71717a] text-sm">
+          <CardDescription className="text-sm sm:text-sm text-[#71717a]">
             Faturamento detalhado do mês selecionado
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981] mx-auto mb-2" />
-              <p className="text-lg sm:text-2xl font-bold text-[#ededed] truncate">
+              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-2" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedMonthData?.revenue || 0)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Faturamento Total</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-lg sm:text-2xl font-bold text-[#ededed]">{selectedMonthData?.appointmentCount || 0}</p>
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400 mx-auto mb-2" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed]">{selectedMonthData?.appointmentCount || 0}</p>
               <p className="text-xs sm:text-sm text-[#71717a]">Agendamentos</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2" />
-              <p className="text-lg sm:text-2xl font-bold text-[#ededed] truncate">
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 mx-auto mb-2" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {selectedMonthData?.appointmentCount ? 
                   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedMonthData.revenue / selectedMonthData.appointmentCount)) : 
                   'R$ 0,00'
@@ -702,8 +702,8 @@ export default function FinanceiroPage() {
               <p className="text-xs sm:text-sm text-[#71717a]">Ticket Médio</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mx-auto mb-2" />
-              <p className="text-lg sm:text-2xl font-bold text-[#ededed]">
+              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-orange-400 mx-auto mb-2" />
+              <p className="text-base sm:text-lg font-bold text-[#ededed]">
                 {selectedMonthData?.appointmentCount ? Math.round(selectedMonthData.appointmentCount / 30) : 0}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
@@ -712,7 +712,7 @@ export default function FinanceiroPage() {
 
           {/* Monthly Chart Preview */}
           <div className="space-y-4">
-            <h4 className="text-[#ededed] font-medium text-sm sm:text-base">Últimos 12 Meses</h4>
+            <h4 className="text-base sm:text-lg text-[#ededed] font-medium">Últimos 12 Meses</h4>
             
             {/* Mobile Chart - Scrollable horizontal list */}
             <div className="block sm:hidden">
@@ -822,11 +822,11 @@ export default function FinanceiroPage() {
         {/* Recent Transactions */}
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
-            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+            <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#10b981]" />
               Transações Recentes
             </CardTitle>
-            <CardDescription className="text-[#71717a]">Últimos atendimentos realizados hoje</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">Últimos atendimentos realizados hoje</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -837,8 +837,8 @@ export default function FinanceiroPage() {
                       <DollarSign className="w-4 h-4 text-[#10b981]" />
                     </div>
                     <div>
-                      <p className="text-[#ededed] font-medium">{transaction.client}</p>
-                      <p className="text-sm text-[#71717a]">{transaction.service}</p>
+                      <p className="text-sm sm:text-base text-[#ededed] font-medium">{transaction.client}</p>
+                      <p className="text-xs sm:text-sm text-[#71717a]">{transaction.service}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className="text-xs">
                           {transaction.method}
@@ -848,7 +848,7 @@ export default function FinanceiroPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[#10b981] font-bold">R$ {transaction.amount}</p>
+                    <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {transaction.amount}</p>
                   </div>
                 </div>
               ))}
@@ -859,11 +859,11 @@ export default function FinanceiroPage() {
         {/* Top Services */}
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
-            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+            <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-[#10b981]" />
               Serviços Mais Vendidos
             </CardTitle>
-            <CardDescription className="text-[#71717a]">Ranking dos serviços por faturamento</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">Ranking dos serviços por quantidade de atendimentos</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -871,11 +871,11 @@ export default function FinanceiroPage() {
                 <div key={index} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[#ededed] font-medium">{service.service}</p>
-                      <p className="text-sm text-[#71717a]">{service.count} atendimentos</p>
+                      <p className="text-sm sm:text-base text-[#ededed] font-medium">{service.service}</p>
+                      <p className="text-xs sm:text-sm text-[#71717a]">{service.count} atendimentos</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[#10b981] font-bold">R$ {service.revenue}</p>
+                      <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {service.revenue}</p>
                       <p className="text-xs text-[#71717a]">{service.percentage}% do total</p>
                     </div>
                   </div>
@@ -895,18 +895,18 @@ export default function FinanceiroPage() {
       {/* Payment Methods */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-[#10b981]" />
             Formas de Pagamento
           </CardTitle>
-          <CardDescription className="text-[#71717a]">Distribuição dos pagamentos por método</CardDescription>
+          <CardDescription className="text-sm sm:text-sm text-[#71717a]">Distribuição dos pagamentos por método</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {paymentStats.map((payment, index) => (
               <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
-                <payment.icon className={`w-6 h-6 sm:w-8 sm:h-8 ${payment.color} mx-auto mb-2`} />
-                <p className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1">{payment.percentage}%</p>
+                <payment.icon className={`w-6 h-6 sm:w-7 sm:h-7 ${payment.color} mx-auto mb-2`} />
+                <p className="text-lg sm:text-xl font-bold text-[#ededed] mb-1">{payment.percentage}%</p>
                 <p className="text-xs sm:text-sm text-[#71717a] mb-1 font-medium">{payment.method}</p>
                 <p className={`text-xs sm:text-sm ${payment.color} font-semibold`}>
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
