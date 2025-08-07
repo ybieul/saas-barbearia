@@ -5,146 +5,95 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, BarChart3, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
-import { useDashboard, useAppointments } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
+import { useReports, useAppointments } from "@/hooks/use-api"
+import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
 
 export default function RelatoriosPage() {
-  const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
-  const { appointments, fetchAppointments } = useAppointments()
+  const { 
+    reportsData, 
+    loading, 
+    error, 
+    fetchOverview,
+    fetchMonthlyPerformance,
+    fetchServicesReport,
+    fetchProfessionalsReport,
+    fetchTimeAnalysis
+  } = useReports()
+
+  // Estados para dados específicos
+  const [overviewData, setOverviewData] = useState<any>(null)
+  const [monthlyData, setMonthlyData] = useState<any[]>([])
+  const [topServices, setTopServices] = useState<any[]>([])
+  const [professionalPerformance, setProfessionalPerformance] = useState<any[]>([])
+  const [timeAnalysisData, setTimeAnalysisData] = useState<any[]>([])
 
   useEffect(() => {
-    fetchDashboardData()
-    fetchAppointments()
-  }, [fetchDashboardData, fetchAppointments])
+    loadAllReports()
+  }, [])
 
-  // 🇧🇷 CORREÇÃO: Calcular dados comparativos usando timezone brasileiro
-  const nowBrazil = utcToBrazil(new Date())
-  const currentMonth = nowBrazil.getMonth()
-  const currentYear = nowBrazil.getFullYear()
-  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
-  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-
-  // 🇧🇷 CORREÇÃO: Filtrar agendamentos do mês atual e anterior usando timezone brasileiro
-  const thisMonthAppointments = appointments.filter(apt => {
-    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime))
-    return aptDateBrazil.getMonth() === currentMonth && aptDateBrazil.getFullYear() === currentYear
-  })
-
-  const lastMonthAppointments = appointments.filter(apt => {
-    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime))
-    return aptDateBrazil.getMonth() === lastMonth && aptDateBrazil.getFullYear() === lastMonthYear
-  })
-
-  // Calcular métricas reais
-  const completedThisMonth = thisMonthAppointments.filter(apt => apt.status === 'completed')
-  const completedLastMonth = lastMonthAppointments.filter(apt => apt.status === 'completed')
-
-  const thisMonthRevenue = completedThisMonth.reduce((sum, apt) => sum + (apt.totalPrice || 0), 0)
-  const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => sum + (apt.totalPrice || 0), 0)
-
-  const thisMonthAppointmentsCount = thisMonthAppointments.length
-  const lastMonthAppointmentsCount = lastMonthAppointments.length
-
-  // Calcular ticket médio
-  const thisMonthTicket = completedThisMonth.length > 0 ? thisMonthRevenue / completedThisMonth.length : 0
-  const lastMonthTicket = completedLastMonth.length > 0 ? lastMonthRevenue / completedLastMonth.length : 0
-
-  // Função para calcular mudança percentual
-  const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return "Novo"
-    const change = ((current - previous) / previous) * 100
-    const sign = change >= 0 ? "+" : ""
-    return `${sign}${Math.round(change)}% vs mês anterior`
-  }
-
-  // Calcular análise de horários real baseada nos agendamentos
-  const calculateTimeAnalysis = () => {
-    const timeSlots = [
-      { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false },
-      { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false },
-      { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false },
-      { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true },
-    ]
-
-    return timeSlots.map(slot => {
-      let filteredAppointments = appointments
-
-      // 🇧🇷 CORREÇÃO: Filtrar por fim de semana usando timezone brasileiro
-      if (slot.isWeekend) {
-        filteredAppointments = appointments.filter(apt => {
-          const aptDateBrazil = utcToBrazil(new Date(apt.dateTime || apt.date))
-          const dayOfWeek = getBrazilDayOfWeek(new Date(apt.dateTime || apt.date))
-          return dayOfWeek === 6 // Sábado no timezone brasileiro
-        })
-      } else {
-        // Filtrar apenas dias úteis (segunda a sexta) usando timezone brasileiro
-        filteredAppointments = appointments.filter(apt => {
-          const dayOfWeek = getBrazilDayOfWeek(new Date(apt.dateTime || apt.date))
-          return dayOfWeek >= 1 && dayOfWeek <= 5 // Segunda a sexta no timezone brasileiro
-        })
+  const loadAllReports = async () => {
+    try {
+      // Buscar dados de overview
+      const overview = await fetchOverview()
+      if (overview?.data?.overview) {
+        setOverviewData(overview.data.overview)
       }
 
-      // Filtrar por horário
-      const slotAppointments = filteredAppointments.filter(apt => {
-        const timeStr = apt.time || "09:00"
-        const hour = parseInt(timeStr.split(':')[0])
-        return hour >= slot.startHour && hour < slot.endHour
-      })
-
-      // Calcular total de slots disponíveis no período
-      const totalHours = slot.endHour - slot.startHour
-      const slotsPerHour = 2 // 30 min cada slot
-      const totalSlots = totalHours * slotsPerHour
-      
-      // Ajustar para número de dias úteis ou sábados no mês
-      const daysInPeriod = slot.isWeekend ? 4 : 22 // ~4 sábados ou ~22 dias úteis por mês
-      const totalSlotsInMonth = totalSlots * daysInPeriod
-
-      // Calcular ocupação
-      const occupancy = totalSlotsInMonth > 0 ? Math.min(100, Math.round((slotAppointments.length / totalSlotsInMonth) * 100)) : 0
-
-      return {
-        period: slot.period,
-        time: slot.time,
-        occupancy,
-        appointments: slotAppointments.length
+      // Buscar performance mensal
+      const monthly = await fetchMonthlyPerformance()
+      if (monthly?.data?.monthlyPerformance) {
+        setMonthlyData(monthly.data.monthlyPerformance)
       }
-    })
+
+      // Buscar serviços populares
+      const services = await fetchServicesReport()
+      if (services?.data?.topServices) {
+        setTopServices(services.data.topServices)
+      }
+
+      // Buscar performance dos profissionais
+      const professionals = await fetchProfessionalsReport()
+      if (professionals?.data?.professionalPerformance) {
+        setProfessionalPerformance(professionals.data.professionalPerformance)
+      }
+
+      // Buscar análise de horários
+      const timeAnalysis = await fetchTimeAnalysis()
+      if (timeAnalysis?.data?.timeAnalysis) {
+        setTimeAnalysisData(timeAnalysis.data.timeAnalysis)
+      }
+
+    } catch (error) {
+      console.error('Erro ao carregar relatórios:', error)
+    }
   }
-
-  const timeAnalysisData = calculateTimeAnalysis()
-
-  // Dados fictícios serão substituídos por dados reais da API
-  const monthlyData: any[] = []
-  const topServices: any[] = []
-  const professionalPerformance: any[] = []
 
   const reportStats = [
     {
       title: "Faturamento Mensal",
-      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(thisMonthRevenue),
-      change: calculateChange(thisMonthRevenue, lastMonthRevenue),
+      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(overviewData?.revenue?.current || 0),
+      change: overviewData?.revenue?.change || "0%",
       icon: DollarSign,
       color: "text-emerald-400",
     },
     {
       title: "Agendamentos",
-      value: thisMonthAppointmentsCount.toString(),
-      change: calculateChange(thisMonthAppointmentsCount, lastMonthAppointmentsCount),
+      value: (overviewData?.appointments?.current || 0).toString(),
+      change: overviewData?.appointments?.change || "0%",
       icon: Calendar,
       color: "text-blue-400",
     },
     {
       title: "Novos Clientes",
-      value: dashboardData?.stats?.newClients?.toString() || "0",
-      change: calculateChange(dashboardData?.stats?.newClients || 0, dashboardData?.previousStats?.newClients || 0),
+      value: (overviewData?.newClients?.current || 0).toString(),
+      change: overviewData?.newClients?.change || "0%",
       icon: Users,
       color: "text-purple-400",
     },
     {
       title: "Ticket Médio",
-      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(thisMonthTicket),
-      change: calculateChange(thisMonthTicket, lastMonthTicket),
+      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(overviewData?.averageTicket?.current || 0),
+      change: overviewData?.averageTicket?.change || "0%",
       icon: TrendingUp,
       color: "text-yellow-400",
     },
@@ -193,14 +142,14 @@ export default function RelatoriosPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {monthlyData.map((data, index) => (
+            {monthlyData.length > 0 ? monthlyData.map((data, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
                     <span className="text-sm font-bold text-emerald-400">{data.month}</span>
                   </div>
                   <div>
-                    <p className="text-white font-medium">R$ {data.revenue.toLocaleString()}</p>
+                    <p className="text-white font-medium">R$ {Number(data.revenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     <p className="text-sm text-gray-400">
                       {data.appointments} agendamentos • {data.clients} clientes
                     </p>
@@ -209,11 +158,15 @@ export default function RelatoriosPage() {
                 <div className="w-32 bg-gray-700 rounded-full h-2">
                   <div
                     className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(data.revenue / 30000) * 100}%` }}
+                    style={{ width: `${Math.min(100, (data.revenue / 30000) * 100)}%` }}
                   />
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-gray-400">
+                <p>Nenhum dado encontrado para exibir</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -230,25 +183,29 @@ export default function RelatoriosPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topServices.map((service, index) => (
+              {topServices.length > 0 ? topServices.map((service, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-yellow-500 rounded-full flex items-center justify-center">
                       <span className="text-xs font-bold text-white">{index + 1}</span>
                     </div>
                     <div>
-                      <p className="text-white font-medium">{service.service}</p>
+                      <p className="text-white font-medium">{service.name}</p>
                       <p className="text-sm text-gray-400">{service.count} atendimentos</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-emerald-400 font-bold">R$ {service.revenue}</p>
+                    <p className="text-emerald-400 font-bold">R$ {Number(service.revenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
                       {service.growth}
                     </Badge>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>Nenhum serviço encontrado</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -264,7 +221,7 @@ export default function RelatoriosPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {professionalPerformance.map((professional, index) => (
+              {professionalPerformance.length > 0 ? professionalPerformance.map((professional, index) => (
                 <div key={index} className="p-4 bg-gray-900/50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -292,7 +249,11 @@ export default function RelatoriosPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>Nenhum profissional encontrado</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
