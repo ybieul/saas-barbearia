@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast"
 import { utcToBrazil, brazilToUtc, formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
+import { format } from "date-fns-tz"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -141,8 +142,8 @@ export default function AgendaPage() {
   useEffect(() => {
     const loadFilteredData = async () => {
       try {
-        // Formatar data atual para enviar para API
-        const currentDateString = currentDate.toISOString().split('T')[0]
+        // 🇧🇷 CORREÇÃO: Formatar data atual para enviar para API (timezone brasileiro)
+        const currentDateString = format(utcToBrazil(currentDate), 'yyyy-MM-dd')
         
         // Preparar parâmetros para a API
         const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
@@ -901,8 +902,8 @@ export default function AgendaPage() {
       setIsPaymentModalOpen(false)
       setAppointmentToComplete(null)
       
-      // Recarregar dados da agenda
-      const currentDateString = currentDate.toISOString().split('T')[0]
+      // 🇧🇷 CORREÇÃO: Recarregar dados da agenda (timezone brasileiro)
+      const currentDateString = format(utcToBrazil(currentDate), 'yyyy-MM-dd')
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
@@ -958,7 +959,7 @@ export default function AgendaPage() {
       // Nota: A conclusão agora é feita através do modal de pagamento
       
       // ✅ Recarregar dados com os mesmos filtros aplicados
-      const currentDateString = currentDate.toISOString().split('T')[0]
+      const currentDateString = format(utcToBrazil(currentDate), 'yyyy-MM-dd')
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
@@ -1516,7 +1517,7 @@ export default function AgendaPage() {
                         variant="outline"
                         className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
                         onClick={() => {
-                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          setNewAppointment({...newAppointment, time, date: format(utcToBrazil(currentDate), 'yyyy-MM-dd')})
                           setIsNewAppointmentOpen(true)
                         }}
                       >
