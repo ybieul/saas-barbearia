@@ -758,7 +758,7 @@ export default function FinanceiroPage() {
           }
         })
         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-        .slice(0, 10)
+        .slice(0, 6) // ✅ LIMITADO: Mostrar apenas os 6 últimos atendimentos
         .map(app => {
           // Normalizar método de pagamento
           let paymentMethod = app.paymentMethod || 'NULL'
@@ -787,7 +787,7 @@ export default function FinanceiroPage() {
           }
         })
       
-      console.log('✅ Transações recentes calculadas:', {
+      console.log('✅ Transações recentes calculadas (6 mais recentes):', {
         total: todayTransactions.length,
         valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
       })
@@ -1389,7 +1389,7 @@ export default function FinanceiroPage() {
               <DollarSign className="w-5 h-5 text-[#10b981]" />
               Transações Recentes
             </CardTitle>
-            <CardDescription className="text-sm sm:text-sm text-[#71717a]">Últimos atendimentos realizados hoje</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">6 últimos atendimentos realizados hoje</CardDescription>
           </CardHeader>
           <CardContent>
             {recentTransactions.length === 0 ? (
