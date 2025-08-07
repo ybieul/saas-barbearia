@@ -138,30 +138,30 @@ export function useBusinessData() {
       reader.onload = (e) => {
         const img = new Image()
         img.onload = () => {
-          // Redimensionar para 150x150px (menor para reduzir o tamanho)
+          // Redimensionar para 1024x1024px
           const canvas = document.createElement('canvas')
           const ctx = canvas.getContext('2d')
           
-          canvas.width = 150
-          canvas.height = 150
+          canvas.width = 1024
+          canvas.height = 1024
           
           // Calcular posição para centralizar a imagem
-          const scale = Math.min(150 / img.width, 150 / img.height)
+          const scale = Math.min(1024 / img.width, 1024 / img.height)
           const newWidth = img.width * scale
           const newHeight = img.height * scale
-          const x = (150 - newWidth) / 2
-          const y = (150 - newHeight) / 2
+          const x = (1024 - newWidth) / 2
+          const y = (1024 - newHeight) / 2
           
           if (ctx) {
             // Fundo branco
             ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, 150, 150)
+            ctx.fillRect(0, 0, 1024, 1024)
             
             // Desenhar imagem redimensionada
             ctx.drawImage(img, x, y, newWidth, newHeight)
             
-            // Converter para base64 com qualidade reduzida (0.6 ao invés de 0.8)
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
+            // Converter para base64 com qualidade ajustada para manter boa qualidade em 1024x1024
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
             resolve(dataUrl)
           } else {
             reject(new Error('Erro ao processar imagem'))

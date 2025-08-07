@@ -1398,7 +1398,7 @@ export default function ConfiguracoesPage() {
                     {/* Preview da foto */}
                     <div className="flex justify-center">
                       <div className="relative">
-                        <div className="w-32 h-32 rounded-full border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+                        <div className="w-32 h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
                           {selectedProfessionalForAvatar?.avatar ? (
                             <img 
                               src={selectedProfessionalForAvatar.avatar} 
@@ -1406,7 +1406,11 @@ export default function ConfiguracoesPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <User className="w-12 h-12 text-[#71717a]" />
+                            <div className="w-16 h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold text-xl">
+                                {selectedProfessionalForAvatar?.name?.charAt(0) || 'P'}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1482,7 +1486,7 @@ export default function ConfiguracoesPage() {
                       <div className="space-y-2 text-sm text-[#a1a1aa]">
                         <p className="text-[#ededed] font-medium mb-3 text-center">Requisitos</p>
                         <div className="space-y-1.5">
-                          <p>📐 <strong>Recomendado:</strong> 150x150px (quadrada)</p>
+                          <p>📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
                           <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
                           <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
                         </div>
@@ -1911,7 +1915,7 @@ export default function ConfiguracoesPage() {
                     <div className="space-y-2 text-sm text-[#a1a1aa]">
                       <p className="text-[#ededed] font-medium mb-3 text-center">Requisitos</p>
                       <div className="space-y-1.5">
-                        <p>📐 <strong>Recomendado:</strong> 300x300px (quadrada)</p>
+                        <p>📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
                         <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
                         <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
                       </div>
