@@ -1377,6 +1377,9 @@ export default function ConfiguracoesPage() {
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
                 <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-lg mx-4 sm:mx-auto backdrop-blur-xl">
+                  <DialogHeader className="sr-only">
+                    <DialogTitle>Alterar Foto de Perfil</DialogTitle>
+                  </DialogHeader>
                   {/* Header com gradiente */}
                   <div className="relative p-6 border-b border-[#1a1a1a]">
                     <div className="text-center">
@@ -1799,6 +1802,9 @@ export default function ConfiguracoesPage() {
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
               <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-lg mx-4 sm:mx-auto backdrop-blur-xl">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Alterar Imagem do Serviço</DialogTitle>
+                </DialogHeader>
                 {/* Header com gradiente */}
                 <div className="relative p-6 border-b border-[#1a1a1a]">
                   <div className="text-center">
