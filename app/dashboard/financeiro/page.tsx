@@ -9,16 +9,12 @@ import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, D
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
-import { generatePDFReport } from "@/lib/report-generator"
-import { ExportModal } from "@/components/export-modal"
 
 export default function FinanceiroPage() {
   const [period, setPeriod] = useState('today')
   const brazilNow = getBrazilNow()
   const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
   const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
-  const [exportModalOpen, setExportModalOpen] = useState(false)
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
   const { dashboardData, loading, fetchDashboardData } = useDashboard()
   const { appointments, fetchAppointments } = useAppointments()
 
@@ -247,72 +243,54 @@ export default function FinanceiroPage() {
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
 
-  // Função para preparar dados do relatório
-  const prepareReportData = () => {
-    return {
-      businessName: "AgendaPro Dashboard", // Você pode pegar isso do contexto do usuário
-      userEmail: "usuario@exemplo.com", // Você pode pegar isso do contexto do usuário
-      period: period === 'today' ? 'Hoje' : period === 'week' ? 'Esta Semana' : period === 'month' ? 'Este Mês' : period,
-      financialStats: financialStats.map(stat => ({
-        title: stat.title,
-        value: stat.value,
-        change: stat.change,
-        changeType: stat.changeType
-      })),
-      dailyRevenue: {
-        total: totalDailyRevenue,
-        average: averageDailyRevenue,
-        best: maxDailyRevenue,
-        bestDate: bestDay?.fullDate || 'N/A',
-        data: dailyData.map(day => ({
-          date: day.date,
-          revenue: day.revenue,
-          appointmentCount: day.appointmentCount
-        }))
-      },
-      monthlyAnalysis: {
-        month: selectedMonthData?.monthName || 'Carregando...',
-        revenue: selectedMonthData?.revenue || 0,
-        appointments: selectedMonthData?.appointmentCount || 0,
-        ticketMedio: selectedMonthData?.appointmentCount ? 
-          selectedMonthData.revenue / selectedMonthData.appointmentCount : 0,
-        mediaDiaria: selectedMonthData?.appointmentCount ? 
-          Math.round(selectedMonthData.appointmentCount / 30) : 0
-      },
-      recentTransactions: recentTransactions.map(transaction => ({
-        client: transaction.client,
-        service: transaction.service,
-        amount: transaction.amount,
-        method: transaction.method,
-        time: transaction.time
-      })),
-      topServices: topServices.map(service => ({
-        service: service.service,
-        count: service.count,
-        revenue: service.revenue,
-        percentage: service.percentage
-      })),
-      paymentMethods: paymentStats.map(payment => ({
-        method: payment.method,
-        percentage: payment.percentage,
-        amount: payment.amount,
-        count: payment.count
-      }))
-    }
-  }
-
-  // Função para abrir modal de exportação
+  // Função para exportar relatório financeiro
   const handleExportReport = () => {
-    setExportModalOpen(true)
-  }
+    const today = formatBrazilDate(getBrazilNow())
+    const reportData = [
+      ['RELATÓRIO FINANCEIRO'],
+      [`Data de Geração: ${today}`],
+      [''],
+      ['RESUMO GERAL'],
+      ['Métrica', 'Valor', 'Variação'],
+      ['Faturamento Hoje', dashboardData?.stats?.totalRevenue ? formatCurrency(dashboardData.stats.totalRevenue) : 'R$ 0,00', revenueChange.change],
+      ['Agendamentos Concluídos', completedAppointments.length.toString(), completedChange.change],
+      ['Taxa de Conversão', `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`, conversionChange.change],
+      ['Ticket Médio', formatCurrency(currentTicketMedio), ticketChange.change],
+      [''],
+      ['FORMAS DE PAGAMENTO'],
+      ['Método', 'Quantidade', 'Valor', 'Percentual'],
+      ...paymentStats.map(payment => [
+        payment.method,
+        payment.count.toString(),
+        formatCurrency(payment.amount),
+        `${payment.percentage}%`
+      ]),
+      [''],
+      ['AGENDAMENTOS CONCLUÍDOS'],
+      ['Cliente', 'Serviço', 'Valor', 'Data'],
+      ...completedAppointments.slice(0, 50).map(apt => [
+        apt.endUser?.name || 'Cliente',
+        apt.services?.[0]?.name || 'Serviço',
+        formatCurrency(apt.totalPrice),
+        utcToBrazil(new Date(apt.dateTime)).toLocaleDateString('pt-BR')
+      ])
+    ]
 
-  // Função para gerar PDF
-  const handleExportPDF = async (period?: string, startDate?: string, endDate?: string) => {
-    if (period && startDate && endDate) {
-      await generatePDFReport(period, startDate, endDate)
-    } else {
-      await generatePDFReport(period || 'today')
-    }
+    // Converter para CSV
+    const csvContent = reportData.map(row => 
+      row.map(cell => `"${cell}"`).join(',')
+    ).join('\n')
+
+    // Criar e baixar arquivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `relatorio-financeiro-${formatBrazilDate(getBrazilNow()).split('/').reverse().join('-')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const financialStats = [
@@ -885,7 +863,7 @@ export default function FinanceiroPage() {
               <TrendingUp className="w-5 h-5 text-[#10b981]" />
               Serviços Mais Vendidos
             </CardTitle>
-            <CardDescription className="text-[#71717a]">Ranking dos serviços por quantidade de agendamentos</CardDescription>
+            <CardDescription className="text-[#71717a]">Ranking dos serviços por faturamento</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -941,14 +919,6 @@ export default function FinanceiroPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        onExportPDF={handleExportPDF}
-        isGenerating={isGeneratingReport}
-      />
     </div>
   )
 }

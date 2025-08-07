@@ -4,24 +4,13 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star, FileText, Loader2 } from "lucide-react"
+import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
-import { generatePDFReport } from "@/lib/report-generator"
-import { DateRange } from "react-day-picker"
-import { format } from "date-fns"
 
 export default function RelatoriosPage() {
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
   const { appointments, fetchAppointments } = useAppointments()
-  
-  // Estados para controle da exportação
-  const [selectedPeriod, setSelectedPeriod] = useState('today')
-  const [isExporting, setIsExporting] = useState(false)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
-  const [useDateRange, setUseDateRange] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -125,41 +114,6 @@ export default function RelatoriosPage() {
 
   const timeAnalysisData = calculateTimeAnalysis()
 
-  // Função para exportação de relatório PDF
-  const handleExportPDF = async () => {
-    try {
-      setIsExporting(true)
-      
-      // Usar período customizado se selecionado
-      if (useDateRange && dateRange?.from && dateRange?.to) {
-        const startDate = format(dateRange.from, 'yyyy-MM-dd')
-        const endDate = format(dateRange.to, 'yyyy-MM-dd')
-        await generatePDFReport('custom', startDate, endDate)
-      } else {
-        await generatePDFReport(selectedPeriod)
-      }
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error)
-      const message = error instanceof Error ? error.message : 'Erro ao gerar relatório PDF. Tente novamente.'
-      alert(message)
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // Opções de período
-  const periodOptions = [
-    { value: 'today', label: 'Hoje' },
-    { value: 'week', label: 'Esta Semana' },
-    { value: 'month', label: 'Este Mês' },
-    { value: 'quarter', label: 'Este Trimestre' },
-    { value: 'year', label: 'Este Ano' },
-    { value: 'last-week', label: 'Semana Passada' },
-    { value: 'last-month', label: 'Mês Passado' },
-    { value: 'last-quarter', label: 'Trimestre Passado' },
-    { value: 'last-year', label: 'Ano Passado' }
-  ]
-
   // Dados fictícios serão substituídos por dados reais da API
   const monthlyData: any[] = []
   const topServices: any[] = []
@@ -199,73 +153,18 @@ export default function RelatoriosPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[#ededed] flex items-center gap-2">
             <BarChart3 className="w-8 h-8 text-[#10b981]" />
-            Relatórios Financeiros
+            Relatórios
           </h1>
-          <p className="text-[#3f3f46]">Análise completa e detalhada do seu negócio</p>
+          <p className="text-[#3f3f46]">Análise completa do seu negócio</p>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-          {/* Seletor de Período */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[#a1a1aa]">Período:</label>
-            <div className="flex gap-2">
-              <Select 
-                value={useDateRange ? 'custom' : selectedPeriod} 
-                onValueChange={(value) => {
-                  if (value === 'custom') {
-                    setUseDateRange(true)
-                  } else {
-                    setUseDateRange(false)
-                    setSelectedPeriod(value)
-                  }
-                }}
-              >
-                <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-white">
-                  <SelectValue placeholder="Selecione o período" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#18181b] border-[#27272a]">
-                  {periodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value} className="text-white hover:bg-[#27272a]">
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="custom" className="text-white hover:bg-[#27272a]">
-                    📅 Período Customizado
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {useDateRange && (
-                <DatePickerWithRange
-                  date={dateRange}
-                  onDateChange={setDateRange}
-                  placeholder="Selecione as datas"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Botão de Exportação */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[#a1a1aa]">Exportar Relatório:</label>
-            <Button 
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 w-fit"
-            >
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <FileText className="w-4 h-4" />
-              )}
-              {isExporting ? 'Gerando PDF...' : 'Exportar PDF'}
-            </Button>
-          </div>
-        </div>
+        <Button className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white">
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Relatório
+        </Button>
       </div>
 
       {/* Report Stats */}
