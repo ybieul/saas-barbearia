@@ -89,7 +89,14 @@ export default function FinanceiroPage() {
         // Buscar performance dos profissionais
         const professionalsData = await fetchProfessionalsReport(selectedMonth + 1, selectedYear)
         if (professionalsData?.data?.professionalPerformance) {
-          setProfessionalPerformance(professionalsData.data.professionalPerformance)
+          // Filtrar por profissional se selecionado
+          let filteredPerformance = professionalsData.data.professionalPerformance
+          if (selectedProfessional !== 'todos') {
+            filteredPerformance = professionalsData.data.professionalPerformance.filter(
+              (prof: any) => prof.id === selectedProfessional
+            )
+          }
+          setProfessionalPerformance(filteredPerformance)
         }
 
         // Buscar análise de horários
@@ -106,7 +113,7 @@ export default function FinanceiroPage() {
     }
 
     loadReportsData()
-  }, [selectedMonth, selectedYear, fetchProfessionalsReport, fetchTimeAnalysis])
+  }, [selectedMonth, selectedYear, selectedProfessional, fetchProfessionalsReport, fetchTimeAnalysis])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
   const completedAppointments = useMemo(() => {
@@ -1159,49 +1166,55 @@ export default function FinanceiroPage() {
         {/* Professional Performance */}
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
-            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-400" />
+            <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#10b981]" />
               Performance dos Profissionais
             </CardTitle>
-            <CardDescription className="text-gray-400">Desempenho individual por profissional</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">Desempenho individual por profissional</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {reportsLoading ? (
-                <div className="text-center py-8 text-gray-400">
-                  <div className="animate-pulse">Carregando...</div>
+                <div className="text-center py-8 text-[#71717a]">
+                  <div className="animate-pulse">Carregando dados dos profissionais...</div>
                 </div>
               ) : professionalPerformance.length > 0 ? professionalPerformance.map((professional, index) => (
-                <div key={index} className="p-4 bg-gray-900/50 rounded-lg">
+                <div key={professional.id || index} className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">{professional.name.charAt(0)}</span>
+                      <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{sanitizeString(professional.name).charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
-                        <p className="text-white font-medium">{professional.name}</p>
+                        <p className="text-[#ededed] font-medium text-sm sm:text-base">{sanitizeString(professional.name)}</p>
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-400">{professional.rating}</span>
+                          <span className="text-xs sm:text-sm text-[#71717a]">{professional.rating || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">{professional.growth}</Badge>
+                    <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs sm:text-sm">
+                      {professional.growth || '+0%'}
+                    </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                     <div>
-                      <p className="text-gray-400">Agendamentos</p>
-                      <p className="text-white font-medium">{professional.appointments}</p>
+                      <p className="text-[#71717a] mb-1">Agendamentos</p>
+                      <p className="text-[#ededed] font-medium text-sm sm:text-base">{professional.appointments || 0}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Faturamento</p>
-                      <p className="text-emerald-400 font-medium">R$ {professional.revenue}</p>
+                      <p className="text-[#71717a] mb-1">Faturamento</p>
+                      <p className="text-[#10b981] font-medium text-sm sm:text-base">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(professional.revenue) || 0)}
+                      </p>
                     </div>
                   </div>
                 </div>
               )) : (
-                <div className="text-center py-8 text-gray-400">
-                  <p>Nenhum profissional encontrado</p>
+                <div className="text-center py-8 text-[#71717a]">
+                  <Users className="w-12 h-12 text-[#71717a] mx-auto mb-3" />
+                  <p className="text-sm sm:text-base">Nenhum profissional encontrado para o período selecionado</p>
+                  <p className="text-xs sm:text-sm text-[#52525b] mt-2">Selecione um período diferente ou verifique se há profissionais ativos</p>
                 </div>
               )}
             </div>
@@ -1211,29 +1224,29 @@ export default function FinanceiroPage() {
         {/* Time Analysis */}
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
-            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-400" />
+            <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+              <Clock className="w-5 h-5 text-[#10b981]" />
               Análise de Horários
             </CardTitle>
-            <CardDescription className="text-gray-400">Horários com maior movimento e ocupação</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">Horários com maior movimento e ocupação</CardDescription>
           </CardHeader>
           <CardContent>
             {reportsLoading ? (
-              <div className="text-center py-8 text-gray-400">
-                <div className="animate-pulse">Carregando...</div>
+              <div className="text-center py-8 text-[#71717a]">
+                <div className="animate-pulse">Carregando análise de horários...</div>
               </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            ) : timeAnalysisData.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {timeAnalysisData.map((period, index) => (
-                  <div key={index} className="text-center p-4 bg-gray-900/50 rounded-lg">
-                    <h4 className="text-white font-medium mb-1">{period.period}</h4>
-                    <p className="text-xs text-gray-400 mb-3">{period.time}</p>
-                    <div className="w-16 h-16 mx-auto mb-2 relative">
-                      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                  <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
+                    <h4 className="text-[#ededed] font-medium mb-1 text-sm sm:text-base">{period.period}</h4>
+                    <p className="text-xs sm:text-sm text-[#71717a] mb-3">{period.time}</p>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 relative">
+                      <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90" viewBox="0 0 36 36">
                         <path
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                           fill="none"
-                          stroke="rgb(55 65 81)"
+                          stroke="rgb(63 63 70)"
                           strokeWidth="2"
                         />
                         <path
@@ -1241,16 +1254,24 @@ export default function FinanceiroPage() {
                           fill="none"
                           stroke="rgb(16 185 129)"
                           strokeWidth="2"
-                          strokeDasharray={`${period.occupancy}, 100`}
+                          strokeDasharray={`${period.occupancy || 0}, 100`}
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-bold text-emerald-400">{period.occupancy}%</span>
+                        <span className="text-xs sm:text-sm font-bold text-[#10b981]">{period.occupancy || 0}%</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400">{period.appointments} agendamentos</p>
+                    <p className="text-xs sm:text-sm text-[#71717a]">
+                      {period.appointments || 0} agendamento{(period.appointments || 0) !== 1 ? 's' : ''}
+                    </p>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[#71717a]">
+                <Clock className="w-12 h-12 text-[#71717a] mx-auto mb-3" />
+                <p className="text-sm sm:text-base">Nenhum dado de horário encontrado para o período selecionado</p>
+                <p className="text-xs sm:text-sm text-[#52525b] mt-2">Selecione um período diferente ou verifique se há agendamentos</p>
               </div>
             )}
           </CardContent>

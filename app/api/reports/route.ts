@@ -326,6 +326,10 @@ async function getServicesReport(tenantId: string, monthStart: Date, monthEnd: D
 
 // Relatório de performance dos profissionais
 async function getProfessionalsReport(tenantId: string, monthStart: Date, monthEnd: Date) {
+  // Calcular período anterior para comparação
+  const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
+  const lastMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0, 23, 59, 59, 999)
+
   const professionals = await prisma.professional.findMany({
     where: {
       tenantId,
@@ -335,7 +339,7 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
       appointments: {
         where: {
           dateTime: {
-            gte: monthStart,
+            gte: lastMonthStart, // Buscar também o mês anterior
             lte: monthEnd
           },
           status: {
@@ -347,22 +351,51 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
   })
 
   const professionalPerformance = professionals.map(professional => {
-    const completedAppointments = professional.appointments.filter(apt => 
+    // Filtrar agendamentos do mês atual
+    const currentMonthAppointments = professional.appointments.filter(apt => 
+      apt.dateTime >= monthStart && apt.dateTime <= monthEnd
+    )
+    
+    // Filtrar agendamentos do mês anterior
+    const lastMonthAppointments = professional.appointments.filter(apt => 
+      apt.dateTime >= lastMonthStart && apt.dateTime <= lastMonthEnd
+    )
+    
+    const completedCurrentMonth = currentMonthAppointments.filter(apt => 
       apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
     )
     
-    const revenue = completedAppointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
-    const appointmentsCount = professional.appointments.length
+    const completedLastMonth = lastMonthAppointments.filter(apt => 
+      apt.status === 'COMPLETED' || apt.status === 'CONFIRMED'
+    )
+    
+    const currentRevenue = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+    const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+    
+    // Calcular crescimento
+    let growth = "+0%"
+    if (lastMonthRevenue > 0) {
+      const growthPercent = ((currentRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      const sign = growthPercent >= 0 ? "+" : ""
+      growth = `${sign}${Math.round(growthPercent)}%`
+    } else if (currentRevenue > 0) {
+      growth = "+100%"
+    }
+    
+    const appointmentsCount = currentMonthAppointments.length
     
     return {
       id: professional.id,
       name: professional.name,
       appointments: appointmentsCount,
-      revenue: revenue.toFixed(2),
+      revenue: currentRevenue.toFixed(2),
       rating: "4.8", // TODO: Implementar sistema de avaliações
-      growth: "+0%" // TODO: Calcular crescimento vs mês anterior
+      growth: growth
     }
   })
+
+  // Ordenar por faturamento decrescente
+  professionalPerformance.sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue))
 
   return NextResponse.json({
     success: true,
