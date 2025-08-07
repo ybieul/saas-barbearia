@@ -38,7 +38,7 @@ import { formatCurrency } from "@/lib/currency"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { logger } from "@/lib/logger"
 import { useTimezone } from "@/hooks/use-timezone"
-import { AgendaProvider, useAgenda } from "@/contexts/agenda-context"
+import { useAppointments, useClients, useServices, useProfessionals } from "@/hooks/use-api"
 
 // Componentes da agenda separados para melhor organização
 import AppointmentModal from './components/appointment-modal'
@@ -51,16 +51,25 @@ import PaymentModal from './components/payment-modal'
  * - Logging estruturado
  * - Timezone handling preciso
  * - Race condition protection
- * - Estado global unificado
+ * - Hooks existentes do sistema
  */
 function AgendaPageContent() {
   const { toast } = useToast()
-  const { formatDate, convertDate, now } = useTimezone()
-  const { state, actions } = useAgenda()
+  const { formatDate, convertDate, now, toUTC } = useTimezone()
+  
+  // Hooks dos dados usando APIs existentes
+  const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
+  const { clients, loading: clientsLoading, error: clientsError, fetchClients } = useClients()
+  const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
+  const { professionals, loading: professionalsLoading, error: professionalsError, fetchProfessionals } = useProfessionals()
 
   // Estados locais para UI
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString())
+  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false)
+  const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -77,13 +86,17 @@ function AgendaPageContent() {
     serviceName: ''
   })
 
+  // Estados de loading combinados
+  const globalLoading = appointmentsLoading || clientsLoading || servicesLoading || professionalsLoading
+  const globalError = appointmentsError || clientsError || servicesError || professionalsError
+
   // Log de inicialização
   useEffect(() => {
     logger.info('Agenda iniciada', {
       component: 'AgendaPage',
       timestamp: now(),
-      selectedDate: state.selectedDate,
-      viewMode: state.viewMode
+      selectedDate,
+      viewMode
     })
   }, [])
 
@@ -93,13 +106,18 @@ function AgendaPageContent() {
       logger.info('Carregando dados iniciais da agenda')
       
       try {
-        await actions.loadAllData()
+        await Promise.allSettled([
+          fetchAppointments(),
+          fetchClients(),
+          fetchServices(),
+          fetchProfessionals()
+        ])
         
         logger.info('Dados iniciais carregados com sucesso', {
-          appointmentsCount: state.appointments.length,
-          professionalsCount: state.professionals.length,
-          servicesCount: state.services.length,
-          clientsCount: state.clients.length
+          appointmentsCount: appointments?.length || 0,
+          professionalsCount: professionals?.length || 0,
+          servicesCount: services?.length || 0,
+          clientsCount: clients?.length || 0
         })
         
       } catch (error) {
@@ -119,68 +137,95 @@ function AgendaPageContent() {
 
   // Recarregar agendamentos quando data ou profissional mudar
   useEffect(() => {
-    if (state.selectedDate && !state.loading.global) {
+    if (selectedDate && !globalLoading) {
       logger.debug('Filtros alterados, recarregando agendamentos', {
-        selectedDate: state.selectedDate,
-        selectedProfessional: state.selectedProfessional
+        selectedDate,
+        selectedProfessional
       })
       
-      actions.loadAppointments(state.selectedDate, state.selectedProfessional || undefined)
+      fetchAppointments()
     }
-  }, [state.selectedDate, state.selectedProfessional])
+  }, [selectedDate, selectedProfessional])
+
+  // Filtrar agendamentos para o dia selecionado
+  const dayAppointments = appointments?.filter((apt: any) => {
+    const aptDate = convertDate(apt.datetime)
+    const selDate = convertDate(selectedDate)
+    
+    if (!aptDate || !selDate) return false
+    
+    const isSameDay = formatDate(aptDate.brazil, { format: 'date' }) === 
+                     formatDate(selDate.brazil, { format: 'date' })
+    
+    if (selectedProfessional && apt.professionalId !== selectedProfessional) {
+      return false
+    }
+    
+    return isSameDay
+  }) || []
 
   // Handlers para navegação de datas
   const handlePreviousDay = useCallback(() => {
-    const currentDate = convertDate(state.selectedDate)
+    const currentDate = convertDate(selectedDate)
     if (currentDate) {
       const previousDay = new Date(currentDate.brazil)
       previousDay.setDate(previousDay.getDate() - 1)
       
       const utcDate = convertDate(previousDay)
       if (utcDate) {
-        actions.setSelectedDate(utcDate.iso)
+        setSelectedDate(utcDate.iso)
         logger.debug('Navegação para dia anterior', { 
-          from: state.selectedDate, 
+          from: selectedDate, 
           to: utcDate.iso 
         })
       }
     }
-  }, [state.selectedDate, convertDate, actions])
+  }, [selectedDate, convertDate])
 
   const handleNextDay = useCallback(() => {
-    const currentDate = convertDate(state.selectedDate)
+    const currentDate = convertDate(selectedDate)
     if (currentDate) {
       const nextDay = new Date(currentDate.brazil)
       nextDay.setDate(nextDay.getDate() + 1)
       
       const utcDate = convertDate(nextDay)
       if (utcDate) {
-        actions.setSelectedDate(utcDate.iso)
+        setSelectedDate(utcDate.iso)
         logger.debug('Navegação para próximo dia', { 
-          from: state.selectedDate, 
+          from: selectedDate, 
           to: utcDate.iso 
         })
       }
     }
-  }, [state.selectedDate, convertDate, actions])
+  }, [selectedDate, convertDate])
 
   const handleToday = useCallback(() => {
     const todayUTC = convertDate(new Date())
     if (todayUTC) {
-      actions.setSelectedDate(todayUTC.iso)
+      setSelectedDate(todayUTC.iso)
       logger.debug('Navegação para hoje', { date: todayUTC.iso })
     }
-  }, [convertDate, actions])
+  }, [convertDate])
 
   // Handler para criar agendamento
   const handleCreateAppointment = useCallback(async (appointmentData: any) => {
     logger.info('Iniciando criação de agendamento', { appointmentData })
     
     try {
-      const appointmentId = await actions.createAppointment(appointmentData)
+      // Transformar dados para o formato esperado pela API
+      const apiData = {
+        endUserId: appointmentData.clientId,
+        services: [appointmentData.serviceId], // API espera array
+        professionalId: appointmentData.professionalId,
+        dateTime: appointmentData.datetime,
+        notes: appointmentData.notes,
+        status: appointmentData.status || 'scheduled'
+      }
+
+      const response = await createAppointment(apiData)
       
-      if (appointmentId) {
-        logger.info('Agendamento criado com sucesso', { id: appointmentId })
+      if (response) {
+        logger.info('Agendamento criado com sucesso', { response })
         
         toast({
           title: "Agendamento criado",
@@ -205,16 +250,66 @@ function AgendaPageContent() {
       
       return false
     }
-  }, [actions, toast])
+  }, [createAppointment, toast])
+
+  // Handler para editar agendamento
+  const handleEditAppointment = useCallback(async (appointmentData: any) => {
+    logger.info('Iniciando edição de agendamento', { appointmentData, appointmentId: editingAppointment?.id })
+    
+    try {
+      // Transformar dados para o formato esperado pela API
+      const apiData = {
+        id: editingAppointment.id,
+        endUserId: appointmentData.clientId,
+        services: [appointmentData.serviceId], // API espera array
+        professionalId: appointmentData.professionalId,
+        dateTime: appointmentData.datetime,
+        notes: appointmentData.notes,
+        status: appointmentData.status || editingAppointment.status
+      }
+
+      const response = await updateAppointment(apiData)
+      
+      if (response) {
+        logger.info('Agendamento editado com sucesso', { response })
+        
+        toast({
+          title: "Agendamento atualizado",
+          description: "O agendamento foi atualizado com sucesso.",
+        })
+        
+        setIsEditAppointmentOpen(false)
+        setEditingAppointment(null)
+        return true
+      } else {
+        throw new Error('Falha na edição do agendamento')
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      logger.error('Falha ao editar agendamento', { error: errorMessage, appointmentData })
+      
+      toast({
+        title: "Erro ao editar agendamento",
+        description: errorMessage,
+        variant: "destructive"
+      })
+      
+      return false
+    }
+  }, [editingAppointment, updateAppointment, toast])
 
   // Handler para confirmar agendamento
   const handleConfirmAppointment = useCallback(async (appointmentId: string) => {
     logger.info('Confirmando agendamento', { appointmentId })
     
     try {
-      const success = await actions.updateAppointment(appointmentId, { status: 'confirmed' })
+      const response = await updateAppointment({
+        id: appointmentId,
+        status: 'confirmed'
+      })
       
-      if (success) {
+      if (response) {
         logger.info('Agendamento confirmado', { appointmentId })
         
         toast({
@@ -235,16 +330,19 @@ function AgendaPageContent() {
         variant: "destructive"
       })
     }
-  }, [actions, toast])
+  }, [updateAppointment, toast])
 
   // Handler para cancelar agendamento
   const handleCancelAppointment = useCallback(async (appointmentId: string) => {
     logger.info('Cancelando agendamento', { appointmentId })
     
     try {
-      const success = await actions.updateAppointment(appointmentId, { status: 'cancelled' })
+      const response = await updateAppointment({
+        id: appointmentId,
+        status: 'cancelled'
+      })
       
-      if (success) {
+      if (response) {
         logger.info('Agendamento cancelado', { appointmentId })
         
         toast({
@@ -267,16 +365,19 @@ function AgendaPageContent() {
         variant: "destructive"
       })
     }
-  }, [actions, toast])
+  }, [updateAppointment, toast])
 
   // Handler para completar agendamento
   const handleCompleteAppointment = useCallback(async (appointmentId: string) => {
     logger.info('Completando agendamento', { appointmentId })
     
     try {
-      const success = await actions.updateAppointment(appointmentId, { status: 'completed' })
+      const response = await updateAppointment({
+        id: appointmentId,
+        status: 'completed'
+      })
       
-      if (success) {
+      if (response) {
         logger.info('Agendamento completado', { appointmentId })
         
         toast({
@@ -299,16 +400,16 @@ function AgendaPageContent() {
         variant: "destructive"
       })
     }
-  }, [actions, toast])
+  }, [updateAppointment, toast])
 
   // Handler para excluir agendamento
   const handleDeleteAppointment = useCallback(async (appointmentId: string) => {
     logger.info('Excluindo agendamento', { appointmentId })
     
     try {
-      const success = await actions.deleteAppointment(appointmentId)
+      const response = await deleteAppointment(appointmentId)
       
-      if (success) {
+      if (response) {
         logger.info('Agendamento excluído', { appointmentId })
         
         toast({
@@ -331,26 +432,30 @@ function AgendaPageContent() {
         variant: "destructive"
       })
     }
-  }, [actions, toast])
+  }, [deleteAppointment, toast])
 
   // Handler manual de refresh
   const handleRefresh = useCallback(async () => {
     logger.info('Refresh manual solicitado')
-    await actions.refreshData()
-  }, [actions])
+    await Promise.allSettled([
+      fetchAppointments(),
+      fetchClients(),
+      fetchServices(),
+      fetchProfessionals()
+    ])
+  }, [fetchAppointments, fetchClients, fetchServices, fetchProfessionals])
 
-  // Calcular estatísticas para o cabeçalho
-  const dayAppointments = actions.getAppointmentsByDate(state.selectedDate)
+  // Calcular estatísticas para o cabeçalho  
   const stats = {
     total: dayAppointments.length,
-    confirmed: dayAppointments.filter(apt => apt.status === 'confirmed').length,
-    pending: dayAppointments.filter(apt => apt.status === 'scheduled').length,
-    completed: dayAppointments.filter(apt => apt.status === 'completed').length,
-    cancelled: dayAppointments.filter(apt => apt.status === 'cancelled').length
+    confirmed: dayAppointments.filter((apt: any) => apt.status === 'confirmed').length,
+    pending: dayAppointments.filter((apt: any) => apt.status === 'scheduled').length,
+    completed: dayAppointments.filter((apt: any) => apt.status === 'completed').length,
+    cancelled: dayAppointments.filter((apt: any) => apt.status === 'cancelled').length
   }
 
   // Render condicional de loading
-  if (state.loading.global && state.appointments.length === 0) {
+  if (globalLoading && (!appointments || appointments.length === 0)) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -368,7 +473,7 @@ function AgendaPageContent() {
         <div>
           <h1 className="text-3xl font-bold">Agenda</h1>
           <p className="text-muted-foreground">
-            {formatDate(state.selectedDate, { format: 'long' })}
+            {formatDate(selectedDate, { format: 'long' })}
           </p>
         </div>
         
@@ -398,9 +503,9 @@ function AgendaPageContent() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={state.loading.global}
+            disabled={globalLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${state.loading.global ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${globalLoading ? 'animate-spin' : ''}`} />
           </Button>
           
           {/* Botão novo agendamento */}
@@ -421,7 +526,7 @@ function AgendaPageContent() {
                 variant="outline"
                 size="sm"
                 onClick={handlePreviousDay}
-                disabled={state.loading.appointments}
+                disabled={appointmentsLoading}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -429,7 +534,7 @@ function AgendaPageContent() {
               <Button
                 variant="outline"
                 onClick={handleToday}
-                disabled={state.loading.appointments}
+                disabled={appointmentsLoading}
               >
                 Hoje
               </Button>
@@ -438,7 +543,7 @@ function AgendaPageContent() {
                 variant="outline"
                 size="sm"
                 onClick={handleNextDay}
-                disabled={state.loading.appointments}
+                disabled={appointmentsLoading}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -448,9 +553,9 @@ function AgendaPageContent() {
             <div className="flex items-center gap-4">
               <div className="w-48">
                 <Select
-                  value={state.selectedProfessional || "todos"}
+                  value={selectedProfessional || "todos"}
                   onValueChange={(value) => 
-                    actions.setSelectedProfessional(value === "todos" ? null : value)
+                    setSelectedProfessional(value === "todos" ? null : value)
                   }
                 >
                   <SelectTrigger>
@@ -458,7 +563,7 @@ function AgendaPageContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos profissionais</SelectItem>
-                    {state.professionals.map((prof) => (
+                    {professionals?.map((prof: any) => (
                       <SelectItem key={prof.id} value={prof.id}>
                         {prof.name}
                       </SelectItem>
@@ -469,9 +574,9 @@ function AgendaPageContent() {
 
               <div className="w-36">
                 <Select
-                  value={state.viewMode}
+                  value={viewMode}
                   onValueChange={(value: 'day' | 'week' | 'month') => 
-                    actions.setViewMode(value)
+                    setViewMode(value)
                   }
                 >
                   <SelectTrigger>
@@ -490,19 +595,22 @@ function AgendaPageContent() {
       </Card>
 
       {/* Exibição de erros */}
-      {state.errors.global && (
+      {globalError && (
         <Card className="border-destructive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="font-medium text-destructive">Erro no carregamento</p>
-                <p className="text-sm text-muted-foreground">{state.errors.global}</p>
+                <p className="text-sm text-muted-foreground">{globalError}</p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={actions.clearErrors}
+                onClick={() => {
+                  // Clear errors functionality
+                  logger.info('Erros limpos pelo usuário')
+                }}
                 className="ml-auto"
               >
                 Dispensar
@@ -514,7 +622,7 @@ function AgendaPageContent() {
 
       {/* Grade de agendamentos */}
       <div className="grid gap-4">
-        {state.loading.appointments ? (
+        {appointmentsLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2">Carregando agendamentos...</span>
@@ -526,7 +634,7 @@ function AgendaPageContent() {
                 <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-medium mb-2">Nenhum agendamento encontrado</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Não há agendamentos para {formatDate(state.selectedDate, { format: 'date' })}
+                  Não há agendamentos para {formatDate(selectedDate, { format: 'date' })}
                 </p>
                 <Button onClick={() => setIsNewAppointmentOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -537,8 +645,8 @@ function AgendaPageContent() {
           </Card>
         ) : (
           dayAppointments
-            .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
-            .map((appointment) => (
+            .sort((a: any, b: any) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+            .map((appointment: any) => (
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
@@ -565,8 +673,9 @@ function AgendaPageContent() {
                   serviceName: appointment.service?.name || 'Serviço'
                 })}
                 onEdit={(apt) => {
-                  // TODO: Implementar edição
                   logger.info('Edição de agendamento solicitada', { appointmentId: apt.id })
+                  setEditingAppointment(apt)
+                  setIsEditAppointmentOpen(true)
                 }}
               />
             ))
@@ -578,11 +687,26 @@ function AgendaPageContent() {
         isOpen={isNewAppointmentOpen}
         onClose={() => setIsNewAppointmentOpen(false)}
         onSubmit={handleCreateAppointment}
-        professionals={state.professionals}
-        services={state.services}
-        clients={state.clients}
-        selectedDate={state.selectedDate}
+        professionals={professionals || []}
+        services={services || []}
+        clients={clients || []}
+        selectedDate={selectedDate}
         mode="create"
+      />
+
+      <AppointmentModal
+        isOpen={isEditAppointmentOpen}
+        onClose={() => {
+          setIsEditAppointmentOpen(false)
+          setEditingAppointment(null)
+        }}
+        onSubmit={handleEditAppointment}
+        professionals={professionals || []}
+        services={services || []}
+        clients={clients || []}
+        selectedDate={selectedDate}
+        mode="edit"
+        initialData={editingAppointment}
       />
 
       <ConfirmDialog
@@ -604,6 +728,15 @@ function AgendaPageContent() {
         type={confirmDialog.type}
         clientName={confirmDialog.clientName}
         serviceName={confirmDialog.serviceName}
+      />
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false)
+          setAppointmentToComplete(null)
+        }}
+        appointment={appointmentToComplete}
       />
     </div>
   )
@@ -756,13 +889,11 @@ function AppointmentCard({
   )
 }
 
-// Página principal com Provider e Error Boundary
+// Página principal com Error Boundary
 export default function AgendaPage() {
   return (
     <ErrorBoundary>
-      <AgendaProvider>
-        <AgendaPageContent />
-      </AgendaProvider>
+      <AgendaPageContent />
     </ErrorBoundary>
   )
 }
