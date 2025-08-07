@@ -1069,7 +1069,7 @@ export default function ConfiguracoesPage() {
                     <LinkIcon className="w-4 h-4 text-[#10b981]" />
                     <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
                   </div>
-                  <p className="text-emerald-300 text-sm">https://agendapro.com/{businessData.customLink || 'seu-link-personalizado'}</p>
+                  <p className="text-emerald-300 text-sm">https://agendapro.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}</p>
                 </div>
                 </>
                 )}
@@ -1441,30 +1441,9 @@ export default function ConfiguracoesPage() {
                                   return;
                                 }
 
-                                const reader = new FileReader();
-                                reader.onload = async (event) => {
-                                  try {
-                                    const base64 = event.target?.result as string;
-                                    if (base64) {
-                                      await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
-                                    }
-                                  } catch (error) {
-                                    console.error('Erro no upload:', error);
-                                    toast({
-                                      title: "Erro no upload",
-                                      description: "Ocorreu um erro ao processar a imagem.",
-                                      variant: "destructive",
-                                    });
-                                  }
-                                };
-                                reader.onerror = () => {
-                                  toast({
-                                    title: "Erro na leitura",
-                                    description: "Não foi possível ler o arquivo.",
-                                    variant: "destructive",
-                                  });
-                                };
-                                reader.readAsDataURL(file);
+                                // Usar a mesma abordagem do estabelecimento
+                                const base64 = await uploadLogo(file);
+                                await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
                               } catch (error) {
                                 console.error('Erro ao processar arquivo:', error);
                                 toast({
@@ -1888,30 +1867,9 @@ export default function ConfiguracoesPage() {
                                 return;
                               }
 
-                              const reader = new FileReader();
-                              reader.onload = async (event) => {
-                                try {
-                                  const base64 = event.target?.result as string;
-                                  if (base64) {
-                                    await handleServiceImageChange(selectedServiceForImage.id, base64);
-                                  }
-                                } catch (error) {
-                                  console.error('Erro no upload:', error);
-                                  toast({
-                                    title: "Erro no upload",
-                                    description: "Ocorreu um erro ao processar a imagem.",
-                                    variant: "destructive",
-                                  });
-                                }
-                              };
-                              reader.onerror = () => {
-                                toast({
-                                  title: "Erro na leitura",
-                                  description: "Não foi possível ler o arquivo.",
-                                  variant: "destructive",
-                                });
-                              };
-                              reader.readAsDataURL(file);
+                              // Usar a mesma abordagem do estabelecimento
+                              const base64 = await uploadLogo(file);
+                              await handleServiceImageChange(selectedServiceForImage.id, base64);
                             } catch (error) {
                               console.error('Erro ao processar arquivo:', error);
                               toast({
