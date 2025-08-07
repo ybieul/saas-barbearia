@@ -350,7 +350,8 @@ export default function FinanceiroPage() {
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
 
-  // ✅ SEGURANÇA: Função para exportar relatório com sanitização
+  // ✅ FUTURO: Função para exportar relatório com sanitização (comentada para implementação futura)
+  /*
   const handleExportReport = () => {
     try {
       const today = formatBrazilDate(getBrazilNow())
@@ -414,6 +415,7 @@ export default function FinanceiroPage() {
       setError('Erro ao exportar relatório. Tente novamente.')
     }
   }
+  */
 
   const financialStats = [
     {
@@ -647,14 +649,6 @@ export default function FinanceiroPage() {
               ))}
             </SelectContent>
           </Select>
-          
-          <Button 
-            onClick={handleExportReport}
-            className="bg-[#10b981] hover:bg-[#059669] text-[#ededed]"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Relatório
-          </Button>
         </div>
       </div>
 

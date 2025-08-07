@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
+import { TrendingUp, BarChart3, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilDayOfWeek, debugTimezone } from "@/lib/timezone"
 
@@ -161,10 +161,7 @@ export default function RelatoriosPage() {
           </h1>
           <p className="text-[#3f3f46]">Análise completa do seu negócio</p>
         </div>
-        <Button className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white">
-          <Download className="w-4 h-4 mr-2" />
-          Exportar Relatório
-        </Button>
+        {/* Botão de exportar removido - implementação futura */}
       </div>
 
       {/* Report Stats */}
