@@ -461,6 +461,11 @@ export default function ConfiguracoesPage() {
       return Promise.resolve()
     } catch (error) {
       console.error('Erro ao atualizar avatar:', error)
+      toast({
+        title: "Erro no upload",
+        description: "Ocorreu um erro ao atualizar a foto. Tente novamente.",
+        variant: "destructive",
+      })
       throw error
     }
   }
@@ -494,6 +499,11 @@ export default function ConfiguracoesPage() {
       return Promise.resolve()
     } catch (error) {
       console.error('Erro ao atualizar imagem do serviço:', error)
+      toast({
+        title: "Erro no upload",
+        description: "Ocorreu um erro ao atualizar a imagem. Tente novamente.",
+        variant: "destructive",
+      })
       throw error
     }
   }
@@ -1410,14 +1420,58 @@ export default function ConfiguracoesPage() {
                             const file = (e.target as HTMLInputElement).files?.[0];
                             if (file) {
                               try {
+                                // Validar tipo de arquivo
+                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                                if (!allowedTypes.includes(file.type)) {
+                                  toast({
+                                    title: "Formato não suportado",
+                                    description: "Use apenas JPG, PNG ou GIF.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Validar tamanho (5MB)
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast({
+                                    title: "Arquivo muito grande",
+                                    description: "O arquivo deve ter no máximo 5MB.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+
                                 const reader = new FileReader();
                                 reader.onload = async (event) => {
-                                  const base64 = event.target?.result as string;
-                                  await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
+                                  try {
+                                    const base64 = event.target?.result as string;
+                                    if (base64) {
+                                      await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
+                                    }
+                                  } catch (error) {
+                                    console.error('Erro no upload:', error);
+                                    toast({
+                                      title: "Erro no upload",
+                                      description: "Ocorreu um erro ao processar a imagem.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                };
+                                reader.onerror = () => {
+                                  toast({
+                                    title: "Erro na leitura",
+                                    description: "Não foi possível ler o arquivo.",
+                                    variant: "destructive",
+                                  });
                                 };
                                 reader.readAsDataURL(file);
                               } catch (error) {
-                                console.error('Erro ao processar imagem:', error);
+                                console.error('Erro ao processar arquivo:', error);
+                                toast({
+                                  title: "Erro no upload",
+                                  description: "Erro ao processar o arquivo selecionado.",
+                                  variant: "destructive",
+                                });
                               }
                             }
                           };
@@ -1813,14 +1867,58 @@ export default function ConfiguracoesPage() {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) {
                             try {
+                              // Validar tipo de arquivo
+                              const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                              if (!allowedTypes.includes(file.type)) {
+                                toast({
+                                  title: "Formato não suportado",
+                                  description: "Use apenas JPG, PNG ou GIF.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              
+                              // Validar tamanho (5MB)
+                              if (file.size > 5 * 1024 * 1024) {
+                                toast({
+                                  title: "Arquivo muito grande",
+                                  description: "O arquivo deve ter no máximo 5MB.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
                               const reader = new FileReader();
                               reader.onload = async (event) => {
-                                const base64 = event.target?.result as string;
-                                await handleServiceImageChange(selectedServiceForImage.id, base64);
+                                try {
+                                  const base64 = event.target?.result as string;
+                                  if (base64) {
+                                    await handleServiceImageChange(selectedServiceForImage.id, base64);
+                                  }
+                                } catch (error) {
+                                  console.error('Erro no upload:', error);
+                                  toast({
+                                    title: "Erro no upload",
+                                    description: "Ocorreu um erro ao processar a imagem.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              };
+                              reader.onerror = () => {
+                                toast({
+                                  title: "Erro na leitura",
+                                  description: "Não foi possível ler o arquivo.",
+                                  variant: "destructive",
+                                });
                               };
                               reader.readAsDataURL(file);
                             } catch (error) {
-                              console.error('Erro ao processar imagem:', error);
+                              console.error('Erro ao processar arquivo:', error);
+                              toast({
+                                title: "Erro no upload",
+                                description: "Erro ao processar o arquivo selecionado.",
+                                variant: "destructive",
+                              });
                             }
                           }
                         };
