@@ -139,6 +139,10 @@ export default function AgendamentoPage() {
   const [showClientForm, setShowClientForm] = useState(false)
   const [phoneDebounceTimer, setPhoneDebounceTimer] = useState<NodeJS.Timeout | null>(null)
 
+  // AbortControllers para cancelar requisições
+  const [availabilityAbortController, setAvailabilityAbortController] = useState<AbortController | null>(null)
+  const [clientSearchAbortController, setClientSearchAbortController] = useState<AbortController | null>(null)
+
   // Estado para controlar visibilidade dos detalhes do estabelecimento
   const [isDetailsVisible, setIsDetailsVisible] = useState(false)
 
@@ -260,6 +264,15 @@ export default function AgendamentoPage() {
   const loadAvailability = async (date: string, professionalId?: string) => {
     if (!date) return
     
+    // Cancelar requisição anterior se ainda estiver em andamento
+    if (availabilityAbortController) {
+      availabilityAbortController.abort()
+    }
+    
+    // Criar novo AbortController para esta requisição
+    const abortController = new AbortController()
+    setAvailabilityAbortController(abortController)
+    
     try {
       setLoadingAvailability(true)
       const url = new URL(`/api/public/business/${params.slug}/availability`, window.location.origin)
@@ -268,7 +281,15 @@ export default function AgendamentoPage() {
         url.searchParams.set('professionalId', professionalId)
       }
       
-      const response = await fetch(url.toString())
+      const response = await fetch(url.toString(), {
+        signal: abortController.signal
+      })
+      
+      // Verificar se a requisição foi cancelada
+      if (abortController.signal.aborted) {
+        return
+      }
+      
       if (response.ok) {
         const data = await response.json()
         setOccupiedSlots(data.occupiedSlots || [])
@@ -276,11 +297,19 @@ export default function AgendamentoPage() {
         console.error('Erro ao buscar disponibilidade:', response.statusText)
         setOccupiedSlots([])
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar erros de cancelamento
+      if (error.name === 'AbortError') {
+        return
+      }
       console.error('Erro ao buscar disponibilidade:', error)
       setOccupiedSlots([])
     } finally {
-      setLoadingAvailability(false)
+      // Só atualizar loading se não foi cancelado
+      if (!abortController.signal.aborted) {
+        setLoadingAvailability(false)
+        setAvailabilityAbortController(null)
+      }
     }
   }
 
@@ -479,11 +508,27 @@ export default function AgendamentoPage() {
       return
     }
 
+    // Cancelar busca anterior se ainda estiver em andamento
+    if (clientSearchAbortController) {
+      clientSearchAbortController.abort()
+    }
+
+    // Criar novo AbortController para esta busca
+    const abortController = new AbortController()
+    setClientSearchAbortController(abortController)
+
     setSearchingClient(true)
     setClientFound(null)
 
     try {
-      const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`)
+      const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`, {
+        signal: abortController.signal
+      })
+      
+      // Verificar se a requisição foi cancelada
+      if (abortController.signal.aborted) {
+        return
+      }
       
       if (response.ok) {
         const clientData = await response.json()
@@ -517,12 +562,20 @@ export default function AgendamentoPage() {
         setClientFound(false)
         setShowClientForm(true)
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar erros de cancelamento
+      if (error.name === 'AbortError') {
+        return
+      }
       console.error('Erro ao buscar cliente:', error)
       setClientFound(false)
       setShowClientForm(true)
     } finally {
-      setSearchingClient(false)
+      // Só atualizar loading se não foi cancelado
+      if (!abortController.signal.aborted) {
+        setSearchingClient(false)
+        setClientSearchAbortController(null)
+      }
     }
   }
 
@@ -579,14 +632,24 @@ export default function AgendamentoPage() {
     }
   }
 
-  // Limpar timer ao desmontar componente
+  // Limpar timers e AbortControllers ao desmontar componente
   useEffect(() => {
     return () => {
+      // Limpar timer de debounce
       if (phoneDebounceTimer) {
         clearTimeout(phoneDebounceTimer)
       }
+      
+      // Cancelar requisições em andamento
+      if (availabilityAbortController) {
+        availabilityAbortController.abort()
+      }
+      
+      if (clientSearchAbortController) {
+        clientSearchAbortController.abort()
+      }
     }
-  }, [phoneDebounceTimer])
+  }, [phoneDebounceTimer, availabilityAbortController, clientSearchAbortController])
 
   // Validar formulário
   const validateAppointmentData = () => {
