@@ -693,7 +693,7 @@ export default function FinanceiroPage() {
         </CardHeader>
         <CardContent>
           {/* Summary Stats */}
-          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
             <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
               <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
