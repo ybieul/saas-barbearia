@@ -387,6 +387,7 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
     return {
       id: professional.id,
       name: professional.name,
+      avatar: professional.avatar,
       appointments: appointmentsCount,
       revenue: currentRevenue.toFixed(2),
       rating: "4.8", // TODO: Implementar sistema de avaliações

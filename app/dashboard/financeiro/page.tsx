@@ -9,6 +9,7 @@ import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, D
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
+import { ProfessionalAvatar } from "@/components/professional-avatar"
 
 // ✅ SEGURANÇA: Função para sanitizar dados de entrada
 const sanitizeString = (str: string | undefined | null): string => {
@@ -1182,9 +1183,12 @@ export default function FinanceiroPage() {
                 <div key={professional.id || index} className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">{sanitizeString(professional.name).charAt(0).toUpperCase()}</span>
-                      </div>
+                      <ProfessionalAvatar
+                        avatar={professional.avatar}
+                        name={sanitizeString(professional.name)}
+                        size="md"
+                        className="border-2 border-[#10b981]/30 shadow-sm"
+                      />
                       <div>
                         <p className="text-[#ededed] font-medium text-sm sm:text-base">{sanitizeString(professional.name)}</p>
                         <div className="flex items-center gap-1">
