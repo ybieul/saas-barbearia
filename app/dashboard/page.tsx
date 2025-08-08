@@ -214,7 +214,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#ededed] mb-2">Oláa, {user?.name || "Usuário"}! 👋</h1>
+        <h1 className="text-3xl font-bold text-[#ededed] mb-2">Olá, {user?.name || "Usuário"}! 👋</h1>
         <p className="text-[#a1a1aa] capitalize">{today}</p>
       </div>
 
