@@ -63,7 +63,7 @@ export async function GET(
         lte: endOfDay
       },
       status: {
-        in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
+        in: ['CONFIRMED']
       }
     }
 

@@ -15,6 +15,7 @@ import {
   X,
   Scissors,
   UserX,
+  TrendingUp,
   MessageCircle,
   UserCircle,
   Clock,
@@ -30,8 +31,9 @@ const menuItems = [
   { icon: Calendar, label: "Agenda", href: "/dashboard/agenda", description: "Gerenciar agendamentos" },
   { icon: Users, label: "Clientes", href: "/dashboard/clientes", description: "Base de clientes" },
   { icon: UserX, label: "Clientes Inativos", href: "/dashboard/clientes-inativos", description: "Reativar clientes" },
-  { icon: DollarSign, label: "Relatório e Financeiro", href: "/dashboard/financeiro", description: "Receitas, relatórios e análises" },
+  { icon: DollarSign, label: "Financeiro", href: "/dashboard/financeiro", description: "Receitas e relatórios" },
   { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens" },
+  { icon: TrendingUp, label: "Relatórios", href: "/dashboard/relatorios", description: "Análises e insights" },
   { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes", description: "Configurar estabelecimento" },
 ]
 

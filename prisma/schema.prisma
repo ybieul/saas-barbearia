@@ -94,7 +94,7 @@ model Professional {
   email     String?
   phone     String?
   specialty String?  @db.Text
-  avatar    String?  @db.LongText
+  avatar    String?  @db.Text
   salary    Decimal? @db.Decimal(10,2)
   commission Decimal? @db.Decimal(5,2) // Porcentagem de comissão
   isActive  Boolean  @default(true)
@@ -122,7 +122,7 @@ model Service {
   price       Decimal  @db.Decimal(10,2)
   duration    Int      // em minutos
   category    String?
-  image       String?  @db.LongText // URL da imagem
+  image       String?  // URL da imagem
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

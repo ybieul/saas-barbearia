@@ -436,51 +436,6 @@ export function useDashboard() {
   }
 }
 
-// Hook específico para relatórios
-export function useReports() {
-  const { data, loading, error, request } = useApi<{ data: any }>()
-
-  const fetchReports = useCallback((type = 'overview', month?: number, year?: number) => {
-    const params = new URLSearchParams({ type })
-    if (month) params.append('month', month.toString())
-    if (year) params.append('year', year.toString())
-    
-    return request(`/api/reports?${params.toString()}`)
-  }, [request])
-
-  const fetchOverview = useCallback((month?: number, year?: number) => {
-    return fetchReports('overview', month, year)
-  }, [fetchReports])
-
-  const fetchMonthlyPerformance = useCallback((year?: number) => {
-    return fetchReports('monthly-performance', undefined, year)
-  }, [fetchReports])
-
-  const fetchServicesReport = useCallback((month?: number, year?: number) => {
-    return fetchReports('services', month, year)
-  }, [fetchReports])
-
-  const fetchProfessionalsReport = useCallback((month?: number, year?: number) => {
-    return fetchReports('professionals', month, year)
-  }, [fetchReports])
-
-  const fetchTimeAnalysis = useCallback((month?: number, year?: number) => {
-    return fetchReports('time-analysis', month, year)
-  }, [fetchReports])
-
-  return {
-    reportsData: data?.data || null,
-    loading,
-    error,
-    fetchReports,
-    fetchOverview,
-    fetchMonthlyPerformance,
-    fetchServicesReport,
-    fetchProfessionalsReport,
-    fetchTimeAnalysis
-  }
-}
-
 // Hook específico para configurações do estabelecimento
 export function useEstablishment() {
   const { data, loading, error, request } = useApi<{ businessData: any }>()
