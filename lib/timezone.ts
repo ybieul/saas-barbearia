@@ -304,8 +304,7 @@ export function toLocalDateString(date: Date): string {
  */
 export function parseDatabaseDateTime(dateTimeString: string): Date {
   if (!dateTimeString) {
-    console.warn('⚠️ String de dateTime vazia fornecida')
-    return new Date()
+    return new Date() // Removido console.warn para evitar spam
   }
   
   try {
@@ -329,13 +328,12 @@ export function parseDatabaseDateTime(dateTimeString: string): Date {
         throw new Error(`Data inválida: ${dateTimeString}`)
       }
       
-      console.log(`🇧🇷 Parse DB DateTime: ${dateTimeString} → ${formatBrazilTime(localDate)}`)
+      // Debug apenas quando necessário (removido log automático)
       return localDate
     }
     
     // Fallback: tentar new Date() normal (pode causar UTC)
-    console.warn(`⚠️ Formato inesperado de dateTime, usando fallback: ${dateTimeString}`)
-    return new Date(dateTimeString)
+    return new Date(dateTimeString) // Removido console.warn para evitar spam
     
   } catch (error) {
     console.error('❌ Erro ao fazer parse de dateTime do banco:', error)
@@ -351,8 +349,7 @@ export function parseDatabaseDateTime(dateTimeString: string): Date {
  */
 export function extractTimeFromDateTime(dateTimeString: string): string {
   if (!dateTimeString) {
-    console.warn('⚠️ String de dateTime vazia para extração de horário')
-    return '00:00'
+    return '00:00' // Removido console.warn para evitar spam
   }
   
   try {

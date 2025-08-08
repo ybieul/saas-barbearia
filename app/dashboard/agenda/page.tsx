@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -271,18 +271,20 @@ export default function AgendaPage() {
     return generateTimeSlotsForDate(currentDate)
   }
 
-  // 🇧🇷 NOVO: Obter agendamentos do dia atual (sem conversões UTC)
-  const todayAppointments = appointments.filter(apt => {
-    // Parse seguro do dateTime do banco (sem conversão UTC automática)
-    const aptDate = parseDatabaseDateTime(apt.dateTime || apt.date)
-    const aptDateString = toLocalDateString(aptDate) // YYYY-MM-DD
-    const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
-    
-    return aptDateString === currentDateString
-  })
+  // 🇧🇷 OTIMIZADO: Obter agendamentos do dia atual (sem conversões UTC) usando useMemo
+  const todayAppointments = useMemo(() => {
+    return appointments.filter(apt => {
+      // Parse seguro do dateTime do banco (sem conversão UTC automática)
+      const aptDate = parseDatabaseDateTime(apt.dateTime || apt.date)
+      const aptDateString = toLocalDateString(aptDate) // YYYY-MM-DD
+      const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
+      
+      return aptDateString === currentDateString
+    })
+  }, [appointments, currentDate]) // Dependências: só recalcula quando appointments ou currentDate mudam
 
-  // 🇧🇷 NOVO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
-  const isTimeSlotOccupied = (time: string, professionalId?: string) => {
+  // 🇧🇷 OTIMIZADO: Função para verificar se um horário está ocupado usando useCallback
+  const isTimeSlotOccupied = useCallback((time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
       // Parse seguro do dateTime do banco (sem conversão UTC automática)
       const aptDateTime = parseDatabaseDateTime(apt.dateTime || `${apt.date} ${apt.time}`)
@@ -318,7 +320,7 @@ export default function AgendaPage() {
       
       return isWithinAppointment && matchesProfessional
     })
-  }
+  }, [todayAppointments]) // Dependência: só recalcula quando todayAppointments muda
 
   // Função robusta para verificar conflitos de agendamento
   const hasConflict = (appointmentData: {
@@ -410,9 +412,8 @@ export default function AgendaPage() {
     return true
   }
 
-  // Calcular estatísticas do dia
-  // ✅ Calcular estatísticas do dia com base no filtro de profissional selecionado
-  const calculateDayStats = () => {
+  // 🇧🇷 OTIMIZADO: Calcular estatísticas do dia usando useMemo
+  const dayStats = useMemo(() => {
     // 🔍 Filtrar agendamentos do dia atual por profissional selecionado
     let filteredTodayAppointments = todayAppointments
     
@@ -455,9 +456,9 @@ export default function AgendaPage() {
       occupancyRate: Math.min(occupancyRate, 100),
       revenueToday: totalRevenue
     }
-  }
+  }, [todayAppointments, selectedProfessional, generateTimeSlots]) // Dependências para recalcular estatísticas
 
-  const dayStats = calculateDayStats()
+
 
   // Resetar formulário
   const resetForm = () => {
