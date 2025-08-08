@@ -30,7 +30,6 @@ import {
   X,
   Edit3,
   Trash2,
-  RefreshCw,
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
@@ -75,8 +74,6 @@ export default function AgendaPage() {
   })
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   // Hooks para dados reais do banco de dados
   const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
@@ -107,7 +104,6 @@ export default function AgendaPage() {
           fetchEstablishment(),
           fetchWorkingHours()
         ])
-        setLastUpdated(new Date())
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       }
@@ -155,7 +151,6 @@ export default function AgendaPage() {
         
         // Buscar agendamentos filtrados
         await fetchAppointments(currentDateString, statusParam, professionalParam)
-        setLastUpdated(new Date())
       } catch (error) {
         console.error('Erro ao carregar dados filtrados:', error)
       }
@@ -690,7 +685,6 @@ export default function AgendaPage() {
       setIsNewAppointmentOpen(false)
       resetForm()
       await fetchAppointments() // Recarregar dados
-      setLastUpdated(new Date())
     } catch (error: any) {
       console.error('🚫 Erro ao criar agendamento:', error)
       
@@ -822,7 +816,6 @@ export default function AgendaPage() {
       setEditingAppointment(null)
       resetForm()
       await fetchAppointments() // Recarregar dados
-      setLastUpdated(new Date())
     } catch (error: any) {
       console.error('🚫 Erro ao atualizar agendamento:', error)
       
@@ -914,7 +907,6 @@ export default function AgendaPage() {
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
-      setLastUpdated(new Date())
     } catch (error) {
       console.error('Erro ao concluir agendamento:', error)
       toast({
@@ -971,7 +963,6 @@ export default function AgendaPage() {
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
-      setLastUpdated(new Date())
     } catch (error) {
       const actionText = confirmDialog.type === 'delete' ? 'excluir' : 'cancelar'
       
@@ -1020,45 +1011,6 @@ export default function AgendaPage() {
     const newDate = new Date(currentDate)
     newDate.setDate(currentDate.getDate() + (direction === "next" ? 1 : -1))
     setCurrentDate(newDate)
-  }
-
-  // Função para atualizar dados manualmente
-  const handleRefreshData = async () => {
-    setIsRefreshing(true)
-    try {
-      // 🇧🇷 CORREÇÃO: Formatar data atual para enviar para API (timezone brasileiro)
-      const currentDateString = format(utcToBrazil(currentDate), 'yyyy-MM-dd')
-      
-      // Preparar parâmetros para a API
-      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
-      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
-      
-      // Recarregar todos os dados
-      await Promise.allSettled([
-        fetchAppointments(currentDateString, statusParam, professionalParam),
-        fetchClients(),
-        fetchServices(),
-        fetchProfessionals(),
-        fetchEstablishment(),
-        fetchWorkingHours()
-      ])
-      
-      setLastUpdated(new Date())
-      
-      toast({
-        title: "✅ Dados Atualizados",
-        description: "Agenda atualizada com sucesso!",
-      })
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error)
-      toast({
-        title: "❌ Erro ao Atualizar",
-        description: "Erro ao atualizar dados. Tente novamente.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsRefreshing(false)
-    }
   }
 
   // 🇧🇷 CORREÇÃO: Filtrar agendamentos por data, profissional e status
@@ -1290,41 +1242,16 @@ export default function AgendaPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
-          <div className="flex items-center gap-4">
-            <p className="text-[#a1a1aa]">Gerencie seus agendamentos</p>
-            {lastUpdated && (
-              <div className="flex items-center gap-2 text-xs text-[#71717a]">
-                <Clock className="w-3 h-3" />
-                <span>
-                  Atualizado às {lastUpdated.toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </span>
-              </div>
-            )}
-          </div>
+          <p className="text-[#a1a1aa]">Gerencie seus agendamentos</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline"
-            onClick={handleRefreshData}
-            disabled={isRefreshing}
-            className="border-[#27272a] hover:bg-[#27272a]"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-          </Button>
-          
-          <Button 
-            onClick={() => setIsNewAppointmentOpen(true)}
-            className="bg-[#10b981] hover:bg-[#059669]"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Agendamento
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setIsNewAppointmentOpen(true)}
+          className="bg-[#10b981] hover:bg-[#059669]"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Agendamento
+        </Button>
       </div>
 
       {/* Cards de Estatísticas */}
