@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle } from "lucide-react"
 import { useDashboard, useAppointments, useProfessionals } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
+import { getBrazilNow, getBrazilDayOfWeek, getBrazilDayNumber, formatBrazilDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
 // ✅ SEGURANÇA: Função para sanitizar dados de entrada
@@ -43,8 +43,8 @@ export default function FinanceiroPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const brazilNow = getBrazilNow()
-  const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
-  const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(brazilNow.getMonth())
+  const [selectedYear, setSelectedYear] = useState(brazilNow.getFullYear())
   
   const { dashboardData, loading: dashboardLoading, fetchDashboardData } = useDashboard()
   const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments()
@@ -87,7 +87,7 @@ export default function FinanceiroPage() {
         if (!app.dateTime) return false
         
         try {
-          const appointmentDate = utcToBrazil(new Date(app.dateTime))
+          const appointmentDate = new Date(app.dateTime)
           if (isNaN(appointmentDate.getTime())) return false
           
           // Filtro por profissional
@@ -109,7 +109,7 @@ export default function FinanceiroPage() {
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
     return completedAppointments.filter(app => {
-      const appointmentDate = utcToBrazil(new Date(app.dateTime))
+      const appointmentDate = new Date(app.dateTime)
       return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
     })
   }
@@ -124,7 +124,7 @@ export default function FinanceiroPage() {
       
       for (let i = 11; i >= 0; i--) {
         try {
-          const brazilCurrentDate = utcToBrazil(currentDate)
+          const brazilCurrentDate = currentDate
           const date = new Date(brazilCurrentDate.getFullYear(), brazilCurrentDate.getMonth() - i, 1)
           const month = date.getMonth()
           const year = date.getFullYear()
@@ -132,7 +132,7 @@ export default function FinanceiroPage() {
           // Filtrar agendamentos do mês específico
           const monthAppointments = completedAppointments.filter(app => {
             try {
-              const appointmentDate = utcToBrazil(new Date(app.dateTime))
+              const appointmentDate = new Date(app.dateTime)
               return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
             } catch {
               return false
@@ -178,14 +178,14 @@ export default function FinanceiroPage() {
       
       for (let i = 29; i >= 0; i--) {
         try {
-          const brazilCurrentDate = utcToBrazil(currentDate)
+          const brazilCurrentDate = currentDate
           const date = new Date(brazilCurrentDate)
           date.setDate(brazilCurrentDate.getDate() - i)
           
           // Filtrar agendamentos do dia específico
           const dayAppointments = completedAppointments.filter(app => {
             try {
-              const appointmentDate = utcToBrazil(new Date(app.dateTime))
+              const appointmentDate = new Date(app.dateTime)
               return appointmentDate.toDateString() === date.toDateString()
             } catch {
               return false
@@ -381,7 +381,7 @@ export default function FinanceiroPage() {
           sanitizeString(apt.endUser?.name) || 'Cliente',
           sanitizeString(apt.services?.[0]?.name) || 'Serviço',
           formatCurrency(apt.totalPrice),
-          utcToBrazil(new Date(apt.dateTime)).toLocaleDateString('pt-BR')
+          new Date(apt.dateTime).toLocaleDateString('pt-BR')
         ])
       ]
 
@@ -462,7 +462,7 @@ export default function FinanceiroPage() {
       return completedAppointments
         .filter(app => {
           try {
-            const appointmentDate = utcToBrazil(new Date(app.dateTime))
+            const appointmentDate = new Date(app.dateTime)
             return appointmentDate.toDateString() === todayString
           } catch {
             return false
@@ -491,7 +491,7 @@ export default function FinanceiroPage() {
             service: sanitizeString(app.services?.[0]?.name) || 'Serviço',
             amount: parseFloat(app.totalPrice) || 0,
             method: paymentMethod,
-            time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
+            time: new Date(app.dateTime).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit'
             })
@@ -740,7 +740,7 @@ export default function FinanceiroPage() {
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                   {dailyData.map((day, index) => {
                     const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                    const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
+                    const isWeekend = getBrazilDayNumber(new Date(day.date)) === 0 || getBrazilDayNumber(new Date(day.date)) === 6
                     
                     return (
                       <div
@@ -768,7 +768,7 @@ export default function FinanceiroPage() {
                             {day.dayName.slice(0, 3)}
                           </div>
                           <div className="text-xs text-gray-500 mb-1">
-                            {utcToBrazil(new Date(day.date)).getDate()}
+                            {new Date(day.date).getDate()}
                           </div>
                           <div className="text-xs text-[#10b981] font-medium">
                             {day.revenue > 0 ? `R$ ${Math.round(day.revenue)}` : 'R$ 0'}
@@ -802,7 +802,7 @@ export default function FinanceiroPage() {
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
                   const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                  const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
+                  const isWeekend = getBrazilDayNumber(new Date(day.date)) === 0 || getBrazilDayNumber(new Date(day.date)) === 6
                   
                   return (
                     <div
@@ -845,7 +845,7 @@ export default function FinanceiroPage() {
                           {day.dayName}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {utcToBrazil(new Date(day.date)).getDate()}
+                          {new Date(day.date).getDate()}
                         </div>
                       </div>
                     </div>

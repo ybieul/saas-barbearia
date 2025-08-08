@@ -36,7 +36,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
-import { utcToBrazil, brazilToUtc, formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
+import { formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
@@ -273,13 +273,12 @@ export default function AgendaPage() {
     return aptDateString === currentDateString
   })
 
-  // 🇧🇷 CORREÇÃO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
+  // 🇧🇷 NOVO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
-      // Converter UTC do banco para timezone brasileiro
-      const aptStartTimeUTC = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-      const aptStartTimeBrazil = utcToBrazil(aptStartTimeUTC)
-      const aptStartTimeString = aptStartTimeBrazil.toTimeString().substring(0, 5) // HH:mm
+      // Agora o banco armazena horários brasileiros diretamente
+      const aptDateTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+      const aptStartTimeString = aptDateTime.toTimeString().substring(0, 5) // HH:mm
       
       // 🇧🇷 CORREÇÃO: Usar apt.duration diretamente (já salvo no agendamento) 
       // ou calcular da soma dos serviços se não existir
@@ -290,7 +289,7 @@ export default function AgendaPage() {
       const serviceDuration = appointmentDuration || 30 // fallback para 30 min
       
       // Calcular horário de fim do agendamento (em timezone brasileiro)
-      const aptEndTimeBrazil = new Date(aptStartTimeBrazil.getTime() + (serviceDuration * 60000))
+      const aptEndTimeBrazil = new Date(aptDateTime.getTime() + (serviceDuration * 60000))
       const aptEndTimeString = aptEndTimeBrazil.toTimeString().substring(0, 5) // HH:mm
       
       // Converter horários para minutos para facilitar comparação
@@ -676,7 +675,7 @@ export default function AgendaPage() {
         return
       }
 
-      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro e converter para UTC
+      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro (agora direto)
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Criando agendamento')
 
@@ -684,7 +683,7 @@ export default function AgendaPage() {
         endUserId: newAppointment.endUserId,
         services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
+        dateTime: appointmentDateTime.toISOString(), // Envia horário brasileiro para o backend
         notes: newAppointment.notes || undefined
       }
 
@@ -816,7 +815,7 @@ export default function AgendaPage() {
         return
       }
 
-      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro e converter para UTC
+      // 🇧🇷 CORREÇÃO: Criar dateTime usando timezone brasileiro (agora direto)
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Atualizando agendamento')
 
@@ -825,7 +824,7 @@ export default function AgendaPage() {
         endUserId: newAppointment.endUserId,
         services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
+        dateTime: appointmentDateTime.toISOString(), // Envia horário brasileiro para o backend
         notes: newAppointment.notes || undefined
       }
 
@@ -1498,10 +1497,9 @@ export default function AgendaPage() {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
               const appointmentsAtTime = filteredAppointments.filter(apt => {
-                // 🇧🇷 CORREÇÃO: Converter UTC para timezone brasileiro antes de comparar horários
-                const aptDateTimeUTC = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-                const aptDateTimeBrazil = utcToBrazil(aptDateTimeUTC)
-                const aptTime = aptDateTimeBrazil.toTimeString().substring(0, 5) // HH:mm
+                // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
+                const aptDateTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
+                const aptTime = aptDateTime.toTimeString().substring(0, 5) // HH:mm
                 return aptTime === time
               })
 
@@ -1617,10 +1615,9 @@ export default function AgendaPage() {
         ) : (
           filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status)
-            // 🇧🇷 CORREÇÃO: Converter UTC para timezone brasileiro para exibição
-            const appointmentUTC = new Date(appointment.dateTime)
-            const appointmentBrazil = utcToBrazil(appointmentUTC)
-            const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:mm
+            // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
+            const appointmentDateTime = new Date(appointment.dateTime)
+            const appointmentTime = appointmentDateTime.toTimeString().substring(0, 5) // HH:mm
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">

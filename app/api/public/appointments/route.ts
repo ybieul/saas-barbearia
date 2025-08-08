@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, utcToBrazil, debugTimezone } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone } from '@/lib/timezone'
 
 // POST - Criar agendamento público
 export async function POST(request: NextRequest) {
@@ -338,8 +338,8 @@ export async function POST(request: NextRequest) {
       serviceCount: appointmentServices.length,
       totalDuration: `${totalDuration} min`,
       totalPrice: `R$ ${totalPrice}`,
-      dateTimeUTC: appointment.dateTime.toISOString(),
-      dateTimeBrazil: utcToBrazil(appointment.dateTime).toString()
+      dateTimeISO: appointment.dateTime.toISOString(),
+      dateTimeBrazil: appointment.dateTime.toString()
     })
 
     return NextResponse.json({

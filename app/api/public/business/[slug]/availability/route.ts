@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { utcToBrazil } from '@/lib/timezone'
+import { getBrazilStartOfDay, getBrazilEndOfDay } from '@/lib/timezone'
 
 // GET - Buscar horários ocupados para um profissional em uma data específica
 export async function GET(
@@ -48,12 +48,9 @@ export async function GET(
     // Converter data recebida (YYYY-MM-DD) para range de datas
     const targetDate = new Date(date)
     
-    // Criar range de início e fim do dia em UTC
-    const startOfDay = new Date(targetDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    
-    const endOfDay = new Date(targetDate)
-    endOfDay.setHours(23, 59, 59, 999)
+    // Criar range de início e fim do dia brasileiro
+    const startOfDay = getBrazilStartOfDay(targetDate)
+    const endOfDay = getBrazilEndOfDay(targetDate)
 
     // Buscar agendamentos para a data específica
     const whereClause: any = {
@@ -88,9 +85,8 @@ export async function GET(
 
     // Processar agendamentos para retornar apenas os dados necessários
     const occupiedSlots = appointments.map(apt => {
-      // Converter UTC para timezone brasileiro
-      const aptStartTimeUTC = new Date(apt.dateTime)
-      const aptStartTimeBrazil = utcToBrazil(aptStartTimeUTC)
+      // Agora o banco armazena horários brasileiros diretamente
+      const aptStartTimeBrazil = new Date(apt.dateTime)
       
       return {
         id: apt.id,

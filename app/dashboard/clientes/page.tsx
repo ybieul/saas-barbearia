@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
 import { useClients } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilNow, formatBrazilDate } from "@/lib/timezone"
+import { getBrazilNow, formatBrazilDate } from "@/lib/timezone"
 
 interface Client {
   id: string
@@ -313,8 +313,8 @@ export default function ClientesPage() {
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
                 <p className="text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
-                    const clientDate = utcToBrazil(new Date(client.createdAt))
-                    const now = utcToBrazil(getBrazilNow())
+                    const clientDate = new Date(client.createdAt)
+                    const now = getBrazilNow()
                     return clientDate.getMonth() === now.getMonth() && clientDate.getFullYear() === now.getFullYear()
                   }).length}
                 </p>
@@ -378,7 +378,7 @@ export default function ClientesPage() {
             {filteredClients.map((client) => {
               const stats = calculateClientStats(client)
               // ✅ USAR LASTVISIT DO BANCO DE DADOS
-              const lastVisit = client.lastVisit ? utcToBrazil(new Date(client.lastVisit)) : null
+              const lastVisit = client.lastVisit ? new Date(client.lastVisit) : null
               
               return (
                 <div key={client.id} className="grid grid-cols-12 gap-4 p-4 hover:bg-[#27272a]/80 transition-colors">
@@ -549,7 +549,7 @@ export default function ClientesPage() {
                   <div>
                     <h3 className="text-sm font-medium text-[#71717a] mb-2">Data de Nascimento</h3>
                     <p className="text-white">
-                      {formatBrazilDate(selectedClient.birthday)}
+                      {formatBrazilDate(new Date(selectedClient.birthday))}
                     </p>
                   </div>
                 )}
@@ -557,7 +557,7 @@ export default function ClientesPage() {
                 <div>
                   <h3 className="text-sm font-medium text-[#71717a] mb-2">Cliente desde</h3>
                   <p className="text-white">
-                    {formatBrazilDate(selectedClient.createdAt)}
+                    {formatBrazilDate(new Date(selectedClient.createdAt))}
                   </p>
                 </div>
               </div>

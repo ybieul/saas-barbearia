@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, utcToBrazil, debugTimezone } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -360,16 +360,15 @@ export async function PUT(request: NextRequest) {
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (apenas se dateTime está sendo alterado)
     if (dateTime) {
-      const appointmentUTC = new Date(dateTime)
+      const appointmentDate = new Date(dateTime)
       
-      // 🇧🇷 CORREÇÃO: Converter para timezone brasileiro antes de qualquer validação
-      const appointmentBrazil = utcToBrazil(appointmentUTC)
-      debugTimezone(appointmentUTC, 'Update de agendamento recebido')
+      // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
+      debugTimezone(appointmentDate, 'Update de agendamento recebido')
       
       // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
       // Verificar se a data não é no passado (usando timezone brasileiro)
-      // const nowBrazil = utcToBrazil(new Date())
-      // if (appointmentBrazil < nowBrazil) {
+      // const nowBrazil = new Date()
+      // if (appointmentDate < nowBrazil) {
       //   return NextResponse.json(
       //     { message: 'Não é possível agendar em datas/horários passados' },
       //     { status: 400 }
@@ -389,12 +388,12 @@ export async function PUT(request: NextRequest) {
       }
       
       // 🇧🇷 CORREÇÃO: Obter dia da semana no timezone brasileiro
-      const dayOfWeek = getBrazilDayOfWeek(appointmentUTC)
-      const dayName = getBrazilDayNameEn(appointmentUTC)
+      const dayOfWeek = getBrazilDayOfWeek(appointmentDate)
+      const dayName = getBrazilDayNameEn(appointmentDate)
       
       console.log('🇧🇷 Validação de dia (UPDATE):', {
-        appointmentUTC: appointmentUTC.toISOString(),
-        appointmentBrazil: appointmentBrazil.toString(),
+        appointmentDate: appointmentDate.toISOString(),
+        appointmentBrazil: appointmentDate.toString(),
         dayOfWeek,
         dayName
       })
@@ -403,7 +402,7 @@ export async function PUT(request: NextRequest) {
       const dayConfig = workingHours.find(wh => wh.dayOfWeek === dayName)
       
       if (!dayConfig || !dayConfig.isActive) {
-        const dayNamePt = appointmentBrazil.toLocaleDateString('pt-BR', { weekday: 'long' })
+        const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
         return NextResponse.json(
           { message: `Estabelecimento fechado ${dayNamePt}. Escolha outro dia.` },
           { status: 400 }
@@ -411,7 +410,7 @@ export async function PUT(request: NextRequest) {
       }
       
       // 🇧🇷 CORREÇÃO: Verificar se horário está dentro do funcionamento (timezone brasileiro)
-      const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:MM
+      const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
       const startTime = dayConfig.startTime
       const endTime = dayConfig.endTime
       
@@ -458,13 +457,13 @@ export async function PUT(request: NextRequest) {
           totalDuration = currentAppointment.services.reduce((sum, s) => sum + s.duration, 0)
         }
         
-        const endTime = new Date(appointmentUTC.getTime() + totalDuration * 60000)
+        const endTime = new Date(appointmentDate.getTime() + totalDuration * 60000)
         
-        // 🇧🇷 CORREÇÃO: Buscar todos os agendamentos do dia (UTC para busca no banco)
-        const dayStart = new Date(appointmentUTC)
-        dayStart.setUTCHours(0, 0, 0, 0)
-        const dayEnd = new Date(appointmentUTC)
-        dayEnd.setUTCHours(23, 59, 59, 999)
+        // 🇧🇷 CORREÇÃO: Buscar todos os agendamentos do dia (horário brasileiro)
+        const dayStart = new Date(appointmentDate)
+        dayStart.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(appointmentDate)
+        dayEnd.setHours(23, 59, 59, 999)
         
         const dayAppointments = await prisma.appointment.findMany({
           where: {
@@ -494,7 +493,7 @@ export async function PUT(request: NextRequest) {
           const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
           
           // Verificar se há sobreposição
-          if ((appointmentUTC < existingEnd) && (endTime > existingStart)) {
+          if ((appointmentDate < existingEnd) && (endTime > existingStart)) {
             return NextResponse.json(
               { message: 'Conflito de horário detectado. Este horário já está ocupado.' },
               { status: 409 }
@@ -517,7 +516,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = new Date(dateTime) // Salva em UTC
+      updateData.dateTime = new Date(dateTime) // Salva horário brasileiro
     }
     if (notes !== undefined) {
       updateData.notes = notes

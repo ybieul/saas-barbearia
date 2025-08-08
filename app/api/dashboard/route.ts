@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, utcToBrazil } from '@/lib/timezone'
+import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay } from '@/lib/timezone'
 
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         break
       case 'month':
         startDate = getBrazilStartOfDay(getBrazilNow())
-        const brazilCurrent = utcToBrazil(getBrazilNow())
+        const brazilCurrent = getBrazilNow()
         startDate.setMonth(brazilCurrent.getMonth() - 1)
         break
       case 'year':
@@ -293,8 +293,8 @@ export async function GET(request: NextRequest) {
           },
           nextAppointment: nextAppointment ? {
             id: nextAppointment.id,
-            time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
-            date: utcToBrazil(new Date(nextAppointment.dateTime)).toLocaleDateString('pt-BR'),
+            time: new Date(nextAppointment.dateTime).toTimeString().substring(0, 5),
+            date: new Date(nextAppointment.dateTime).toLocaleDateString('pt-BR'),
             client: nextAppointment.endUser?.name || 'Cliente sem nome',
             service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
             duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
@@ -516,7 +516,7 @@ export async function GET(request: NextRequest) {
         },
         todayAppointments: todayAppointments.map(apt => ({
           id: apt.id,
-          time: utcToBrazil(new Date(apt.dateTime)).toTimeString().substring(0, 5),
+          time: new Date(apt.dateTime).toTimeString().substring(0, 5),
           client: apt.endUser?.name || 'Cliente sem nome',
           service: apt.services?.length > 0 ? apt.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: apt.professional?.name || 'Sem profissional',
@@ -525,8 +525,8 @@ export async function GET(request: NextRequest) {
         })),
         nextAppointment: nextAppointment ? {
           id: nextAppointment.id,
-          time: utcToBrazil(new Date(nextAppointment.dateTime)).toTimeString().substring(0, 5),
-          date: utcToBrazil(new Date(nextAppointment.dateTime)).toDateString(),
+          time: new Date(nextAppointment.dateTime).toTimeString().substring(0, 5),
+          date: new Date(nextAppointment.dateTime).toDateString(),
           client: nextAppointment.endUser?.name || 'Cliente sem nome',
           service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: nextAppointment.professional?.name || 'Sem profissional',

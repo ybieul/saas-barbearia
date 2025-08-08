@@ -12,7 +12,7 @@ import { UserX, MessageCircle, Calendar, AlertTriangle, Send, Clock, X, Search, 
 import { useInactiveClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useNotification } from "@/hooks/use-notification"
-import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
+import { getBrazilNow } from "@/lib/timezone"
 
 export default function ClientesInativosPage() {
   const [sendingMessage, setSendingMessage] = useState<number | null>(null)
@@ -320,7 +320,7 @@ export default function ClientesInativosPage() {
             {filteredClients.map((client) => {
               // ✅ CALCULAR DIAS DESDE ÚLTIMA VISITA USANDO DADOS DO BANCO
               const daysSinceLastVisit = client.totalVisits > 0 && client.lastVisit
-                ? Math.floor((getBrazilNow().getTime() - utcToBrazil(new Date(client.lastVisit)).getTime()) / (1000 * 60 * 60 * 24))
+                ? Math.floor((getBrazilNow().getTime() - new Date(client.lastVisit).getTime()) / (1000 * 60 * 60 * 24))
                 : 999; // Valor alto para quem nunca visitou
                 
               // ✅ CALCULAR RECEITA POTENCIAL INDIVIDUAL DO CLIENTE

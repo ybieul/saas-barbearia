@@ -11,7 +11,7 @@ import { WhatsAppStatus } from "@/components/whatsapp-status"
 import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber } from "@/lib/whatsapp"
 import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
+import { getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
 
 export default function WhatsAppPage() {
   const [testMessage, setTestMessage] = useState({
@@ -41,7 +41,7 @@ export default function WhatsAppPage() {
   // Calcular estatísticas reais
   const today = toBrazilDateString(getBrazilNow())
   const todayAppointments = appointments.filter(apt => {
-    const aptDate = toBrazilDateString(utcToBrazil(new Date(apt.dateTime)))
+    const aptDate = toBrazilDateString(new Date(apt.dateTime))
     return aptDate === today
   })
   const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'completed')
@@ -52,13 +52,13 @@ export default function WhatsAppPage() {
   const totalMessages = confirmationMessages + reminderMessages
   
   // Calcular clientes inativos (30+ dias sem agendamento)
-  const thirtyDaysAgo = utcToBrazil(getBrazilNow())
+  const thirtyDaysAgo = getBrazilNow()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const inactiveClients = clients.filter(client => {
     const lastAppointment = appointments
       .filter(apt => apt.clientId === client.id)
-      .sort((a, b) => utcToBrazil(new Date(b.date)).getTime() - utcToBrazil(new Date(a.date)).getTime())[0]
-    return !lastAppointment || utcToBrazil(new Date(lastAppointment.date)) < thirtyDaysAgo
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+    return !lastAppointment || new Date(lastAppointment.date) < thirtyDaysAgo
   }).length
 
   // Taxa de entrega simulada (95-99% baseado no volume)

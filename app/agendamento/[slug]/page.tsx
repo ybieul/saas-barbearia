@@ -35,11 +35,11 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { 
-  utcToBrazil, 
   parseDateTime, 
   formatBrazilTime, 
   formatBrazilDate,
   getBrazilDayOfWeek,
+  getBrazilDayNumber,
   getBrazilNow,
   toBrazilDateString,
   debugTimezone,
@@ -376,7 +376,7 @@ export default function AgendamentoPage() {
 
     // Converter data para timezone brasileiro
     const selectedDateBrazil = parseDate(date)
-    const dayOfWeek = getBrazilDayOfWeek(selectedDateBrazil)
+    const dayOfWeek = getBrazilDayNumber(selectedDateBrazil)
     
     // Mapear dias da semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -728,7 +728,7 @@ export default function AgendamentoPage() {
     
     try {
       console.log('🔄 [DEBUG] Criando dateTime...')
-      // 🇧🇷 Criar dateTime usando timezone brasileiro e converter para UTC
+      // 🇧🇷 Criar dateTime usando timezone brasileiro (agora direto)
       const appointmentDateTime = parseDateTime(selectedDate, selectedTime)
       debugTimezone(appointmentDateTime, 'Frontend Público - Criando agendamento')
 
@@ -755,7 +755,7 @@ export default function AgendamentoPage() {
         professionalId: selectedProfessional?.id || null,
         serviceId: mainService.id, // Serviço principal (compatível com API)
         services: allServiceIds, // Array completo com principal + complementos
-        appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
+        appointmentDateTime: appointmentDateTime.toISOString(), // Envia horário brasileiro para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
 
@@ -1389,7 +1389,7 @@ export default function AgendamentoPage() {
                       const date = new Date()
                       date.setDate(date.getDate() + i)
                       const dateString = toBrazilDateString(date)
-                      const dayOfWeek = getBrazilDayOfWeek(date)
+                      const dayOfWeek = getBrazilDayNumber(date)
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                       const dayName = dayNames[dayOfWeek]
                       
