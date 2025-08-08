@@ -296,6 +296,78 @@ export function toLocalDateString(date: Date): string {
 }
 
 /**
+ * 🇧🇷 Parse seguro de dateTime do banco de dados (evita conversão UTC automática)
+ * Força o interpretação como horário brasileiro local
+ * 
+ * @param dateTimeString - String de data/hora do banco (ex: "2025-08-08T08:00:00.000Z" ou "2025-08-08 08:00:00")
+ * @returns Date object em horário brasileiro local sem conversão UTC
+ */
+export function parseDatabaseDateTime(dateTimeString: string): Date {
+  if (!dateTimeString) {
+    console.warn('⚠️ String de dateTime vazia fornecida')
+    return new Date()
+  }
+  
+  try {
+    // Remover 'Z' e outros indicadores de timezone para forçar interpretação local
+    let cleanDateTime = dateTimeString
+      .replace('Z', '')          // Remove Z (UTC indicator)
+      .replace(/[+-]\d{2}:\d{2}$/, '') // Remove timezone offset (+03:00, -05:00, etc)
+      .replace('T', ' ')         // Substitui T por espaço
+    
+    // Se veio no formato ISO, extrair partes manualmente
+    if (cleanDateTime.includes('-') && cleanDateTime.includes(':')) {
+      // Formato esperado: "2025-08-08 08:00:00" ou "2025-08-08 08:00:00.000"
+      const [datePart, timePart] = cleanDateTime.split(' ')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes, seconds = 0] = timePart.split(':').map(Number)
+      
+      // Criar Date diretamente com valores locais (sem interpretação UTC)
+      const localDate = new Date(year, month - 1, day, hours, minutes, Math.floor(seconds))
+      
+      if (!isValid(localDate)) {
+        throw new Error(`Data inválida: ${dateTimeString}`)
+      }
+      
+      console.log(`🇧🇷 Parse DB DateTime: ${dateTimeString} → ${formatBrazilTime(localDate)}`)
+      return localDate
+    }
+    
+    // Fallback: tentar new Date() normal (pode causar UTC)
+    console.warn(`⚠️ Formato inesperado de dateTime, usando fallback: ${dateTimeString}`)
+    return new Date(dateTimeString)
+    
+  } catch (error) {
+    console.error('❌ Erro ao fazer parse de dateTime do banco:', error)
+    return new Date() // fallback seguro
+  }
+}
+
+/**
+ * 🇧🇷 Extrai apenas o horário (HH:mm) de um dateTime do banco sem conversão UTC
+ * 
+ * @param dateTimeString - String de data/hora do banco
+ * @returns String no formato HH:mm em horário brasileiro
+ */
+export function extractTimeFromDateTime(dateTimeString: string): string {
+  if (!dateTimeString) {
+    console.warn('⚠️ String de dateTime vazia para extração de horário')
+    return '00:00'
+  }
+  
+  try {
+    const localDate = parseDatabaseDateTime(dateTimeString)
+    const hours = String(localDate.getHours()).padStart(2, '0')
+    const minutes = String(localDate.getMinutes()).padStart(2, '0')
+    
+    return `${hours}:${minutes}`
+  } catch (error) {
+    console.error('❌ Erro ao extrair horário:', error)
+    return '00:00'
+  }
+}
+
+/**
  * 🇧🇷 Obtém o início do dia brasileiro
  * 
  * @param date - Data de referência

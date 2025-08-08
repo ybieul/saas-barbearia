@@ -36,7 +36,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
-import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString } from "@/lib/timezone"
+import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString, parseDatabaseDateTime, extractTimeFromDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
@@ -265,8 +265,8 @@ export default function AgendaPage() {
 
   // 🇧🇷 NOVO: Obter agendamentos do dia atual (sem conversões UTC)
   const todayAppointments = appointments.filter(apt => {
-    // Agora o banco armazena datas brasileiras diretamente
-    const aptDate = new Date(apt.dateTime || apt.date)
+    // Parse seguro do dateTime do banco (sem conversão UTC automática)
+    const aptDate = parseDatabaseDateTime(apt.dateTime || apt.date)
     const aptDateString = toLocalDateString(aptDate) // YYYY-MM-DD
     const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
     
@@ -276,9 +276,9 @@ export default function AgendaPage() {
   // 🇧🇷 NOVO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
   const isTimeSlotOccupied = (time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
-      // Agora o banco armazena horários brasileiros diretamente
-      const aptDateTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-      const aptStartTimeString = aptDateTime.toTimeString().substring(0, 5) // HH:mm
+      // Parse seguro do dateTime do banco (sem conversão UTC automática)
+      const aptDateTime = parseDatabaseDateTime(apt.dateTime || `${apt.date} ${apt.time}`)
+      const aptStartTimeString = extractTimeFromDateTime(apt.dateTime) // HH:mm sem UTC
       
       // 🇧🇷 CORREÇÃO: Usar apt.duration diretamente (já salvo no agendamento) 
       // ou calcular da soma dos serviços se não existir
@@ -290,7 +290,7 @@ export default function AgendaPage() {
       
       // Calcular horário de fim do agendamento (em timezone brasileiro)
       const aptEndTimeBrazil = new Date(aptDateTime.getTime() + (serviceDuration * 60000))
-      const aptEndTimeString = aptEndTimeBrazil.toTimeString().substring(0, 5) // HH:mm
+      const aptEndTimeString = extractTimeFromDateTime(aptEndTimeBrazil.toISOString()) // HH:mm sem UTC
       
       // Converter horários para minutos para facilitar comparação
       const timeToMinutes = (timeStr: string) => {
@@ -346,13 +346,13 @@ export default function AgendaPage() {
         // Ignorar o próprio agendamento em caso de edição
         if (editingAppointment && apt.id === editingAppointment.id) return false
         
-        const aptDate = new Date(apt.dateTime)
+        const aptDate = parseDatabaseDateTime(apt.dateTime)
         return aptDate.toDateString() === newStartTime.toDateString()
       })
       
       // Verificar conflitos
       return dayAppointments.some(existingApt => {
-        const existingStartTime = new Date(existingApt.dateTime)
+        const existingStartTime = parseDatabaseDateTime(existingApt.dateTime)
         const existingServiceDuration = existingApt.duration || 30
         const existingEndTime = new Date(existingStartTime.getTime() + (existingServiceDuration * 60000))
         
@@ -771,11 +771,11 @@ export default function AgendaPage() {
 
   // Editar agendamento (função simples)
   const handleEditAppointment = (appointment: any) => {
-    // 🇧🇷 NOVO: Agora o banco armazena horários brasileiros diretamente
-    const appointmentDate = new Date(appointment.dateTime)
+    // Parse seguro do dateTime do banco (sem conversão UTC automática)
+    const appointmentDate = parseDatabaseDateTime(appointment.dateTime)
     
     const formattedDate = toLocalDateString(appointmentDate)
-    const formattedTime = appointmentDate.toTimeString().split(' ')[0].substring(0, 5)
+    const formattedTime = extractTimeFromDateTime(appointment.dateTime)
     
     debugTimezone(appointmentDate, `Editando agendamento`)
     console.log('🇧🇷 Dados para edição:', {
@@ -916,7 +916,7 @@ export default function AgendaPage() {
       client: appointment.endUser?.name || 'Cliente',
       service: appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço',
       totalPrice: Number(appointment.totalPrice) || 0,
-      time: new Date(appointment.dateTime).toTimeString().substring(0, 5)
+      time: extractTimeFromDateTime(appointment.dateTime)
     }
 
     setAppointmentToComplete(appointmentData)
@@ -1068,8 +1068,8 @@ export default function AgendaPage() {
 
   // 🇧🇷 NOVO: Filtrar agendamentos por data, profissional e status (sem conversões UTC)
   const filteredAppointments = appointments.filter(appointment => {
-    // Agora o banco armazena datas brasileiras diretamente
-    const appointmentDate = new Date(appointment.dateTime)
+    // Parse seguro do dateTime do banco (sem conversão UTC automática)
+    const appointmentDate = parseDatabaseDateTime(appointment.dateTime)
     const aptDateString = toLocalDateString(appointmentDate) // YYYY-MM-DD
     const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
     
@@ -1100,7 +1100,7 @@ export default function AgendaPage() {
 
   // Função para verificar se data/hora já passou
   const isPastDateTime = (dateTime: string | Date) => {
-    const appointmentDateTime = new Date(dateTime)
+    const appointmentDateTime = typeof dateTime === 'string' ? parseDatabaseDateTime(dateTime) : dateTime
     const now = new Date()
     return appointmentDateTime < now
   }
@@ -1521,9 +1521,8 @@ export default function AgendaPage() {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
               const appointmentsAtTime = filteredAppointments.filter(apt => {
-                // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
-                const aptDateTime = new Date(apt.dateTime || `${apt.date} ${apt.time}`)
-                const aptTime = aptDateTime.toTimeString().substring(0, 5) // HH:mm
+                // Parse seguro do dateTime do banco (sem conversão UTC automática)
+                const aptTime = extractTimeFromDateTime(apt.dateTime) // HH:mm sem UTC
                 return aptTime === time
               })
 
@@ -1639,9 +1638,8 @@ export default function AgendaPage() {
         ) : (
           filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status)
-            // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
-            const appointmentDateTime = new Date(appointment.dateTime)
-            const appointmentTime = appointmentDateTime.toTimeString().substring(0, 5) // HH:mm
+            // Parse seguro do dateTime do banco (sem conversão UTC automática)
+            const appointmentTime = extractTimeFromDateTime(appointment.dateTime) // HH:mm sem UTC
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
