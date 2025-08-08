@@ -42,7 +42,12 @@ export function useWorkingHours() {
       }
 
       const data = await response.json()
-      console.log('Horários carregados:', data.workingHours)
+      console.log('🔍 API Response - Horários carregados:', {
+        rawData: data,
+        workingHours: data.workingHours,
+        count: data.workingHours?.length || 0,
+        firstItem: data.workingHours?.[0] || null
+      })
       setWorkingHours(data.workingHours || [])
     } catch (err) {
       console.error('Erro ao buscar horários:', err)
@@ -114,20 +119,52 @@ export function useWorkingHours() {
     try {
       const dayName = getDayName(date)
       
-      console.log('🔍 DEBUG getWorkingHoursForDay:', {
+      console.log('🔍 DEBUG getWorkingHoursForDay CRÍTICO:', {
+        inputDate: date.toString(),
         dayName,
         dayNameLower: dayName.toLowerCase(),
+        workingHoursCount: workingHours.length,
         availableWorkingHours: workingHours.map(wh => ({
           dayOfWeek: wh.dayOfWeek,
           dayOfWeekLower: wh.dayOfWeek.toLowerCase(),
           isActive: wh.isActive,
-          match: wh.dayOfWeek.toLowerCase() === dayName.toLowerCase()
+          startTime: wh.startTime,
+          endTime: wh.endTime,
+          match: wh.dayOfWeek.toLowerCase() === dayName.toLowerCase(),
+          strictMatch: wh.dayOfWeek === dayName.toLowerCase()
         }))
       })
       
-      const dayWorkingHours = workingHours.find(wh => 
-        wh.dayOfWeek.toLowerCase() === dayName.toLowerCase() && wh.isActive
-      )
+      // 🚨 CORREÇÃO CRÍTICA: Verificar múltiplas variações de comparação
+      const dayWorkingHours = workingHours.find(wh => {
+        const whDayLower = (wh.dayOfWeek || '').toLowerCase().trim()
+        const targetDayLower = (dayName || '').toLowerCase().trim()
+        
+        // Também testar se o banco tem dados em formato diferente
+        const alternativeComparisons = [
+          whDayLower === targetDayLower,
+          wh.dayOfWeek === dayName,
+          wh.dayOfWeek === dayName.toLowerCase(),
+          wh.dayOfWeek.toLowerCase() === dayName.toLowerCase()
+        ]
+        
+        const isActive = Boolean(wh.isActive)
+        const hasMatch = alternativeComparisons.some(comp => comp === true)
+        const finalMatch = hasMatch && isActive
+        
+        console.log(`🔍 Comparação detalhada:`, {
+          whDayOfWeek: wh.dayOfWeek,
+          whDayLower,
+          targetDayName: dayName,
+          targetDayLower,
+          isActive,
+          alternativeComparisons,
+          hasMatch,
+          finalMatch
+        })
+        
+        return finalMatch
+      })
       
       if (!dayWorkingHours) {
         return {
