@@ -154,18 +154,7 @@ export default function DashboardPage() {
     )
   }
 
-  // Calcular mudanças reais comparando com dados anteriores
-  const yesterdayRevenue = dashboardData?.previousStats?.totalRevenue || 0
-  const yesterdayClients = dashboardData?.previousStats?.totalClients || 0
-  const yesterdayAppointments = dashboardData?.previousStats?.totalAppointments || 0
-  const yesterdayOccupancy = dashboardData?.previousStats?.occupancyRate || 0
-  
-  const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return "Novo"
-    const change = ((current - previous) / previous) * 100
-    const sign = change >= 0 ? "+" : ""
-    return `${sign}${Math.round(change)}%`
-  }
+  // Dados dos cards sem comparação temporal
 
   // Dados dos sparklines
   const sparklines = dashboardData?.sparklines || {
@@ -181,7 +170,6 @@ export default function DashboardPage() {
       value: dashboardData?.summary?.revenue ? 
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.summary.revenue) : 
         "R$ 0,00",
-      change: calculateChange(dashboardData?.summary?.revenue || 0, yesterdayRevenue),
       icon: DollarSign,
       color: "text-[#10b981]",
       sparklineData: sparklines.revenue,
@@ -189,8 +177,7 @@ export default function DashboardPage() {
     },
     {
       title: "Clientes Ativos",
-      value: dashboardData?.summary?.activeClients?.toString() || "0",
-      change: calculateChange(dashboardData?.summary?.activeClients || 0, yesterdayClients),
+      value: dashboardData?.summary?.totalClients?.toString() || "0",
       icon: Users,
       color: "text-[#10b981]",
       sparklineData: sparklines.clients,
@@ -199,7 +186,6 @@ export default function DashboardPage() {
     {
       title: "Agendamentos Hoje",
       value: (dashboardData?.todayAppointments?.length || 0).toString(),
-      change: calculateChange(dashboardData?.todayAppointments?.length || 0, yesterdayAppointments),
       icon: Calendar,
       color: "text-[#fbbf24]",
       sparklineData: sparklines.appointments,
@@ -208,7 +194,6 @@ export default function DashboardPage() {
     {
       title: "Taxa de Ocupação",
       value: `${Math.round(dashboardData?.summary?.occupancyRate || 0)}%`,
-      change: calculateChange(dashboardData?.summary?.occupancyRate || 0, yesterdayOccupancy),
       icon: TrendingUp,
       color: "text-[#3f3f46]",
       sparklineData: sparklines.appointments, // Usar dados de agendamentos como proxy
@@ -223,18 +208,11 @@ export default function DashboardPage() {
 
   // Debug detalhado
   console.log('🔍 Dashboard data recebido:', dashboardData)
-  console.log('🔍 Previous stats:', dashboardData?.previousStats)
-  console.log('🔍 Summary:', dashboardData?.summary)
-  console.log('🔍 Dados para comparação:', {
-    yesterdayRevenue,
-    yesterdayClients,
-    yesterdayAppointments,
-    yesterdayOccupancy
-  })
   console.log('🔍 Today appointments:', todayAppointments)
   console.log('🔍 Next appointment:', nextAppointment)
   console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
   console.log('🔍 Professionals with avatars:', professionals)
+  console.log('🔍 Summary:', dashboardData?.summary)
 
   return (
     <div className="space-y-8">
@@ -265,8 +243,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-[#10b981]">{stat.change} vs ontem</p>
+                <div className="pt-2">
                   <TrendIndicator data={stat.trend} showPercentage={false} />
                 </div>
               </div>
@@ -545,12 +522,12 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#ededed] font-medium">{prof.name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-[#a1a1aa]">{prof.appointmentsToday} agend.</span>
-                          <span className="text-[#10b981] font-semibold">{prof.occupancyRate}%</span>
+                          <span className="text-[#a1a1aa]">{prof.appointmentsToday || 0} agend.</span>
+                          <span className="text-[#10b981] font-semibold">{prof.occupancyRate || 0}%</span>
                         </div>
                       </div>
                       <Progress 
-                        value={prof.occupancyRate} 
+                        value={prof.occupancyRate || 0} 
                         className="h-2 bg-[#27272a]"
                       />
                     </div>
