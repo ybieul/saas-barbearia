@@ -143,15 +143,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (mesmo sistema do dashboard)
-    const appointmentUTC = new Date(appointmentDateTime)
+    const appointmentDate = new Date(appointmentDateTime)
     
-    // 🇧🇷 CORREÇÃO: Converter para timezone brasileiro antes de qualquer validação
-    const appointmentBrazil = utcToBrazil(appointmentUTC)
-    debugTimezone(appointmentUTC, 'Agendamento público recebido')
+    // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
+    debugTimezone(appointmentDate, 'Agendamento público recebido')
     
-    // Verificar se a data não é no passado (usando timezone brasileiro)
-    const nowBrazil = utcToBrazil(new Date())
-    if (appointmentBrazil < nowBrazil) {
+    // Verificar se a data não é no passado
+    const now = new Date()
+    if (appointmentDate < now) {
       return NextResponse.json(
         { message: 'Não é possível agendar em datas/horários passados' },
         { status: 400 }
@@ -170,13 +169,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 🇧🇷 CORREÇÃO: Obter dia da semana no timezone brasileiro
-    const dayOfWeek = getBrazilDayOfWeek(appointmentUTC)
-    const dayName = getBrazilDayNameEn(appointmentUTC)
+    // 🇧🇷 NOVO: Obter dia da semana diretamente
+    const dayOfWeek = getBrazilDayOfWeek(appointmentDate)
+    const dayName = getBrazilDayNameEn(appointmentDate)
     
     console.log('🇧🇷 Validação de dia:', {
-      appointmentUTC: appointmentUTC.toISOString(),
-      appointmentBrazil: appointmentBrazil.toString(),
+      appointmentDate: appointmentDate.toISOString(),
       dayOfWeek,
       dayName
     })
@@ -197,8 +195,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 🇧🇷 CORREÇÃO: Verificar se horário está dentro do funcionamento (timezone brasileiro)
-    const appointmentTime = appointmentBrazil.toTimeString().substring(0, 5) // HH:MM
+    // 🇧🇷 NOVO: Verificar se horário está dentro do funcionamento (direto)
+    const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
     const startTime = dayConfig.startTime
     const endTime = dayConfig.endTime
     
@@ -211,15 +209,15 @@ export async function POST(request: NextRequest) {
     
     // 🔒 VALIDAÇÃO DE CONFLITOS (mesmo sistema do dashboard)
     const serviceDuration = totalDuration // Usar duração total calculada
-    const appointmentEndTime = new Date(appointmentUTC.getTime() + (serviceDuration * 60000))
+    const appointmentEndTime = new Date(appointmentDate.getTime() + (serviceDuration * 60000))
     
     // Buscar agendamentos conflitantes (sem include para evitar problemas de schema)
     const conflictingAppointments = await prisma.appointment.findMany({
       where: {
         tenantId: business.id,
         dateTime: {
-          gte: new Date(appointmentUTC.getTime() - (2 * 60 * 60 * 1000)), // 2h antes
-          lte: new Date(appointmentUTC.getTime() + (2 * 60 * 60 * 1000))  // 2h depois
+          gte: new Date(appointmentDate.getTime() - (2 * 60 * 60 * 1000)), // 2h antes
+          lte: new Date(appointmentDate.getTime() + (2 * 60 * 60 * 1000))  // 2h depois
         },
         status: {
           not: 'CANCELLED'
@@ -256,7 +254,7 @@ export async function POST(request: NextRequest) {
           const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
           const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
           
-          return (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
+          return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
         })
         
         if (!hasConflict) {
@@ -285,7 +283,7 @@ export async function POST(request: NextRequest) {
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         
         // Verificar sobreposição
-        const hasOverlap = (appointmentUTC < existingEnd) && (appointmentEndTime > existingStart)
+        const hasOverlap = (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
         
         if (hasOverlap) {
           return NextResponse.json(
@@ -303,7 +301,7 @@ export async function POST(request: NextRequest) {
       tenantId: business.id,
       endUserId: client.id,
       professionalId: finalProfessionalId,
-      dateTime: appointmentUTC,
+      dateTime: appointmentDate,
       duration: totalDuration,
       totalPrice: totalPrice,
       status: 'CONFIRMED',

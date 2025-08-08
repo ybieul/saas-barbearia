@@ -263,15 +263,12 @@ export default function AgendaPage() {
     return generateTimeSlotsForDate(currentDate)
   }
 
-  // 🇧🇷 CORREÇÃO: Obter agendamentos do dia atual usando timezone brasileiro
+  // 🇧🇷 NOVO: Obter agendamentos do dia atual (sem conversões UTC)
   const todayAppointments = appointments.filter(apt => {
-    // Converter UTC do banco para timezone brasileiro
-    const aptDateBrazil = utcToBrazil(new Date(apt.dateTime || apt.date))
-    const currentDateBrazil = utcToBrazil(currentDate)
-    
-    // 🔧 CORREÇÃO: Usar formatação de data para evitar problemas de UTC às 23h
-    const aptDateString = aptDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
-    const currentDateString = currentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
+    // Agora o banco armazena datas brasileiras diretamente
+    const aptDate = new Date(apt.dateTime || apt.date)
+    const aptDateString = aptDate.toISOString().split('T')[0] // YYYY-MM-DD
+    const currentDateString = currentDate.toISOString().split('T')[0] // YYYY-MM-DD
     
     return aptDateString === currentDateString
   })
@@ -766,17 +763,15 @@ export default function AgendaPage() {
 
   // Editar agendamento (função simples)
   const handleEditAppointment = (appointment: any) => {
-    // 🇧🇷 CORREÇÃO: Converter UTC do banco para timezone brasileiro para edição
-    const appointmentUTC = new Date(appointment.dateTime)
-    const appointmentBrazil = utcToBrazil(appointmentUTC)
+    // 🇧🇷 NOVO: Agora o banco armazena horários brasileiros diretamente
+    const appointmentDate = new Date(appointment.dateTime)
     
-    const formattedDate = appointmentBrazil.toISOString().split('T')[0]
-    const formattedTime = appointmentBrazil.toTimeString().split(' ')[0].substring(0, 5)
+    const formattedDate = appointmentDate.toISOString().split('T')[0]
+    const formattedTime = appointmentDate.toTimeString().split(' ')[0].substring(0, 5)
     
-    debugTimezone(appointmentUTC, `Editando agendamento - Original UTC`)
+    debugTimezone(appointmentDate, `Editando agendamento`)
     console.log('🇧🇷 Dados para edição:', {
-      appointmentUTC: appointmentUTC.toISOString(),
-      appointmentBrazil: appointmentBrazil.toString(),
+      appointmentDate: appointmentDate.toISOString(),
       formattedDate,
       formattedTime
     })
@@ -904,7 +899,7 @@ export default function AgendaPage() {
       client: appointment.endUser?.name || 'Cliente',
       service: appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço',
       totalPrice: Number(appointment.totalPrice) || 0,
-      time: utcToBrazil(new Date(appointment.dateTime)).toTimeString().substring(0, 5)
+      time: new Date(appointment.dateTime).toTimeString().substring(0, 5)
     }
 
     setAppointmentToComplete(appointmentData)
@@ -1054,15 +1049,12 @@ export default function AgendaPage() {
     setCurrentDate(newDate)
   }
 
-  // 🇧🇷 CORREÇÃO: Filtrar agendamentos por data, profissional e status
+  // 🇧🇷 NOVO: Filtrar agendamentos por data, profissional e status (sem conversões UTC)
   const filteredAppointments = appointments.filter(appointment => {
-    // Converter UTC do banco para timezone brasileiro
-    const appointmentDateBrazil = utcToBrazil(new Date(appointment.dateTime))
-    const currentDateBrazil = utcToBrazil(currentDate)
-    
-    // 🔧 CORREÇÃO: Usar formatação de data para evitar problemas de UTC às 23h
-    const aptDateString = appointmentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
-    const currentDateString = currentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
+    // Agora o banco armazena datas brasileiras diretamente
+    const appointmentDate = new Date(appointment.dateTime)
+    const aptDateString = appointmentDate.toISOString().split('T')[0] // YYYY-MM-DD
+    const currentDateString = currentDate.toISOString().split('T')[0] // YYYY-MM-DD
     
     const matchesDate = aptDateString === currentDateString
     const matchesProfessional = selectedProfessional === "todos" || 
