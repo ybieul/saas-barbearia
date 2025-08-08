@@ -149,20 +149,28 @@ export default function AgendaPage() {
     loadData()
   }, []) // Sem dependências para executar apenas uma vez
 
-  // Debug para verificar se os dados estão chegando
+  // Debug para verificar se os dados estão chegando (apenas uma vez)
   useEffect(() => {
-    console.log('Dados carregados:', {
-      appointments: appointments?.length || 0,
-      clients: clients?.length || 0,
-      services: services?.length || 0,
-      professionals: professionalsData?.length || 0
-    })
-  }, [appointments, clients, services, professionalsData])
+    if (appointments && clients && services && professionalsData) {
+      console.log('✅ Todos os dados carregados:', {
+        appointments: appointments?.length || 0,
+        clients: clients?.length || 0,
+        services: services?.length || 0,
+        professionals: professionalsData?.length || 0
+      })
+    }
+  }, [appointments?.length, clients?.length, services?.length, professionalsData?.length])
 
   // Limpar horário quando serviço, data ou profissional mudam
   useEffect(() => {
     if (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId) {
-      setNewAppointment(prev => ({...prev, time: ""}))
+      setNewAppointment(prev => {
+        // Só limpar o time se ele já não estiver vazio (evita loop infinito)
+        if (prev.time !== "") {
+          return {...prev, time: ""}
+        }
+        return prev
+      })
       // Limpar erro do backend quando dados importantes mudam
       setBackendError(null)
     }
@@ -194,7 +202,7 @@ export default function AgendaPage() {
     }
     
     loadFilteredData()
-  }, [selectedProfessional, selectedStatus, currentDate, fetchAppointments])
+  }, [selectedProfessional, selectedStatus, currentDate]) // Removido fetchAppointments para evitar loop
 
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
@@ -1589,7 +1597,7 @@ export default function AgendaPage() {
                         variant="outline"
                         className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
                         onClick={() => {
-                          setNewAppointment({...newAppointment, time, date: toLocalDateString(currentDate)})
+                          setNewAppointment(prev => ({...prev, time, date: toLocalDateString(currentDate)}))
                           setIsNewAppointmentOpen(true)
                         }}
                       >
@@ -1775,8 +1783,7 @@ export default function AgendaPage() {
                 <Select 
                   value={newAppointment.endUserId} 
                   onValueChange={(value) => {
-                    console.log('🔍 Cliente selecionado:', value)
-                    setNewAppointment({...newAppointment, endUserId: value})
+                    setNewAppointment(prev => ({...prev, endUserId: value}))
                   }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
@@ -1797,8 +1804,7 @@ export default function AgendaPage() {
                 <Select 
                   value={newAppointment.serviceId} 
                   onValueChange={(value) => {
-                    console.log('🔍 Serviço selecionado:', value)
-                    setNewAppointment({...newAppointment, serviceId: value})
+                    setNewAppointment(prev => ({...prev, serviceId: value}))
                   }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
@@ -1819,8 +1825,7 @@ export default function AgendaPage() {
                 <Select 
                   value={newAppointment.professionalId} 
                   onValueChange={(value) => {
-                    console.log('🔍 Profissional selecionado:', value)
-                    setNewAppointment({...newAppointment, professionalId: value})
+                    setNewAppointment(prev => ({...prev, professionalId: value}))
                   }}
                 >
                   <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
@@ -1845,8 +1850,7 @@ export default function AgendaPage() {
                     value={newAppointment.date}
                     // ✅ PERMITIR datas passadas para retroagendamento
                     onChange={(e) => {
-                      console.log('🔍 Data selecionada:', e.target.value)
-                      setNewAppointment({...newAppointment, date: e.target.value, time: ""})
+                      setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
                     }}
                     className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                   />
@@ -1879,8 +1883,7 @@ export default function AgendaPage() {
                   <Select 
                     value={newAppointment.time} 
                     onValueChange={(value) => {
-                      console.log('🔍 Horário selecionado:', value)
-                      setNewAppointment({...newAppointment, time: value})
+                      setNewAppointment(prev => ({...prev, time: value}))
                     }}
                     disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
@@ -1939,7 +1942,7 @@ export default function AgendaPage() {
                   id="notes"
                   placeholder="Observações sobre o agendamento..."
                   value={newAppointment.notes}
-                  onChange={(e) => setNewAppointment({...newAppointment, notes: e.target.value})}
+                  onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
                   className="bg-[#18181b] border-[#27272a] text-[#ededed]"
                 />
               </div>
