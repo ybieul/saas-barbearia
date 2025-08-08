@@ -111,8 +111,22 @@ export function useWorkingHours() {
   const getWorkingHoursForDay = (date: Date) => {
     try {
       const dayName = getDayName(date)
+      
+      console.log('🔍 getWorkingHoursForDay Debug:', {
+        date: date.toString(),
+        dayName,
+        dayNameLowerCase: dayName.toLowerCase(),
+        workingHours: workingHours.map(wh => ({
+          dayOfWeek: wh.dayOfWeek,
+          dayOfWeekLowerCase: wh.dayOfWeek.toLowerCase(),
+          isActive: wh.isActive,
+          startTime: wh.startTime,
+          endTime: wh.endTime
+        }))
+      })
+      
       const dayWorkingHours = workingHours.find(wh => 
-        wh.dayOfWeek.toLowerCase() === dayName && wh.isActive
+        wh.dayOfWeek.toLowerCase() === dayName.toLowerCase() && wh.isActive
       )
       
       if (!dayWorkingHours) {
