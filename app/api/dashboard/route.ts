@@ -316,30 +316,36 @@ export async function GET(request: NextRequest) {
 
     switch (period) {
       case 'today':
-        // Ontem
-        previousStartDate = getBrazilStartOfDay(getBrazilNow())
-        previousStartDate.setDate(previousStartDate.getDate() - 1)
-        previousEndDate = getBrazilEndOfDay(previousStartDate)
+        // Ontem - criar nova instância para evitar mutação
+        const yesterday = new Date(getBrazilStartOfDay(getBrazilNow()))
+        yesterday.setDate(yesterday.getDate() - 1)
+        previousStartDate = getBrazilStartOfDay(yesterday)
+        previousEndDate = getBrazilEndOfDay(yesterday)
         break
       case 'week':
         // Semana anterior
-        previousStartDate = getBrazilStartOfDay(getBrazilNow())
-        previousStartDate.setDate(previousStartDate.getDate() - 14)
-        previousEndDate = getBrazilStartOfDay(getBrazilNow())
-        previousEndDate.setDate(previousEndDate.getDate() - 7)
+        const twoWeeksAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+        const oneWeekAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        previousStartDate = getBrazilStartOfDay(twoWeeksAgo)
+        previousEndDate = getBrazilEndOfDay(oneWeekAgo)
         break
       case 'month':
         // Mês anterior
-        previousStartDate = getBrazilStartOfDay(getBrazilNow())
-        previousStartDate.setMonth(previousStartDate.getMonth() - 2)
-        previousEndDate = getBrazilStartOfDay(getBrazilNow())
-        previousEndDate.setMonth(previousEndDate.getMonth() - 1)
+        const twoMonthsAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
+        const oneMonthAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+        previousStartDate = getBrazilStartOfDay(twoMonthsAgo)
+        previousEndDate = getBrazilEndOfDay(oneMonthAgo)
         break
       default:
         // Padrão: ontem
-        previousStartDate = getBrazilStartOfDay(getBrazilNow())
-        previousStartDate.setDate(previousStartDate.getDate() - 1)
-        previousEndDate = getBrazilEndOfDay(previousStartDate)
+        const defaultYesterday = new Date(getBrazilStartOfDay(getBrazilNow()))
+        defaultYesterday.setDate(defaultYesterday.getDate() - 1)
+        previousStartDate = getBrazilStartOfDay(defaultYesterday)
+        previousEndDate = getBrazilEndOfDay(defaultYesterday)
     }
 
     // Buscar métricas do período anterior
@@ -349,7 +355,7 @@ export async function GET(request: NextRequest) {
       previousTotalRevenue,
       previousActiveClients
     ] = await Promise.all([
-      // Total de agendamentos do período anterior
+      // Total de agendamentos do período anterior (TODOS os status)
       prisma.appointment.count({
         where: {
           tenantId: user.tenantId,
@@ -360,7 +366,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Agendamentos concluídos do período anterior
+      // Agendamentos concluídos do período anterior (mesmo filtro que atual)
       prisma.appointment.count({
         where: {
           tenantId: user.tenantId,
@@ -374,7 +380,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Receita do período anterior
+      // Receita do período anterior (mesmo filtro que atual)
       prisma.appointment.aggregate({
         where: {
           tenantId: user.tenantId,
@@ -394,7 +400,7 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // Clientes ativos do período anterior (simplificado - usar total atual)
+      // Clientes ativos do período anterior (criados até o fim do período anterior)
       prisma.endUser.count({
         where: { 
           tenantId: user.tenantId,
@@ -455,14 +461,18 @@ export async function GET(request: NextRequest) {
 
     const previousRevenue = previousTotalRevenue._sum.totalPrice || 0
 
-    console.log('🔍 Dados do período anterior:', {
+    console.log('🔍 Dados do período anterior (CORRIGIDO):', {
+      period,
       previousStartDate: previousStartDate.toISOString(),
       previousEndDate: previousEndDate.toISOString(),
       previousTotalAppointments,
       previousCompletedAppointments, 
       previousRevenue,
       previousActiveClients,
-      previousOccupancyRate
+      previousOccupancyRate,
+      brazilNow: getBrazilNow().toISOString(),
+      yesterdayStart: period === 'today' ? previousStartDate.toISOString() : 'N/A',
+      yesterdayEnd: period === 'today' ? previousEndDate.toISOString() : 'N/A'
     })
 
     // Dados para sparklines - últimos 7 dias (simplificado)
@@ -598,6 +608,20 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Profissionais com ocupação calculada:', professionalsWithOccupancy)
     console.log('🔍 Taxa de ocupação média:', averageOccupancyRate)
+
+    // Log de comparação atual vs anterior (CORRIGIDO)
+    console.log('📊 Comparação Atual vs Anterior:', {
+      'Faturamento': `R$ ${Number(revenue)} vs R$ ${Number(previousRevenue)}`,
+      'Clientes': `${activeClients} vs ${previousActiveClients}`,
+      'Agendamentos': `${totalAppointments} vs ${previousTotalAppointments}`,
+      'Ocupação': `${averageOccupancyRate}% vs ${previousOccupancyRate}%`,
+      'Cálculos': {
+        revenueChange: Number(previousRevenue) > 0 ? `${Math.round(((Number(revenue) - Number(previousRevenue)) / Number(previousRevenue)) * 100)}%` : 'Novo',
+        clientsChange: previousActiveClients > 0 ? `${Math.round(((activeClients - previousActiveClients) / previousActiveClients) * 100)}%` : 'Novo',
+        appointmentsChange: previousTotalAppointments > 0 ? `${Math.round(((totalAppointments - previousTotalAppointments) / previousTotalAppointments) * 100)}%` : 'Novo',
+        occupancyChange: previousOccupancyRate > 0 ? `${Math.round(((averageOccupancyRate - previousOccupancyRate) / previousOccupancyRate) * 100)}%` : 'Novo'
+      }
+    })
 
     console.log('🔍 Comparação de dados (atual vs anterior):', {
       'Receita': `${revenue} vs ${previousRevenue}`,
