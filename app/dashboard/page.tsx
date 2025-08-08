@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
 import { useAppointments } from "@/hooks/use-api"
-import { Sparkline, TrendIndicator } from "@/components/ui/sparkline"
+import { Sparkline } from "@/components/ui/sparkline"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
@@ -172,32 +172,28 @@ export default function DashboardPage() {
         "R$ 0,00",
       icon: DollarSign,
       color: "text-[#10b981]",
-      sparklineData: sparklines.revenue,
-      trend: sparklines.revenue
+      sparklineData: sparklines.revenue
     },
     {
       title: "Clientes Ativos",
       value: dashboardData?.summary?.totalClients?.toString() || "0",
       icon: Users,
       color: "text-[#10b981]",
-      sparklineData: sparklines.clients,
-      trend: sparklines.clients
+      sparklineData: sparklines.clients
     },
     {
       title: "Agendamentos Hoje",
       value: (dashboardData?.todayAppointments?.length || 0).toString(),
       icon: Calendar,
       color: "text-[#fbbf24]",
-      sparklineData: sparklines.appointments,
-      trend: sparklines.appointments
+      sparklineData: sparklines.appointments
     },
     {
       title: "Taxa de Ocupação",
       value: `${Math.round(dashboardData?.summary?.occupancyRate || 0)}%`,
       icon: TrendingUp,
       color: "text-[#3f3f46]",
-      sparklineData: sparklines.appointments, // Usar dados de agendamentos como proxy
-      trend: sparklines.appointments
+      sparklineData: sparklines.appointments // Usar dados de agendamentos como proxy
     },
   ]
 
@@ -231,20 +227,15 @@ export default function DashboardPage() {
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold text-[#ededed]">{stat.value}</div>
-                  <div className="flex items-center gap-2">
-                    <Sparkline 
-                      data={stat.sparklineData} 
-                      color={stat.color.includes('#10b981') ? '#10b981' : stat.color.includes('#fbbf24') ? '#fbbf24' : '#3f3f46'} 
-                      width={60} 
-                      height={20} 
-                    />
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <TrendIndicator data={stat.trend} showPercentage={false} />
+              <div className="text-center space-y-3">
+                <div className="text-3xl font-bold text-[#ededed]">{stat.value}</div>
+                <div className="flex justify-center">
+                  <Sparkline 
+                    data={stat.sparklineData} 
+                    color={stat.color.includes('#10b981') ? '#10b981' : stat.color.includes('#fbbf24') ? '#fbbf24' : '#3f3f46'} 
+                    width={80} 
+                    height={24} 
+                  />
                 </div>
               </div>
             </CardContent>
