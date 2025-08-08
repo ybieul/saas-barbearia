@@ -95,8 +95,8 @@ export function useWorkingHours() {
 
   // 🇧🇷 CORREÇÃO: Função para obter o nome do dia da semana em inglês usando timezone brasileiro
   const getDayName = (date: Date): string => {
-    // Agora o banco armazena horários brasileiros diretamente
-    const dayName = getBrazilDayNameEn(date) // Esta função já considera timezone brasileiro
+    // Usar getBrazilDayNameEn diretamente para garantir consistência
+    const dayName = getBrazilDayNameEn(date)
     
     console.log('🇧🇷 getDayName Debug CRÍTICO:', {
       originalDate: date.toString(),
@@ -113,6 +113,17 @@ export function useWorkingHours() {
   const getWorkingHoursForDay = (date: Date) => {
     try {
       const dayName = getDayName(date)
+      
+      console.log('🔍 DEBUG getWorkingHoursForDay:', {
+        dayName,
+        dayNameLower: dayName.toLowerCase(),
+        availableWorkingHours: workingHours.map(wh => ({
+          dayOfWeek: wh.dayOfWeek,
+          dayOfWeekLower: wh.dayOfWeek.toLowerCase(),
+          isActive: wh.isActive,
+          match: wh.dayOfWeek.toLowerCase() === dayName.toLowerCase()
+        }))
+      })
       
       const dayWorkingHours = workingHours.find(wh => 
         wh.dayOfWeek.toLowerCase() === dayName.toLowerCase() && wh.isActive

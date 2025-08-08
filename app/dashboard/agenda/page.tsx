@@ -1225,7 +1225,7 @@ export default function AgendaPage() {
     const isOpen = isEstablishmentOpen(selectedDate)
     const dayConfig = getWorkingHoursForDay(selectedDate)
     
-    // 🇧🇷 CORREÇÃO: Usar função brasileira para obter nome do dia
+    // 🇧🇷 CORREÇÃO: Usar função brasileira para obter nome do dia - MESMA usada no hook
     const dayNameBR = getBrazilDayNameEn(selectedDate)
     
     console.log('🔍 getDateStatus Debug DETALHADO:', {
@@ -1242,7 +1242,9 @@ export default function AgendaPage() {
         isActive: wh.isActive,
         startTime: wh.startTime,
         endTime: wh.endTime
-      })) || []
+      })) || [],
+      establishmentOpenResult: isEstablishmentOpen(selectedDate),
+      debugDate: `Sexta-feira: ${selectedDate.getDay() === 5 ? 'SIM' : 'NÃO'}`
     })
     
     if (!isOpen) {
