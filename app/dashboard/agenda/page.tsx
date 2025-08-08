@@ -36,7 +36,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
-import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString } from "@/lib/timezone"
+import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
@@ -98,7 +98,7 @@ export default function AgendaPage() {
   const handleRefreshData = async () => {
     setIsRefreshing(true)
     try {
-      const currentDateString = currentDate.toISOString().split('T')[0]
+      const currentDateString = toLocalDateString(currentDate)
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       
@@ -180,7 +180,7 @@ export default function AgendaPage() {
     const loadFilteredData = async () => {
       try {
         // Formatar data atual para enviar para API
-        const currentDateString = currentDate.toISOString().split('T')[0]
+        const currentDateString = toLocalDateString(currentDate)
         
         // Preparar parâmetros para a API
         const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
@@ -267,8 +267,8 @@ export default function AgendaPage() {
   const todayAppointments = appointments.filter(apt => {
     // Agora o banco armazena datas brasileiras diretamente
     const aptDate = new Date(apt.dateTime || apt.date)
-    const aptDateString = aptDate.toISOString().split('T')[0] // YYYY-MM-DD
-    const currentDateString = currentDate.toISOString().split('T')[0] // YYYY-MM-DD
+    const aptDateString = toLocalDateString(aptDate) // YYYY-MM-DD
+    const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
     
     return aptDateString === currentDateString
   })
@@ -774,12 +774,12 @@ export default function AgendaPage() {
     // 🇧🇷 NOVO: Agora o banco armazena horários brasileiros diretamente
     const appointmentDate = new Date(appointment.dateTime)
     
-    const formattedDate = appointmentDate.toISOString().split('T')[0]
+    const formattedDate = toLocalDateString(appointmentDate)
     const formattedTime = appointmentDate.toTimeString().split(' ')[0].substring(0, 5)
     
     debugTimezone(appointmentDate, `Editando agendamento`)
     console.log('🇧🇷 Dados para edição:', {
-      appointmentDate: appointmentDate.toISOString(),
+      appointmentDate: toLocalISOString(appointmentDate),
       formattedDate,
       formattedTime
     })
@@ -954,7 +954,7 @@ export default function AgendaPage() {
       setAppointmentToComplete(null)
       
       // Recarregar dados da agenda
-      const currentDateString = currentDate.toISOString().split('T')[0]
+      const currentDateString = toLocalDateString(currentDate)
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
@@ -1011,7 +1011,7 @@ export default function AgendaPage() {
       // Nota: A conclusão agora é feita através do modal de pagamento
       
       // ✅ Recarregar dados com os mesmos filtros aplicados
-      const currentDateString = currentDate.toISOString().split('T')[0]
+      const currentDateString = toLocalDateString(currentDate)
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
@@ -1070,8 +1070,8 @@ export default function AgendaPage() {
   const filteredAppointments = appointments.filter(appointment => {
     // Agora o banco armazena datas brasileiras diretamente
     const appointmentDate = new Date(appointment.dateTime)
-    const aptDateString = appointmentDate.toISOString().split('T')[0] // YYYY-MM-DD
-    const currentDateString = currentDate.toISOString().split('T')[0] // YYYY-MM-DD
+    const aptDateString = toLocalDateString(appointmentDate) // YYYY-MM-DD
+    const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
     
     const matchesDate = aptDateString === currentDateString
     const matchesProfessional = selectedProfessional === "todos" || 
@@ -1590,7 +1590,7 @@ export default function AgendaPage() {
                         variant="outline"
                         className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
                         onClick={() => {
-                          setNewAppointment({...newAppointment, time, date: currentDate.toISOString().split('T')[0]})
+                          setNewAppointment({...newAppointment, time, date: toLocalDateString(currentDate)})
                           setIsNewAppointmentOpen(true)
                         }}
                       >

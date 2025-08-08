@@ -271,6 +271,31 @@ export function toLocalISOString(date: Date): string {
 }
 
 /**
+ * 🇧🇷 Extrai apenas a data no formato YYYY-MM-DD sem conversão UTC
+ * Substitui o uso de .toISOString().split('T')[0] que causava conversão UTC
+ * 
+ * @param date - Data para extrair a string de data
+ * @returns String no formato YYYY-MM-DD em horário local
+ */
+export function toLocalDateString(date: Date): string {
+  if (!date || !isValid(date)) {
+    console.warn('⚠️ Data inválida fornecida para toLocalDateString')
+    return new Date().toISOString().split('T')[0]
+  }
+  
+  try {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    
+    return `${year}-${month}-${day}`
+  } catch (error) {
+    console.error('❌ Erro ao extrair data local:', error)
+    return date.toISOString().split('T')[0] // fallback
+  }
+}
+
+/**
  * 🇧🇷 Obtém o início do dia brasileiro
  * 
  * @param date - Data de referência
