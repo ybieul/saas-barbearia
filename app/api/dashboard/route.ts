@@ -305,175 +305,10 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    // Calcular métricas do período atual
+    // Calcular métricas
     const revenue = totalRevenue._sum.totalPrice || 0
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
     const cancellationRate = totalAppointments > 0 ? (cancelledAppointments / totalAppointments) * 100 : 0
-
-    // Calcular dados do período anterior para comparação (ontem, semana passada, etc.)
-    let previousStartDate: Date
-    let previousEndDate: Date
-
-    switch (period) {
-      case 'today':
-        // Ontem - criar nova instância para evitar mutação
-        const yesterday = new Date(getBrazilStartOfDay(getBrazilNow()))
-        yesterday.setDate(yesterday.getDate() - 1)
-        previousStartDate = getBrazilStartOfDay(yesterday)
-        previousEndDate = getBrazilEndOfDay(yesterday)
-        break
-      case 'week':
-        // Semana anterior
-        const twoWeeksAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
-        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-        const oneWeekAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        previousStartDate = getBrazilStartOfDay(twoWeeksAgo)
-        previousEndDate = getBrazilEndOfDay(oneWeekAgo)
-        break
-      case 'month':
-        // Mês anterior
-        const twoMonthsAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
-        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
-        const oneMonthAgo = new Date(getBrazilStartOfDay(getBrazilNow()))
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-        previousStartDate = getBrazilStartOfDay(twoMonthsAgo)
-        previousEndDate = getBrazilEndOfDay(oneMonthAgo)
-        break
-      default:
-        // Padrão: ontem
-        const defaultYesterday = new Date(getBrazilStartOfDay(getBrazilNow()))
-        defaultYesterday.setDate(defaultYesterday.getDate() - 1)
-        previousStartDate = getBrazilStartOfDay(defaultYesterday)
-        previousEndDate = getBrazilEndOfDay(defaultYesterday)
-    }
-
-    // Buscar métricas do período anterior
-    const [
-      previousTotalAppointments,
-      previousCompletedAppointments,
-      previousTotalRevenue,
-      previousActiveClients
-    ] = await Promise.all([
-      // Total de agendamentos do período anterior (TODOS os status)
-      prisma.appointment.count({
-        where: {
-          tenantId: user.tenantId,
-          dateTime: {
-            gte: previousStartDate,
-            lte: previousEndDate
-          }
-        }
-      }),
-      
-      // Agendamentos concluídos do período anterior (mesmo filtro que atual)
-      prisma.appointment.count({
-        where: {
-          tenantId: user.tenantId,
-          status: {
-            in: ['COMPLETED', 'IN_PROGRESS']
-          },
-          dateTime: {
-            gte: previousStartDate,
-            lte: previousEndDate
-          }
-        }
-      }),
-      
-      // Receita do período anterior (mesmo filtro que atual)
-      prisma.appointment.aggregate({
-        where: {
-          tenantId: user.tenantId,
-          status: {
-            in: ['COMPLETED', 'IN_PROGRESS']
-          },
-          dateTime: {
-            gte: previousStartDate,
-            lte: previousEndDate
-          },
-          totalPrice: {
-            gt: 0
-          }
-        },
-        _sum: {
-          totalPrice: true
-        }
-      }),
-
-      // Clientes ativos do período anterior (criados até o fim do período anterior)
-      prisma.endUser.count({
-        where: { 
-          tenantId: user.tenantId,
-          isActive: true,
-          createdAt: {
-            lte: previousEndDate
-          }
-        }
-      })
-    ])
-
-    // Calcular taxa de ocupação do período anterior
-    let previousOccupancyRate = 0
-    if (period === 'today') {
-      // Para hoje vs ontem, calcular ocupação de ontem
-      const yesterdayProfessionalsOccupancy = await Promise.all(
-        professionals.map(async (prof) => {
-          const yesterdayAppointments = await prisma.appointment.findMany({
-            where: {
-              tenantId: user.tenantId,
-              professionalId: prof.id,
-              dateTime: {
-                gte: previousStartDate,
-                lte: previousEndDate
-              },
-              status: {
-                not: 'CANCELLED'
-              }
-            },
-            include: {
-              services: {
-                select: {
-                  duration: true
-                }
-              }
-            }
-          })
-
-          const totalOccupiedMinutes = yesterdayAppointments.reduce((sum, apt) => {
-            const serviceDuration = apt.services?.reduce((total, service) => total + (service.duration || 30), 0) || 30
-            return sum + serviceDuration
-          }, 0)
-
-          // Usar mesmo horário de funcionamento
-          const totalAvailableMinutes = 600 // Simplificado
-          const occupancyRate = totalAvailableMinutes > 0 
-            ? Math.round((totalOccupiedMinutes / totalAvailableMinutes) * 100) 
-            : 0
-
-          return occupancyRate
-        })
-      )
-
-      previousOccupancyRate = yesterdayProfessionalsOccupancy.length > 0 
-        ? Math.round(yesterdayProfessionalsOccupancy.reduce((avg, rate) => avg + rate, 0) / yesterdayProfessionalsOccupancy.length)
-        : 0
-    }
-
-    const previousRevenue = previousTotalRevenue._sum.totalPrice || 0
-
-    console.log('🔍 Dados do período anterior (CORRIGIDO):', {
-      period,
-      previousStartDate: previousStartDate.toISOString(),
-      previousEndDate: previousEndDate.toISOString(),
-      previousTotalAppointments,
-      previousCompletedAppointments, 
-      previousRevenue,
-      previousActiveClients,
-      previousOccupancyRate,
-      brazilNow: getBrazilNow().toISOString(),
-      yesterdayStart: period === 'today' ? previousStartDate.toISOString() : 'N/A',
-      yesterdayEnd: period === 'today' ? previousEndDate.toISOString() : 'N/A'
-    })
 
     // Dados para sparklines - últimos 7 dias (simplificado)
     const sparklineData: Array<{
@@ -609,27 +444,6 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Profissionais com ocupação calculada:', professionalsWithOccupancy)
     console.log('🔍 Taxa de ocupação média:', averageOccupancyRate)
 
-    // Log de comparação atual vs anterior (CORRIGIDO)
-    console.log('📊 Comparação Atual vs Anterior:', {
-      'Faturamento': `R$ ${Number(revenue)} vs R$ ${Number(previousRevenue)}`,
-      'Clientes': `${activeClients} vs ${previousActiveClients}`,
-      'Agendamentos': `${totalAppointments} vs ${previousTotalAppointments}`,
-      'Ocupação': `${averageOccupancyRate}% vs ${previousOccupancyRate}%`,
-      'Cálculos': {
-        revenueChange: Number(previousRevenue) > 0 ? `${Math.round(((Number(revenue) - Number(previousRevenue)) / Number(previousRevenue)) * 100)}%` : 'Novo',
-        clientsChange: previousActiveClients > 0 ? `${Math.round(((activeClients - previousActiveClients) / previousActiveClients) * 100)}%` : 'Novo',
-        appointmentsChange: previousTotalAppointments > 0 ? `${Math.round(((totalAppointments - previousTotalAppointments) / previousTotalAppointments) * 100)}%` : 'Novo',
-        occupancyChange: previousOccupancyRate > 0 ? `${Math.round(((averageOccupancyRate - previousOccupancyRate) / previousOccupancyRate) * 100)}%` : 'Novo'
-      }
-    })
-
-    console.log('🔍 Comparação de dados (atual vs anterior):', {
-      'Receita': `${revenue} vs ${previousRevenue}`,
-      'Clientes': `${activeClients} vs ${previousActiveClients}`,
-      'Agendamentos': `${totalAppointments} vs ${previousTotalAppointments}`,
-      'Ocupação': `${averageOccupancyRate}% vs ${previousOccupancyRate}%`
-    })
-
     // TODO: Reativar depois se necessário
     // Dados para gráficos - receita por dia (últimos 7 dias)
     // const dailyRevenue = []
@@ -693,13 +507,6 @@ export async function GET(request: NextRequest) {
           conversionRate: Math.round(conversionRate * 100) / 100,
           cancellationRate: Math.round(cancellationRate * 100) / 100,
           occupancyRate: averageOccupancyRate
-        },
-        // Dados do período anterior para comparação
-        previousStats: {
-          totalRevenue: Number(previousRevenue),
-          totalClients: previousActiveClients,
-          totalAppointments: previousTotalAppointments,
-          occupancyRate: previousOccupancyRate
         },
         stats: {
           totalRevenue: Number(revenue),
