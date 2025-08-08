@@ -36,7 +36,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
-import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime } from "@/lib/timezone"
+import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
@@ -679,11 +679,20 @@ export default function AgendaPage() {
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Criando agendamento')
 
+      console.log('🚨 CORREÇÃO UTC - Debug da data:', {
+        inputDate: newAppointment.date,
+        inputTime: newAppointment.time,
+        localDateTime: appointmentDateTime.toString(),
+        isoString_OLD_UTC: appointmentDateTime.toISOString(), // ❌ UTC
+        localISOString_NEW: toLocalISOString(appointmentDateTime), // ✅ Local
+        difference: `${appointmentDateTime.toISOString()} vs ${toLocalISOString(appointmentDateTime)}`
+      })
+
       const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
         services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(), // Envia horário brasileiro para o backend
+        dateTime: toLocalISOString(appointmentDateTime), // 🚨 CORREÇÃO: SEM conversão UTC
         notes: newAppointment.notes || undefined
       }
 
@@ -819,12 +828,21 @@ export default function AgendaPage() {
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Atualizando agendamento')
 
+      console.log('🚨 CORREÇÃO UTC - Debug da data (UPDATE):', {
+        inputDate: newAppointment.date,
+        inputTime: newAppointment.time,
+        localDateTime: appointmentDateTime.toString(),
+        isoString_OLD_UTC: appointmentDateTime.toISOString(), // ❌ UTC
+        localISOString_NEW: toLocalISOString(appointmentDateTime), // ✅ Local
+        difference: `${appointmentDateTime.toISOString()} vs ${toLocalISOString(appointmentDateTime)}`
+      })
+
       const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
         services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: appointmentDateTime.toISOString(), // Envia horário brasileiro para o backend
+        dateTime: toLocalISOString(appointmentDateTime), // 🚨 CORREÇÃO: SEM conversão UTC
         notes: newAppointment.notes || undefined
       }
 
