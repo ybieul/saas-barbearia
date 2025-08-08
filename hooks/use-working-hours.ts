@@ -98,10 +98,12 @@ export function useWorkingHours() {
     // Agora o banco armazena horários brasileiros diretamente
     const dayName = getBrazilDayNameEn(date) // Esta função já considera timezone brasileiro
     
-    console.log('🇧🇷 getDayName Debug:', {
+    console.log('🇧🇷 getDayName Debug CRÍTICO:', {
       originalDate: date.toString(),
-      brazilDate: date.toString(),
-      dayName
+      dayOfWeek: date.getDay(),
+      dayNameBR: date.toLocaleDateString('pt-BR', { weekday: 'long' }),
+      dayNameEN: dayName,
+      dayNameLowerCase: dayName.toLowerCase()
     })
     
     return dayName
@@ -111,19 +113,6 @@ export function useWorkingHours() {
   const getWorkingHoursForDay = (date: Date) => {
     try {
       const dayName = getDayName(date)
-      
-      console.log('🔍 getWorkingHoursForDay Debug:', {
-        date: date.toString(),
-        dayName,
-        dayNameLowerCase: dayName.toLowerCase(),
-        workingHours: workingHours.map(wh => ({
-          dayOfWeek: wh.dayOfWeek,
-          dayOfWeekLowerCase: wh.dayOfWeek.toLowerCase(),
-          isActive: wh.isActive,
-          startTime: wh.startTime,
-          endTime: wh.endTime
-        }))
-      })
       
       const dayWorkingHours = workingHours.find(wh => 
         wh.dayOfWeek.toLowerCase() === dayName.toLowerCase() && wh.isActive

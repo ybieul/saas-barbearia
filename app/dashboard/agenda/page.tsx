@@ -36,7 +36,7 @@ import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
-import { formatBrazilTime, getBrazilDayOfWeek, debugTimezone, parseDateTime } from "@/lib/timezone"
+import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 
@@ -1218,14 +1218,6 @@ export default function AgendaPage() {
       return { isOpen: null, message: null, dayConfig: null }
     }
     
-    // Função robusta para extrair o dia da semana local sem problemas de fuso horário
-    const getDiaSemanaLocal = (dateString: string) => {
-      const [ano, mes, dia] = dateString.split('-').map(Number)
-      // Lembrete: mês no Date é 0-indexado (janeiro = 0)
-      const date = new Date(ano, mes - 1, dia)
-      return date.getDay() // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-    }
-    
     // Criar date usando valores locais para evitar problemas de fuso horário
     const [year, month, day] = dateToCheck.split('-').map(Number)
     const selectedDate = new Date(year, month - 1, day)
@@ -1233,12 +1225,24 @@ export default function AgendaPage() {
     const isOpen = isEstablishmentOpen(selectedDate)
     const dayConfig = getWorkingHoursForDay(selectedDate)
     
-    console.log('🔍 getDateStatus Debug:', {
+    // 🇧🇷 CORREÇÃO: Usar função brasileira para obter nome do dia
+    const dayNameBR = getBrazilDayNameEn(selectedDate)
+    
+    console.log('🔍 getDateStatus Debug DETALHADO:', {
       dateToCheck,
       selectedDate: selectedDate.toString(),
       dayOfWeek: selectedDate.getDay(),
+      dayNameBR,
+      dayNameLocal: selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' }),
       dayConfig,
-      isOpen
+      isOpen,
+      workingHoursAvailable: workingHours?.length || 0,
+      allWorkingHours: workingHours?.map(wh => ({
+        dayOfWeek: wh.dayOfWeek,
+        isActive: wh.isActive,
+        startTime: wh.startTime,
+        endTime: wh.endTime
+      })) || []
     })
     
     if (!isOpen) {
