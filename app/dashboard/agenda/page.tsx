@@ -30,6 +30,7 @@ import {
   X,
   Edit3,
   Trash2,
+  RefreshCw,
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
@@ -50,6 +51,8 @@ export default function AgendaPage() {
   const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     type: 'complete' | 'cancel' | 'delete' | null
@@ -90,6 +93,41 @@ export default function AgendaPage() {
     isTimeWithinWorkingHours 
   } = useWorkingHours()
   const { toast } = useToast()
+
+  // Função para refresh manual de dados
+  const handleRefreshData = async () => {
+    setIsRefreshing(true)
+    try {
+      const currentDateString = currentDate.toISOString().split('T')[0]
+      const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
+      const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+      
+      await Promise.allSettled([
+        fetchAppointments(currentDateString, statusParam, professionalParam),
+        fetchClients(),
+        fetchServices(),
+        fetchProfessionals(),
+        fetchEstablishment(),
+        fetchWorkingHours()
+      ])
+      
+      setLastUpdated(new Date())
+      
+      toast({
+        title: "✅ Dados Atualizados",
+        description: "Informações da agenda foram atualizadas com sucesso!",
+      })
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error)
+      toast({
+        title: "❌ Erro ao Atualizar",
+        description: "Erro ao atualizar dados. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   // Carregar dados ao montar o componente
   useEffect(() => {
@@ -231,11 +269,11 @@ export default function AgendaPage() {
     const aptDateBrazil = utcToBrazil(new Date(apt.dateTime || apt.date))
     const currentDateBrazil = utcToBrazil(currentDate)
     
-    // Comparar datas usando apenas ano/mês/dia (sem horário)
-    const aptDateOnly = new Date(aptDateBrazil.getFullYear(), aptDateBrazil.getMonth(), aptDateBrazil.getDate())
-    const currentDateOnly = new Date(currentDateBrazil.getFullYear(), currentDateBrazil.getMonth(), currentDateBrazil.getDate())
+    // 🔧 CORREÇÃO: Usar formatação de data para evitar problemas de UTC às 23h
+    const aptDateString = aptDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
+    const currentDateString = currentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
     
-    return aptDateOnly.getTime() === currentDateOnly.getTime()
+    return aptDateString === currentDateString
   })
 
   // 🇧🇷 CORREÇÃO: Função para verificar se um horário está ocupado (considerando duração do agendamento)
@@ -684,6 +722,7 @@ export default function AgendaPage() {
       setIsNewAppointmentOpen(false)
       resetForm()
       await fetchAppointments() // Recarregar dados
+      setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error: any) {
       console.error('🚫 Erro ao criar agendamento:', error)
       
@@ -815,6 +854,7 @@ export default function AgendaPage() {
       setEditingAppointment(null)
       resetForm()
       await fetchAppointments() // Recarregar dados
+      setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error: any) {
       console.error('🚫 Erro ao atualizar agendamento:', error)
       
@@ -906,6 +946,7 @@ export default function AgendaPage() {
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
+      setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error) {
       console.error('Erro ao concluir agendamento:', error)
       toast({
@@ -962,6 +1003,7 @@ export default function AgendaPage() {
       const professionalParam = selectedProfessional === "todos" ? undefined : selectedProfessional
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       await fetchAppointments(currentDateString, statusParam, professionalParam)
+      setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error) {
       const actionText = confirmDialog.type === 'delete' ? 'excluir' : 'cancelar'
       
@@ -1018,11 +1060,11 @@ export default function AgendaPage() {
     const appointmentDateBrazil = utcToBrazil(new Date(appointment.dateTime))
     const currentDateBrazil = utcToBrazil(currentDate)
     
-    // Comparar apenas data (sem horário)
-    const aptDateOnly = new Date(appointmentDateBrazil.getFullYear(), appointmentDateBrazil.getMonth(), appointmentDateBrazil.getDate())
-    const currentDateOnly = new Date(currentDateBrazil.getFullYear(), currentDateBrazil.getMonth(), currentDateBrazil.getDate())
+    // 🔧 CORREÇÃO: Usar formatação de data para evitar problemas de UTC às 23h
+    const aptDateString = appointmentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
+    const currentDateString = currentDateBrazil.toISOString().split('T')[0] // YYYY-MM-DD
     
-    const matchesDate = aptDateOnly.getTime() === currentDateOnly.getTime()
+    const matchesDate = aptDateString === currentDateString
     const matchesProfessional = selectedProfessional === "todos" || 
                                appointment.professionalId === selectedProfessional
     
@@ -1238,23 +1280,41 @@ export default function AgendaPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed]">Agenda</h1>
-          <p className="text-[#a1a1aa]">Gerencie seus agendamentos</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
+          <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
+          {lastUpdated && (
+            <p className="text-xs text-[#71717a] mt-1">
+              Última atualização: {lastUpdated.toLocaleString('pt-BR')}
+            </p>
+          )}
         </div>
         
-        <Button 
-          onClick={() => setIsNewAppointmentOpen(true)}
-          className="bg-[#10b981] hover:bg-[#059669]"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Agendamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+            className="border-[#27272a] hover:bg-[#27272a] text-xs md:text-sm"
+          >
+            <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+          
+          <Button 
+            onClick={() => setIsNewAppointmentOpen(true)}
+            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm"
+          >
+            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+            Novo Agendamento
+          </Button>
+        </div>
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
