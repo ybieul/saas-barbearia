@@ -286,6 +286,11 @@ export default function AgendaPage() {
   // 🇧🇷 OTIMIZADO: Função para verificar se um horário está ocupado usando useCallback
   const isTimeSlotOccupied = useCallback((time: string, professionalId?: string) => {
     return todayAppointments.some(apt => {
+      // 🚫 CORREÇÃO CRÍTICA: Excluir agendamentos cancelados da verificação de ocupação
+      if (apt.status === 'CANCELLED' || apt.status === 'cancelled') {
+        return false // Agendamentos cancelados não ocupam horários
+      }
+      
       // Parse seguro do dateTime do banco (sem conversão UTC automática)
       const aptDateTime = parseDatabaseDateTime(apt.dateTime || `${apt.date} ${apt.time}`)
       const aptStartTimeString = extractTimeFromDateTime(apt.dateTime) // HH:mm sem UTC
@@ -300,7 +305,7 @@ export default function AgendaPage() {
       
       // Calcular horário de fim do agendamento (em timezone brasileiro)
       const aptEndTimeBrazil = new Date(aptDateTime.getTime() + (serviceDuration * 60000))
-      const aptEndTimeString = extractTimeFromDateTime(aptEndTimeBrazil.toISOString()) // HH:mm sem UTC
+      const aptEndTimeString = `${String(aptEndTimeBrazil.getHours()).padStart(2, '0')}:${String(aptEndTimeBrazil.getMinutes()).padStart(2, '0')}`
       
       // Converter horários para minutos para facilitar comparação
       const timeToMinutes = (timeStr: string) => {
@@ -351,7 +356,7 @@ export default function AgendaPage() {
       // Filtrar agendamentos da mesma data que não estão cancelados
       const dayAppointments = appointments.filter(apt => {
         if (!apt.dateTime) return false
-        if (apt.status === 'CANCELLED') return false
+        if (apt.status === 'CANCELLED' || apt.status === 'cancelled') return false
         
         // Ignorar o próprio agendamento em caso de edição
         if (editingAppointment && apt.id === editingAppointment.id) return false
