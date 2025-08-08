@@ -122,48 +122,22 @@ export function useWorkingHours() {
       console.log('🔍 DEBUG getWorkingHoursForDay CRÍTICO:', {
         inputDate: date.toString(),
         dayName,
-        dayNameLower: dayName.toLowerCase(),
         workingHoursCount: workingHours.length,
         availableWorkingHours: workingHours.map(wh => ({
           dayOfWeek: wh.dayOfWeek,
-          dayOfWeekLower: wh.dayOfWeek.toLowerCase(),
           isActive: wh.isActive,
           startTime: wh.startTime,
-          endTime: wh.endTime,
-          match: wh.dayOfWeek.toLowerCase() === dayName.toLowerCase(),
-          strictMatch: wh.dayOfWeek === dayName.toLowerCase()
+          endTime: wh.endTime
         }))
       })
       
-      // 🚨 CORREÇÃO CRÍTICA: Verificar múltiplas variações de comparação
+      // 🚨 CORREÇÃO DEFINITIVA: Comparação direta e simples
       const dayWorkingHours = workingHours.find(wh => {
-        const whDayLower = (wh.dayOfWeek || '').toLowerCase().trim()
-        const targetDayLower = (dayName || '').toLowerCase().trim()
+        const match = wh.dayOfWeek === dayName && wh.isActive
         
-        // Também testar se o banco tem dados em formato diferente
-        const alternativeComparisons = [
-          whDayLower === targetDayLower,
-          wh.dayOfWeek === dayName,
-          wh.dayOfWeek === dayName.toLowerCase(),
-          wh.dayOfWeek.toLowerCase() === dayName.toLowerCase()
-        ]
+        console.log(`🔍 Comparando exato: "${wh.dayOfWeek}" === "${dayName}" && ${wh.isActive} = ${match}`)
         
-        const isActive = Boolean(wh.isActive)
-        const hasMatch = alternativeComparisons.some(comp => comp === true)
-        const finalMatch = hasMatch && isActive
-        
-        console.log(`🔍 Comparação detalhada:`, {
-          whDayOfWeek: wh.dayOfWeek,
-          whDayLower,
-          targetDayName: dayName,
-          targetDayLower,
-          isActive,
-          alternativeComparisons,
-          hasMatch,
-          finalMatch
-        })
-        
-        return finalMatch
+        return match
       })
       
       if (!dayWorkingHours) {
@@ -237,7 +211,7 @@ export function useWorkingHours() {
     
     return days.map((day, index) => {
       const dayConfig = workingHours.find(wh => 
-        wh.dayOfWeek.toLowerCase() === day && wh.isActive
+        wh.dayOfWeek === day && wh.isActive
       )
       
       return {

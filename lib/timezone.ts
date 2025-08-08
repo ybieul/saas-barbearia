@@ -133,20 +133,20 @@ export function getBrazilDayOfWeek(date: Date): string {
  */
 export function getBrazilDayNameEn(date: Date): string {
   const days = [
-    'Sunday', 'Monday', 'Tuesday', 'Wednesday',
-    'Thursday', 'Friday', 'Saturday'
+    'sunday', 'monday', 'tuesday', 'wednesday',
+    'thursday', 'friday', 'saturday'
   ]
   
   try {
     if (!date || !isValid(date)) {
       console.warn('⚠️ Data inválida fornecida para dia da semana em inglês')
-      return 'Invalid'
+      return 'invalid'
     }
     
     return days[date.getDay()]
   } catch (error) {
     console.error('❌ Erro ao obter dia da semana em inglês:', error)
-    return 'Error'
+    return 'error'
   }
 }
 
