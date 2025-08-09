@@ -697,9 +697,7 @@ export default function AgendaPage() {
         inputDate: newAppointment.date,
         inputTime: newAppointment.time,
         localDateTime: appointmentDateTime.toString(),
-        isoString_OLD_UTC: appointmentDateTime.toISOString(), // ❌ UTC
-        localISOString_NEW: toLocalISOString(appointmentDateTime), // ✅ Local
-        difference: `${appointmentDateTime.toISOString()} vs ${toLocalISOString(appointmentDateTime)}`
+        localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
       })
 
       const finalAppointmentData = {
@@ -846,9 +844,7 @@ export default function AgendaPage() {
         inputDate: newAppointment.date,
         inputTime: newAppointment.time,
         localDateTime: appointmentDateTime.toString(),
-        isoString_OLD_UTC: appointmentDateTime.toISOString(), // ❌ UTC
-        localISOString_NEW: toLocalISOString(appointmentDateTime), // ✅ Local
-        difference: `${appointmentDateTime.toISOString()} vs ${toLocalISOString(appointmentDateTime)}`
+        localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
       })
 
       const finalAppointmentData = {

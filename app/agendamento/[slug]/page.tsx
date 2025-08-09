@@ -539,7 +539,7 @@ export default function AgendamentoPage() {
           ...prev,
           name: clientData.name || "",
           email: clientData.email || "",
-          birthDate: clientData.birthday ? new Date(clientData.birthday).toISOString().split('T')[0] : "",
+          birthDate: clientData.birthday ? toLocalDateString(new Date(clientData.birthday)) : "",
           notes: clientData.notes || ""
         }))
         
@@ -1962,7 +1962,7 @@ export default function AgendamentoPage() {
                             value={customerData.birthDate || ""}
                             onChange={(e) => setCustomerData(prev => ({...prev, birthDate: e.target.value}))}
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#71717a]"
-                            max={new Date().toISOString().split('T')[0]} // Não permitir datas futuras
+                            max={toLocalDateString(new Date())} // 🇧🇷 CORREÇÃO: Não permitir datas futuras
                           />
                         </div>
 

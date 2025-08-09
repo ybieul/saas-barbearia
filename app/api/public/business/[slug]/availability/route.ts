@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseDatabaseDateTime, extractTimeFromDateTime } from '@/lib/timezone'
+import { parseDatabaseDateTime, extractTimeFromDateTime, toLocalISOString } from '@/lib/timezone'
 
 // GET - Buscar horários ocupados para um profissional em uma data específica
 export async function GET(
@@ -88,9 +88,8 @@ export async function GET(
 
     // Processar agendamentos para retornar apenas os dados necessários
     const occupiedSlots = appointments.map(apt => {
-      // 🇧🇷 CORREÇÃO: Parse direto do dateTime do banco (já está em horário brasileiro)
-      const aptDateTime = parseDatabaseDateTime(apt.dateTime.toISOString())
-      const aptStartTime = extractTimeFromDateTime(apt.dateTime.toISOString())
+      // 🇧🇷 CORREÇÃO: Parse direto do objeto Date do banco (já está em horário brasileiro)
+      const aptStartTime = extractTimeFromDateTime(toLocalISOString(apt.dateTime))
       
       return {
         id: apt.id,

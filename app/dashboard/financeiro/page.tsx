@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw } from "lucide-react"
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate } from "@/lib/timezone"
+import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate, toLocalDateString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 
@@ -338,7 +338,7 @@ export default function FinanceiroPage() {
           }
           
           dailyData.push({
-            date: date.toISOString().split('T')[0],
+            date: toLocalDateString(date), // 🇧🇷 CORREÇÃO: Usar função brasileira
             dayName: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
             fullDate: date.toLocaleDateString('pt-BR'),
             revenue: Math.round(revenue * 100) / 100,
@@ -508,8 +508,8 @@ export default function FinanceiroPage() {
       
       console.log('📊 Calculando período anterior:', { 
         period, 
-        previousStart: previousStart.toISOString(), 
-        previousEnd: previousEnd.toISOString() 
+        previousStart: toLocalISOString(previousStart), 
+        previousEnd: toLocalISOString(previousEnd) 
       })
       
       const previousAppointments = appointments.filter(app => {
