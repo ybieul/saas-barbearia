@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { formatBrazilDate } from "@/lib/timezone"
+import { formatBrazilDate, parseDate } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 import { ProfessionalAvatarUpload } from "@/components/professional-avatar-upload"
@@ -1715,7 +1715,7 @@ export default function ConfiguracoesPage() {
                             {service.isActive ? "Ativo" : "Inativo"}
                           </Badge>
                           {service.createdAt && (
-                            <span>Cadastrado: {formatBrazilDate(service.createdAt)}</span>
+                            <span>Cadastrado: {formatBrazilDate(parseDate(service.createdAt))}</span>
                           )}
                         </div>
                       </div>

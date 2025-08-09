@@ -40,6 +40,7 @@ import {
   formatBrazilTime, 
   formatBrazilDate,
   getBrazilDayOfWeek,
+  getBrazilDayNumber,
   getBrazilNow,
   toBrazilDateString,
   debugTimezone,
@@ -407,11 +408,11 @@ export default function AgendamentoPage() {
 
     // Converter data para timezone brasileiro
     const selectedDateBrazil = parseDate(date)
-    const dayOfWeek = getBrazilDayOfWeek(selectedDateBrazil)
+    const dayOfWeek = getBrazilDayNumber(selectedDateBrazil)
     
     // Mapear dias da semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[dayOfWeek as number]
+    const dayName = dayNames[dayOfWeek]
     
     // Encontrar horário de funcionamento para o dia
     const daySchedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isActive)
@@ -1457,13 +1458,13 @@ export default function AgendamentoPage() {
                       const date = new Date()
                       date.setDate(date.getDate() + i)
                       const dateString = toBrazilDateString(date)
-                      const dayOfWeek = getBrazilDayOfWeek(date)
+                      const dayOfWeek = getBrazilDayNumber(date)
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-                      const dayName = dayNames[dayOfWeek as number]
+                      const dayName = dayNames[dayOfWeek]
                       
                       // Verificar se o dia está disponível
                       const dayNamesEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-                      const dayNameEn = dayNamesEn[dayOfWeek as number]
+                      const dayNameEn = dayNamesEn[dayOfWeek]
                       const isAvailable = workingHours.some(wh => wh.dayOfWeek === dayNameEn && wh.isActive)
                       
                       return (
