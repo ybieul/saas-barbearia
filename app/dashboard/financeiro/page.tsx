@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw } from "lucide-react"
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
-import { utcToBrazil, getBrazilNow, getBrazilDayOfWeek, formatBrazilDate, toLocalDateString } from "@/lib/timezone"
+import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 
@@ -68,7 +68,9 @@ export default function FinanceiroPage() {
         setIsLoading(true)
         setError(null)
         
-        console.log('🔄 Carregando dados financeiros...')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Carregando dados financeiros...')
+        }
         
         await Promise.all([
           fetchDashboardData(period),
@@ -76,9 +78,13 @@ export default function FinanceiroPage() {
           fetchProfessionals()
         ])
         
-        console.log('✅ Dados carregados com sucesso')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Dados carregados com sucesso')
+        }
       } catch (err) {
-        console.error('❌ Erro ao carregar dados financeiros:', err)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Erro ao carregar dados financeiros:', err)
+        }
         setError('Erro ao carregar dados. Tente novamente.')
       } finally {
         setIsLoading(false)
@@ -95,7 +101,9 @@ export default function FinanceiroPage() {
       setIsRefreshing(true)
       setError(null)
       
-      console.log('🔄 Atualizando dados financeiros manualmente...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Atualizando dados financeiros manualmente...')
+      }
       
       await Promise.all([
         fetchDashboardData(period),
@@ -104,9 +112,13 @@ export default function FinanceiroPage() {
       ])
       
       setLastUpdated(getBrazilNow())
-      console.log('✅ Dados atualizados com sucesso')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Dados atualizados com sucesso')
+      }
     } catch (err) {
-      console.error('❌ Erro ao atualizar dados:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao atualizar dados:', err)
+      }
       setError('Erro ao atualizar dados. Tente novamente.')
     } finally {
       setIsRefreshing(false)
@@ -118,11 +130,17 @@ export default function FinanceiroPage() {
     // Verificar se há mudanças a cada 30 segundos quando a página está visível
     const interval = setInterval(() => {
       if (!document.hidden && !isRefreshing && !loading) {
-        console.log('🔄 Verificação automática de dados...')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Verificação automática de dados...')
+        }
         fetchAppointments().then(() => {
-          console.log('✅ Verificação automática concluída')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Verificação automática concluída')
+          }
         }).catch(err => {
-          console.error('❌ Erro na verificação automática:', err)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('❌ Erro na verificação automática:', err)
+          }
         })
       }
     }, 30000) // 30 segundos
@@ -156,7 +174,9 @@ export default function FinanceiroPage() {
         }
 
       } catch (error) {
-        console.error('Erro ao carregar dados de relatórios:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao carregar dados de relatórios:', error)
+        }
       } finally {
         setReportsLoading(false)
       }
@@ -168,21 +188,27 @@ export default function FinanceiroPage() {
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
   const completedAppointments = useMemo(() => {
     try {
-      console.log('🔍 Processando agendamentos:', { 
-        totalAppointments: appointments?.length || 0,
-        selectedProfessional,
-        period 
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Processando agendamentos:', { 
+          totalAppointments: appointments?.length || 0,
+          selectedProfessional,
+          period 
+        })
+      }
       
       if (!Array.isArray(appointments)) {
-        console.log('⚠️ appointments não é um array:', appointments)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ appointments não é um array:', appointments)
+        }
         return []
       }
       
       const filtered = appointments.filter(app => {
         // ✅ SEGURANÇA: Validação robusta dos dados
         if (!app || typeof app !== 'object') {
-          console.log('⚠️ Agendamento inválido:', app)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Agendamento inválido:', app)
+          }
           return false
         }
         
@@ -192,19 +218,25 @@ export default function FinanceiroPage() {
         }
         
         if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) {
-          console.log('⚠️ Agendamento sem valor válido:', { id: app.id, totalPrice: app.totalPrice })
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Agendamento sem valor válido:', { id: app.id, totalPrice: app.totalPrice })
+          }
           return false
         }
         
         if (!app.dateTime) {
-          console.log('⚠️ Agendamento sem data:', app.id)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Agendamento sem data:', app.id)
+          }
           return false
         }
         
         try {
           const appointmentDate = utcToBrazil(new Date(app.dateTime))
           if (isNaN(appointmentDate.getTime())) {
-            console.log('⚠️ Data inválida:', app.dateTime)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('⚠️ Data inválida:', app.dateTime)
+            }
             return false
           }
           
@@ -217,19 +249,25 @@ export default function FinanceiroPage() {
           // O que importa é o status COMPLETED/IN_PROGRESS, não se a data é passada ou futura
           return true
         } catch (err) {
-          console.log('⚠️ Erro ao processar data:', err)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ Erro ao processar data:', err)
+          }
           return false
         }
       })
       
-      console.log('✅ Agendamentos filtrados:', { 
-        total: filtered.length,
-        totalValue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0)
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Agendamentos filtrados:', { 
+          total: filtered.length,
+          totalValue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0)
+        })
+      }
       
       return filtered
     } catch (err) {
-      console.error('❌ Erro ao filtrar agendamentos:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao filtrar agendamentos:', err)
+      }
       return []
     }
   }, [appointments, selectedProfessional])
@@ -285,13 +323,17 @@ export default function FinanceiroPage() {
             appointments: monthAppointments
           })
         } catch (err) {
-          console.error(`Erro ao processar mês ${i}:`, err)
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`Erro ao processar mês ${i}:`, err)
+          }
         }
       }
       
       return monthlyData
     } catch (err) {
-      console.error('Erro ao gerar dados mensais:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao gerar dados mensais:', err)
+      }
       return []
     }
   }, [completedAppointments])
@@ -299,10 +341,14 @@ export default function FinanceiroPage() {
   // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 30 dias
   const getDailyData = useMemo(() => {
     try {
-      console.log('📊 Calculando dados diários dos últimos 30 dias...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Calculando dados diários dos últimos 30 dias...')
+      }
       
       if (!Array.isArray(completedAppointments)) {
-        console.log('⚠️ completedAppointments não é um array para dados diários')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ completedAppointments não é um array para dados diários')
+        }
         return []
       }
       
@@ -333,7 +379,7 @@ export default function FinanceiroPage() {
           
           const appointmentCount = dayAppointments.length
           
-          if (appointmentCount > 0) {
+          if (appointmentCount > 0 && process.env.NODE_ENV === 'development') {
             console.log(`📅 ${date.toLocaleDateString('pt-BR')}: ${appointmentCount} agendamentos, R$ ${revenue.toFixed(2)}`)
           }
           
@@ -346,19 +392,25 @@ export default function FinanceiroPage() {
             appointments: dayAppointments
           })
         } catch (err) {
-          console.error(`❌ Erro ao processar dia ${i}:`, err)
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`❌ Erro ao processar dia ${i}:`, err)
+          }
         }
       }
       
-      console.log('✅ Dados diários calculados:', {
-        dias: dailyData.length,
-        receitaTotal: dailyData.reduce((sum, day) => sum + day.revenue, 0),
-        diasComReceita: dailyData.filter(day => day.revenue > 0).length
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Dados diários calculados:', {
+          dias: dailyData.length,
+          receitaTotal: dailyData.reduce((sum, day) => sum + day.revenue, 0),
+          diasComReceita: dailyData.filter(day => day.revenue > 0).length
+        })
+      }
       
       return dailyData
     } catch (err) {
-      console.error('❌ Erro ao gerar dados diários:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao gerar dados diários:', err)
+      }
       return []
     }
   }, [completedAppointments])
@@ -506,11 +558,13 @@ export default function FinanceiroPage() {
           previousEnd.setHours(23, 59, 59, 999)
       }
       
-      console.log('📊 Calculando período anterior:', { 
-        period, 
-        previousStart: toLocalISOString(previousStart), 
-        previousEnd: toLocalISOString(previousEnd) 
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Calculando período anterior:', { 
+          period, 
+          previousStart: toLocalISOString(previousStart), 
+          previousEnd: toLocalISOString(previousEnd) 
+        })
+      }
       
       const previousAppointments = appointments.filter(app => {
         if (!app?.dateTime) return false
@@ -531,11 +585,13 @@ export default function FinanceiroPage() {
         total + (parseFloat(app.totalPrice) || 0), 0
       )
       
-      console.log('📊 Dados período anterior:', {
-        totalAppointments: previousAppointments.length,
-        completedAppointments: previousCompleted.length,
-        revenue: previousRevenue
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Dados período anterior:', {
+          totalAppointments: previousAppointments.length,
+          completedAppointments: previousCompleted.length,
+          revenue: previousRevenue
+        })
+      }
       
       return {
         revenue: previousRevenue,
@@ -543,7 +599,9 @@ export default function FinanceiroPage() {
         totalCount: previousAppointments.length
       }
     } catch (err) {
-      console.error('❌ Erro ao calcular período anterior:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao calcular período anterior:', err)
+      }
       return { revenue: 0, completedCount: 0, totalCount: 0 }
     }
   }, [appointments, period])
@@ -703,7 +761,9 @@ export default function FinanceiroPage() {
           })
           .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
         
-        console.log('💰 Faturamento hoje calculado:', todayRevenue)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('💰 Faturamento hoje calculado:', todayRevenue)
+        }
         
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
       })(),
@@ -738,10 +798,14 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
     try {
-      console.log('💳 Calculando transações recentes...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('💳 Calculando transações recentes...')
+      }
       
       if (!Array.isArray(completedAppointments)) {
-        console.log('⚠️ completedAppointments não é um array para transações')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ completedAppointments não é um array para transações')
+        }
         return []
       }
       
@@ -787,14 +851,18 @@ export default function FinanceiroPage() {
           }
         })
       
-      console.log('✅ Transações recentes calculadas (6 mais recentes):', {
-        total: todayTransactions.length,
-        valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Transações recentes calculadas (6 mais recentes):', {
+          total: todayTransactions.length,
+          valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
+        })
+      }
       
       return todayTransactions
     } catch (err) {
-      console.error('❌ Erro ao processar transações recentes:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao processar transações recentes:', err)
+      }
       return []
     }
   }, [completedAppointments])
@@ -802,10 +870,14 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais e sanitização
   const topServices = useMemo(() => {
     try {
-      console.log('🎯 Calculando serviços mais vendidos...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 Calculando serviços mais vendidos...')
+      }
       
       if (!Array.isArray(completedAppointments)) {
-        console.log('⚠️ completedAppointments não é um array para serviços')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ completedAppointments não é um array para serviços')
+        }
         return []
       }
       
@@ -846,18 +918,22 @@ export default function FinanceiroPage() {
         .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
         .slice(0, 5)
       
-      console.log('✅ Serviços mais vendidos calculados:', {
-        totalServicos: serviceStats.size,
-        top5: topServicesData.map(s => ({ 
-          nome: s.service, 
-          vendas: s.count, 
-          receita: s.revenue 
-        }))
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Serviços mais vendidos calculados:', {
+          totalServicos: serviceStats.size,
+          top5: topServicesData.map(s => ({ 
+            nome: s.service, 
+            vendas: s.count, 
+            receita: s.revenue 
+          }))
+        })
+      }
       
       return topServicesData
     } catch (err) {
-      console.error('❌ Erro ao processar serviços mais vendidos:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao processar serviços mais vendidos:', err)
+      }
       return []
     }
   }, [completedAppointments])
@@ -1074,7 +1150,8 @@ export default function FinanceiroPage() {
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                   {dailyData.map((day, index) => {
                     const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                    const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
+                    const dayDate = new Date(day.date)
+                    const isWeekend = getBrazilDayNumber(dayDate) === 0 || getBrazilDayNumber(dayDate) === 6
                     
                     return (
                       <div
@@ -1136,7 +1213,8 @@ export default function FinanceiroPage() {
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
                   const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                  const isWeekend = getBrazilDayOfWeek(day.date) === 0 || getBrazilDayOfWeek(day.date) === 6
+                  const dayDate2 = new Date(day.date)
+                  const isWeekend = getBrazilDayNumber(dayDate2) === 0 || getBrazilDayNumber(dayDate2) === 6
                   
                   return (
                     <div

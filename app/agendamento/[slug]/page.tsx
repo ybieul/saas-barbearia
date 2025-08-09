@@ -44,7 +44,8 @@ import {
   toBrazilDateString,
   debugTimezone,
   parseDate,
-  toLocalISOString
+  toLocalISOString,
+  toLocalDateString
 } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
@@ -410,7 +411,7 @@ export default function AgendamentoPage() {
     
     // Mapear dias da semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[dayOfWeek]
+    const dayName = dayNames[dayOfWeek as number]
     
     // Encontrar horário de funcionamento para o dia
     const daySchedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isActive)
@@ -1458,11 +1459,11 @@ export default function AgendamentoPage() {
                       const dateString = toBrazilDateString(date)
                       const dayOfWeek = getBrazilDayOfWeek(date)
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-                      const dayName = dayNames[dayOfWeek]
+                      const dayName = dayNames[dayOfWeek as number]
                       
                       // Verificar se o dia está disponível
                       const dayNamesEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-                      const dayNameEn = dayNamesEn[dayOfWeek]
+                      const dayNameEn = dayNamesEn[dayOfWeek as number]
                       const isAvailable = workingHours.some(wh => wh.dayOfWeek === dayNameEn && wh.isActive)
                       
                       return (
