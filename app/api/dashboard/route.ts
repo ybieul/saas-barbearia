@@ -137,16 +137,16 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Próximos agendamentos - APENAS DO DIA ATUAL
+      // Próximos agendamentos - AGENDAMENTOS DO DIA ATUAL (SEM FILTRO DE HORÁRIO)
       prisma.appointment.findMany({
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilNow(), // A partir de agora
+            gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
             lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
           },
           status: {
-            in: ['CONFIRMED']
+            in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
           }
         },
         take: 5,
@@ -218,16 +218,16 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // Próximo agendamento - APENAS DO DIA ATUAL
+      // Próximo agendamento - AGENDAMENTO DO DIA ATUAL (SEM FILTRO DE HORÁRIO)
       prisma.appointment.findFirst({
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilNow(), // A partir de agora
+            gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
             lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
           },
           status: {
-            in: ['CONFIRMED']
+            in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
           }
         },
         orderBy: { dateTime: 'asc' },
@@ -253,7 +253,7 @@ export async function GET(request: NextRequest) {
       })
     ])
 
-    // Buscar próximos agendamentos por profissional - APENAS DO DIA ATUAL
+    // Buscar próximos agendamentos por profissional - AGENDAMENTOS DO DIA ATUAL (SEM FILTRO DE HORÁRIO)
     const nextAppointmentsByProfessional = await Promise.all(
       professionals.map(async (prof) => {
         const nextAppointment = await prisma.appointment.findFirst({
@@ -261,11 +261,11 @@ export async function GET(request: NextRequest) {
             tenantId: user.tenantId,
             professionalId: prof.id,
             dateTime: {
-              gte: getBrazilNow(), // A partir de agora
+              gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
               lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
             },
             status: {
-              in: ['CONFIRMED', 'IN_PROGRESS']
+              in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
             }
           },
           orderBy: { dateTime: 'asc' },
