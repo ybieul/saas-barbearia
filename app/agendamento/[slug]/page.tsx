@@ -43,7 +43,8 @@ import {
   getBrazilNow,
   toBrazilDateString,
   debugTimezone,
-  parseDate
+  parseDate,
+  toLocalISOString
 } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
@@ -818,7 +819,7 @@ export default function AgendamentoPage() {
         professionalId: selectedProfessional?.id || null,
         serviceId: mainService.id, // Serviço principal (compatível com API)
         services: allServiceIds, // Array completo com principal + complementos
-        appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
+        appointmentDateTime: toLocalISOString(appointmentDateTime), // 🇧🇷 Envia horário brasileiro para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
 

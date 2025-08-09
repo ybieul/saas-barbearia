@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay } from '@/lib/timezone'
+import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString, toLocalISOString } from '@/lib/timezone'
 
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
@@ -354,7 +354,7 @@ export async function GET(request: NextRequest) {
         })
         
         sparklineData.push({
-          date: date.toISOString().split('T')[0],
+          date: toLocalDateString(date), // 🇧🇷 CORREÇÃO: Usar função brasileira
           revenue: Number(dayRevenue._sum.totalPrice || 0),
           appointments: dayAppointments,
           clients: 0 // Simplificar por agora
@@ -485,9 +485,9 @@ export async function GET(request: NextRequest) {
       nextAppointmentExists: !!nextAppointment,
       period,
       dateRange: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        brazilNow: getBrazilNow().toISOString()
+        startDate: toLocalISOString(startDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
+        endDate: toLocalISOString(endDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
+        brazilNow: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO: Usar função brasileira
       }
     })
 

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime } from '@/lib/timezone'
 
 // POST - Criar agendamento público
 export async function POST(request: NextRequest) {
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     const dayName = getBrazilDayNameEn(appointmentDate)
     
     console.log('🇧🇷 Validação de dia:', {
-      appointmentDate: appointmentDate.toISOString(),
+      appointmentDate: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
       dayOfWeek,
       dayName
     })
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
       serviceCount: appointmentServices.length,
       totalDuration: `${totalDuration} min`,
       totalPrice: `R$ ${totalPrice}`,
-      dateTimeISO: appointment.dateTime.toISOString(),
+      dateTimeISO: toLocalISOString(appointment.dateTime), // 🇧🇷 CORREÇÃO: Usar função brasileira
       dateTimeBrazil: appointment.dateTime.toString()
     })
 
