@@ -31,6 +31,8 @@ import {
   Edit3,
   Trash2,
   RefreshCw,
+  Search,
+  ChevronDown,
 } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
@@ -76,6 +78,10 @@ export default function AgendaPage() {
   })
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
+  
+  // Estados para pesquisa de clientes
+  const [clientSearchTerm, setClientSearchTerm] = useState("")
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
   
   // Hooks para dados reais do banco de dados
   const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
@@ -204,6 +210,26 @@ export default function AgendaPage() {
     loadFilteredData()
   }, [selectedProfessional, selectedStatus, currentDate]) // Removido fetchAppointments para evitar loop
 
+  // Fechar dropdown de clientes ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isClientDropdownOpen) {
+        const target = event.target as Element
+        if (!target.closest('[data-client-dropdown]')) {
+          setIsClientDropdownOpen(false)
+        }
+      }
+    }
+
+    if (isClientDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isClientDropdownOpen])
+
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
     try {
@@ -270,6 +296,20 @@ export default function AgendaPage() {
   const generateTimeSlots = () => {
     return generateTimeSlotsForDate(currentDate)
   }
+
+  // Função para filtrar clientes baseada na pesquisa
+  const filteredClients = useMemo(() => {
+    if (!clientSearchTerm.trim()) {
+      return clients
+    }
+    
+    const searchLower = clientSearchTerm.toLowerCase()
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(searchLower) ||
+      client.phone.toLowerCase().includes(searchLower) ||
+      client.email?.toLowerCase().includes(searchLower)
+    )
+  }, [clients, clientSearchTerm])
 
   // 🇧🇷 OTIMIZADO: Obter agendamentos do dia atual (sem conversões UTC) usando useMemo
   const todayAppointments = useMemo(() => {
@@ -477,6 +517,8 @@ export default function AgendaPage() {
     })
     setEditingAppointment(null)
     setBackendError(null)
+    setClientSearchTerm("")
+    setIsClientDropdownOpen(false)
   }
 
   // Validação de dados com verificação de conflitos em tempo real
@@ -1780,13 +1822,20 @@ export default function AgendaPage() {
 
       {/* Modal de novo agendamento */}
       {isNewAppointmentOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-[#ededed]">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsClientDropdownOpen(false)
+            }
+          }}
+        >
+          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#ededed] text-lg sm:text-xl">
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa]">
+              <CardDescription className="text-[#a1a1aa] text-sm">
                 {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
@@ -1803,23 +1852,77 @@ export default function AgendaPage() {
               
               <div>
                 <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
-                <Select 
-                  value={newAppointment.endUserId} 
-                  onValueChange={(value) => {
-                    setNewAppointment(prev => ({...prev, endUserId: value}))
-                  }}
-                >
-                  <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-[#27272a]">
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name} - {client.phone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative" data-client-dropdown>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
+                    <Input
+                      placeholder="Buscar cliente por nome, telefone ou email..."
+                      value={clientSearchTerm}
+                      onChange={(e) => {
+                        setClientSearchTerm(e.target.value)
+                        setIsClientDropdownOpen(true)
+                      }}
+                      onFocus={() => setIsClientDropdownOpen(true)}
+                      className="bg-[#18181b] border-[#27272a] text-[#ededed] pl-10 pr-10"
+                    />
+                    <ChevronDown 
+                      className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
+                      onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                    />
+                  </div>
+                  
+                  {/* Cliente selecionado */}
+                  {newAppointment.endUserId && (
+                    <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-[#10b981]" />
+                        <span className="text-[#ededed] text-sm">
+                          {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setNewAppointment(prev => ({...prev, endUserId: ""}))
+                          setClientSearchTerm("")
+                        }}
+                        className="h-6 w-6 p-0 hover:bg-red-500/20"
+                      >
+                        <X className="h-3 w-3 text-red-400" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Dropdown de resultados */}
+                  {isClientDropdownOpen && (
+                    <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      {filteredClients.length > 0 ? (
+                        filteredClients.map((client) => (
+                          <div
+                            key={client.id}
+                            className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
+                            onClick={() => {
+                              setNewAppointment(prev => ({...prev, endUserId: client.id}))
+                              setClientSearchTerm(client.name)
+                              setIsClientDropdownOpen(false)
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
+                              <span className="text-[#71717a] text-xs">{client.phone}</span>
+                              {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-center text-[#71717a] text-sm">
+                          {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -1864,9 +1967,10 @@ export default function AgendaPage() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date" className="text-[#ededed]">Data *</Label>
+              {/* Data e Horário - Layout responsivo */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
                   <Input
                     id="date"
                     type="date"
@@ -1875,7 +1979,7 @@ export default function AgendaPage() {
                     onChange={(e) => {
                       setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
                     }}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed]"
+                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm"
                   />
                   {newAppointment.date && (
                     <div className="mt-1">
@@ -1883,16 +1987,16 @@ export default function AgendaPage() {
                         const dateStatus = getDateStatus()
                         if (dateStatus.isOpen === false) {
                           return (
-                            <p className="text-xs text-red-400 flex items-center gap-1">
+                            <p className="text-xs text-red-400 flex items-center gap-1 flex-wrap">
                               <span>❌</span>
-                              {dateStatus.message}
+                              <span className="break-words">{dateStatus.message}</span>
                             </p>
                           )
                         } else if (dateStatus.isOpen === true) {
                           return (
-                            <p className="text-xs text-[#10b981] flex items-center gap-1">
+                            <p className="text-xs text-[#10b981] flex items-center gap-1 flex-wrap">
                               <span>✅</span>
-                              {dateStatus.message}
+                              <span className="break-words">{dateStatus.message}</span>
                             </p>
                           )
                         }
@@ -1901,8 +2005,9 @@ export default function AgendaPage() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="time" className="text-[#ededed]">Horário *</Label>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="time" className="text-[#ededed] text-sm font-medium">Horário *</Label>
                   <Select 
                     value={newAppointment.time} 
                     onValueChange={(value) => {
@@ -1910,30 +2015,32 @@ export default function AgendaPage() {
                     }}
                     disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
-                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
                       <SelectValue placeholder={
-                        !newAppointment.date ? "Selecione uma data primeiro" :
-                        !newAppointment.serviceId ? "Selecione um serviço primeiro" :
-                        !getDateStatus().isOpen ? "Estabelecimento fechado" :
-                        "Selecione um horário"
+                        !newAppointment.date ? "Data primeiro" :
+                        !newAppointment.serviceId ? "Serviço primeiro" :
+                        !getDateStatus().isOpen ? "Fechado" :
+                        "Selecione horário"
                       } />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60">
+                    <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
                       {getAvailableTimeSlots().length > 0 ? (
                         getAvailableTimeSlots().map((time: string) => {
                           const isPast = isTimeInPast(newAppointment.date, time)
                           return (
-                            <SelectItem key={time} value={time}>
-                              {isPast ? '⏱️ ' : ''}{time}
-                              {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
+                            <SelectItem key={time} value={time} className="text-sm">
+                              <div className="flex items-center justify-between w-full">
+                                <span>{isPast ? '⏱️ ' : ''}{time}</span>
+                                {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
+                              </div>
                             </SelectItem>
                           )
                         })
                       ) : (
-                        <div className="p-2 text-center text-[#a1a1aa] text-sm">
+                        <div className="p-3 text-center text-[#a1a1aa] text-sm">
                           {!newAppointment.date ? "Selecione uma data" :
                            !newAppointment.serviceId ? "Selecione um serviço" :
-                           !getDateStatus().isOpen ? "Estabelecimento fechado neste dia" :
+                           !getDateStatus().isOpen ? "Estabelecimento fechado" :
                            "Nenhum horário disponível"
                           }
                         </div>
@@ -1942,16 +2049,15 @@ export default function AgendaPage() {
                   </Select>
                   {newAppointment.date && newAppointment.serviceId && (
                     <div className="mt-1 space-y-1">
-                      <p className="text-xs text-[#a1a1aa]">
-                        {getDateStatus().isOpen ? 
+                      <p className="text-xs text-[#a1a1aa] break-words">{getDateStatus().isOpen ? 
                           `${getAvailableTimeSlots().length} horários disponíveis` : 
                           'Estabelecimento fechado neste dia'
                         }
                       </p>
                       {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
-                        <p className="text-xs text-[#d97706] flex items-center gap-1">
+                        <p className="text-xs text-[#d97706] flex items-center gap-1 flex-wrap">
                           <span>⏱️</span>
-                          <span>Horários com ⏱️ são retroativos (já passaram)</span>
+                          <span className="break-words">Horários com ⏱️ são retroativos</span>
                         </p>
                       )}
                     </div>
@@ -1959,19 +2065,21 @@ export default function AgendaPage() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="notes" className="text-[#ededed]">Observações</Label>
+              {/* Observações */}
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium">Observações</Label>
                 <Textarea
                   id="notes"
                   placeholder="Observações sobre o agendamento..."
                   value={newAppointment.notes}
                   onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
-                  className="bg-[#18181b] border-[#27272a] text-[#ededed]"
+                  className="bg-[#18181b] border-[#27272a] text-[#ededed] min-h-[80px] text-sm resize-none"
                 />
               </div>
             </CardContent>
             
-            <div className="flex justify-end gap-2 p-6">
+            {/* Botões responsivos */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1979,7 +2087,7 @@ export default function AgendaPage() {
                   setEditingAppointment(null)
                   resetForm()
                 }}
-                className="border-[#27272a] hover:bg-[#27272a]"
+                className="border-[#27272a] hover:bg-[#27272a] text-sm h-10 w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancelar
               </Button>
@@ -2007,13 +2115,13 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-10 w-full sm:w-auto order-1 sm:order-2"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
                   isValidating ? "Validando..." :
                   !getDateStatus().isOpen ? "Estabelecimento Fechado" :
-                  (editingAppointment ? "Atualizar Agendamento" : "Criar Agendamento")
+                  (editingAppointment ? "Atualizar" : "Criar Agendamento")
                 }
               </Button>
             </div>
