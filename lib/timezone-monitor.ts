@@ -38,7 +38,9 @@ class TimezoneMonitor {
       // Validar se string parece problemática (UTC quando deveria ser local)
       if (this.detectPotentialUTCIssue(dateTimeString)) {
         this.metrics.inconsistenciesDetected++
-        console.warn('🚨 TIMEZONE MONITOR: Possível problema UTC detectado:', dateTimeString)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('🚨 TIMEZONE MONITOR: Possível problema UTC detectado:', dateTimeString)
+        }
       }
       
       const result = parseDatabaseDateTime(dateTimeString)
@@ -61,7 +63,9 @@ class TimezoneMonitor {
       this.metrics.parseErrors++
       this.metrics.lastError = error instanceof Error ? error.message : 'Erro desconhecido'
       
-      console.error('❌ TIMEZONE MONITOR: Erro no parse:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ TIMEZONE MONITOR: Erro no parse:', error)
+      }
       return null
     }
   }
@@ -102,11 +106,13 @@ class TimezoneMonitor {
     const isConsistent = timeDifference < 1000 // Menos de 1 segundo de diferença
     
     if (!isConsistent) {
-      console.warn('🚨 TIMEZONE MONITOR: Inconsistência detectada:', {
-        frontendTime,
-        backendTime,
-        timeDifference: `${timeDifference}ms`
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🚨 TIMEZONE MONITOR: Inconsistência detectada:', {
+          frontendTime,
+          backendTime,
+          timeDifference: `${timeDifference}ms`
+        })
+      }
       
       this.metrics.inconsistenciesDetected++
     }
@@ -273,10 +279,12 @@ export function logTimezoneMetrics(): void {
   const metrics = timezoneMonitor.getMetrics()
   const health = timezoneMonitor.generateHealthReport()
   
-  console.log('📊 TIMEZONE METRICS:', {
-    metrics,
-    health
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 TIMEZONE METRICS:', {
+      metrics,
+      health
+    })
+  }
 }
 
 // 🔄 Auto-log a cada 5 minutos em desenvolvimento

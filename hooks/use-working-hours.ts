@@ -42,15 +42,19 @@ export function useWorkingHours() {
       }
 
       const data = await response.json()
-      console.log('🔍 API Response - Horários carregados:', {
-        rawData: data,
-        workingHours: data.workingHours,
-        count: data.workingHours?.length || 0,
-        firstItem: data.workingHours?.[0] || null
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 API Response - Horários carregados:', {
+          rawData: data,
+          workingHours: data.workingHours,
+          count: data.workingHours?.length || 0,
+          firstItem: data.workingHours?.[0] || null
+        })
+      }
       setWorkingHours(data.workingHours || [])
     } catch (err) {
-      console.error('Erro ao buscar horários:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao buscar horários:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -83,12 +87,16 @@ export function useWorkingHours() {
       }
 
       const data = await response.json()
-      console.log('Horários atualizados:', data.workingHours)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Horários atualizados:', data.workingHours)
+      }
       setWorkingHours(data.workingHours || [])
       
       return data.workingHours
     } catch (err) {
-      console.error('Erro ao atualizar horários:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar horários:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
       throw err
     }
@@ -103,13 +111,15 @@ export function useWorkingHours() {
     // Usar getBrazilDayNameEn diretamente para garantir consistência
     const dayName = getBrazilDayNameEn(date)
     
-    console.log('🇧🇷 getDayName Debug CRÍTICO:', {
-      originalDate: date.toString(),
-      dayOfWeek: date.getDay(),
-      dayNameBR: date.toLocaleDateString('pt-BR', { weekday: 'long' }),
-      dayNameEN: dayName,
-      dayNameLowerCase: dayName.toLowerCase()
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🇧🇷 getDayName Debug CRÍTICO:', {
+        originalDate: date.toString(),
+        dayOfWeek: date.getDay(),
+        dayNameBR: date.toLocaleDateString('pt-BR', { weekday: 'long' }),
+        dayNameEN: dayName,
+        dayNameLowerCase: dayName.toLowerCase()
+      })
+    }
     
     return dayName
   }
@@ -119,23 +129,27 @@ export function useWorkingHours() {
     try {
       const dayName = getDayName(date)
       
-      console.log('🔍 DEBUG getWorkingHoursForDay CRÍTICO:', {
-        inputDate: date.toString(),
-        dayName,
-        workingHoursCount: workingHours.length,
-        availableWorkingHours: workingHours.map(wh => ({
-          dayOfWeek: wh.dayOfWeek,
-          isActive: wh.isActive,
-          startTime: wh.startTime,
-          endTime: wh.endTime
-        }))
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 DEBUG getWorkingHoursForDay CRÍTICO:', {
+          inputDate: date.toString(),
+          dayName,
+          workingHoursCount: workingHours.length,
+          availableWorkingHours: workingHours.map(wh => ({
+            dayOfWeek: wh.dayOfWeek,
+            isActive: wh.isActive,
+            startTime: wh.startTime,
+            endTime: wh.endTime
+          }))
+        })
+      }
       
       // 🚨 CORREÇÃO DEFINITIVA: Comparação direta e simples
       const dayWorkingHours = workingHours.find(wh => {
         const match = wh.dayOfWeek === dayName && wh.isActive
         
-        console.log(`🔍 Comparando exato: "${wh.dayOfWeek}" === "${dayName}" && ${wh.isActive} = ${match}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔍 Comparando exato: "${wh.dayOfWeek}" === "${dayName}" && ${wh.isActive} = ${match}`)
+        }
         
         return match
       })
@@ -157,7 +171,9 @@ export function useWorkingHours() {
         id: dayWorkingHours.id
       }
     } catch (error) {
-      console.error('Erro ao obter horários do dia:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao obter horários do dia:', error)
+      }
       return {
         isOpen: false,
         startTime: null,
@@ -173,7 +189,9 @@ export function useWorkingHours() {
       const dayConfig = getWorkingHoursForDay(date)
       return dayConfig.isOpen
     } catch (error) {
-      console.error('Erro ao verificar se estabelecimento está aberto:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao verificar se estabelecimento está aberto:', error)
+      }
       return false // Em caso de erro, considerar fechado para segurança
     }
   }
@@ -199,7 +217,9 @@ export function useWorkingHours() {
       
       return timeMinutes >= startMinutes && timeMinutes < endMinutes
     } catch (error) {
-      console.error('Erro ao verificar horário de funcionamento:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao verificar horário de funcionamento:', error)
+      }
       return false
     }
   }

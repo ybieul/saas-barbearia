@@ -35,7 +35,9 @@ export function useApi<T>() {
 
       if (!response.ok) {
         const errorMessage = data.message || `Erro ${response.status}: ${response.statusText}`
-        console.error('Erro na API:', { status: response.status, message: errorMessage, data })
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro na API:', { status: response.status, message: errorMessage, data })
+        }
         throw new Error(errorMessage)
       }
 
@@ -43,7 +45,9 @@ export function useApi<T>() {
       return data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
-      console.error('Erro na requisição:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro na requisição:', error)
+      }
       setState(prev => ({ ...prev, error: errorMessage, loading: false }))
       throw error // Propagar o erro para que possa ser tratado no componente
     }
@@ -164,7 +168,9 @@ export function useAppointments() {
     dateTime: string
     notes?: string
   }) => {
-    console.log('Criando agendamento:', appointmentData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Criando agendamento:', appointmentData)
+    }
     
     try {
       const result = await request('/api/appointments', {
@@ -173,12 +179,16 @@ export function useAppointments() {
       })
       
       if (result) {
-        console.log('Agendamento criado com sucesso:', result)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Agendamento criado com sucesso:', result)
+        }
       }
       
       return result
     } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao criar agendamento:', error)
+      }
       throw error
     }
   }, [request])
