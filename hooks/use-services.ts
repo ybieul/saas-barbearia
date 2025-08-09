@@ -50,7 +50,9 @@ export function useServices(): UseServicesReturn {
       const data = await response.json()
       setServices(data.services || [])
     } catch (err) {
-      console.error('Erro ao buscar serviços:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao buscar serviços:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -81,7 +83,9 @@ export function useServices(): UseServicesReturn {
       setServices(prev => [data.service, ...prev])
       return data.service
     } catch (err) {
-      console.error('Erro ao adicionar serviço:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao adicionar serviço:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao adicionar serviço')
       return null
     }
@@ -113,7 +117,9 @@ export function useServices(): UseServicesReturn {
       )
       return data.service
     } catch (err) {
-      console.error('Erro ao atualizar serviço:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar serviço:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao atualizar serviço')
       return null
     }
@@ -148,7 +154,9 @@ export function useServices(): UseServicesReturn {
       )
       return data.service
     } catch (err) {
-      console.error('Erro ao atualizar imagem do serviço:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar imagem do serviço:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao atualizar imagem')
       throw err // Re-throw para que o componente possa lidar com o erro
     }
@@ -177,7 +185,9 @@ export function useServices(): UseServicesReturn {
       setServices(prev => prev.filter(s => s.id !== id))
       return data.service || null
     } catch (err) {
-      console.error('Erro ao remover serviço:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao remover serviço:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao remover serviço')
       return null
     }

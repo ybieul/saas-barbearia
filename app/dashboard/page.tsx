@@ -115,7 +115,9 @@ export default function DashboardPage() {
       // Recarregar dados do dashboard
       await fetchDashboardData('today')
     } catch (error) {
-      console.error('Erro ao concluir agendamento:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao concluir agendamento:', error)
+      }
       toast({
         title: "❌ Erro",
         description: error instanceof Error ? error.message : "Erro ao concluir agendamento. Tente novamente.",
@@ -203,12 +205,14 @@ export default function DashboardPage() {
   const professionals = dashboardData?.professionals || []
 
   // Debug detalhado
-  console.log('🔍 Dashboard data recebido:', dashboardData)
-  console.log('🔍 Today appointments:', todayAppointments)
-  console.log('🔍 Next appointment:', nextAppointment)
-  console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
-  console.log('🔍 Professionals with avatars:', professionals)
-  console.log('🔍 Summary:', dashboardData?.summary)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Dashboard data recebido:', dashboardData)
+    console.log('🔍 Today appointments:', todayAppointments)
+    console.log('🔍 Next appointment:', nextAppointment)
+    console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
+    console.log('🔍 Professionals with avatars:', professionals)
+    console.log('🔍 Summary:', dashboardData?.summary)
+  }
 
   return (
     <div className="space-y-8">

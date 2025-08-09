@@ -46,7 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(savedToken)
         setUser(userData)
       } catch (error) {
-        console.error('Erro ao recuperar dados do usuário:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao recuperar dados do usuário:', error)
+        }
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
       }
@@ -81,8 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true }
       } else {
         // Capturar diferentes tipos de erro
-        console.log('Response status:', response.status)
-        console.log('Response data:', data)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Response status:', response.status)
+          console.log('Response data:', data)
+        }
         
         // Sempre verificar se é erro de usuário não encontrado primeiro
         if (data.needsRegistration === true || 
@@ -100,7 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.message || 'Credenciais inválidas' }
       }
     } catch (error) {
-      console.error('Erro no login:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro no login:', error)
+      }
       return { success: false, error: 'Erro de conexão' }
     }
   }

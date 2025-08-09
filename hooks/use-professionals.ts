@@ -40,7 +40,9 @@ export function useProfessionals(): UseProfessionalsReturn {
       const data = await response.json()
       setProfessionals(data.professionals || [])
     } catch (err) {
-      console.error('Erro ao buscar profissionais:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao buscar profissionais:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -68,7 +70,9 @@ export function useProfessionals(): UseProfessionalsReturn {
       setProfessionals(prev => [data.professional, ...prev])
       return true
     } catch (err) {
-      console.error('Erro ao adicionar profissional:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao adicionar profissional:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao adicionar profissional')
       return false
     }
@@ -97,7 +101,9 @@ export function useProfessionals(): UseProfessionalsReturn {
       )
       return true
     } catch (err) {
-      console.error('Erro ao atualizar profissional:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar profissional:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao atualizar profissional')
       return false
     }
@@ -119,7 +125,9 @@ export function useProfessionals(): UseProfessionalsReturn {
       setProfessionals(prev => prev.filter(p => p.id !== id))
       return true
     } catch (err) {
-      console.error('Erro ao remover profissional:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao remover profissional:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro ao remover profissional')
       return false
     }

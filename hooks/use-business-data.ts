@@ -52,7 +52,9 @@ export function useBusinessData() {
       }
 
       const data = await response.json()
-      console.log('Dados do estabelecimento carregados:', data.businessData)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dados do estabelecimento carregados:', data.businessData)
+      }
       setBusinessData(data.businessData || {
         name: "",
         email: "",
@@ -64,7 +66,9 @@ export function useBusinessData() {
         instagram: ""
       })
     } catch (err) {
-      console.error('Erro ao buscar dados do estabelecimento:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao buscar dados do estabelecimento:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -98,14 +102,18 @@ export function useBusinessData() {
       }
 
       const data = await response.json()
-      console.log('Dados do estabelecimento atualizados:', data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dados do estabelecimento atualizados:', data)
+      }
       
       // Atualizar estado local
       setBusinessData(dataToUpdate)
       
       return data
     } catch (err) {
-      console.error('Erro ao atualizar dados do estabelecimento:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar dados do estabelecimento:', err)
+      }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
       throw err
     } finally {
