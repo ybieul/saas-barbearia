@@ -41,13 +41,13 @@ export function ProfessionalAvatar({
   }
 
   return (
-    <Avatar className={`${sizeClasses[size]} ${className} border border-[#27272a]`}>
+    <Avatar className={`${sizeClasses[size]} ${className} border border-[#27272a] rounded-lg`}>
       <AvatarImage 
         src={avatar || undefined} 
         alt={`Foto de ${name}`}
-        className="object-cover"
+        className="object-cover rounded-lg"
       />
-      <AvatarFallback className="bg-[#27272a] text-[#a1a1aa] font-medium">
+      <AvatarFallback className="bg-[#27272a] text-[#a1a1aa] font-medium rounded-lg">
         {showInitials ? (
           getInitials(name)
         ) : (

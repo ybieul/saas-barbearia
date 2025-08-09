@@ -35,16 +35,15 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { 
+  utcToBrazil, 
   parseDateTime, 
   formatBrazilTime, 
   formatBrazilDate,
   getBrazilDayOfWeek,
-  getBrazilDayNumber,
   getBrazilNow,
   toBrazilDateString,
   debugTimezone,
-  parseDate,
-  toLocalISOString
+  parseDate
 } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 
@@ -139,6 +138,10 @@ export default function AgendamentoPage() {
   const [clientFound, setClientFound] = useState<boolean | null>(null)
   const [showClientForm, setShowClientForm] = useState(false)
   const [phoneDebounceTimer, setPhoneDebounceTimer] = useState<NodeJS.Timeout | null>(null)
+
+  // AbortControllers para cancelar requisições
+  const [availabilityAbortController, setAvailabilityAbortController] = useState<AbortController | null>(null)
+  const [clientSearchAbortController, setClientSearchAbortController] = useState<AbortController | null>(null)
 
   // Estado para controlar visibilidade dos detalhes do estabelecimento
   const [isDetailsVisible, setIsDetailsVisible] = useState(false)
@@ -261,6 +264,15 @@ export default function AgendamentoPage() {
   const loadAvailability = async (date: string, professionalId?: string) => {
     if (!date) return
     
+    // Cancelar requisição anterior se ainda estiver em andamento
+    if (availabilityAbortController) {
+      availabilityAbortController.abort()
+    }
+    
+    // Criar novo AbortController para esta requisição
+    const abortController = new AbortController()
+    setAvailabilityAbortController(abortController)
+    
     try {
       setLoadingAvailability(true)
       const url = new URL(`/api/public/business/${params.slug}/availability`, window.location.origin)
@@ -269,7 +281,15 @@ export default function AgendamentoPage() {
         url.searchParams.set('professionalId', professionalId)
       }
       
-      const response = await fetch(url.toString())
+      const response = await fetch(url.toString(), {
+        signal: abortController.signal
+      })
+      
+      // Verificar se a requisição foi cancelada
+      if (abortController.signal.aborted) {
+        return
+      }
+      
       if (response.ok) {
         const data = await response.json()
         setOccupiedSlots(data.occupiedSlots || [])
@@ -277,11 +297,19 @@ export default function AgendamentoPage() {
         console.error('Erro ao buscar disponibilidade:', response.statusText)
         setOccupiedSlots([])
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar erros de cancelamento
+      if (error.name === 'AbortError') {
+        return
+      }
       console.error('Erro ao buscar disponibilidade:', error)
       setOccupiedSlots([])
     } finally {
-      setLoadingAvailability(false)
+      // Só atualizar loading se não foi cancelado
+      if (!abortController.signal.aborted) {
+        setLoadingAvailability(false)
+        setAvailabilityAbortController(null)
+      }
     }
   }
 
@@ -377,7 +405,7 @@ export default function AgendamentoPage() {
 
     // Converter data para timezone brasileiro
     const selectedDateBrazil = parseDate(date)
-    const dayOfWeek = getBrazilDayNumber(selectedDateBrazil)
+    const dayOfWeek = getBrazilDayOfWeek(selectedDateBrazil)
     
     // Mapear dias da semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -480,11 +508,27 @@ export default function AgendamentoPage() {
       return
     }
 
+    // Cancelar busca anterior se ainda estiver em andamento
+    if (clientSearchAbortController) {
+      clientSearchAbortController.abort()
+    }
+
+    // Criar novo AbortController para esta busca
+    const abortController = new AbortController()
+    setClientSearchAbortController(abortController)
+
     setSearchingClient(true)
     setClientFound(null)
 
     try {
-      const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`)
+      const response = await fetch(`/api/public/clients/search?phone=${phone}&businessSlug=${params.slug}`, {
+        signal: abortController.signal
+      })
+      
+      // Verificar se a requisição foi cancelada
+      if (abortController.signal.aborted) {
+        return
+      }
       
       if (response.ok) {
         const clientData = await response.json()
@@ -518,12 +562,20 @@ export default function AgendamentoPage() {
         setClientFound(false)
         setShowClientForm(true)
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar erros de cancelamento
+      if (error.name === 'AbortError') {
+        return
+      }
       console.error('Erro ao buscar cliente:', error)
       setClientFound(false)
       setShowClientForm(true)
     } finally {
-      setSearchingClient(false)
+      // Só atualizar loading se não foi cancelado
+      if (!abortController.signal.aborted) {
+        setSearchingClient(false)
+        setClientSearchAbortController(null)
+      }
     }
   }
 
@@ -580,14 +632,24 @@ export default function AgendamentoPage() {
     }
   }
 
-  // Limpar timer ao desmontar componente
+  // Limpar timers e AbortControllers ao desmontar componente
   useEffect(() => {
     return () => {
+      // Limpar timer de debounce
       if (phoneDebounceTimer) {
         clearTimeout(phoneDebounceTimer)
       }
+      
+      // Cancelar requisições em andamento
+      if (availabilityAbortController) {
+        availabilityAbortController.abort()
+      }
+      
+      if (clientSearchAbortController) {
+        clientSearchAbortController.abort()
+      }
     }
-  }, [phoneDebounceTimer])
+  }, [phoneDebounceTimer, availabilityAbortController, clientSearchAbortController])
 
   // Validar formulário
   const validateAppointmentData = () => {
@@ -729,7 +791,7 @@ export default function AgendamentoPage() {
     
     try {
       console.log('🔄 [DEBUG] Criando dateTime...')
-      // 🇧🇷 Criar dateTime usando timezone brasileiro (agora direto)
+      // 🇧🇷 Criar dateTime usando timezone brasileiro e converter para UTC
       const appointmentDateTime = parseDateTime(selectedDate, selectedTime)
       debugTimezone(appointmentDateTime, 'Frontend Público - Criando agendamento')
 
@@ -756,7 +818,7 @@ export default function AgendamentoPage() {
         professionalId: selectedProfessional?.id || null,
         serviceId: mainService.id, // Serviço principal (compatível com API)
         services: allServiceIds, // Array completo com principal + complementos
-        appointmentDateTime: toLocalISOString(appointmentDateTime), // Envia horário brasileiro para o backend
+        appointmentDateTime: appointmentDateTime.toISOString(), // Envia em UTC para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
       }
 
@@ -850,7 +912,7 @@ export default function AgendamentoPage() {
           <Card className="bg-[#18181b] border-[#27272a] mb-6">
             <CardHeader className="text-center">
               {businessData.businessLogo && (
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden bg-[#27272a]">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-[#27272a]">
                   <img 
                     src={businessData.businessLogo} 
                     alt={businessData.businessName}
@@ -881,7 +943,7 @@ export default function AgendamentoPage() {
                   <DialogHeader className="text-center pb-4">
                     {/* Logo da empresa (se disponível) */}
                     {businessData.businessLogo && (
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border-2 border-emerald-600/30 shadow-lg">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border-2 border-emerald-600/30 shadow-lg">
                         <img 
                           src={businessData.businessLogo} 
                           alt={businessData.businessName}
@@ -1267,8 +1329,8 @@ export default function AgendamentoPage() {
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center">
-                            <Users className="h-6 w-6 text-[#71717a]" />
+                          <div className="w-16 h-16 rounded-lg bg-[#27272a] flex items-center justify-center">
+                            <Users className="h-8 w-8 text-[#71717a]" />
                           </div>
                           <div>
                             <h4 className="font-medium text-[#ededed]">
@@ -1317,18 +1379,21 @@ export default function AgendamentoPage() {
                               }`}
                           >
                             <div className="flex items-center gap-3">
-                              <Avatar className="w-12 h-12">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#27272a] flex-shrink-0">
                                 {professional.avatar ? (
-                                  <AvatarImage 
+                                  <img 
                                     src={professional.avatar} 
-                                    alt={professional.name} 
+                                    alt={professional.name}
+                                    className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <AvatarFallback className="bg-[#27272a] text-[#71717a]">
-                                    {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                  </AvatarFallback>
+                                  <div className="w-full h-full bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 flex items-center justify-center">
+                                    <span className="text-[#71717a] font-bold text-lg">
+                                      {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    </span>
+                                  </div>
                                 )}
-                              </Avatar>
+                              </div>
                               <div>
                                 <h4 className="font-medium text-[#ededed]">
                                   {professional.name}
@@ -1390,7 +1455,7 @@ export default function AgendamentoPage() {
                       const date = new Date()
                       date.setDate(date.getDate() + i)
                       const dateString = toBrazilDateString(date)
-                      const dayOfWeek = getBrazilDayNumber(date)
+                      const dayOfWeek = getBrazilDayOfWeek(date)
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                       const dayName = dayNames[dayOfWeek]
                       
