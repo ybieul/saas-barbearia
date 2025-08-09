@@ -89,13 +89,17 @@ export function parseDateTime(dateStr: string, timeStr: string): Date {
 export function formatBrazilTime(date: Date, pattern: string = 'dd/MM/yyyy HH:mm'): string {
   try {
     if (!date || !isValid(date)) {
-      console.warn('⚠️ Data inválida fornecida para formatação')
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Data inválida fornecida para formatação')
+      }
       return 'Data inválida'
     }
     
     return format(date, pattern)
   } catch (error) {
-    console.error('❌ Erro ao formatar data brasileira:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Erro ao formatar data brasileira:', error)
+    }
     return 'Erro na formatação'
   }
 }
@@ -114,13 +118,17 @@ export function getBrazilDayOfWeek(date: Date): string {
   
   try {
     if (!date || !isValid(date)) {
-      console.warn('⚠️ Data inválida fornecida para dia da semana')
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Data inválida fornecida para dia da semana')
+      }
       return 'Data inválida'
     }
     
     return days[date.getDay()]
   } catch (error) {
-    console.error('❌ Erro ao obter dia da semana:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Erro ao obter dia da semana:', error)
+    }
     return 'Erro'
   }
 }
@@ -178,18 +186,22 @@ export function getBrazilDayNumber(date: Date): number {
  */
 export function debugTimezone(date: Date, context: string = 'Debug'): void {
   if (!date || !isValid(date)) {
-    console.warn(`⚠️ [${context}] Data inválida fornecida para debug`)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`⚠️ [${context}] Data inválida fornecida para debug`)
+    }
     return
   }
 
-  console.log(`🔍 [${context}] Debug de Data:`, {
-    original: date,
-    isoString: date.toISOString(),
-    localString: date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-    timeString: date.toTimeString(),
-    brazilFormatted: formatBrazilTime(date),
-    dayOfWeek: getBrazilDayOfWeek(date)
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 [${context}] Debug de Data:`, {
+      original: date,
+      isoString: date.toISOString(),
+      localString: date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      timeString: date.toTimeString(),
+      brazilFormatted: formatBrazilTime(date),
+      dayOfWeek: getBrazilDayOfWeek(date)
+    })
+  }
 }
 
 /**
@@ -458,7 +470,8 @@ export function brazilToUtc(date: Date): Date {
 }
 
 // 📊 ESTATÍSTICAS DA MIGRAÇÃO
-console.log(`
+if (process.env.NODE_ENV === 'development') {
+  console.log(`
 🇧🇷 SISTEMA DE TIMEZONE BRASILEIRO CARREGADO
 ============================================
 ✅ Timezone simplificado: Brasil nativo
@@ -468,3 +481,4 @@ console.log(`
 
 Migração concluída com sucesso! 🎉
 `)
+}
