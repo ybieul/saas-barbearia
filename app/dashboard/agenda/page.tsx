@@ -545,19 +545,20 @@ export default function AgendaPage() {
         dayOfWeek: selectedDate.getDay()
       })
       
-      // Validar se a data não é no passado
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      selectedDate.setHours(0, 0, 0, 0)
-      
-      if (selectedDate < today) {
-        toast({
-          title: "🚫 Data Inválida",
-          description: "Não é possível agendar em datas passadas",
-          variant: "destructive",
-        })
-        return false
-      }
+      // ✅ PERMITIR agendamentos retroativos no dashboard - validação de data passada removida
+      // Comentado para permitir retroagendamento conforme solicitado
+      // const today = new Date()
+      // today.setHours(0, 0, 0, 0)
+      // selectedDate.setHours(0, 0, 0, 0)
+      // 
+      // if (selectedDate < today) {
+      //   toast({
+      //     title: "🚫 Data Inválida",
+      //     description: "Não é possível agendar em datas passadas",
+      //     variant: "destructive",
+      //   })
+      //   return false
+      // }
 
       // Validar se estabelecimento está aberto no dia selecionado
       if (!isEstablishmentOpen(selectedDate)) {
@@ -637,6 +638,26 @@ export default function AgendaPage() {
       }
 
       console.log('✅ Validação concluída com sucesso')
+      
+      // ✅ Aviso informativo para agendamentos retroativos (não bloqueante)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      
+      if (selectedDate < today) {
+        console.log('⏰ Agendamento retroativo detectado - prosseguindo com aviso')
+      } else if (selectedDate.getTime() === today.getTime()) {
+        // Se é hoje, verificar se o horário já passou
+        const [hours, minutes] = newAppointment.time.split(':').map(Number)
+        const appointmentTime = new Date()
+        appointmentTime.setHours(hours, minutes, 0, 0)
+        const now = new Date()
+        
+        if (appointmentTime <= now) {
+          console.log('⏰ Agendamento em horário passado (hoje) detectado - prosseguindo com aviso')
+        }
+      }
+      
       return true
     } catch (error) {
       console.error('🚫 Erro na validação:', error)
