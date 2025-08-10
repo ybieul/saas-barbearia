@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/hooks/use-auth"
+import { useBusinessInfo } from "@/hooks/use-business-info"
 
 const menuItems = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", description: "Visão geral do negócio" },
@@ -41,6 +42,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user, logout } = useAuth()
+  const { businessInfo, loading: businessLoading } = useBusinessInfo()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const router = useRouter()
@@ -143,15 +145,23 @@ export default function DashboardLayout({
           {/* Perfil */}
           <div className="p-6 border-b border-[#27272a]">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#27272a] to-[#18181b] rounded-xl flex items-center justify-center shadow-lg">
-                <UserCircle className="w-7 h-7 text-[#71717a]" />
+              <div className="w-12 h-12 bg-gradient-to-br from-[#27272a] to-[#18181b] rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                {businessInfo?.businessLogo ? (
+                  <img 
+                    src={businessInfo.businessLogo} 
+                    alt={businessInfo.businessName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="w-7 h-7 text-[#71717a]" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#ededed] truncate">
-                  {user?.name || 'Usuário'}
+                <p className="text-sm lg:text-base font-semibold text-[#ededed] truncate">
+                  {businessInfo?.businessName || 'Estabelecimento'}
                 </p>
-                <p className="text-xs text-[#a1a1aa] truncate">
-                  {user?.email || 'usuario@email.com'}
+                <p className="text-xs lg:text-sm text-[#a1a1aa] truncate">
+                  {businessInfo?.email || 'email@estabelecimento.com'}
                 </p>
                 <div className="flex items-center mt-1">
                   <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2"></div>
