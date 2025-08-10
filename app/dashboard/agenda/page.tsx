@@ -1456,7 +1456,7 @@ export default function AgendaPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
           <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
           {lastUpdated && (
             <p className="text-xs text-[#71717a] mt-1">
@@ -1496,7 +1496,7 @@ export default function AgendaPage() {
                 <Calendar className="w-5 h-5 text-[#10b981]" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-sm md:text-sm text-[#a1a1aa]">
                   Agendamentos Hoje
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1504,7 +1504,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
+                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
               </div>
             </div>
           </CardContent>
@@ -1517,7 +1517,7 @@ export default function AgendaPage() {
                 <CheckCircle className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-sm md:text-sm text-[#a1a1aa]">
                   Concluídos
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1525,7 +1525,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
+                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
               </div>
             </div>
           </CardContent>
@@ -1538,7 +1538,7 @@ export default function AgendaPage() {
                 <AlertCircle className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-sm md:text-sm text-[#a1a1aa]">
                   Pendentes
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1546,7 +1546,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
+                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
               </div>
             </div>
           </CardContent>
@@ -1559,7 +1559,7 @@ export default function AgendaPage() {
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-sm md:text-sm text-[#a1a1aa]">
                   Taxa de Ocupação
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1567,7 +1567,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
+                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
               </div>
             </div>
           </CardContent>
@@ -1580,7 +1580,7 @@ export default function AgendaPage() {
                 <span className="text-[#10b981] font-bold text-lg">R$</span>
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-sm md:text-sm text-[#a1a1aa]">
                   Receita Hoje
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1588,7 +1588,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">
+                <p className="text-xl md:text-2xl font-bold text-[#ededed]">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
@@ -1613,7 +1613,7 @@ export default function AgendaPage() {
           </Button>
           
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-[#ededed]">
+            <h2 className="text-lg md:text-xl font-semibold text-[#ededed]">
               {formatDate(currentDate)}
             </h2>
           </div>
@@ -1662,8 +1662,8 @@ export default function AgendaPage() {
       {/* Agenda de Horários */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
-          <CardDescription className="text-[#a1a1aa]">
+          <CardTitle className="text-[#ededed] text-base md:text-lg">Grade de Horários</CardTitle>
+          <CardDescription className="text-[#a1a1aa] text-sm md:text-sm">
             {(() => {
               const dayConfig = getWorkingHoursForDay(currentDate)
               if (!dayConfig.isOpen) {
@@ -1918,10 +1918,10 @@ export default function AgendaPage() {
         >
           <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[#ededed] text-lg sm:text-xl">
+              <CardTitle className="text-[#ededed] text-base md:text-xl">
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-sm">
+              <CardDescription className="text-[#a1a1aa] text-sm md:text-sm">
                 {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
