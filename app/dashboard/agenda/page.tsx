@@ -1706,9 +1706,17 @@ export default function AgendaPage() {
                   } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 flex-1">
-                    <div className="w-full sm:w-16 text-[#ededed] font-medium text-center sm:text-left sm:mt-1 text-sm md:text-base">
-                      {time}
+                    {/* Hora com destaque mobile - ícone de relógio e separação visual */}
+                    <div className="flex sm:block items-center justify-center sm:justify-start gap-2 sm:gap-0 w-full sm:w-16 sm:mt-1">
+                      {/* Ícone de relógio apenas em mobile */}
+                      <Clock className="w-4 h-4 text-[#10b981] sm:hidden" />
+                      <div className="text-[#ededed] font-medium text-center sm:text-left text-base sm:text-sm md:text-base">
+                        {time}
+                      </div>
                     </div>
+                    
+                    {/* Separação visual sutil apenas em mobile */}
+                    <div className="w-full h-px bg-gradient-to-r from-[#27272a] via-[#10b981]/20 to-[#27272a] sm:hidden"></div>
                     {appointmentsAtTime.length > 0 ? (
                       <div className="flex-1 space-y-2">
                         {appointmentsAtTime.map((appointment, index) => (
