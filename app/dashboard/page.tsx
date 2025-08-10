@@ -212,6 +212,10 @@ export default function DashboardPage() {
     console.log('🔍 Next appointments by professional:', nextAppointmentsByProfessional)
     console.log('🔍 Professionals with avatars:', professionals)
     console.log('🔍 Summary:', dashboardData?.summary)
+    console.log('🔍 Sparklines data:', dashboardData?.sparklines)
+    console.log('🔍 Sparklines revenue:', sparklines.revenue)
+    console.log('🔍 Sparklines appointments:', sparklines.appointments)
+    console.log('🔍 Sparklines clients:', sparklines.clients)
   }
 
   return (

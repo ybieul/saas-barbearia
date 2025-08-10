@@ -353,12 +353,33 @@ export async function GET(request: NextRequest) {
           }
         })
         
+        // Contar clientes únicos que tiveram agendamentos no dia
+        const dayClientsResult = await prisma.appointment.findMany({
+          where: {
+            tenantId: user.tenantId,
+            dateTime: {
+              gte: date,
+              lte: endOfDay
+            }
+          },
+          select: {
+            endUserId: true
+          },
+          distinct: ['endUserId']
+        })
+        
         sparklineData.push({
           date: toLocalDateString(date), // 🇧🇷 CORREÇÃO: Usar função brasileira
           revenue: Number(dayRevenue._sum.totalPrice || 0),
           appointments: dayAppointments,
-          clients: 0 // Simplificar por agora
+          clients: dayClientsResult.length
         })
+    }
+    if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Sparkline data calculado:', sparklineData)
+    console.log('🔍 Revenue array:', sparklineData.map(d => d.revenue))
+    console.log('🔍 Appointments array:', sparklineData.map(d => d.appointments))
+    console.log('🔍 Clients array:', sparklineData.map(d => d.clients))
     }
 
     // Calcular taxa de ocupação por profissional (usando horário real de funcionamento)
