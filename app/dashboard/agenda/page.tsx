@@ -1466,6 +1466,15 @@ export default function AgendaPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Versão Mobile - Novo Agendamento primeiro */}
+          <Button 
+            onClick={() => setIsNewAppointmentOpen(true)}
+            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm md:hidden"
+          >
+            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+            Novo Agendamento
+          </Button>
+          
           <Button 
             onClick={handleRefreshData}
             disabled={isRefreshing}
@@ -1477,9 +1486,10 @@ export default function AgendaPage() {
             {isRefreshing ? 'Atualizando...' : 'Atualizar'}
           </Button>
           
+          {/* Versão Desktop - ordem original (Atualizar primeiro) */}
           <Button 
             onClick={() => setIsNewAppointmentOpen(true)}
-            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm"
+            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm hidden md:flex"
           >
             <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
             Novo Agendamento
