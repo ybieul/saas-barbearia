@@ -1611,19 +1611,20 @@ export default function AgendaPage() {
       </div>
 
       {/* Controles de navegação */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+        {/* Navegação de data - sempre no topo em mobile */}
+        <div className="flex items-center justify-center gap-4 md:justify-start">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigateDate("prev")}
-            className="border-[#27272a] hover:bg-[#27272a]"
+            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-8 md:w-8"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           
           <div className="text-center">
-            <h2 className="text-lg md:text-xl font-semibold text-[#ededed]">
+            <h2 className="text-base md:text-lg xl:text-xl font-semibold text-[#ededed] whitespace-nowrap">
               {formatDate(currentDate)}
             </h2>
           </div>
@@ -1632,15 +1633,16 @@ export default function AgendaPage() {
             variant="outline"
             size="icon"
             onClick={() => navigateDate("next")}
-            className="border-[#27272a] hover:bg-[#27272a]"
+            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-8 md:w-8"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Filtros - stack em mobile, inline em desktop */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectTrigger className="w-full md:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
               <SelectValue placeholder="Filtrar por profissional" />
             </SelectTrigger>
             <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1654,7 +1656,7 @@ export default function AgendaPage() {
         </Select>
 
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <SelectTrigger className="w-full md:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1685,7 +1687,7 @@ export default function AgendaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 md:max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
@@ -1698,37 +1700,39 @@ export default function AgendaPage() {
               return (
                 <div
                   key={time}
-                  className={`flex items-start justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                  className={`flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 md:p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
                     appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
                     isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
                   } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
                 >
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-16 text-[#ededed] font-medium mt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 flex-1">
+                    <div className="w-full sm:w-16 text-[#ededed] font-medium text-center sm:text-left sm:mt-1 text-sm md:text-base">
                       {time}
                     </div>
                     {appointmentsAtTime.length > 0 ? (
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-2">
                         {appointmentsAtTime.map((appointment, index) => (
-                          <div key={appointment.id} className={`flex items-center gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
+                          <div key={appointment.id} className={`flex items-start gap-2 sm:gap-3 ${index > 0 ? 'pt-2 border-t border-[#27272a]' : ''}`}>
                             <div 
-                              className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                              className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${getStatusBadge(appointment.status).color}`}
                             ></div>
-                            <div className="flex-1">
-                              <p className="text-[#ededed] font-medium">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[#ededed] font-medium text-sm md:text-base truncate">
                                 {appointment.endUser?.name || appointment.clientName || 'Cliente'}
                               </p>
-                              <p className="text-[#a1a1aa] text-sm">
+                              <p className="text-[#a1a1aa] text-xs md:text-sm break-words">
                                 {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
                                 <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
                                 {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
                                 {appointment.professionalId && (
-                                  ` • ${
-                                    appointment.professional?.name || 
-                                    appointment.professionalName || 
-                                    professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
-                                    `Prof. ${appointment.professionalId.substring(0, 8)}`
-                                  }`
+                                  <span className="block sm:inline">
+                                    {` • ${
+                                      appointment.professional?.name || 
+                                      appointment.professionalName || 
+                                      professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                                      `Prof. ${appointment.professionalId.substring(0, 8)}`
+                                    }`}
+                                  </span>
                                 )}
                               </p>
                               <p className="text-xs text-[#71717a]">
@@ -1739,30 +1743,30 @@ export default function AgendaPage() {
                         ))}
                       </div>
                     ) : isOccupied ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                        <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                        <p className="text-red-400 text-xs md:text-sm">Ocupado (dentro de outro agendamento)</p>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
-                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full flex-shrink-0"></div>
+                        <p className="text-[#10b981] text-xs md:text-sm">Disponível - Clique para agendar</p>
                       </div>
                     )}
                   </div>
                   
                   {appointmentsAtTime.length === 0 && !isOccupied && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white w-full sm:w-auto text-xs"
                         onClick={() => {
                           setNewAppointment(prev => ({...prev, time, date: toLocalDateString(currentDate)}))
                           setIsNewAppointmentOpen(true)
                         }}
                       >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                         Agendar
                       </Button>
                       
@@ -1777,7 +1781,7 @@ export default function AgendaPage() {
                             )
                             if (nextAvailable && nextAvailable !== time) {
                               return (
-                                <span className="text-xs text-[#a1a1aa]">
+                                <span className="text-xs text-[#a1a1aa] text-center sm:text-left">
                                   Próximo: {nextAvailable}
                                 </span>
                               )
