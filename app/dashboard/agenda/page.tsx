@@ -1700,10 +1700,11 @@ export default function AgendaPage() {
               return (
                 <div
                   key={time}
-                  className={`flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 md:p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
-                    appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
-                    isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
-                  } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
+                  className={`flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 md:p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors 
+                    ${appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
+                      isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'} 
+                    ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}
+                    mb-3 sm:mb-0 mx-2 sm:mx-0 rounded-lg sm:rounded-none border-l-4 sm:border-l-0 border-l-[#10b981]/30 sm:border-l-transparent`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 flex-1">
                     {/* Hora com destaque mobile - ícone de relógio e separação visual */}
