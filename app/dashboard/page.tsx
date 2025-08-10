@@ -226,13 +226,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 lg:p-4">
-              <CardTitle className="text-xs sm:text-sm lg:text-sm font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
-              <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 ${stat.color} flex-shrink-0`} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 lg:p-5">
+              <CardTitle className="text-xs sm:text-sm lg:text-base font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
+              <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 ${stat.color} flex-shrink-0`} />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 lg:p-4 pt-0">
-              <div className="text-center space-y-2 sm:space-y-2 lg:space-y-2">
-                <div className="text-xl sm:text-3xl lg:text-2xl font-bold text-[#ededed]">{stat.value}</div>
+            <CardContent className="p-3 sm:p-4 lg:p-5 pt-0">
+              <div className="text-center space-y-2 sm:space-y-2 lg:space-y-3">
+                <div className="text-xl sm:text-3xl lg:text-3xl font-bold text-[#ededed]">{stat.value}</div>
                 <div className="flex justify-center">
                   <Sparkline 
                     data={stat.sparklineData} 
