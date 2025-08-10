@@ -188,7 +188,7 @@ export default function ClientesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#ededed]">Clientes</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Clientes</h1>
           <p className="text-[#a1a1aa]">Gerencie sua base de clientes</p>
         </div>
         
@@ -389,7 +389,7 @@ export default function ClientesPage() {
                       <div>
                         <h3 className="font-medium text-white">{client.name}</h3>
                         <p className="text-xs text-[#71717a]">
-                          Cliente desde {formatBrazilDate(client.createdAt)}
+                          Cliente desde {formatBrazilDate(new Date(client.createdAt))}
                         </p>
                       </div>
                     </div>
@@ -498,7 +498,7 @@ export default function ClientesPage() {
                               {client.isActive ? 'Novo' : 'Inativo'}
                             </Badge>
                             <span className="text-xs text-[#71717a]">
-                              Desde {formatBrazilDate(client.createdAt)}
+                              Desde {formatBrazilDate(new Date(client.createdAt))}
                             </span>
                           </div>
                         </div>
