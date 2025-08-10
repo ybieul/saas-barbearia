@@ -1732,7 +1732,7 @@ export default function AgendaPage() {
                     <div className="flex sm:block items-center justify-center sm:justify-start gap-2 sm:gap-0 w-full sm:w-16 sm:mt-1">
                       {/* Ícone de relógio apenas em mobile */}
                       <Clock className="w-4 h-4 text-[#10b981] sm:hidden" />
-                      <div className="text-[#ededed] font-medium text-center sm:text-left text-base sm:text-sm md:text-base">
+                      <div className="text-[#ededed] font-medium text-center sm:text-left text-base sm:text-sm md:text-lg">
                         {time}
                       </div>
                     </div>
@@ -1775,12 +1775,12 @@ export default function AgendaPage() {
                     ) : isOccupied ? (
                       <div className="flex items-center gap-2 sm:gap-3 flex-1">
                         <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                        <p className="text-red-400 text-xs md:text-sm">Ocupado (dentro de outro agendamento)</p>
+                        <p className="text-red-400 text-xs md:text-base">Ocupado (dentro de outro agendamento)</p>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 sm:gap-3 flex-1">
                         <div className="w-3 h-3 bg-[#10b981] rounded-full flex-shrink-0"></div>
-                        <p className="text-[#10b981] text-xs md:text-sm">Disponível - Clique para agendar</p>
+                        <p className="text-[#10b981] text-xs md:text-base">Disponível - Clique para agendar</p>
                       </div>
                     )}
                   </div>
@@ -1790,13 +1790,13 @@ export default function AgendaPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white w-full sm:w-auto text-xs"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white w-full sm:w-auto text-xs md:text-sm md:px-4 md:py-2"
                         onClick={() => {
                           setNewAppointment(prev => ({...prev, time, date: toLocalDateString(currentDate)}))
                           setIsNewAppointmentOpen(true)
                         }}
                       >
-                        <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                        <Plus className="w-3 h-3 md:w-5 md:h-5 mr-1" />
                         Agendar
                       </Button>
                       
