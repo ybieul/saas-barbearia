@@ -1611,19 +1611,18 @@ export default function AgendaPage() {
       </div>
 
       {/* Controles de navegação */}
-      <div className="flex flex-col md:flex-row gap-4 md:justify-between md:items-center">
-        {/* Navegação de data - sempre no topo em mobile */}
-        <div className="flex items-center justify-center md:justify-start gap-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigateDate("prev")}
-            className="border-[#27272a] hover:bg-[#27272a] flex-shrink-0"
+            className="border-[#27272a] hover:bg-[#27272a]"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           
-          <div className="text-center flex-1 md:flex-none">
+          <div className="text-center">
             <h2 className="text-lg md:text-xl font-semibold text-[#ededed]">
               {formatDate(currentDate)}
             </h2>
@@ -1633,16 +1632,15 @@ export default function AgendaPage() {
             variant="outline"
             size="icon"
             onClick={() => navigateDate("next")}
-            className="border-[#27272a] hover:bg-[#27272a] flex-shrink-0"
+            className="border-[#27272a] hover:bg-[#27272a]"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Filtros - empilhados em mobile, lado a lado em desktop */}
-        <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
+        <div className="flex items-center gap-4">
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-full sm:w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
               <SelectValue placeholder="Filtrar por profissional" />
             </SelectTrigger>
             <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1656,7 +1654,7 @@ export default function AgendaPage() {
         </Select>
 
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-full sm:w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1687,7 +1685,7 @@ export default function AgendaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-96 md:max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
@@ -1700,73 +1698,65 @@ export default function AgendaPage() {
               return (
                 <div
                   key={time}
-                  className={`flex flex-col md:flex-row md:items-start md:justify-between p-3 md:p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                  className={`flex items-start justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
                     appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
                     isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
                   } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
                 >
-                  <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4 flex-1">
-                    {/* Horário - fixo no topo em mobile */}
-                    <div className="w-full md:w-16 text-[#ededed] font-medium text-center md:text-left text-sm md:text-base bg-[#27272a]/30 md:bg-transparent rounded md:rounded-none px-2 py-1 md:p-0 mt-0 md:mt-1">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-16 text-[#ededed] font-medium mt-1">
                       {time}
                     </div>
-                    
-                    {/* Conteúdo dos agendamentos */}
-                    <div className="flex-1 mt-2 md:mt-0">
-                      {appointmentsAtTime.length > 0 ? (
-                        <div className="space-y-2">
-                          {appointmentsAtTime.map((appointment, index) => (
-                            <div key={appointment.id} className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
-                              <div 
-                                className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusBadge(appointment.status).color}`}
-                              ></div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[#ededed] font-medium text-sm md:text-base truncate">
-                                  {appointment.endUser?.name || appointment.clientName || 'Cliente'}
-                                </p>
-                                <p className="text-[#a1a1aa] text-xs md:text-sm">
-                                  {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
-                                  <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
-                                  {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
-                                  {appointment.professionalId && (
-                                    <span className="block md:inline">
-                                      {` • ${
-                                        appointment.professional?.name || 
-                                        appointment.professionalName || 
-                                        professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
-                                        `Prof. ${appointment.professionalId.substring(0, 8)}`
-                                      }`}
-                                    </span>
-                                  )}
-                                </p>
-                                <p className="text-xs text-[#71717a]">
-                                  Status: {getStatusBadge(appointment.status).label}
-                                </p>
-                              </div>
+                    {appointmentsAtTime.length > 0 ? (
+                      <div className="flex-1">
+                        {appointmentsAtTime.map((appointment, index) => (
+                          <div key={appointment.id} className={`flex items-center gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
+                            <div 
+                              className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                            ></div>
+                            <div className="flex-1">
+                              <p className="text-[#ededed] font-medium">
+                                {appointment.endUser?.name || appointment.clientName || 'Cliente'}
+                              </p>
+                              <p className="text-[#a1a1aa] text-sm">
+                                {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
+                                <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
+                                {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
+                                {appointment.professionalId && (
+                                  ` • ${
+                                    appointment.professional?.name || 
+                                    appointment.professionalName || 
+                                    professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                                    `Prof. ${appointment.professionalId.substring(0, 8)}`
+                                  }`
+                                )}
+                              </p>
+                              <p className="text-xs text-[#71717a]">
+                                Status: {getStatusBadge(appointment.status).label}
+                              </p>
                             </div>
-                          ))}
-                        </div>
-                      ) : isOccupied ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                          <p className="text-red-400 text-sm">Ocupado (dentro de outro agendamento)</p>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-[#10b981] rounded-full flex-shrink-0"></div>
-                          <p className="text-[#10b981] text-sm">Disponível - Clique para agendar</p>
-                        </div>
-                      )}
-                    </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : isOccupied ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Botões de ação - stack em mobile */}
                   {appointmentsAtTime.length === 0 && !isOccupied && (
-                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mt-3 md:mt-0">
+                    <div className="flex items-center gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white w-full md:w-auto"
+                        className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
                         onClick={() => {
                           setNewAppointment(prev => ({...prev, time, date: toLocalDateString(currentDate)}))
                           setIsNewAppointmentOpen(true)
@@ -1787,7 +1777,7 @@ export default function AgendaPage() {
                             )
                             if (nextAvailable && nextAvailable !== time) {
                               return (
-                                <span className="text-xs text-[#a1a1aa] text-center md:text-left">
+                                <span className="text-xs text-[#a1a1aa]">
                                   Próximo: {nextAvailable}
                                 </span>
                               )
