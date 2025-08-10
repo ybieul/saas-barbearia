@@ -1456,8 +1456,8 @@ export default function AgendaPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
-          <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
+          <p className="text-xs sm:text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
           {lastUpdated && (
             <p className="text-xs text-[#71717a] mt-1">
               Última atualização: {lastUpdated.toLocaleString('pt-BR')}
@@ -1467,22 +1467,24 @@ export default function AgendaPage() {
         
         <div className="flex items-center gap-2">
           <Button 
+            onClick={() => setIsNewAppointmentOpen(true)}
+            className="bg-[#10b981] hover:bg-[#059669] text-xs sm:text-xs md:text-sm"
+          >
+            <Plus className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4 mr-1.5" />
+            <span className="hidden sm:inline">Novo Agendamento</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+          
+          <Button 
             onClick={handleRefreshData}
             disabled={isRefreshing}
             variant="outline"
             size="sm"
-            className="border-[#27272a] hover:bg-[#27272a] text-xs md:text-sm"
+            className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-xs md:text-sm"
           >
-            <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-          </Button>
-          
-          <Button 
-            onClick={() => setIsNewAppointmentOpen(true)}
-            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm"
-          >
-            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-            Novo Agendamento
+            <RefreshCw className={`w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isRefreshing ? 'Atualizando...' : 'Atualizar'}</span>
+            <span className="sm:hidden">{isRefreshing ? '...' : 'Att'}</span>
           </Button>
         </div>
       </div>
@@ -1490,13 +1492,13 @@ export default function AgendaPage() {
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#10b981]/20 rounded-lg">
-                <Calendar className="w-5 h-5 text-[#10b981]" />
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#10b981]" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-xs sm:text-sm text-[#a1a1aa]">
                   Agendamentos Hoje
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1504,20 +1506,20 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/20 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-blue-400" />
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-xs sm:text-sm text-[#a1a1aa]">
                   Concluídos
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1525,20 +1527,20 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-yellow-400" />
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-xs sm:text-sm text-[#a1a1aa]">
                   Pendentes
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1546,20 +1548,20 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Users className="w-5 h-5 text-purple-400" />
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-xs sm:text-sm text-[#a1a1aa]">
                   Taxa de Ocupação
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1567,20 +1569,20 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#10b981]/20 rounded-lg">
-                <span className="text-[#10b981] font-bold text-lg">R$</span>
+                <span className="text-[#10b981] font-bold text-base sm:text-lg">R$</span>
               </div>
               <div>
-                <p className="text-sm text-[#a1a1aa]">
+                <p className="text-xs sm:text-sm text-[#a1a1aa]">
                   Receita Hoje
                   {selectedProfessional !== "todos" && (
                     <span className="ml-1 text-xs text-[#10b981]">
@@ -1588,7 +1590,7 @@ export default function AgendaPage() {
                     </span>
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#ededed]">
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
@@ -1601,19 +1603,19 @@ export default function AgendaPage() {
       </div>
 
       {/* Controles de navegação */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigateDate("prev")}
-            className="border-[#27272a] hover:bg-[#27272a]"
+            className="border-[#27272a] hover:bg-[#27272a] h-8 w-8 sm:h-10 sm:w-10"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
           
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-[#ededed]">
+            <h2 className="text-base sm:text-xl font-semibold text-[#ededed]">
               {formatDate(currentDate)}
             </h2>
           </div>
@@ -1622,15 +1624,15 @@ export default function AgendaPage() {
             variant="outline"
             size="icon"
             onClick={() => navigateDate("next")}
-            className="border-[#27272a] hover:bg-[#27272a]"
+            className="border-[#27272a] hover:bg-[#27272a] h-8 w-8 sm:h-10 sm:w-10"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+            <SelectTrigger className="w-full sm:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] text-xs sm:text-sm">
               <SelectValue placeholder="Filtrar por profissional" />
             </SelectTrigger>
             <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1644,7 +1646,7 @@ export default function AgendaPage() {
         </Select>
 
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <SelectTrigger className="w-full sm:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] text-xs sm:text-sm">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1661,9 +1663,9 @@ export default function AgendaPage() {
 
       {/* Agenda de Horários */}
       <Card className="bg-[#18181b] border-[#27272a]">
-        <CardHeader>
-          <CardTitle className="text-[#ededed]">Grade de Horários</CardTitle>
-          <CardDescription className="text-[#a1a1aa]">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg text-[#ededed]">Grade de Horários</CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-[#a1a1aa]">
             {(() => {
               const dayConfig = getWorkingHoursForDay(currentDate)
               if (!dayConfig.isOpen) {
@@ -1675,7 +1677,7 @@ export default function AgendaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
               // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
@@ -1688,37 +1690,39 @@ export default function AgendaPage() {
               return (
                 <div
                   key={time}
-                  className={`flex items-start justify-between p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
+                  className={`flex items-start justify-between p-3 sm:p-4 border-b border-[#27272a] hover:bg-[#27272a]/50 transition-colors ${
                     appointmentsAtTime.length > 0 ? 'bg-blue-500/10' : 
                     isOccupied ? 'bg-red-500/10' : 'bg-[#10b981]/5'
                   } ${appointmentsAtTime.length > 1 ? 'min-h-[120px]' : ''}`}
                 >
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-16 text-[#ededed] font-medium mt-1">
+                  <div className="flex items-start gap-2 sm:gap-4 flex-1">
+                    <div className="w-12 sm:w-16 text-[#ededed] font-medium mt-1 text-xs sm:text-sm">
                       {time}
                     </div>
                     {appointmentsAtTime.length > 0 ? (
                       <div className="flex-1">
                         {appointmentsAtTime.map((appointment, index) => (
-                          <div key={appointment.id} className={`flex items-center gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
+                          <div key={appointment.id} className={`flex items-center gap-2 sm:gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-[#27272a]' : ''}`}>
                             <div 
-                              className={`w-3 h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
+                              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${getStatusBadge(appointment.status).color}`}
                             ></div>
                             <div className="flex-1">
-                              <p className="text-[#ededed] font-medium">
+                              <p className="text-[#ededed] font-medium text-sm sm:text-base">
                                 {appointment.endUser?.name || appointment.clientName || 'Cliente'}
                               </p>
-                              <p className="text-[#a1a1aa] text-sm">
+                              <p className="text-[#a1a1aa] text-xs sm:text-sm">
                                 {appointment.services?.map((s: any) => s.name).join(' + ') || appointment.serviceName || 'Serviço'} 
                                 <span className="text-[#10b981]"> • {appointment.duration || 30}min</span>
                                 {/* ✅ SEMPRE exibir profissional quando houver professionalId */}
                                 {appointment.professionalId && (
-                                  ` • ${
-                                    appointment.professional?.name || 
-                                    appointment.professionalName || 
-                                    professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
-                                    `Prof. ${appointment.professionalId.substring(0, 8)}`
-                                  }`
+                                  <span className="hidden sm:inline">
+                                    {` • ${
+                                      appointment.professional?.name || 
+                                      appointment.professionalName || 
+                                      professionalsData?.find(p => p.id === appointment.professionalId)?.name ||
+                                      `Prof. ${appointment.professionalId.substring(0, 8)}`
+                                    }`}
+                                  </span>
                                 )}
                               </p>
                               <p className="text-xs text-[#71717a]">
@@ -1729,20 +1733,26 @@ export default function AgendaPage() {
                         ))}
                       </div>
                     ) : isOccupied ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <p className="text-red-400">Ocupado (dentro de outro agendamento)</p>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
+                        <p className="text-red-400 text-xs sm:text-sm">
+                          <span className="hidden sm:inline">Ocupado (dentro de outro agendamento)</span>
+                          <span className="sm:hidden">Ocupado</span>
+                        </p>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
-                        <p className="text-[#10b981]">Disponível - Clique para agendar</p>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-[#10b981] rounded-full"></div>
+                        <p className="text-[#10b981] text-xs sm:text-sm">
+                          <span className="hidden sm:inline">Disponível - Clique para agendar</span>
+                          <span className="sm:hidden">Disponível</span>
+                        </p>
                       </div>
                     )}
                   </div>
                   
                   {appointmentsAtTime.length === 0 && !isOccupied && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -1789,9 +1799,9 @@ export default function AgendaPage() {
       <div className="space-y-4">
         {filteredAppointments.length === 0 ? (
           <Card className="bg-[#18181b] border-[#27272a]">
-            <CardContent className="p-8 text-center">
-              <Calendar className="w-12 h-12 text-[#71717a] mx-auto mb-4" />
-              <p className="text-[#a1a1aa]">Nenhum agendamento para este dia</p>
+            <CardContent className="p-6 sm:p-8 text-center">
+              <Calendar className="w-8 h-8 sm:w-12 sm:h-12 text-[#71717a] mx-auto mb-3 sm:mb-4" />
+              <p className="text-[#a1a1aa] text-sm sm:text-base">Nenhum agendamento para este dia</p>
             </CardContent>
           </Card>
         ) : (
@@ -1802,24 +1812,24 @@ export default function AgendaPage() {
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Clock className="w-4 h-4 text-[#10b981]" />
-                        <span className="font-semibold text-[#ededed]">{appointmentTime}</span>
-                        <Badge variant={status.variant}>{status.label}</Badge>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
+                    <div className="flex-1 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#10b981]" />
+                        <span className="font-semibold text-[#ededed] text-sm sm:text-base">{appointmentTime}</span>
+                        <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
                       </div>
                       
                       <div className="space-y-1">
-                        <p className="text-[#ededed]">
+                        <p className="text-[#ededed] text-xs sm:text-sm">
                           <strong>Cliente:</strong> {appointment.endUser?.name}
                         </p>
-                        <p className="text-[#a1a1aa]">
+                        <p className="text-[#a1a1aa] text-xs sm:text-sm">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
                         {/* ✅ SEMPRE exibir profissional - versão simplificada para debug */}
-                        <p className="text-[#a1a1aa]">
+                        <p className="text-[#a1a1aa] text-xs sm:text-sm">
                           <strong>Profissional:</strong> {
                             appointment.professionalId ? (
                               appointment.professional?.name || 
@@ -1832,47 +1842,47 @@ export default function AgendaPage() {
                           }
                         </p>
                         {appointment.notes && (
-                          <p className="text-[#a1a1aa]">
+                          <p className="text-[#a1a1aa] text-xs sm:text-sm">
                             <strong>Observações:</strong> {appointment.notes}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-3">
-                      <div className="text-right">
-                        <p className="text-[#10b981] font-semibold">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+                      <div className="text-left sm:text-right w-full sm:w-auto">
+                        <p className="text-[#10b981] font-semibold text-sm sm:text-base">
                           {new Intl.NumberFormat('pt-BR', { 
                             style: 'currency', 
                             currency: 'BRL' 
                           }).format(appointment.totalPrice || 0)}
                         </p>
-                        <p className="text-[#a1a1aa] text-sm">
+                        <p className="text-[#a1a1aa] text-xs sm:text-sm">
                           {appointment.duration || 0} min
                         </p>
                       </div>
 
                       {/* Botões de ação */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 sm:gap-2 w-full sm:w-auto justify-end">
                         {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleCompleteAppointment(appointment.id)}
-                              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white h-8 w-8 sm:h-9 sm:w-9 p-0"
                               title="Concluir agendamento"
                             >
-                              <Check className="w-4 h-4" />
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleCancelAppointment(appointment.id)}
-                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 sm:h-9 sm:w-9 p-0"
                               title="Cancelar agendamento"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                           </>
                         )}
@@ -1881,20 +1891,20 @@ export default function AgendaPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditAppointment(appointment)}
-                          className="border-[#27272a] hover:bg-[#27272a]"
+                          className="border-[#27272a] hover:bg-[#27272a] h-8 w-8 sm:h-9 sm:w-9 p-0"
                           title="Editar agendamento"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteAppointment(appointment.id)}
-                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 sm:h-9 sm:w-9 p-0"
                           title="Excluir agendamento"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
                     </div>
