@@ -218,27 +218,27 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#ededed] mb-2">Olá, {user?.name || "Usuário"}! 👋</h1>
-        <p className="text-[#a1a1aa] capitalize">{today}</p>
+        <h1 className="text-3xl lg:text-3xl font-bold text-[#ededed] mb-2 sm:text-2xl">Olá, {user?.name || "Usuário"}! 👋</h1>
+        <p className="text-[#a1a1aa] capitalize text-sm sm:text-base">{today}</p>
       </div>
 
       {/* Stats Cards com Sparklines */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {stats.map((stat, index) => (
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
+              <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 ${stat.color} flex-shrink-0`} />
             </CardHeader>
-            <CardContent>
-              <div className="text-center space-y-3">
-                <div className="text-3xl font-bold text-[#ededed]">{stat.value}</div>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-center space-y-2 sm:space-y-3">
+                <div className="text-xl sm:text-3xl font-bold text-[#ededed]">{stat.value}</div>
                 <div className="flex justify-center">
                   <Sparkline 
                     data={stat.sparklineData} 
                     color={stat.color.includes('#10b981') ? '#10b981' : stat.color.includes('#fbbf24') ? '#fbbf24' : '#3f3f46'} 
-                    width={80} 
-                    height={24} 
+                    width={60} 
+                    height={20}
                   />
                 </div>
               </div>
@@ -250,22 +250,22 @@ export default function DashboardPage() {
       {/* Próximos Agendamentos por Profissional */}
       {nextAppointmentsByProfessional.length > 0 && (
         <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
-                <CardTitle className="text-[#ededed] text-lg">Próximos na Fila</CardTitle>
+                <CardTitle className="text-[#ededed] text-base sm:text-lg">Próximos na Fila</CardTitle>
               </div>
-              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
+              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {nextAppointmentsByProfessional.map((item: any) => (
-                <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/50 transition-colors">
-                  <div className="space-y-3">
+                <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-3 sm:p-4 border border-[#27272a] hover:border-[#10b981]/50 transition-colors">
+                  <div className="space-y-2 sm:space-y-3">
                     {/* Header do Profissional */}
                     <div className="flex items-center gap-3">
                       <ProfessionalAvatar professional={item.professional} />
@@ -281,13 +281,13 @@ export default function DashboardPage() {
                     {/* Informações do Agendamento */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
+                        <span className="text-base sm:text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
                         <Badge
-                          className={
+                          className={`text-xs ${
                             item.nextAppointment.status === "IN_PROGRESS"
                               ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                               : "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                          }
+                          }`}
                         >
                           {item.nextAppointment.status === "IN_PROGRESS" ? "Em andamento" : "Confirmado"}
                         </Badge>
@@ -310,7 +310,8 @@ export default function DashboardPage() {
                           onClick={() => router.push('/dashboard/clientes')}
                         >
                           <User className="w-3 h-3 mr-1" />
-                          Ver Cliente
+                          <span className="hidden sm:inline">Ver Cliente</span>
+                          <span className="sm:hidden">Ver</span>
                         </Button>
                         <Button 
                           size="sm" 
@@ -404,52 +405,53 @@ export default function DashboardPage() {
       )}
 
       {/* Layout Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Agenda de Hoje - 2 colunas */}
         <div className="lg:col-span-2">
           <Card className="bg-[#18181b] border-[#27272a]">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#10b981]" />
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <CardTitle className="text-[#a1a1aa] flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#10b981]" />
                   Agenda de Hoje
                 </CardTitle>
-                <div className="flex items-center gap-3">
-                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
                     {todayAppointments.length} agendamentos
                   </Badge>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => router.push('/dashboard/agenda')}
-                    className="border-[#27272a] hover:bg-[#27272a]"
+                    className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-sm px-2 sm:px-3"
                   >
-                    Ver Todos
-                    <ChevronRight className="w-4 h-4 ml-1" />
+                    <span className="hidden sm:inline">Ver Todos</span>
+                    <span className="sm:hidden">Ver</span>
+                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
                 {todayAppointments.length > 0 ? (
                   todayAppointments.slice(0, 6).map((appointment: any, index: number) => (
-                    <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/30 transition-colors">
+                    <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-3 sm:p-4 border border-[#27272a] hover:border-[#10b981]/30 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
-                          <Clock className="w-5 h-5 text-white" />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-lg font-semibold text-[#ededed]">{appointment.time}</span>
+                            <span className="text-base sm:text-lg font-semibold text-[#ededed]">{appointment.time}</span>
                             <Badge
-                              className={
+                              className={`text-xs ${
                                 appointment.status === "COMPLETED"
                                   ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
                                   : appointment.status === "IN_PROGRESS"
                                   ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                                   : "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              }
+                              }`}
                             >
                               {appointment.status === "COMPLETED"
                                 ? "Concluído"
@@ -458,8 +460,8 @@ export default function DashboardPage() {
                                 : "Confirmado"}
                             </Badge>
                           </div>
-                          <p className="text-[#ededed] font-medium">{appointment.client}</p>
-                          <p className="text-sm text-[#a1a1aa]">
+                          <p className="text-[#ededed] font-medium text-sm sm:text-base truncate">{appointment.client}</p>
+                          <p className="text-xs sm:text-sm text-[#a1a1aa] truncate">
                             {appointment.service}
                             {appointment.professional && ` • ${appointment.professional}`}
                           </p>
@@ -468,15 +470,15 @@ export default function DashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-[#a1a1aa]">
-                    <Calendar className="w-12 h-12 mx-auto mb-3 text-[#71717a]" />
-                    <h3 className="text-lg font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
-                    <p className="text-sm">Que tal aproveitar para planejar o amanhã?</p>
+                  <div className="text-center py-6 sm:py-8 text-[#a1a1aa]">
+                    <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-[#71717a]" />
+                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
+                    <p className="text-xs sm:text-sm">Que tal aproveitar para planejar o amanhã?</p>
                     <Button 
-                      className="mt-3 bg-[#10b981] hover:bg-[#059669]"
+                      className="mt-3 bg-[#10b981] hover:bg-[#059669] text-xs sm:text-sm px-3 sm:px-4"
                       onClick={() => router.push('/dashboard/agenda')}
                     >
-                      <Calendar className="w-4 h-4 mr-2" />
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Criar Agendamento
                     </Button>
                   </div>
