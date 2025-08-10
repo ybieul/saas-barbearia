@@ -1639,9 +1639,9 @@ export default function AgendaPage() {
             variant="outline"
             size="icon"
             onClick={() => navigateDate("prev")}
-            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-8 md:w-8"
+            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-12 md:w-12"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
           </Button>
           
           <div className="text-center">
@@ -1654,9 +1654,9 @@ export default function AgendaPage() {
             variant="outline"
             size="icon"
             onClick={() => navigateDate("next")}
-            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-8 md:w-8"
+            className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 md:h-12 md:w-12"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
           </Button>
         </div>
 
