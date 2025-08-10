@@ -218,8 +218,8 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl lg:text-3xl font-bold text-[#ededed] mb-2 sm:text-2xl">Olá, {user?.name || "Usuário"}! 👋</h1>
-        <p className="text-[#a1a1aa] capitalize text-sm sm:text-base">{today}</p>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#ededed] mb-2">Olá, {user?.name || "Usuário"}! 👋</h1>
+        <p className="text-[#a1a1aa] capitalize text-sm sm:text-base lg:text-lg">{today}</p>
       </div>
 
       {/* Stats Cards com Sparklines */}
@@ -227,12 +227,12 @@ export default function DashboardPage() {
         {stats.map((stat, index) => (
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
-              <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 ${stat.color} flex-shrink-0`} />
+              <CardTitle className="text-xs sm:text-sm lg:text-base font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
+              <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 ${stat.color} flex-shrink-0`} />
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <div className="text-center space-y-2 sm:space-y-3">
-                <div className="text-xl sm:text-3xl font-bold text-[#ededed]">{stat.value}</div>
+                <div className="text-xl sm:text-3xl lg:text-4xl font-bold text-[#ededed]">{stat.value}</div>
                 <div className="flex justify-center">
                   <Sparkline 
                     data={stat.sparklineData} 
@@ -254,9 +254,9 @@ export default function DashboardPage() {
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
-                <CardTitle className="text-[#ededed] text-base sm:text-lg">Próximos na Fila</CardTitle>
+                <CardTitle className="text-[#ededed] text-base sm:text-lg lg:text-xl">Próximos na Fila</CardTitle>
               </div>
-              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
+              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
@@ -270,10 +270,10 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <ProfessionalAvatar professional={item.professional} />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-[#ededed] text-sm">{item.professional.name}</h4>
+                        <h4 className="font-semibold text-[#ededed] text-sm lg:text-base">{item.professional.name}</h4>
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-[#10b981]" />
-                          <span className="text-xs text-[#a1a1aa]">Próximo</span>
+                          <span className="text-xs lg:text-sm text-[#a1a1aa]">Próximo</span>
                         </div>
                       </div>
                     </div>
@@ -281,9 +281,9 @@ export default function DashboardPage() {
                     {/* Informações do Agendamento */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-base sm:text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
+                        <span className="text-base sm:text-lg lg:text-xl font-bold text-[#10b981]">{item.nextAppointment.time}</span>
                         <Badge
-                          className={`text-xs ${
+                          className={`text-xs lg:text-sm ${
                             item.nextAppointment.status === "IN_PROGRESS"
                               ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                               : "bg-blue-500/20 text-blue-400 border-blue-500/30"
@@ -294,8 +294,8 @@ export default function DashboardPage() {
                       </div>
                       
                       <div>
-                        <p className="font-medium text-[#ededed] text-sm">{item.nextAppointment.client}</p>
-                        <p className="text-xs text-[#a1a1aa]">
+                        <p className="font-medium text-[#ededed] text-sm lg:text-base">{item.nextAppointment.client}</p>
+                        <p className="text-xs lg:text-sm text-[#a1a1aa]">
                           {item.nextAppointment.service}
                           <span className="ml-1">({item.nextAppointment.duration} min)</span>
                         </p>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="flex-1 border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50 text-xs"
+                          className="flex-1 border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50 text-xs lg:text-sm"
                           onClick={() => router.push('/dashboard/clientes')}
                         >
                           <User className="w-3 h-3 mr-1" />
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                         </Button>
                         <Button 
                           size="sm" 
-                          className="flex-1 bg-[#10b981] hover:bg-[#059669] text-xs"
+                          className="flex-1 bg-[#10b981] hover:bg-[#059669] text-xs lg:text-sm"
                           onClick={() => handleCompleteAppointment(item.nextAppointment)}
                           disabled={isCompletingAppointment}
                         >
@@ -411,19 +411,19 @@ export default function DashboardPage() {
           <Card className="bg-[#18181b] border-[#27272a]">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-                <CardTitle className="text-[#a1a1aa] flex items-center gap-2 text-base sm:text-lg">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#10b981]" />
+                <CardTitle className="text-[#a1a1aa] flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-[#10b981]" />
                   Agenda de Hoje
                 </CardTitle>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
+                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
                     {todayAppointments.length} agendamentos
                   </Badge>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => router.push('/dashboard/agenda')}
-                    className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-sm px-2 sm:px-3"
+                    className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-sm lg:text-base px-2 sm:px-3"
                   >
                     <span className="hidden sm:inline">Ver Todos</span>
                     <span className="sm:hidden">Ver</span>
@@ -443,9 +443,9 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-base sm:text-lg font-semibold text-[#ededed]">{appointment.time}</span>
+                            <span className="text-base sm:text-lg lg:text-xl font-semibold text-[#ededed]">{appointment.time}</span>
                             <Badge
-                              className={`text-xs ${
+                              className={`text-xs lg:text-sm ${
                                 appointment.status === "COMPLETED"
                                   ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
                                   : appointment.status === "IN_PROGRESS"
@@ -460,8 +460,8 @@ export default function DashboardPage() {
                                 : "Confirmado"}
                             </Badge>
                           </div>
-                          <p className="text-[#ededed] font-medium text-sm sm:text-base truncate">{appointment.client}</p>
-                          <p className="text-xs sm:text-sm text-[#a1a1aa] truncate">
+                          <p className="text-[#ededed] font-medium text-sm sm:text-base lg:text-lg truncate">{appointment.client}</p>
+                          <p className="text-xs sm:text-sm lg:text-base text-[#a1a1aa] truncate">
                             {appointment.service}
                             {appointment.professional && ` • ${appointment.professional}`}
                           </p>
@@ -471,11 +471,11 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <div className="text-center py-6 sm:py-8 text-[#a1a1aa]">
-                    <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-[#71717a]" />
-                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
-                    <p className="text-xs sm:text-sm">Que tal aproveitar para planejar o amanhã?</p>
+                    <Calendar className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 mx-auto mb-3 text-[#71717a]" />
+                    <h3 className="text-base sm:text-lg lg:text-xl font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
+                    <p className="text-xs sm:text-sm lg:text-base">Que tal aproveitar para planejar o amanhã?</p>
                     <Button 
-                      className="mt-3 bg-[#10b981] hover:bg-[#059669] text-xs sm:text-sm px-3 sm:px-4"
+                      className="mt-3 bg-[#10b981] hover:bg-[#059669] text-xs sm:text-sm lg:text-base px-3 sm:px-4"
                       onClick={() => router.push('/dashboard/agenda')}
                     >
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -505,18 +505,18 @@ export default function DashboardPage() {
           {/* Taxa de Ocupação por Profissional */}
           <Card className="bg-[#18181b] border-[#27272a]">
             <CardHeader className="pb-3">
-              <CardTitle className="text-[#a1a1aa] text-base font-semibold flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#10b981]" />
+              <CardTitle className="text-[#a1a1aa] text-base lg:text-lg font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 lg:w-5 lg:h-5 text-[#10b981]" />
                 Ocupação por Profissional
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-xs">Distribuição de agendamentos hoje</CardDescription>
+              <CardDescription className="text-[#a1a1aa] text-xs lg:text-sm">Distribuição de agendamentos hoje</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {professionals.length > 0 ? (
                   professionals.map((prof: any) => (
                     <div key={prof.id} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm lg:text-base">
                         <span className="text-[#ededed] font-medium">{prof.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[#a1a1aa]">{prof.appointmentsToday || 0} agend.</span>
@@ -550,8 +550,8 @@ export default function DashboardPage() {
           {/* Ações Rápidas */}
           <Card className="bg-[#18181b] border-[#27272a]">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[#a1a1aa] text-base font-semibold">Ações Rápidas</CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-xs">Acesso rápido às principais funcionalidades</CardDescription>
+              <CardTitle className="text-[#a1a1aa] text-base lg:text-lg font-semibold">Ações Rápidas</CardTitle>
+              <CardDescription className="text-[#a1a1aa] text-xs lg:text-sm">Acesso rápido às principais funcionalidades</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
                       <Users className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Novo Cliente</p>
+                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Novo Cliente</p>
                   </div>
                 </button>
                 
@@ -575,7 +575,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
                       <Calendar className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Agendar</p>
+                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Agendar</p>
                   </div>
                 </button>
                 
@@ -587,7 +587,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
                       <DollarSign className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#fbbf24] transition-colors">Financeiro</p>
+                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#fbbf24] transition-colors">Financeiro</p>
                   </div>
                 </button>
                 
@@ -599,7 +599,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-[#3f3f46] to-[#27272a] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-[#ededed] group-hover:text-[#3f3f46] transition-colors">Relatórios</p>
+                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#3f3f46] transition-colors">Relatórios</p>
                   </div>
                 </button>
               </div>
