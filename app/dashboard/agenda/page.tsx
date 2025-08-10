@@ -1477,7 +1477,7 @@ export default function AgendaPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
           <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
           {lastUpdated && (
             <p className="text-xs text-[#71717a] mt-1">

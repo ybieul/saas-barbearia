@@ -296,22 +296,22 @@ export default function ClientesPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
-              <div className="text-center sm:text-left">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
+              <div className="text-left sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Total de Clientes</p>
-                <p className="text-2xl font-bold text-[#ededed]">{clients.length}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{clients.length}</p>
               </div>
-              <Users className="w-8 h-8 text-[#10b981]" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
-              <div className="text-center sm:text-left">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
+              <div className="text-left sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
-                <p className="text-2xl font-bold text-[#ededed]">
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
                     const clientDate = new Date(client.createdAt)
                     const now = getBrazilNow()
@@ -319,29 +319,29 @@ export default function ClientesPage() {
                   }).length}
                 </p>
               </div>
-              <Plus className="w-8 h-8 text-[#10b981]" />
+              <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
-              <div className="text-center sm:text-left">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
+              <div className="text-left sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Com Agendamentos</p>
-                <p className="text-2xl font-bold text-[#ededed]">
+                <p className="text-xl sm:text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => client.totalVisits > 0).length}
                 </p>
               </div>
-              <Calendar className="w-8 h-8 text-purple-400" />
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
             </div>
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
-              <div className="text-center sm:text-left">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
+              <div className="text-left sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Faturamento Total</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
@@ -353,7 +353,7 @@ export default function ClientesPage() {
                   )}
                 </p>
               </div>
-              <DollarSign className="w-8 h-8 text-yellow-400" />
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
             </div>
           </CardContent>
         </Card>
