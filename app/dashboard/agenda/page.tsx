@@ -2279,7 +2279,7 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
             <Button
               variant="outline"
               onClick={() => setConfirmDialog({
@@ -2289,13 +2289,13 @@ export default function AgendaPage() {
                 clientName: '',
                 serviceName: ''
               })}
-              className="border-[#27272a] hover:bg-[#27272a]"
+              className="border-[#27272a] hover:bg-[#27272a] w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmAction}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
             >
               {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Permanentemente'}
             </Button>
