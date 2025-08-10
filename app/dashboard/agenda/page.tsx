@@ -196,6 +196,16 @@ export default function AgendaPage() {
   useEffect(() => {
     if (isNewAppointmentOpen) {
       setBackendError(null)
+      // 📱 MOBILE: Prevenir scroll do body quando modal está aberto
+      document.body.style.overflow = 'hidden'
+    } else {
+      // Restaurar scroll quando modal fecha
+      document.body.style.overflow = 'unset'
+    }
+    
+    // Cleanup para restaurar scroll ao desmontar
+    return () => {
+      document.body.style.overflow = 'unset'
     }
   }, [isNewAppointmentOpen])
 
@@ -1919,15 +1929,15 @@ export default function AgendaPage() {
       {/* Modal de novo agendamento */}
       {isNewAppointmentOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-hidden"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setIsClientDropdownOpen(false)
             }
           }}
         >
-          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-            <CardHeader className="pb-4">
+          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto h-full max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+            <CardHeader className="pb-4 flex-shrink-0">
               <CardTitle className="text-[#ededed] text-lg sm:text-xl">
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
@@ -1935,293 +1945,298 @@ export default function AgendaPage() {
                 {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Exibir erro do backend */}
-              {backendError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-red-400">⚠️</span>
-                    <p className="text-red-400 text-sm font-medium">{backendError}</p>
+            
+            <div className="flex-1 overflow-y-auto">
+              <CardContent className="space-y-4 pb-4">
+                {/* Exibir erro do backend */}
+                {backendError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-400">⚠️</span>
+                      <p className="text-red-400 text-sm font-medium">{backendError}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              <div>
-                <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
-                <div className="relative" data-client-dropdown>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
-                    <Input
-                      placeholder="Buscar cliente por nome, telefone ou email..."
-                      value={clientSearchTerm}
-                      onChange={(e) => {
-                        setClientSearchTerm(e.target.value)
-                        setIsClientDropdownOpen(true)
-                      }}
-                      onFocus={() => setIsClientDropdownOpen(true)}
-                      className="bg-[#18181b] border-[#27272a] text-[#ededed] pl-10 pr-10"
-                    />
-                    <ChevronDown 
-                      className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
-                      onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
-                    />
-                  </div>
-                  
-                  {/* Cliente selecionado */}
-                  {newAppointment.endUserId && (
-                    <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-[#10b981]" />
-                        <span className="text-[#ededed] text-sm">
-                          {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setNewAppointment(prev => ({...prev, endUserId: ""}))
-                          setClientSearchTerm("")
-                        }}
-                        className="h-6 w-6 p-0 hover:bg-red-500/20"
-                      >
-                        <X className="h-3 w-3 text-red-400" />
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Dropdown de resultados */}
-                  {isClientDropdownOpen && (
-                    <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                      {filteredClients.length > 0 ? (
-                        filteredClients.map((client) => (
-                          <div
-                            key={client.id}
-                            className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
-                            onClick={() => {
-                              setNewAppointment(prev => ({...prev, endUserId: client.id}))
-                              setClientSearchTerm(client.name)
-                              setIsClientDropdownOpen(false)
-                            }}
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
-                              <span className="text-[#71717a] text-xs">{client.phone}</span>
-                              {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-3 text-center text-[#71717a] text-sm">
-                          {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="service" className="text-[#ededed]">Serviço *</Label>
-                <Select 
-                  value={newAppointment.serviceId} 
-                  onValueChange={(value) => {
-                    setNewAppointment(prev => ({...prev, serviceId: value}))
-                  }}
-                >
-                  <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                    <SelectValue placeholder="Selecione um serviço" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-[#27272a]">
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name} - {formatCurrency(service.price)} ({service.duration || 0}min)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="professional" className="text-[#ededed]">Profissional</Label>
-                <Select 
-                  value={newAppointment.professionalId} 
-                  onValueChange={(value) => {
-                    setNewAppointment(prev => ({...prev, professionalId: value}))
-                  }}
-                >
-                  <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                    <SelectValue placeholder="Selecione um profissional (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-[#27272a]">
-                    {professionalsData?.map((professional) => (
-                      <SelectItem key={professional.id} value={professional.id}>
-                        {professional.name} - {professional.specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Data e Horário - Layout responsivo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newAppointment.date}
-                    // ✅ PERMITIR datas passadas para retroagendamento
-                    onChange={(e) => {
-                      setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
-                    }}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm"
-                  />
-                  {newAppointment.date && (
-                    <div className="mt-1">
-                      {(() => {
-                        const dateStatus = getDateStatus()
-                        if (dateStatus.isOpen === false) {
-                          return (
-                            <p className="text-xs text-red-400 flex items-center gap-1 flex-wrap">
-                              <span>❌</span>
-                              <span className="break-words">{dateStatus.message}</span>
-                            </p>
-                          )
-                        } else if (dateStatus.isOpen === true) {
-                          return (
-                            <p className="text-xs text-[#10b981] flex items-center gap-1 flex-wrap">
-                              <span>✅</span>
-                              <span className="break-words">{dateStatus.message}</span>
-                            </p>
-                          )
-                        }
-                        return null
-                      })()}
-                    </div>
-                  )}
-                </div>
+                )}
                 
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-[#ededed] text-sm font-medium">Horário *</Label>
-                  <Select 
-                    value={newAppointment.time} 
-                    onValueChange={(value) => {
-                      setNewAppointment(prev => ({...prev, time: value}))
-                    }}
-                    disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
-                  >
-                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
-                      <SelectValue placeholder={
-                        !newAppointment.date ? "Data primeiro" :
-                        !newAppointment.serviceId ? "Serviço primeiro" :
-                        !getDateStatus().isOpen ? "Fechado" :
-                        "Selecione horário"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
-                      {getAvailableTimeSlots().length > 0 ? (
-                        getAvailableTimeSlots().map((time: string) => {
-                          const isPast = isTimeInPast(newAppointment.date, time)
-                          return (
-                            <SelectItem key={time} value={time} className="text-sm">
-                              <div className="flex items-center justify-between w-full">
-                                <span>{isPast ? '⏱️ ' : ''}{time}</span>
-                                {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
-                              </div>
-                            </SelectItem>
-                          )
-                        })
-                      ) : (
-                        <div className="p-3 text-center text-[#a1a1aa] text-sm">
-                          {!newAppointment.date ? "Selecione uma data" :
-                           !newAppointment.serviceId ? "Selecione um serviço" :
-                           !getDateStatus().isOpen ? "Estabelecimento fechado" :
-                           "Nenhum horário disponível"
-                          }
+                <div>
+                  <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
+                  <div className="relative" data-client-dropdown>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
+                      <Input
+                        placeholder="Buscar cliente por nome, telefone ou email..."
+                        value={clientSearchTerm}
+                        onChange={(e) => {
+                          setClientSearchTerm(e.target.value)
+                          setIsClientDropdownOpen(true)
+                        }}
+                        onFocus={() => setIsClientDropdownOpen(true)}
+                        className="bg-[#18181b] border-[#27272a] text-[#ededed] pl-10 pr-10"
+                      />
+                      <ChevronDown 
+                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
+                        onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                      />
+                    </div>
+                    
+                    {/* Cliente selecionado */}
+                    {newAppointment.endUserId && (
+                      <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-[#10b981]" />
+                          <span className="text-[#ededed] text-sm">
+                            {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
+                          </span>
                         </div>
-                      )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setNewAppointment(prev => ({...prev, endUserId: ""}))
+                            setClientSearchTerm("")
+                          }}
+                          className="h-6 w-6 p-0 hover:bg-red-500/20"
+                        >
+                          <X className="h-3 w-3 text-red-400" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Dropdown de resultados */}
+                    {isClientDropdownOpen && (
+                      <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filteredClients.length > 0 ? (
+                          filteredClients.map((client) => (
+                            <div
+                              key={client.id}
+                              className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
+                              onClick={() => {
+                                setNewAppointment(prev => ({...prev, endUserId: client.id}))
+                                setClientSearchTerm(client.name)
+                                setIsClientDropdownOpen(false)
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
+                                <span className="text-[#71717a] text-xs">{client.phone}</span>
+                                {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-[#71717a] text-sm">
+                            {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="service" className="text-[#ededed]">Serviço *</Label>
+                  <Select 
+                    value={newAppointment.serviceId} 
+                    onValueChange={(value) => {
+                      setNewAppointment(prev => ({...prev, serviceId: value}))
+                    }}
+                  >
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                      <SelectValue placeholder="Selecione um serviço" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#18181b] border-[#27272a]">
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.name} - {formatCurrency(service.price)} ({service.duration || 0}min)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  {newAppointment.date && newAppointment.serviceId && (
-                    <div className="mt-1 space-y-1">
-                      <p className="text-xs text-[#a1a1aa] break-words">{getDateStatus().isOpen ? 
-                          `${getAvailableTimeSlots().length} horários disponíveis` : 
-                          'Estabelecimento fechado neste dia'
-                        }
-                      </p>
-                      {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
-                        <p className="text-xs text-[#d97706] flex items-center gap-1 flex-wrap">
-                          <span>⏱️</span>
-                          <span className="break-words">Horários com ⏱️ são retroativos</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              {/* Observações */}
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium">Observações</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Observações sobre o agendamento..."
-                  value={newAppointment.notes}
-                  onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
-                  className="bg-[#18181b] border-[#27272a] text-[#ededed] min-h-[80px] text-sm resize-none"
-                />
-              </div>
-            </CardContent>
+                <div>
+                  <Label htmlFor="professional" className="text-[#ededed]">Profissional</Label>
+                  <Select 
+                    value={newAppointment.professionalId} 
+                    onValueChange={(value) => {
+                      setNewAppointment(prev => ({...prev, professionalId: value}))
+                    }}
+                  >
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                      <SelectValue placeholder="Selecione um profissional (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#18181b] border-[#27272a]">
+                      {professionalsData?.map((professional) => (
+                        <SelectItem key={professional.id} value={professional.id}>
+                          {professional.name} - {professional.specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Data e Horário - Layout responsivo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={newAppointment.date}
+                      // ✅ PERMITIR datas passadas para retroagendamento
+                      onChange={(e) => {
+                        setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
+                      }}
+                      className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm"
+                    />
+                    {newAppointment.date && (
+                      <div className="mt-1">
+                        {(() => {
+                          const dateStatus = getDateStatus()
+                          if (dateStatus.isOpen === false) {
+                            return (
+                              <p className="text-xs text-red-400 flex items-center gap-1 flex-wrap">
+                                <span>❌</span>
+                                <span className="break-words">{dateStatus.message}</span>
+                              </p>
+                            )
+                          } else if (dateStatus.isOpen === true) {
+                            return (
+                              <p className="text-xs text-[#10b981] flex items-center gap-1 flex-wrap">
+                                <span>✅</span>
+                                <span className="break-words">{dateStatus.message}</span>
+                              </p>
+                            )
+                          }
+                          return null
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-[#ededed] text-sm font-medium">Horário *</Label>
+                    <Select 
+                      value={newAppointment.time} 
+                      onValueChange={(value) => {
+                        setNewAppointment(prev => ({...prev, time: value}))
+                      }}
+                      disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
+                    >
+                      <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
+                        <SelectValue placeholder={
+                          !newAppointment.date ? "Data primeiro" :
+                          !newAppointment.serviceId ? "Serviço primeiro" :
+                          !getDateStatus().isOpen ? "Fechado" :
+                          "Selecione horário"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
+                        {getAvailableTimeSlots().length > 0 ? (
+                          getAvailableTimeSlots().map((time: string) => {
+                            const isPast = isTimeInPast(newAppointment.date, time)
+                            return (
+                              <SelectItem key={time} value={time} className="text-sm">
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{isPast ? '⏱️ ' : ''}{time}</span>
+                                  {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
+                                </div>
+                              </SelectItem>
+                            )
+                          })
+                        ) : (
+                          <div className="p-3 text-center text-[#a1a1aa] text-sm">
+                            {!newAppointment.date ? "Selecione uma data" :
+                             !newAppointment.serviceId ? "Selecione um serviço" :
+                             !getDateStatus().isOpen ? "Estabelecimento fechado" :
+                             "Nenhum horário disponível"
+                            }
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {newAppointment.date && newAppointment.serviceId && (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-xs text-[#a1a1aa] break-words">{getDateStatus().isOpen ? 
+                            `${getAvailableTimeSlots().length} horários disponíveis` : 
+                            'Estabelecimento fechado neste dia'
+                          }
+                        </p>
+                        {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
+                          <p className="text-xs text-[#d97706] flex items-center gap-1 flex-wrap">
+                            <span>⏱️</span>
+                            <span className="break-words">Horários com ⏱️ são retroativos</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Observações */}
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium">Observações</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Observações sobre o agendamento..."
+                    value={newAppointment.notes}
+                    onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
+                    className="bg-[#18181b] border-[#27272a] text-[#ededed] min-h-[80px] text-sm resize-none"
+                  />
+                </div>
+              </CardContent>
+            </div>
             
-            {/* Botões responsivos */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsNewAppointmentOpen(false)
-                  setEditingAppointment(null)
-                  resetForm()
-                }}
-                className="border-[#27272a] hover:bg-[#27272a] text-sm h-10 w-full sm:w-auto order-2 sm:order-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('🔍 Botão clicado - Estado atual:', {
-                      endUserId: newAppointment.endUserId,
-                      serviceId: newAppointment.serviceId,
-                      date: newAppointment.date,
-                      time: newAppointment.time,
-                      isEditing: !!editingAppointment
-                    })
+            {/* Botões responsivos - fixos no bottom em mobile */}
+            <div className="flex-shrink-0 p-4 pt-0 sm:p-6 sm:pt-0 border-t border-[#27272a] bg-[#18181b]">
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsNewAppointmentOpen(false)
+                    setEditingAppointment(null)
+                    resetForm()
+                  }}
+                  className="border-[#27272a] hover:bg-[#27272a] text-sm h-11 sm:h-10 w-full sm:w-auto order-2 sm:order-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('🔍 Botão clicado - Estado atual:', {
+                        endUserId: newAppointment.endUserId,
+                        serviceId: newAppointment.serviceId,
+                        date: newAppointment.date,
+                        time: newAppointment.time,
+                        isEditing: !!editingAppointment
+                      })
+                    }
+                    if (editingAppointment) {
+                      handleUpdateAppointment()
+                    } else {
+                      handleCreateAppointment()
+                    }
+                  }}
+                  disabled={
+                    !newAppointment.endUserId || 
+                    !newAppointment.serviceId || 
+                    !newAppointment.date || 
+                    !newAppointment.time || 
+                    isCreating || 
+                    isValidating ||
+                    !getDateStatus().isOpen
                   }
-                  if (editingAppointment) {
-                    handleUpdateAppointment()
-                  } else {
-                    handleCreateAppointment()
+                  className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-11 sm:h-10 w-full sm:w-auto order-1 sm:order-2"
+                >
+                  {isCreating ? 
+                    (editingAppointment ? "Atualizando..." : "Criando...") : 
+                    isValidating ? "Validando..." :
+                    !getDateStatus().isOpen ? "Estabelecimento Fechado" :
+                    (editingAppointment ? "Atualizar" : "Criar Agendamento")
                   }
-                }}
-                disabled={
-                  !newAppointment.endUserId || 
-                  !newAppointment.serviceId || 
-                  !newAppointment.date || 
-                  !newAppointment.time || 
-                  isCreating || 
-                  isValidating ||
-                  !getDateStatus().isOpen
-                }
-                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-10 w-full sm:w-auto order-1 sm:order-2"
-              >
-                {isCreating ? 
-                  (editingAppointment ? "Atualizando..." : "Criando...") : 
-                  isValidating ? "Validando..." :
-                  !getDateStatus().isOpen ? "Estabelecimento Fechado" :
-                  (editingAppointment ? "Atualizar" : "Criar Agendamento")
-                }
-              </Button>
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -2239,12 +2254,12 @@ export default function AgendaPage() {
           })
         }
       }}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-          <DialogHeader>
-            <DialogTitle className="text-[#ededed]">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[95vw] max-w-md mx-auto">
+          <DialogHeader className="space-y-3 sm:space-y-1.5">
+            <DialogTitle className="text-[#ededed] text-lg sm:text-xl text-center sm:text-left">
               {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Agendamento'}
             </DialogTitle>
-            <DialogDescription className="text-[#a1a1aa]">
+            <DialogDescription className="text-[#a1a1aa] text-sm sm:text-base text-center sm:text-left leading-relaxed">
               {confirmDialog.type === 'cancel'
                 ? 'Tem certeza que deseja cancelar este serviço?'
                 : 'Tem certeza que deseja excluir este agendamento permanentemente? Esta ação não pode ser desfeita.'
@@ -2252,18 +2267,18 @@ export default function AgendaPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <div className="space-y-2">
-              <p className="text-[#ededed]">
-                <strong>Cliente:</strong> {confirmDialog.clientName}
+          <div className="py-4 space-y-3">
+            <div className="space-y-3 p-4 bg-[#0f0f0f] rounded-lg border border-[#27272a]">
+              <p className="text-[#ededed] text-sm sm:text-base">
+                <strong className="text-[#10b981]">Cliente:</strong> {confirmDialog.clientName}
               </p>
-              <p className="text-[#a1a1aa]">
-                <strong>Serviço:</strong> {confirmDialog.serviceName}
+              <p className="text-[#a1a1aa] text-sm sm:text-base">
+                <strong className="text-[#71717a]">Serviço:</strong> {confirmDialog.serviceName}
               </p>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
             <Button
               variant="outline"
               onClick={() => setConfirmDialog({
@@ -2273,13 +2288,13 @@ export default function AgendaPage() {
                 clientName: '',
                 serviceName: ''
               })}
-              className="border-[#27272a] hover:bg-[#27272a]"
+              className="border-[#27272a] hover:bg-[#27272a] w-full sm:w-auto order-2 sm:order-1 h-11 sm:h-10"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmAction}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto order-1 sm:order-2 h-11 sm:h-10"
             >
               {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Permanentemente'}
             </Button>
