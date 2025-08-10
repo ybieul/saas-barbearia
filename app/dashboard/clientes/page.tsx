@@ -294,11 +294,11 @@ export default function ClientesPage() {
       </Card>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
+          <CardContent className="p-4 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
+              <div className="text-center sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Total de Clientes</p>
                 <p className="text-2xl font-bold text-[#ededed]">{clients.length}</p>
               </div>
@@ -307,9 +307,9 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
+          <CardContent className="p-4 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
+              <div className="text-center sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
                 <p className="text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
@@ -324,9 +324,9 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
+          <CardContent className="p-4 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
+              <div className="text-center sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Com Agendamentos</p>
                 <p className="text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => client.totalVisits > 0).length}
@@ -337,9 +337,9 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
+          <CardContent className="p-4 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-0">
+              <div className="text-center sm:text-left">
                 <p className="text-[#a1a1aa] text-sm">Faturamento Total</p>
                 <p className="text-2xl font-bold text-white">
                   {new Intl.NumberFormat('pt-BR', { 
@@ -362,8 +362,8 @@ export default function ClientesPage() {
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="p-0">
-          {/* Header da tabela */}
-          <div className="grid grid-cols-12 gap-4 p-4 border-b border-[#27272a] text-sm font-medium text-[#a1a1aa]">
+          {/* Header da tabela - apenas desktop */}
+          <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-[#27272a] text-sm font-medium text-[#a1a1aa]">
             <div className="col-span-2">Cliente</div>
             <div className="col-span-2">Contato</div>
             <div className="col-span-1">Status</div>
@@ -381,100 +381,200 @@ export default function ClientesPage() {
               const lastVisit = client.lastVisit ? new Date(client.lastVisit) : null
               
               return (
-                <div key={client.id} className="grid grid-cols-12 gap-4 p-4 hover:bg-[#27272a]/80 transition-colors">
-                  {/* Cliente */}
-                  <div className="col-span-2">
-                    <div>
-                      <h3 className="font-medium text-white">{client.name}</h3>
-                      <p className="text-xs text-[#71717a]">
-                        Cliente desde {formatBrazilDate(client.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Contato */}
-                  <div className="col-span-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-[#71717a]" />
-                        <span className="text-sm text-[#a1a1aa]">{client.phone}</span>
+                <div key={client.id}>
+                  {/* Layout Desktop - mantido exatamente igual */}
+                  <div className="hidden md:grid grid-cols-12 gap-4 p-4 hover:bg-[#27272a]/80 transition-colors">
+                    {/* Cliente */}
+                    <div className="col-span-2">
+                      <div>
+                        <h3 className="font-medium text-white">{client.name}</h3>
+                        <p className="text-xs text-[#71717a]">
+                          Cliente desde {formatBrazilDate(client.createdAt)}
+                        </p>
                       </div>
-                      {client.email && (
+                    </div>
+                    
+                    {/* Contato */}
+                    <div className="col-span-2">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-1">
-                          <MessageCircle className="w-3 h-3 text-[#71717a]" />
-                          <span className="text-sm text-[#a1a1aa]">{client.email}</span>
+                          <Phone className="w-3 h-3 text-[#71717a]" />
+                          <span className="text-sm text-[#a1a1aa]">{client.phone}</span>
                         </div>
-                      )}
+                        {client.email && (
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3 text-[#71717a]" />
+                            <span className="text-sm text-[#a1a1aa]">{client.email}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Status */}
-                  <div className="col-span-1">
-                    <Badge 
-                      className={`text-xs ${client.isActive 
-                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
-                        : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20'
-                      }`}
-                    >
-                      {client.isActive ? 'Novo' : 'Inativo'}
-                    </Badge>
-                  </div>
-                  
-                  {/* Agendamentos */}
-                  <div className="col-span-1">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4 text-[#71717a]" />
-                      <span className="text-white font-medium">{stats.totalAppointments}</span>
+                    
+                    {/* Status */}
+                    <div className="col-span-1">
+                      <Badge 
+                        className={`text-xs ${client.isActive 
+                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                          : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20'
+                        }`}
+                      >
+                        {client.isActive ? 'Novo' : 'Inativo'}
+                      </Badge>
                     </div>
-                  </div>
-                  
-                  {/* Total Gasto */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="w-4 h-4 text-[#10b981]" />
-                      <span className="text-[#10b981] font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(stats.totalSpent)}
+                    
+                    {/* Agendamentos */}
+                    <div className="col-span-1">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4 text-[#71717a]" />
+                        <span className="text-white font-medium">{stats.totalAppointments}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Total Gasto */}
+                    <div className="col-span-2">
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4 text-[#10b981]" />
+                        <span className="text-[#10b981] font-medium">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                          }).format(stats.totalSpent)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Última Visita */}
+                    <div className="col-span-2">
+                      <span className="text-[#a1a1aa]">
+                        {lastVisit ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
                       </span>
                     </div>
+                    
+                    {/* Ações */}
+                    <div className="col-span-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(client)}
+                          className="border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 px-2 py-1 h-8 text-xs"
+                        >
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(client)}
+                          className="border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-2 py-1 h-8"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(client.id, client.name)}
+                          className="border-red-600 text-red-400 hover:bg-red-600/10 px-2 py-1 h-8"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Última Visita */}
-                  <div className="col-span-2">
-                    <span className="text-[#a1a1aa]">
-                      {lastVisit ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
-                    </span>
-                  </div>
-                  
-                  {/* Ações */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(client)}
-                        className="border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 px-2 py-1 h-8 text-xs"
-                      >
-                        Ver Detalhes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(client)}
-                        className="border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-2 py-1 h-8"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(client.id, client.name)}
-                        className="border-red-600 text-red-400 hover:bg-red-600/10 px-2 py-1 h-8"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+
+                  {/* Layout Mobile - novo design otimizado */}
+                  <div className="block md:hidden p-4 hover:bg-[#27272a]/50 transition-colors">
+                    <div className="space-y-3">
+                      {/* Header do cliente */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-white text-base">{client.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge 
+                              className={`text-xs ${client.isActive 
+                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                                : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20'
+                              }`}
+                            >
+                              {client.isActive ? 'Novo' : 'Inativo'}
+                            </Badge>
+                            <span className="text-xs text-[#71717a]">
+                              Desde {formatBrazilDate(client.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Informações de contato */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-[#71717a] flex-shrink-0" />
+                          <span className="text-sm text-[#a1a1aa]">{client.phone}</span>
+                        </div>
+                        {client.email && (
+                          <div className="flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-[#71717a] flex-shrink-0" />
+                            <span className="text-sm text-[#a1a1aa] truncate">{client.email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Estatísticas em cards mini */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-[#27272a]/50 rounded-lg p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Calendar className="w-3 h-3 text-[#71717a]" />
+                          </div>
+                          <div className="text-sm font-medium text-white">{stats.totalAppointments}</div>
+                          <div className="text-xs text-[#71717a]">Agendamentos</div>
+                        </div>
+                        <div className="bg-[#27272a]/50 rounded-lg p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <DollarSign className="w-3 h-3 text-[#10b981]" />
+                          </div>
+                          <div className="text-sm font-medium text-[#10b981]">
+                            {new Intl.NumberFormat('pt-BR', { 
+                              style: 'currency', 
+                              currency: 'BRL',
+                              maximumFractionDigits: 0
+                            }).format(stats.totalSpent)}
+                          </div>
+                          <div className="text-xs text-[#71717a]">Total Gasto</div>
+                        </div>
+                        <div className="bg-[#27272a]/50 rounded-lg p-2 text-center">
+                          <div className="text-sm font-medium text-[#a1a1aa]">
+                            {lastVisit ? lastVisit.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Nunca'}
+                          </div>
+                          <div className="text-xs text-[#71717a]">Última Visita</div>
+                        </div>
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(client)}
+                          className="flex-1 border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 text-xs h-8"
+                        >
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(client)}
+                          className="border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-3 h-8"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(client.id, client.name)}
+                          className="border-red-600 text-red-400 hover:bg-red-600/10 px-3 h-8"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
