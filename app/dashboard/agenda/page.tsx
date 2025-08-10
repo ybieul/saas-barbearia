@@ -242,6 +242,27 @@ export default function AgendaPage() {
     }
   }, [isClientDropdownOpen])
 
+  // Prevenir scroll do body quando modal está aberto
+  useEffect(() => {
+    if (isNewAppointmentOpen) {
+      // Impedir scroll do body
+      document.body.style.overflow = 'hidden'
+      // Adicionar padding para compensar a barra de scroll
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.paddingRight = `${scrollbarWidth}px`
+    } else {
+      // Restaurar scroll do body
+      document.body.style.overflow = 'unset'
+      document.body.style.paddingRight = '0px'
+    }
+
+    // Cleanup: sempre restaurar quando componente desmonta
+    return () => {
+      document.body.style.overflow = 'unset'
+      document.body.style.paddingRight = '0px'
+    }
+  }, [isNewAppointmentOpen])
+
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
     try {
@@ -1935,15 +1956,15 @@ export default function AgendaPage() {
       {/* Modal de novo agendamento */}
       {isNewAppointmentOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-hidden"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setIsClientDropdownOpen(false)
             }
           }}
         >
-          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-            <CardHeader className="pb-4">
+          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
+            <CardHeader className="pb-4 flex-shrink-0">
               <CardTitle className="text-[#ededed] text-base md:text-xl">
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
@@ -1951,7 +1972,8 @@ export default function AgendaPage() {
                 {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            
+            <CardContent className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6">
               {/* Exibir erro do backend */}
               {backendError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -2079,8 +2101,8 @@ export default function AgendaPage() {
                 </Select>
               </div>
 
-              {/* Data e Horário - Layout responsivo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Data e Horário - Layout melhorado para mobile */}
+              <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
                   <Input
@@ -2091,7 +2113,7 @@ export default function AgendaPage() {
                     onChange={(e) => {
                       setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
                     }}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm"
+                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-11 text-sm w-full"
                   />
                   {newAppointment.date && (
                     <div className="mt-1">
@@ -2099,16 +2121,16 @@ export default function AgendaPage() {
                         const dateStatus = getDateStatus()
                         if (dateStatus.isOpen === false) {
                           return (
-                            <p className="text-xs text-red-400 flex items-center gap-1 flex-wrap">
-                              <span>❌</span>
-                              <span className="break-words">{dateStatus.message}</span>
+                            <p className="text-xs text-red-400 flex items-start gap-1">
+                              <span className="flex-shrink-0">❌</span>
+                              <span className="break-words leading-tight">{dateStatus.message}</span>
                             </p>
                           )
                         } else if (dateStatus.isOpen === true) {
                           return (
-                            <p className="text-xs text-[#10b981] flex items-center gap-1 flex-wrap">
-                              <span>✅</span>
-                              <span className="break-words">{dateStatus.message}</span>
+                            <p className="text-xs text-[#10b981] flex items-start gap-1">
+                              <span className="flex-shrink-0">✅</span>
+                              <span className="break-words leading-tight">{dateStatus.message}</span>
                             </p>
                           )
                         }
@@ -2127,7 +2149,7 @@ export default function AgendaPage() {
                     }}
                     disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
-                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-11 text-sm w-full">
                       <SelectValue placeholder={
                         !newAppointment.date ? "Data primeiro" :
                         !newAppointment.serviceId ? "Serviço primeiro" :
@@ -2161,15 +2183,15 @@ export default function AgendaPage() {
                   </Select>
                   {newAppointment.date && newAppointment.serviceId && (
                     <div className="mt-1 space-y-1">
-                      <p className="text-xs text-[#a1a1aa] break-words">{getDateStatus().isOpen ? 
+                      <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
                           `${getAvailableTimeSlots().length} horários disponíveis` : 
                           'Estabelecimento fechado neste dia'
                         }
                       </p>
                       {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
-                        <p className="text-xs text-[#d97706] flex items-center gap-1 flex-wrap">
-                          <span>⏱️</span>
-                          <span className="break-words">Horários com ⏱️ são retroativos</span>
+                        <p className="text-xs text-[#d97706] flex items-start gap-1">
+                          <span className="flex-shrink-0">⏱️</span>
+                          <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>
                         </p>
                       )}
                     </div>
@@ -2191,7 +2213,7 @@ export default function AgendaPage() {
             </CardContent>
             
             {/* Botões responsivos */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:justify-end sm:p-6 flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2199,7 +2221,7 @@ export default function AgendaPage() {
                   setEditingAppointment(null)
                   resetForm()
                 }}
-                className="border-[#27272a] hover:bg-[#27272a] text-sm h-10 w-full sm:w-auto order-2 sm:order-1"
+                className="border-[#27272a] hover:bg-[#27272a] text-sm h-11 w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancelar
               </Button>
@@ -2229,7 +2251,7 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-10 w-full sm:w-auto order-1 sm:order-2"
+                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-11 w-full sm:w-auto order-1 sm:order-2"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
