@@ -1816,24 +1816,26 @@ export default function AgendaPage() {
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Clock className="w-4 h-4 text-[#10b981]" />
-                        <span className="font-semibold text-[#ededed]">{appointmentTime}</span>
-                        <Badge variant={status.variant}>{status.label}</Badge>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-[#10b981]" />
+                          <span className="font-semibold text-[#ededed] text-lg md:text-base">{appointmentTime}</span>
+                        </div>
+                        <Badge variant={status.variant} className="w-fit text-xs">{status.label}</Badge>
                       </div>
                       
-                      <div className="space-y-1">
-                        <p className="text-[#ededed]">
-                          <strong>Cliente:</strong> {appointment.endUser?.name}
+                      <div className="space-y-2">
+                        <p className="text-[#ededed] text-sm md:text-base">
+                          <strong className="text-[#a1a1aa]">Cliente:</strong> {appointment.endUser?.name}
                         </p>
-                        <p className="text-[#a1a1aa]">
+                        <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
                         {/* ✅ SEMPRE exibir profissional - versão simplificada para debug */}
-                        <p className="text-[#a1a1aa]">
+                        <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Profissional:</strong> {
                             appointment.professionalId ? (
                               appointment.professional?.name || 
@@ -1846,16 +1848,17 @@ export default function AgendaPage() {
                           }
                         </p>
                         {appointment.notes && (
-                          <p className="text-[#a1a1aa]">
+                          <p className="text-[#a1a1aa] text-sm md:text-base">
                             <strong>Observações:</strong> {appointment.notes}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-3">
-                      <div className="text-right">
-                        <p className="text-[#10b981] font-semibold">
+                    {/* Seção de preço e duração - móvel: abaixo do conteúdo, desktop: lado direito */}
+                    <div className="flex flex-row md:flex-col justify-between md:items-end gap-3">
+                      <div className="flex flex-col md:text-right">
+                        <p className="text-[#10b981] font-semibold text-lg md:text-base">
                           {new Intl.NumberFormat('pt-BR', { 
                             style: 'currency', 
                             currency: 'BRL' 
@@ -1866,27 +1869,27 @@ export default function AgendaPage() {
                         </p>
                       </div>
 
-                      {/* Botões de ação */}
-                      <div className="flex gap-2">
+                      {/* Botões de ação - móvel: em linha, desktop: em linha também */}
+                      <div className="flex gap-1 md:gap-2 flex-wrap">
                         {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleCompleteAppointment(appointment.id)}
-                              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white"
+                              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981] hover:text-white p-2 md:px-3"
                               title="Concluir agendamento"
                             >
-                              <Check className="w-4 h-4" />
+                              <Check className="w-3 h-3 md:w-4 md:h-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleCancelAppointment(appointment.id)}
-                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white p-2 md:px-3"
                               title="Cancelar agendamento"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3 h-3 md:w-4 md:h-4" />
                             </Button>
                           </>
                         )}
@@ -1895,20 +1898,20 @@ export default function AgendaPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditAppointment(appointment)}
-                          className="border-[#27272a] hover:bg-[#27272a]"
+                          className="border-[#27272a] hover:bg-[#27272a] p-2 md:px-3"
                           title="Editar agendamento"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Edit3 className="w-3 h-3 md:w-4 md:h-4" />
                         </Button>
                         
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteAppointment(appointment.id)}
-                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white p-2 md:px-3"
                           title="Excluir agendamento"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                         </Button>
                       </div>
                     </div>
