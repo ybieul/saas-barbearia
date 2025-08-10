@@ -2101,8 +2101,8 @@ export default function AgendaPage() {
                 </Select>
               </div>
 
-              {/* Data e Horário - Layout melhorado para mobile */}
-              <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
+              {/* Data e Horário - Layout otimizado para mobile */}
+              <div className="space-y-6 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
                   <Input
@@ -2113,10 +2113,10 @@ export default function AgendaPage() {
                     onChange={(e) => {
                       setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
                     }}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-11 text-sm w-full"
+                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-12 text-base sm:h-11 sm:text-sm w-full min-w-0 block"
                   />
                   {newAppointment.date && (
-                    <div className="mt-1">
+                    <div className="mt-2">
                       {(() => {
                         const dateStatus = getDateStatus()
                         if (dateStatus.isOpen === false) {
@@ -2149,7 +2149,7 @@ export default function AgendaPage() {
                     }}
                     disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                   >
-                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-11 text-sm w-full">
+                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-12 text-base sm:h-11 sm:text-sm w-full min-w-0">
                       <SelectValue placeholder={
                         !newAppointment.date ? "Data primeiro" :
                         !newAppointment.serviceId ? "Serviço primeiro" :
