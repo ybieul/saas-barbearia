@@ -1933,25 +1933,26 @@ export default function AgendaPage() {
       </div>
 
       {/* Modal de novo agendamento */}
-      {isNewAppointmentOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsClientDropdownOpen(false)
-            }
-          }}
-        >
-          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-[#ededed] text-base md:text-xl">
-                {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
-              </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-sm md:text-sm">
-                {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <Dialog open={isNewAppointmentOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsNewAppointmentOpen(false)
+          setEditingAppointment(null)
+          resetForm()
+        }
+      }}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-full max-w-lg mx-4 sm:mx-auto max-h-[90vh] overflow-hidden">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-[#ededed] text-base md:text-xl">
+              {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
+            </DialogTitle>
+            <DialogDescription className="text-[#a1a1aa] text-sm md:text-sm">
+              {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Container com scroll interno */}
+          <div className="max-h-[calc(90vh-200px)] overflow-y-auto px-1">
+            <div className="space-y-4">
               {/* Exibir erro do backend */}
               {backendError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -2079,7 +2080,7 @@ export default function AgendaPage() {
                 </Select>
               </div>
 
-              {/* Data e Horário - Layout responsivo */}
+              {/* Data e Horário - Layout responsivo com scroll melhorado */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
@@ -2188,60 +2189,60 @@ export default function AgendaPage() {
                   className="bg-[#18181b] border-[#27272a] text-[#ededed] min-h-[80px] text-sm resize-none"
                 />
               </div>
-            </CardContent>
-            
-            {/* Botões responsivos */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsNewAppointmentOpen(false)
-                  setEditingAppointment(null)
-                  resetForm()
-                }}
-                className="border-[#27272a] hover:bg-[#27272a] text-sm h-10 w-full sm:w-auto order-2 sm:order-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('🔍 Botão clicado - Estado atual:', {
-                      endUserId: newAppointment.endUserId,
-                      serviceId: newAppointment.serviceId,
-                      date: newAppointment.date,
-                      time: newAppointment.time,
-                      isEditing: !!editingAppointment
-                    })
-                  }
-                  if (editingAppointment) {
-                    handleUpdateAppointment()
-                  } else {
-                    handleCreateAppointment()
-                  }
-                }}
-                disabled={
-                  !newAppointment.endUserId || 
-                  !newAppointment.serviceId || 
-                  !newAppointment.date || 
-                  !newAppointment.time || 
-                  isCreating || 
-                  isValidating ||
-                  !getDateStatus().isOpen
-                }
-                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-10 w-full sm:w-auto order-1 sm:order-2"
-              >
-                {isCreating ? 
-                  (editingAppointment ? "Atualizando..." : "Criando...") : 
-                  isValidating ? "Validando..." :
-                  !getDateStatus().isOpen ? "Estabelecimento Fechado" :
-                  (editingAppointment ? "Atualizar" : "Criar Agendamento")
-                }
-              </Button>
             </div>
-          </Card>
-        </div>
-      )}
+          </div>
+          
+          {/* Botões responsivos fixos na parte inferior */}
+          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2 pt-4 border-t border-[#27272a]">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsNewAppointmentOpen(false)
+                setEditingAppointment(null)
+                resetForm()
+              }}
+              className="border-[#27272a] hover:bg-[#27272a] text-sm h-10 w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔍 Botão clicado - Estado atual:', {
+                    endUserId: newAppointment.endUserId,
+                    serviceId: newAppointment.serviceId,
+                    date: newAppointment.date,
+                    time: newAppointment.time,
+                    isEditing: !!editingAppointment
+                  })
+                }
+                if (editingAppointment) {
+                  handleUpdateAppointment()
+                } else {
+                  handleCreateAppointment()
+                }
+              }}
+              disabled={
+                !newAppointment.endUserId || 
+                !newAppointment.serviceId || 
+                !newAppointment.date || 
+                !newAppointment.time || 
+                isCreating || 
+                isValidating ||
+                !getDateStatus().isOpen
+              }
+              className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-10 w-full sm:w-auto"
+            >
+              {isCreating ? 
+                (editingAppointment ? "Atualizando..." : "Criando...") : 
+                isValidating ? "Validando..." :
+                !getDateStatus().isOpen ? "Estabelecimento Fechado" :
+                (editingAppointment ? "Atualizar" : "Criar Agendamento")
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Confirmação */}
       <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
