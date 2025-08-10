@@ -115,10 +115,10 @@ export default function DashboardLayout({
         {/* Sidebar */}
         <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#18181b]/95 backdrop-blur-xl border-r border-[#27272a] transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 lg:static lg:inset-0`}>
+        } lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}>
         
         {/* Header da Sidebar */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a]">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-xl flex items-center justify-center shadow-lg shadow-[#10b981]/25">
               <Scissors className="w-6 h-6 text-white" />
@@ -138,66 +138,72 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* Perfil */}
-        <div className="p-6 border-b border-[#27272a]">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#27272a] to-[#18181b] rounded-xl flex items-center justify-center shadow-lg">
-              <UserCircle className="w-7 h-7 text-[#71717a]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#ededed] truncate">
-                {user?.name || 'Usuário'}
-              </p>
-              <p className="text-xs text-[#a1a1aa] truncate">
-                {user?.email || 'usuario@email.com'}
-              </p>
-              <div className="flex items-center mt-1">
-                <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2"></div>
-                <span className="text-xs text-[#10b981]">Online</span>
+        {/* Container scrollável */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-[#27272a] scrollbar-thumb-[#10b981]">
+          {/* Perfil */}
+          <div className="p-6 border-b border-[#27272a]">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#27272a] to-[#18181b] rounded-xl flex items-center justify-center shadow-lg">
+                <UserCircle className="w-7 h-7 text-[#71717a]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#ededed] truncate">
+                  {user?.name || 'Usuário'}
+                </p>
+                <p className="text-xs text-[#a1a1aa] truncate">
+                  {user?.email || 'usuario@email.com'}
+                </p>
+                <div className="flex items-center mt-1">
+                  <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2"></div>
+                  <span className="text-xs text-[#10b981]">Online</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Navegação */}
-        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
-          {menuItems.map((item) => (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                  pathname === item.href
-                    ? 'bg-gradient-to-r from-[#10b981]/20 to-[#059669]/20 text-[#10b981] border border-[#10b981]/30 shadow-lg shadow-[#10b981]/10'
-                    : 'text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#27272a]/50'
-                }`}
-              >
-                <item.icon className={`mr-4 h-5 w-5 transition-colors ${
-                  pathname === item.href ? 'text-[#10b981]' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
-                }`} />
-                <div className="flex-1">
-                  <div className="font-medium">{item.label}</div>
-                  <div className="text-xs text-[#71717a] group-hover:text-[#ededed]/70">
-                    {item.description}
+          {/* Navegação */}
+          <nav className="p-4 space-y-2">
+            {menuItems.map((item) => (
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                    pathname === item.href
+                      ? 'bg-gradient-to-r from-[#10b981]/20 to-[#059669]/20 text-[#10b981] border border-[#10b981]/30 shadow-lg shadow-[#10b981]/10'
+                      : 'text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#27272a]/50'
+                  }`}
+                >
+                  <item.icon className={`mr-4 h-5 w-5 transition-colors ${
+                    pathname === item.href ? 'text-[#10b981]' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
+                  }`} />
+                  <div className="flex-1">
+                    <div className="font-medium">{item.label}</div>
+                    <div className="text-xs text-[#71717a] group-hover:text-[#ededed]/70">
+                      {item.description}
+                    </div>
                   </div>
-                </div>
-                {pathname === item.href && (
-                  <div className="w-2 h-2 bg-[#10b981] rounded-full" />
-                )}
-              </Link>
-            </div>
-          ))}
-        </nav>
+                  {pathname === item.href && (
+                    <div className="w-2 h-2 bg-[#10b981] rounded-full" />
+                  )}
+                </Link>
+              </div>
+            ))}
+          </nav>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-[#27272a]">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium text-[#a1a1aa] hover:text-[#ededed] hover:bg-red-500/10 hover:border-red-500/30 rounded-xl transition-all border border-transparent"
-          >
-            <LogOut className="mr-4 h-5 w-5" />
-            Sair da Conta
-          </button>
+          {/* Logout */}
+          <div className="p-4 border-t border-[#27272a] mt-4">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-4 py-3 text-sm font-medium text-[#a1a1aa] hover:text-[#ededed] hover:bg-red-500/10 hover:border-red-500/30 rounded-xl transition-all border border-transparent"
+            >
+              <LogOut className="mr-4 h-5 w-5" />
+              Sair da Conta
+            </button>
+          </div>
+
+          {/* Espaço extra para navegadores mobile */}
+          <div className="h-16 lg:hidden"></div>
         </div>
       </div>
 
