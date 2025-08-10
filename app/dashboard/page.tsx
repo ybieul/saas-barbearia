@@ -215,24 +215,24 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="page-title">Olá, {user?.name || "Usuário"}! 👋</h1>
-        <p className="page-subtitle capitalize">{today}</p>
+        <h1 className="text-3xl font-bold text-[#ededed] mb-2">Olá, {user?.name || "Usuário"}! 👋</h1>
+        <p className="text-[#a1a1aa] capitalize">{today}</p>
       </div>
 
       {/* Stats Cards com Sparklines */}
-      <div className="metric-container">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="metric-card hover:border-[#10b981]/30 transition-colors">
+          <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="responsive-text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-3">
-                <div className="metric-value">{stat.value}</div>
+                <div className="text-3xl font-bold text-[#ededed]">{stat.value}</div>
                 <div className="flex justify-center">
                   <Sparkline 
                     data={stat.sparklineData} 
@@ -249,20 +249,20 @@ export default function DashboardPage() {
 
       {/* Próximos Agendamentos por Profissional */}
       {nextAppointmentsByProfessional.length > 0 && (
-        <Card className="card-responsive bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
-          <CardHeader className="card-responsive-padding">
-            <div className="flex-responsive-row items-start justify-between">
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
-                <CardTitle className="text-[#ededed] responsive-text-lg">Próximos na Fila</CardTitle>
+                <CardTitle className="text-[#ededed] text-lg">Próximos na Fila</CardTitle>
               </div>
               <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="card-responsive-padding">
-            <div className="responsive-grid-3 gap-responsive-sm">
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {nextAppointmentsByProfessional.map((item: any) => (
                 <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/50 transition-colors">
                   <div className="space-y-3">
@@ -270,10 +270,10 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <ProfessionalAvatar professional={item.professional} />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-[#ededed] responsive-text-sm">{item.professional.name}</h4>
+                        <h4 className="font-semibold text-[#ededed] text-sm">{item.professional.name}</h4>
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-[#10b981]" />
-                          <span className="responsive-text-xs text-[#a1a1aa]">Próximo</span>
+                          <span className="text-xs text-[#a1a1aa]">Próximo</span>
                         </div>
                       </div>
                     </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                     {/* Informações do Agendamento */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="responsive-text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
+                        <span className="text-lg font-bold text-[#10b981]">{item.nextAppointment.time}</span>
                         <Badge
                           className={
                             item.nextAppointment.status === "IN_PROGRESS"
@@ -294,8 +294,8 @@ export default function DashboardPage() {
                       </div>
                       
                       <div>
-                        <p className="font-medium text-[#ededed] responsive-text-sm">{item.nextAppointment.client}</p>
-                        <p className="responsive-text-xs text-[#a1a1aa]">
+                        <p className="font-medium text-[#ededed] text-sm">{item.nextAppointment.client}</p>
+                        <p className="text-xs text-[#a1a1aa]">
                           {item.nextAppointment.service}
                           <span className="ml-1">({item.nextAppointment.duration} min)</span>
                         </p>
@@ -349,40 +349,40 @@ export default function DashboardPage() {
 
       {/* Fallback: Próximo Agendamento Geral (caso não haja por profissional) */}
       {nextAppointmentsByProfessional.length === 0 && nextAppointment && (
-        <Card className="card-responsive bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
-          <CardHeader className="card-responsive-padding">
-            <div className="flex-responsive-row items-start justify-between">
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
-                <CardTitle className="text-[#ededed] responsive-text-lg">O que vem a seguir?</CardTitle>
+                <CardTitle className="text-[#ededed] text-lg">O que vem a seguir?</CardTitle>
               </div>
               <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
                 Próximo
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="card-responsive-padding">
-            <div className="flex-responsive-column sm:flex-row items-start sm:items-center gap-4">
+          <CardContent>
+            <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
                 <Clock className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="responsive-text-xl font-bold text-[#10b981]">{nextAppointment.time}</span>
-                  <span className="responsive-text-sm text-[#a1a1aa]">{nextAppointment.date}</span>
+                  <span className="text-xl font-bold text-[#10b981]">{nextAppointment.time}</span>
+                  <span className="text-sm text-[#a1a1aa]">{nextAppointment.date}</span>
                 </div>
-                <p className="responsive-text-lg font-semibold text-[#ededed]">{nextAppointment.client}</p>
-                <p className="responsive-text-sm text-[#a1a1aa]">
+                <p className="text-lg font-semibold text-[#ededed]">{nextAppointment.client}</p>
+                <p className="text-sm text-[#a1a1aa]">
                   {nextAppointment.service} 
                   {nextAppointment.professional && ` com ${nextAppointment.professional}`}
-                  <span className="ml-2 responsive-text-xs">({nextAppointment.duration} min)</span>
+                  <span className="ml-2 text-xs">({nextAppointment.duration} min)</span>
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="btn-responsive border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
+                  className="border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
                   onClick={() => router.push('/dashboard/clientes')}
                 >
                   <User className="w-4 h-4 mr-1" />
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                 </Button>
                 <Button 
                   size="sm" 
-                  className="btn-responsive bg-[#10b981] hover:bg-[#059669]"
+                  className="bg-[#10b981] hover:bg-[#059669]"
                   onClick={() => handleCompleteAppointment(nextAppointment)}
                   disabled={isCompletingAppointment}
                 >
@@ -404,12 +404,12 @@ export default function DashboardPage() {
       )}
 
       {/* Layout Principal */}
-      <div className="responsive-grid-1 lg:grid-cols-3 gap-responsive-md">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Agenda de Hoje - 2 colunas */}
         <div className="lg:col-span-2">
-          <Card className="card-responsive">
-            <CardHeader className="card-responsive-padding">
-              <div className="flex-responsive-row items-start justify-between">
+          <Card className="bg-[#18181b] border-[#27272a]">
+            <CardHeader>
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-[#10b981]" />
                   Agenda de Hoje
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                     variant="outline" 
                     size="sm"
                     onClick={() => router.push('/dashboard/agenda')}
-                    className="btn-responsive border-[#27272a] hover:bg-[#27272a]"
+                    className="border-[#27272a] hover:bg-[#27272a]"
                   >
                     Ver Todos
                     <ChevronRight className="w-4 h-4 ml-1" />
@@ -430,18 +430,18 @@ export default function DashboardPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="card-responsive-padding">
+            <CardContent>
               <div className="space-y-3">
                 {todayAppointments.length > 0 ? (
                   todayAppointments.slice(0, 6).map((appointment: any, index: number) => (
-                    <div key={index} className="appointment-card hover:border-[#10b981]/30 transition-colors">
+                    <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a] hover:border-[#10b981]/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
                           <Clock className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="appointment-time">{appointment.time}</span>
+                            <span className="text-lg font-semibold text-[#ededed]">{appointment.time}</span>
                             <Badge
                               className={
                                 appointment.status === "COMPLETED"

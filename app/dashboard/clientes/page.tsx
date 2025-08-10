@@ -186,33 +186,33 @@ export default function ClientesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex-responsive-row items-start justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
-          <h1 className="page-title">Clientes</h1>
-          <p className="page-subtitle">Gerencie sua base de clientes</p>
+          <h1 className="text-2xl font-bold text-[#ededed]">Clientes</h1>
+          <p className="text-[#a1a1aa]">Gerencie sua base de clientes</p>
         </div>
         
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button 
-              className="btn-responsive bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
+              className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
               onClick={() => resetForm()}
             >
               <Plus className="w-4 h-4 mr-2" />
               Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="modal-content bg-[#18181b] border-[#27272a]">
+          <DialogContent className="bg-[#18181b] border-[#27272a]">
             <DialogHeader>
-              <DialogTitle className="modal-header text-[#ededed]">
+              <DialogTitle className="text-[#ededed]">
                 {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
               </DialogTitle>
-              <DialogDescription className="modal-body text-[#3f3f46]">
+              <DialogDescription className="text-[#3f3f46]">
                 {editingClient ? 'Edite as informações do cliente' : 'Adicione um novo cliente à sua base'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="form-container">
-              <div className="form-group">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
                 <Label htmlFor="name" className="text-[#ededed]">Nome *</Label>
                 <Input
                   id="name"

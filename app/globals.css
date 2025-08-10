@@ -5,9 +5,6 @@
 @tailwind utilities;
 /* stylelint-enable at-rule-no-unknown */
 
-/* Importar responsividade personalizada */
-@import '../styles/responsive.css';
-
 /* Configuração de fontes do sistema */
 body {
   font-family: var(--font-inter), Inter, sans-serif;
