@@ -2002,14 +2002,15 @@ export default function ConfiguracoesPage() {
                             {/* Lado direito - Horários ou Status */}
                             <div className="flex items-center gap-2 sm:gap-3">
                               {hours.active ? (
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
-                                  <div className="flex items-center gap-2 sm:flex-col sm:items-center">
-                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1">Abertura</label>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-3 border border-[#3f3f46] w-full sm:w-auto">
+                                  {/* Container de Abertura */}
+                                  <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0">Abertura</label>
                                     <Select
                                       value={hours.start}
                                       onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm ml-2 sm:ml-0">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -2021,16 +2022,20 @@ export default function ConfiguracoesPage() {
                                       </SelectContent>
                                     </Select>
                                   </div>
-                                  <div className="flex items-center justify-center px-1 sm:px-2">
+                                  
+                                  {/* Separador "até" */}
+                                  <div className="flex items-center justify-center px-2 sm:px-2">
                                     <span className="text-[#71717a] font-medium text-xs sm:text-sm">até</span>
                                   </div>
-                                  <div className="flex items-center gap-2 sm:flex-col sm:items-center">
-                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1">Fechamento</label>
+                                  
+                                  {/* Container de Fechamento */}
+                                  <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0">Fechamento</label>
                                     <Select
                                       value={hours.end}
                                       onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm ml-2 sm:ml-0">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
