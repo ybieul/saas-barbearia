@@ -2091,16 +2091,16 @@ export default function ConfiguracoesPage() {
           {activeTab === "promocoes" && (
             <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
                   <div>
-                    <CardTitle className="text-[#a1a1aa]">Templates de Promoção</CardTitle>
+                    <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Templates de Promoção</CardTitle>
                     <CardDescription className="text-[#71717a]">
                       Crie templates de mensagens promocionais para enviar aos seus clientes
                     </CardDescription>
                   </div>
                   <Dialog open={isNewTemplateOpen} onOpenChange={setIsNewTemplateOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a]">
+                      <Button className="bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a] w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Novo Template
                       </Button>
