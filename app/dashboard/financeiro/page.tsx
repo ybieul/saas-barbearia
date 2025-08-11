@@ -361,7 +361,7 @@ export default function FinanceiroPage() {
           }
           
           dailyData.push({
-            date: toLocalDateString(date), // 🇧🇷 CORREÇÃO: Usar função brasileira
+            date: date, // 🇧🇷 CORREÇÃO: Manter objeto Date original
             dayName: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
             fullDate: date.toLocaleDateString('pt-BR'),
             revenue: Math.round(revenue * 100) / 100,
@@ -1127,7 +1127,7 @@ export default function FinanceiroPage() {
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                   {dailyData.map((day, index) => {
                     const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                    const dayDate = new Date(day.date)
+                    const dayDate = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                     const isWeekend = getBrazilDayNumber(dayDate) === 0 || getBrazilDayNumber(dayDate) === 6
                     
                     return (
@@ -1156,7 +1156,7 @@ export default function FinanceiroPage() {
                             {day.dayName.slice(0, 3)}
                           </div>
                           <div className="text-xs text-gray-500 mb-1">
-                            {utcToBrazil(new Date(day.date)).getDate()}
+                            {dayDate.getDate()}
                           </div>
                           <div className="text-xs text-[#10b981] font-medium">
                             {day.revenue > 0 ? `R$ ${Math.round(day.revenue)}` : 'R$ 0'}
@@ -1190,7 +1190,7 @@ export default function FinanceiroPage() {
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
                   const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
-                  const dayDate2 = new Date(day.date)
+                  const dayDate2 = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                   const isWeekend = getBrazilDayNumber(dayDate2) === 0 || getBrazilDayNumber(dayDate2) === 6
                   
                   return (
@@ -1234,7 +1234,7 @@ export default function FinanceiroPage() {
                           {day.dayName}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {utcToBrazil(new Date(day.date)).getDate()}
+                          {dayDate2.getDate()}
                         </div>
                       </div>
                     </div>
