@@ -1300,32 +1300,38 @@ export default function FinanceiroPage() {
       {/* Monthly Analysis Card */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+          <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#10b981]" />
               <span className="text-lg sm:text-xl">Análise Mensal</span>
             </div>
-            <div className="flex items-center gap-2 justify-center sm:justify-end">
+            
+            {/* Navegação de mês - estilo igual à agenda */}
+            <div className="flex items-center justify-center gap-4 sm:justify-end">
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="icon"
                 onClick={() => debouncedNavigateMonth('prev')}
                 disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === 0}
-                className="text-[#71717a] hover:text-[#ededed]"
+                className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 sm:h-12 sm:w-12"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
-              <span className="text-base sm:text-lg font-semibold text-[#ededed] min-w-[150px] sm:min-w-[200px] text-center">
-                {selectedMonthData?.monthName || 'Carregando...'}
-              </span>
+              
+              <div className="text-center">
+                <h2 className="text-base sm:text-lg font-semibold text-[#ededed] whitespace-nowrap min-w-[180px] sm:min-w-[200px]">
+                  {selectedMonthData?.monthName || 'Carregando...'}
+                </h2>
+              </div>
+              
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="icon"
                 onClick={() => debouncedNavigateMonth('next')}
                 disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
-                className="text-[#71717a] hover:text-[#ededed]"
+                className="border-[#27272a] hover:bg-[#27272a] h-10 w-10 sm:h-12 sm:w-12"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </CardTitle>
