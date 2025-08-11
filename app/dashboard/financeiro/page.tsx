@@ -125,29 +125,6 @@ export default function FinanceiroPage() {
     }
   }
 
-  // ✅ ATUALIZAÇÃO AUTOMÁTICA: Verificar mudanças periodicamente
-  useEffect(() => {
-    // Verificar se há mudanças a cada 30 segundos quando a página está visível
-    const interval = setInterval(() => {
-      if (!document.hidden && !isRefreshing && !loading) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 Verificação automática de dados...')
-        }
-        fetchAppointments().then(() => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Verificação automática concluída')
-          }
-        }).catch(err => {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('❌ Erro na verificação automática:', err)
-          }
-        })
-      }
-    }, 30000) // 30 segundos
-
-    return () => clearInterval(interval)
-  }, [fetchAppointments, isRefreshing, loading])
-
   // Carregar dados de relatórios
   useEffect(() => {
     const loadReportsData = async () => {
@@ -944,7 +921,7 @@ export default function FinanceiroPage() {
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
             <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
           </div>
         </div>
