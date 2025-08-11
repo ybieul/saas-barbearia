@@ -428,58 +428,126 @@ export default function ClientesInativosPage() {
                 : stats.averageTicket; // Se nunca gastou, usar média geral
                 
               return (
-                <div
-                  key={client.id}
-                  className={`flex items-center gap-4 p-4 rounded-lg transition-colors border ${
-                    selectedClients.includes(client.id)
-                      ? 'bg-emerald-500/10 border-[#10b981]/30'
-                      : 'bg-[#18181b] border-[#27272a] hover:bg-gray-900/70'
-                  }`}
-                >
-                  <Checkbox 
-                    checked={selectedClients.includes(client.id)}
-                    onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
-                  />
-                  
-                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-[#ededed]">
-                      {client.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-[#ededed] font-medium">{client.name}</p>
-                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                        Prioridade Alta
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-[#71717a]">
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        {client.phone}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {client.totalVisits === 0 
-                          ? "Nunca visitou" 
-                          : `Inativo há ${daysSinceLastVisit} dias`
-                        }
+                <div key={client.id}>
+                  {/* Layout Desktop - mantido exatamente igual */}
+                  <div
+                    className={`hidden md:flex items-center gap-4 p-4 rounded-lg transition-colors border ${
+                      selectedClients.includes(client.id)
+                        ? 'bg-emerald-500/10 border-[#10b981]/30'
+                        : 'bg-[#18181b] border-[#27272a] hover:bg-gray-900/70'
+                    }`}
+                  >
+                    <Checkbox 
+                      checked={selectedClients.includes(client.id)}
+                      onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
+                    />
+                    
+                    <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-[#ededed]">
+                        {client.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {client.totalVisits === 0 ? "Nunca visitou" : `Última visita há ${daysSinceLastVisit} dias`}
-                    </p>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-[#ededed] font-medium">{client.name}</p>
+                        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
+                          Prioridade Alta
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-[#71717a]">
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3" />
+                          {client.phone}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {client.totalVisits === 0 
+                            ? "Nunca visitou" 
+                            : `Inativo há ${daysSinceLastVisit} dias`
+                          }
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {client.totalVisits === 0 ? "Nunca visitou" : `Última visita há ${daysSinceLastVisit} dias`}
+                      </p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-emerald-400">Potencial de receita</p>
+                      <p className="text-lg font-bold text-emerald-400">
+                        {new Intl.NumberFormat('pt-BR', { 
+                          style: 'currency', 
+                          currency: 'BRL' 
+                        }).format(clientPotentialRevenue)}
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-emerald-400">Potencial de receita</p>
-                    <p className="text-lg font-bold text-emerald-400">
-                      {new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(clientPotentialRevenue)}
-                    </p>
+
+                  {/* Layout Mobile - novo design otimizado */}
+                  <div 
+                    className={`block md:hidden p-4 rounded-lg transition-colors border ${
+                      selectedClients.includes(client.id)
+                        ? 'bg-emerald-500/10 border-[#10b981]/30'
+                        : 'bg-[#18181b] border-[#27272a] hover:bg-gray-900/70'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Header do cliente com checkbox */}
+                      <div className="flex items-start gap-3">
+                        <Checkbox 
+                          checked={selectedClients.includes(client.id)}
+                          onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-[#ededed]">
+                            {client.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-white text-base truncate">{client.name}</h3>
+                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs flex-shrink-0">
+                              Alta
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-[#71717a]">
+                            <MessageCircle className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{client.phone}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Informações em cards mini */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-[#27272a]/50 rounded-lg p-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Clock className="w-3 h-3 text-[#71717a]" />
+                            <span className="text-xs text-[#71717a]">Status</span>
+                          </div>
+                          <div className="text-sm font-medium text-[#a1a1aa]">
+                            {client.totalVisits === 0 
+                              ? "Nunca visitou" 
+                              : `${daysSinceLastVisit} dias`
+                            }
+                          </div>
+                        </div>
+                        <div className="bg-[#27272a]/50 rounded-lg p-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Gift className="w-3 h-3 text-emerald-400" />
+                            <span className="text-xs text-[#71717a]">Potencial</span>
+                          </div>
+                          <div className="text-sm font-medium text-emerald-400">
+                            {new Intl.NumberFormat('pt-BR', { 
+                              style: 'currency', 
+                              currency: 'BRL',
+                              maximumFractionDigits: 0
+                            }).format(clientPotentialRevenue)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
