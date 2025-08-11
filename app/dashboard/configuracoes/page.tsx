@@ -2023,9 +2023,9 @@ export default function ConfiguracoesPage() {
                                     </Select>
                                   </div>
                                   
-                                  {/* Separador "até" */}
-                                  <div className="flex items-center justify-center px-1 sm:px-2 order-3 sm:order-2">
-                                    <span className="text-[#71717a] font-medium text-xs sm:text-sm">até</span>
+                                  {/* Separador "até" - apenas no desktop */}
+                                  <div className="hidden sm:flex items-center justify-center px-2 order-3 sm:order-2">
+                                    <span className="text-[#71717a] font-medium text-sm">até</span>
                                   </div>
                                   
                                   {/* Container de Fechamento */}
