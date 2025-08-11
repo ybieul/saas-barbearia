@@ -1384,7 +1384,7 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-sm mx-2 sm:max-w-lg sm:mx-auto backdrop-blur-xl">
+                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-sm mx-4 sm:max-w-lg sm:mx-auto backdrop-blur-xl">
                   <DialogHeader className="sr-only">
                     <DialogTitle>Alterar Foto de Perfil</DialogTitle>
                   </DialogHeader>
