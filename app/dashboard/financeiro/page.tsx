@@ -990,7 +990,7 @@ export default function FinanceiroPage() {
       {/* Header com filtro por profissional */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
             {lastUpdated && (
