@@ -218,58 +218,58 @@ export default function ClientesInativosPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
-              <div className="text-left sm:text-left">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-[#71717a] text-sm">Total Inativos</p>
-                <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
               </div>
-              <UserX className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-red-400" />
+              <UserX className="w-8 h-8 text-red-400" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
-              <div className="text-left sm:text-left">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-[#71717a] text-sm">Promoções Enviadas</p>
-                <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
               </div>
-              <Send className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-yellow-400" />
+              <Send className="w-8 h-8 text-yellow-400" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
-              <div className="text-left sm:text-left">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-[#71717a] text-sm">Taxa de Retorno</p>
-                <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">
+                <p className="text-2xl font-bold text-[#ededed]">
                   {stats.promotionsSent > 0 ? Math.round((stats.returnRate / stats.promotionsSent) * 100) : 0}%
                 </p>
               </div>
-              <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-emerald-400" />
+              <AlertTriangle className="w-8 h-8 text-emerald-400" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center justify-between sm:justify-between gap-2 sm:gap-0">
-              <div className="text-left sm:text-left">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-[#71717a] text-sm">Receita Potencial</p>
-                <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">
+                <p className="text-2xl font-bold text-[#ededed]">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
                   }).format(stats.potentialRevenue)}
                 </p>
               </div>
-              <Gift className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-emerald-400" />
+              <Gift className="w-8 h-8 text-emerald-400" />
             </div>
           </CardContent>
         </Card>
