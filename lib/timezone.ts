@@ -210,7 +210,25 @@ export function debugTimezone(date: Date, context: string = 'Debug'): void {
  * @returns Date object representando agora no Brasil
  */
 export function getBrazilNow(): Date {
-  return new Date()
+  // Força uso do timezone brasileiro
+  const now = new Date()
+  const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  
+  // Debug para monitoramento
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🕐 getBrazilNow() - System time:', now.toISOString())
+    console.log('🕐 getBrazilNow() - Brazil time:', brazilTime.toISOString())
+    console.log('🕐 getBrazilNow() - Local string:', brazilTime.toLocaleString('pt-BR', { 
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }))
+  }
+  
+  return brazilTime
 }
 
 /**

@@ -14,31 +14,44 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'today'
     console.log('🔍 Period solicitado:', period)
 
+    // Obter horário brasileiro atual com debug
+    const brazilNow = getBrazilNow()
+    console.log('🕐 Brazil now (API):', brazilNow.toISOString())
+    console.log('🕐 Brazil now local:', brazilNow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+
     let startDate: Date
-    let endDate: Date = getBrazilNow()
+    let endDate: Date
 
     switch (period) {
       case 'today':
-        startDate = getBrazilStartOfDay(getBrazilNow())
-        endDate = getBrazilEndOfDay(getBrazilNow())
+        startDate = getBrazilStartOfDay(brazilNow)
+        endDate = getBrazilEndOfDay(brazilNow)
         break
       case 'week':
-        startDate = getBrazilStartOfDay(getBrazilNow())
+        startDate = getBrazilStartOfDay(brazilNow)
         startDate.setDate(startDate.getDate() - 7)
+        endDate = getBrazilEndOfDay(brazilNow)
         break
       case 'month':
-        startDate = getBrazilStartOfDay(getBrazilNow())
-        const brazilCurrent = getBrazilNow()
-        startDate.setMonth(brazilCurrent.getMonth() - 1)
+        startDate = getBrazilStartOfDay(brazilNow)
+        startDate.setMonth(brazilNow.getMonth() - 1)
+        endDate = getBrazilEndOfDay(brazilNow)
         break
       case 'year':
-        startDate = getBrazilStartOfDay(getBrazilNow())
+        startDate = getBrazilStartOfDay(brazilNow)
         startDate.setFullYear(startDate.getFullYear() - 1)
+        endDate = getBrazilEndOfDay(brazilNow)
         break
       default:
-        startDate = getBrazilStartOfDay(getBrazilNow())
-        endDate = getBrazilEndOfDay(getBrazilNow())
+        startDate = getBrazilStartOfDay(brazilNow)
+        endDate = getBrazilEndOfDay(brazilNow)
     }
+
+    // Debug das datas calculadas
+    console.log('📅 Start date:', startDate.toISOString())
+    console.log('📅 End date:', endDate.toISOString())
+    console.log('📅 Start local:', startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    console.log('📅 End local:', endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
 
     // Métricas do tenant
     const [
@@ -142,8 +155,8 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
-            lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
+            gte: getBrazilStartOfDay(brazilNow), // Desde o início do dia atual
+            lte: getBrazilEndOfDay(brazilNow) // Até o final do dia atual
           },
           status: {
             in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
@@ -177,8 +190,8 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilStartOfDay(getBrazilNow()),
-            lte: getBrazilEndOfDay(getBrazilNow())
+            gte: getBrazilStartOfDay(brazilNow),
+            lte: getBrazilEndOfDay(brazilNow)
           }
           // Remover filtro de status para pegar todos os agendamentos
         },
@@ -514,6 +527,17 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Today appointments raw:', todayAppointments.slice(0, 2)) // Primeiros 2 para debug
     console.log('🔍 Professionals raw:', professionals.slice(0, 2)) // Primeiros 2 para debug
+    
+    // Debug específico para timezone
+    console.log('⏰ === DEBUG TIMEZONE APPOINTMENTS ===')
+    todayAppointments.forEach((apt, index) => {
+      if (index < 3) { // Apenas 3 primeiros para não poluir log
+        console.log(`📅 Apt ${index + 1}: ${apt.dateTime.toISOString()} (UTC)`)
+        console.log(`📅 Apt ${index + 1}: ${apt.dateTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (BR)`)
+        console.log(`👤 Apt ${index + 1}: ${apt.endUser?.name} - ${apt.services?.[0]?.name}`)
+      }
+    })
+    console.log('⏰ === FIM DEBUG TIMEZONE ===')
 
     return NextResponse.json({
       data: {
