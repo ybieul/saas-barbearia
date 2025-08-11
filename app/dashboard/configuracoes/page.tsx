@@ -2105,7 +2105,7 @@ export default function ConfiguracoesPage() {
                         Novo Template
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md left-1/2 -translate-x-1/2 sm:max-w-md sm:mx-auto">
                       <DialogHeader className="text-center pb-4">
                         <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
                           <Plus className="w-5 h-5 text-[#10b981]" />
