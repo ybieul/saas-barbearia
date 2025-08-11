@@ -839,33 +839,41 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="space-y-6">
-        <div className="border-b border-[#27272a]">
-          <div className="flex gap-8 overflow-x-auto">
+        <div className="border-b border-[#27272a] relative">
+          {/* Indicador de scroll apenas no mobile */}
+          <div className="block sm:hidden">
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-[#3f3f46] rounded-full opacity-50"></div>
+            <div className="text-xs text-[#71717a] text-center mb-2">← Deslize para ver mais abas →</div>
+          </div>
+          
+          <div className="flex gap-4 sm:gap-8 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => setActiveTab("estabelecimento")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "estabelecimento"
                   ? "border-[#10b981] text-[#10b981]"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <Building className="w-4 h-4" />
-              Estabelecimento
+              <span className="hidden xs:inline">Estabelecimento</span>
+              <span className="xs:hidden">Estabelec.</span>
             </button>
             <button
               onClick={() => setActiveTab("profissionais")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "profissionais"
                   ? "border-[#10b981] text-[#10b981]"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <User className="w-4 h-4" />
-              Profissionais
+              <span className="hidden xs:inline">Profissionais</span>
+              <span className="xs:hidden">Profiss.</span>
             </button>
             <button
               onClick={() => setActiveTab("servicos")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "servicos"
                   ? "border-[#10b981] text-[#10b981]"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
@@ -876,7 +884,7 @@ export default function ConfiguracoesPage() {
             </button>
             <button
               onClick={() => setActiveTab("horarios")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "horarios"
                   ? "border-[#10b981] text-[#10b981]"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
@@ -887,7 +895,7 @@ export default function ConfiguracoesPage() {
             </button>
             <button
               onClick={() => setActiveTab("promocoes")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "promocoes"
                   ? "border-[#10b981] text-[#10b981]"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
