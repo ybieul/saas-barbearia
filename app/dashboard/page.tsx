@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin, Zap } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
 import { useAppointments } from "@/hooks/use-api"
+import { useBusinessData } from "@/hooks/use-business-data"
 import { Sparkline } from "@/components/ui/sparkline"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
   const { updateAppointment } = useAppointments()
+  const { businessData } = useBusinessData()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -222,7 +224,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#ededed] mb-2">Olá, {user?.name || "Usuário"}! 👋</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#ededed] mb-2">Olá, {businessData?.name || "Estabelecimento"}! 👋</h1>
         <p className="text-[#a1a1aa] capitalize text-sm sm:text-base lg:text-lg">{today}</p>
       </div>
 
