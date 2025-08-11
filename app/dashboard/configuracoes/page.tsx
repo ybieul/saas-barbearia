@@ -1665,7 +1665,7 @@ export default function ConfiguracoesPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleOpenServiceImageUpload(service)}
-                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-8 p-0 sm:w-auto sm:p-2"
                               title="Alterar imagem do serviço"
                             >
                               <Camera className="w-4 h-4" />
@@ -1675,7 +1675,7 @@ export default function ConfiguracoesPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditService(service)}
-                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-8 p-0 sm:w-auto sm:p-2"
                               title="Editar serviço"
                             >
                               <Edit className="w-4 h-4" />
@@ -1685,7 +1685,7 @@ export default function ConfiguracoesPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleRemoveService(service.id, service.name)}
-                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent w-full h-8 p-0 sm:w-auto sm:p-2"
                               disabled={servicesLoading}
                               title="Remover serviço"
                             >
