@@ -369,8 +369,9 @@ export default function ClientesInativosPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-[#3f3f46]/50 p-4 rounded-lg border border-[#52525b]">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col gap-4 bg-[#3f3f46]/50 p-4 rounded-lg border border-[#52525b]">
+        {/* Search Input - sempre em largura total */}
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#71717a] w-4 h-4" />
           <Input
             placeholder="Buscar cliente..."
@@ -379,9 +380,11 @@ export default function ClientesInativosPage() {
             className="pl-10 bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder-gray-400"
           />
         </div>
-        <div className="flex gap-2">
+        
+        {/* Filters - mobile: stack vertical, desktop: horizontal */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:items-center sm:justify-between">
           <Select value={daysThreshold.toString()} onValueChange={(value) => setDaysThreshold(parseInt(value))}>
-            <SelectTrigger className="w-52 bg-[#27272a] border-[#3f3f46] text-[#ededed]">
+            <SelectTrigger className="w-full sm:w-52 bg-[#27272a] border-[#3f3f46] text-[#ededed]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-[#27272a] border-[#3f3f46]">
@@ -398,7 +401,7 @@ export default function ClientesInativosPage() {
               variant="outline" 
               size="sm"
               onClick={() => handleSelectAll(selectedClients.length !== filteredClients.length)}
-              className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+              className="w-full sm:w-auto border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
             >
               {selectedClients.length === filteredClients.length && filteredClients.length > 0 
                 ? "Desmarcar Todos" 
