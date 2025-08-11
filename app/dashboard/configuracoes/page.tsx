@@ -905,7 +905,7 @@ export default function ConfiguracoesPage() {
           {activeTab === "estabelecimento" && (
             <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
-                <CardTitle className="text-[#a1a1aa]">Dados do Estabelecimento</CardTitle>
+                <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Dados do Estabelecimento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {businessLoading ? (
