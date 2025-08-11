@@ -177,9 +177,10 @@ export default function AgendaPage() {
     }
   }, [appointments?.length, clients?.length, services?.length, professionalsData?.length])
 
-  // Limpar horário quando serviço, data ou profissional mudam
+  // Limpar horário quando serviço, data ou profissional mudam (mas NÃO quando estamos editando)
   useEffect(() => {
-    if (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId) {
+    // 🔧 CORREÇÃO: Não limpar horário quando estamos editando um agendamento
+    if (!editingAppointment && (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId)) {
       setNewAppointment(prev => {
         // Só limpar o time se ele já não estiver vazio (evita loop infinito)
         if (prev.time !== "") {
@@ -190,7 +191,7 @@ export default function AgendaPage() {
       // Limpar erro do backend quando dados importantes mudam
       setBackendError(null)
     }
-  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId])
+  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId, editingAppointment])
 
   // Limpar erro do backend quando modal é aberto
   useEffect(() => {
@@ -1397,6 +1398,24 @@ export default function AgendaPage() {
         
         return !hasConflictResult && canSchedule
       })
+      
+      // 🔧 CORREÇÃO: Garantir que o horário atual do agendamento sendo editado esteja sempre na lista
+      if (excludeAppointmentId && editingAppointment && newAppointment.time) {
+        const currentTime = newAppointment.time
+        // Se o horário atual não está na lista de disponíveis, adicioná-lo
+        if (!availableSlots.includes(currentTime)) {
+          // Verificar se o horário está dentro dos slots válidos do dia
+          if (allAvailableSlots.includes(currentTime)) {
+            availableSlots.push(currentTime)
+            // Ordenar os horários
+            availableSlots.sort()
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`✅ Horário atual do agendamento (${currentTime}) adicionado à lista de disponíveis`)
+            }
+          }
+        }
+      }
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`✅ getAvailableTimeSlots: ${availableSlots.length} slots disponíveis finais`)
