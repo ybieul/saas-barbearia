@@ -369,11 +369,16 @@ export default function AgendaPage() {
   }, [appointments, currentDate]) // Dependências: só recalcula quando appointments ou currentDate mudam
 
   // 🇧🇷 OTIMIZADO: Função para verificar se um horário está ocupado usando useCallback
-  const isTimeSlotOccupied = useCallback((time: string, professionalId?: string) => {
+  const isTimeSlotOccupied = useCallback((time: string, professionalId?: string, excludeAppointmentId?: string) => {
     return todayAppointments.some(apt => {
       // 🚫 CORREÇÃO CRÍTICA: Excluir agendamentos cancelados da verificação de ocupação
       if (apt.status === 'CANCELLED' || apt.status === 'cancelled') {
         return false // Agendamentos cancelados não ocupam horários
+      }
+      
+      // 🔧 CORREÇÃO: Excluir o agendamento sendo editado da verificação de conflito
+      if (excludeAppointmentId && apt.id === excludeAppointmentId) {
+        return false // Não considerar o próprio agendamento como conflito
       }
       
       // Parse seguro do dateTime do banco (sem conversão UTC automática)
@@ -480,7 +485,7 @@ export default function AgendaPage() {
   }
 
   // Função para verificar se é possível agendar um serviço em determinado horário
-  const canScheduleService = (time: string, serviceDuration: number, professionalId?: string) => {
+  const canScheduleService = (time: string, serviceDuration: number, professionalId?: string, excludeAppointmentId?: string) => {
     const timeToMinutes = (timeStr: string) => {
       const [hours, minutes] = timeStr.split(':').map(Number)
       return hours * 60 + minutes
@@ -496,7 +501,7 @@ export default function AgendaPage() {
       const minutes = currentMinutes % 60
       const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
       
-      if (slots.includes(slotTime) && isTimeSlotOccupied(slotTime, professionalId)) {
+      if (slots.includes(slotTime) && isTimeSlotOccupied(slotTime, professionalId, excludeAppointmentId)) {
         return false
       }
     }
@@ -1266,10 +1271,10 @@ export default function AgendaPage() {
   }
 
   // Função para obter a próxima disponibilidade
-  const getNextAvailableTime = (serviceDuration: number, professionalId?: string) => {
+  const getNextAvailableTime = (serviceDuration: number, professionalId?: string, excludeAppointmentId?: string) => {
     const slots = generateTimeSlots()
     for (const slot of slots) {
-      if (canScheduleService(slot, serviceDuration, professionalId)) {
+      if (canScheduleService(slot, serviceDuration, professionalId, excludeAppointmentId)) {
         return slot
       }
     }
@@ -1313,7 +1318,7 @@ export default function AgendaPage() {
   }
 
   // Função melhorada para obter horários disponíveis para o modal
-  const getAvailableTimeSlots = () => {
+  const getAvailableTimeSlots = (excludeAppointmentId?: string) => {
     try {
       if (!newAppointment.serviceId || !newAppointment.date) {
         if (process.env.NODE_ENV === 'development') {
@@ -1388,7 +1393,7 @@ export default function AgendaPage() {
         
         // Verificar se há tempo suficiente para o serviço
         const serviceDuration = selectedService.duration || 30
-        const canSchedule = canScheduleService(time, serviceDuration, newAppointment.professionalId || undefined)
+        const canSchedule = canScheduleService(time, serviceDuration, newAppointment.professionalId || undefined, excludeAppointmentId)
         
         return !hasConflictResult && canSchedule
       })
@@ -2158,8 +2163,8 @@ export default function AgendaPage() {
                       } />
                     </SelectTrigger>
                     <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
-                      {getAvailableTimeSlots().length > 0 ? (
-                        getAvailableTimeSlots().map((time: string) => {
+                      {getAvailableTimeSlots(editingAppointment?.id).length > 0 ? (
+                        getAvailableTimeSlots(editingAppointment?.id).map((time: string) => {
                           const isPast = isTimeInPast(newAppointment.date, time)
                           return (
                             <SelectItem key={time} value={time} className="text-sm">
@@ -2184,11 +2189,11 @@ export default function AgendaPage() {
                   {newAppointment.date && newAppointment.serviceId && (
                     <div className="mt-1 space-y-1">
                       <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
-                          `${getAvailableTimeSlots().length} horários disponíveis` : 
+                          `${getAvailableTimeSlots(editingAppointment?.id).length} horários disponíveis` : 
                           'Estabelecimento fechado neste dia'
                         }
                       </p>
-                      {getAvailableTimeSlots().some((time: string) => isTimeInPast(newAppointment.date, time)) && (
+                      {getAvailableTimeSlots(editingAppointment?.id).some((time: string) => isTimeInPast(newAppointment.date, time)) && (
                         <p className="text-xs text-[#d97706] flex items-start gap-1">
                           <span className="flex-shrink-0">⏱️</span>
                           <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>
