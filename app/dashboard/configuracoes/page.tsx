@@ -856,8 +856,7 @@ export default function ConfiguracoesPage() {
               }`}
             >
               <Building className="w-4 h-4" />
-              <span className="hidden xs:inline">Estabelecimento</span>
-              <span className="xs:hidden">Estabelec.</span>
+              Estabelecimento
             </button>
             <button
               onClick={() => setActiveTab("profissionais")}
@@ -868,8 +867,7 @@ export default function ConfiguracoesPage() {
               }`}
             >
               <User className="w-4 h-4" />
-              <span className="hidden xs:inline">Profissionais</span>
-              <span className="xs:hidden">Profiss.</span>
+              Profissionais
             </button>
             <button
               onClick={() => setActiveTab("servicos")}
