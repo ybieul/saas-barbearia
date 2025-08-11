@@ -1091,11 +1091,11 @@ export default function ConfiguracoesPage() {
               {/* Seção de Profissionais */}
               <Card className="bg-[#18181b] border-[#27272a]">
                 <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-[#a1a1aa]">Profissionais</CardTitle>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+                    <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Profissionais</CardTitle>
                     <Dialog open={isNewProfessionalOpen} onOpenChange={setIsNewProfessionalOpen}>
                       <DialogTrigger asChild>
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-[#ededed]">
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-[#ededed] w-full sm:w-auto">
                           <Plus className="w-4 h-4 mr-2" />
                           Novo Profissional
                         </Button>
@@ -1211,10 +1211,10 @@ export default function ConfiguracoesPage() {
                       professionals.map((professional) => (
                         <div
                           key={professional.id}
-                          className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                          className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
                         >
                           {/* Header com avatar e ações - Mobile-friendly */}
-                          <div className="flex items-center justify-between mb-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                             <div className="flex items-center gap-3">
                               <ProfessionalAvatar 
                                 avatar={professional.avatar}
@@ -1223,7 +1223,7 @@ export default function ConfiguracoesPage() {
                                 className="flex-shrink-0"
                               />
                               <div className="min-w-0 flex-1">
-                                <h3 className="text-[#ededed] font-medium truncate">
+                                <h3 className="text-[#ededed] font-medium truncate text-sm sm:text-base">
                                   {professional.name || "Nome não informado"}
                                 </h3>
                                 <p className="text-xs text-[#71717a]">
@@ -1232,38 +1232,38 @@ export default function ConfiguracoesPage() {
                               </div>
                             </div>
                             
-                            {/* Ações - Stack vertical em mobile */}
-                            <div className="flex sm:flex-row flex-col gap-1 sm:gap-2 flex-shrink-0">
+                            {/* Ações - Grid em mobile, horizontal no desktop */}
+                            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2 flex-shrink-0">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleOpenAvatarUpload(professional)}
-                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full sm:w-auto"
                                 title="Alterar foto de perfil"
                               >
-                                <Camera className="w-4 h-4" />
-                                <span className="hidden sm:inline ml-2">Foto</span>
+                                <Camera className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Foto</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEditProfessional(professional)}
-                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full sm:w-auto"
                                 title="Editar profissional"
                               >
-                                <Edit className="w-4 h-4" />
-                                <span className="hidden sm:inline ml-2">Editar</span>
+                                <Edit className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Editar</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleRemoveProfessional(professional.id, professional.name)}
-                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent w-full sm:w-auto"
                                 disabled={professionalsLoading}
                                 title="Remover profissional"
                               >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="hidden sm:inline ml-2">Remover</span>
+                                <Trash2 className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Remover</span>
                               </Button>
                             </div>
                           </div>
