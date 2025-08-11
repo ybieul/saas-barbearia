@@ -1522,11 +1522,11 @@ export default function ConfiguracoesPage() {
             <div className="space-y-6">
               <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+                  <CardTitle className="text-lg sm:text-xl text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
                   <Dialog open={isNewServiceOpen} onOpenChange={setIsNewServiceOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-purple-500 hover:bg-purple-600 text-[#ededed]">
+                      <Button className="bg-purple-500 hover:bg-purple-600 text-[#ededed] w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Novo Serviço
                       </Button>
@@ -1638,10 +1638,10 @@ export default function ConfiguracoesPage() {
                     dbServices.map((service) => (
                       <div
                         key={service.id}
-                        className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                        className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
                       >
                         {/* Header com imagem e ações - Mobile-friendly */}
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <ServiceImage 
                               image={service.image}
@@ -1650,7 +1650,7 @@ export default function ConfiguracoesPage() {
                               className="flex-shrink-0"
                             />
                             <div className="min-w-0 flex-1">
-                              <h3 className="text-[#ededed] font-medium truncate">
+                              <h3 className="text-sm sm:text-base text-[#ededed] font-medium truncate">
                                 {service.name || "Nome não informado"}
                               </h3>
                               <p className="text-xs text-[#71717a] truncate">
@@ -1659,8 +1659,8 @@ export default function ConfiguracoesPage() {
                             </div>
                           </div>
                           
-                          {/* Ações - Stack vertical em mobile */}
-                          <div className="flex sm:flex-row flex-col gap-1 sm:gap-2 flex-shrink-0">
+                          {/* Ações - Grid em mobile, flex em desktop */}
+                          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2 flex-shrink-0">
                             <Button
                               size="sm"
                               variant="outline"
@@ -1723,7 +1723,7 @@ export default function ConfiguracoesPage() {
                             {service.isActive ? "Ativo" : "Inativo"}
                           </Badge>
                           {service.createdAt && (
-                            <span>Cadastrado: {formatBrazilDate(parseDate(service.createdAt))}</span>
+                            <span className="text-xs sm:text-sm">Cadastrado: {formatBrazilDate(new Date(service.createdAt))}</span>
                           )}
                         </div>
                       </div>
