@@ -258,11 +258,16 @@ export default function DashboardPage() {
         <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
-                <CardTitle className="text-[#ededed] text-base sm:text-lg lg:text-xl">Próximos na Fila</CardTitle>
+              <div className="flex items-center justify-between sm:justify-start gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
+                  <CardTitle className="text-[#ededed] text-base sm:text-lg lg:text-xl">Próximos na Fila</CardTitle>
+                </div>
+                <Badge className="sm:hidden bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
+                  {nextAppointmentsByProfessional.length} profissionais
+                </Badge>
               </div>
-              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
+              <Badge className="hidden sm:block bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
