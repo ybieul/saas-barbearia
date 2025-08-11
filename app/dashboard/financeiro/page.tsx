@@ -1005,37 +1005,75 @@ export default function FinanceiroPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
-          <Button
-            onClick={handleRefreshData}
-            disabled={isRefreshing}
-            variant="outline"
-            size="sm"
-            className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-          </Button>
-          
-          {/* ✅ FILTRO POR PROFISSIONAL */}
-          <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-              <SelectValue placeholder="Filtrar por profissional" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#18181b] border-[#27272a]">
-              <SelectItem value="todos">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Todos os profissionais
-                </div>
-              </SelectItem>
-              {professionals?.map((professional: any) => (
-                <SelectItem key={professional.id} value={professional.id}>
-                  {sanitizeString(professional.name)}
+          {/* ✅ DESKTOP: Ordem original - Botão depois Filtro */}
+          <div className="hidden sm:flex items-center gap-3">
+            {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
+            <Button
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+            
+            {/* ✅ FILTRO POR PROFISSIONAL */}
+            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+              <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectValue placeholder="Filtrar por profissional" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#18181b] border-[#27272a]">
+                <SelectItem value="todos">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Todos os profissionais
+                  </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {professionals?.map((professional: any) => (
+                  <SelectItem key={professional.id} value={professional.id}>
+                    {sanitizeString(professional.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* ✅ MOBILE: Ordem invertida - Filtro depois Botão */}
+          <div className="flex sm:hidden items-center gap-3">
+            {/* ✅ FILTRO POR PROFISSIONAL */}
+            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+              <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectValue placeholder="Filtrar por profissional" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#18181b] border-[#27272a]">
+                <SelectItem value="todos">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Todos os profissionais
+                  </div>
+                </SelectItem>
+                {professionals?.map((professional: any) => (
+                  <SelectItem key={professional.id} value={professional.id}>
+                    {sanitizeString(professional.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
+            <Button
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+          </div>
         </div>
       </div>
 
