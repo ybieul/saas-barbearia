@@ -120,12 +120,166 @@ export default function ClientesInativosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed]">Clientes Inativos</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Clientes Inativos</h1>
           <p className="text-[#71717a]">Reative clientes com ofertas personalizadas</p>
         </div>
+        {/* Botão desktop - apenas visível em telas médias e grandes */}
+        <div className="hidden md:block">
+          <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]">
+                <Send className="w-4 h-4 mr-2" />
+                Enviar Promoção ({selectedClients.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-[#ededed]">Enviar Promoção</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[#ededed] mb-3">
+                    Você está prestes a enviar uma promoção para <strong>{selectedClients.length} cliente(s):</strong>
+                  </p>
+                  <div className="bg-[#27272a] p-3 rounded-lg max-h-20 overflow-y-auto">
+                    {selectedClients.map((clientId, index) => {
+                      const client = filteredClients.find(c => c.id === clientId)
+                      return (
+                        <p key={clientId} className="text-sm text-[#ededed]">
+                          • {client?.name} - {client?.phone}
+                        </p>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#ededed] mb-2">
+                    Modelo de Mensagem
+                  </label>
+                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                    <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed]">
+                      <SelectValue placeholder="Selecione um template" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#27272a] border-[#3f3f46]">
+                      {promotionTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name} {template.title && `(${template.title})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {promotionTemplates.length === 0 && (
+                    <p className="text-xs text-[#71717a] mt-1">
+                      Nenhum template encontrado. Crie templates em Configurações → Promoções
+                    </p>
+                  )}
+                </div>
+
+                {selectedTemplate && getSelectedTemplateData() && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#ededed] mb-2">
+                      Prévia da Mensagem
+                    </label>
+                    <div className="bg-[#27272a] p-4 rounded-lg space-y-2">
+                      {getSelectedTemplateData()?.title && (
+                        <p className="text-emerald-400 text-sm font-medium">
+                          {getSelectedTemplateData()?.title}
+                        </p>
+                      )}
+                      <div className="text-[#ededed] text-sm whitespace-pre-line">
+                        {getSelectedTemplateData()?.message}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsPromotionModalOpen(false)}
+                    className="flex-1 border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSendPromotion}
+                    className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Enviar Promoção
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[#71717a] text-sm">Total Inativos</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
+              </div>
+              <UserX className="w-8 h-8 text-red-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[#71717a] text-sm">Promoções Enviadas</p>
+                <p className="text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
+              </div>
+              <Send className="w-8 h-8 text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[#71717a] text-sm">Taxa de Retorno</p>
+                <p className="text-2xl font-bold text-[#ededed]">
+                  {stats.promotionsSent > 0 ? Math.round((stats.returnRate / stats.promotionsSent) * 100) : 0}%
+                </p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-emerald-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[#71717a] text-sm">Receita Potencial</p>
+                <p className="text-2xl font-bold text-[#ededed]">
+                  {new Intl.NumberFormat('pt-BR', { 
+                    style: 'currency', 
+                    currency: 'BRL' 
+                  }).format(stats.potentialRevenue)}
+                </p>
+              </div>
+              <Gift className="w-8 h-8 text-emerald-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Botão mobile - apenas visível em telas pequenas */}
+      <div className="block md:hidden">
         <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]">
+            <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]">
               <Send className="w-4 h-4 mr-2" />
               Enviar Promoção ({selectedClients.length})
             </Button>
@@ -212,64 +366,6 @@ export default function ClientesInativosPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#71717a] text-sm">Total Inativos</p>
-                <p className="text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
-              </div>
-              <UserX className="w-8 h-8 text-red-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#71717a] text-sm">Promoções Enviadas</p>
-                <p className="text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
-              </div>
-              <Send className="w-8 h-8 text-yellow-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#71717a] text-sm">Taxa de Retorno</p>
-                <p className="text-2xl font-bold text-[#ededed]">
-                  {stats.promotionsSent > 0 ? Math.round((stats.returnRate / stats.promotionsSent) * 100) : 0}%
-                </p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#18181b] border-[#27272a]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#71717a] text-sm">Receita Potencial</p>
-                <p className="text-2xl font-bold text-[#ededed]">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(stats.potentialRevenue)}
-                </p>
-              </div>
-              <Gift className="w-8 h-8 text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filter Bar */}
