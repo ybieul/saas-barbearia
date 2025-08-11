@@ -1011,8 +1011,8 @@ export default function ConfiguracoesPage() {
 
                 <div className="space-y-2">
                   <Label className="text-[#ededed]">Logo do Estabelecimento</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center border-2 border-dashed border-[#3f3f46] overflow-hidden">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center border-2 border-dashed border-[#3f3f46] overflow-hidden mx-auto sm:mx-0">
                       {businessData.logo ? (
                         <img 
                           src={businessData.logo} 
@@ -1020,31 +1020,31 @@ export default function ConfiguracoesPage() {
                           className="w-full h-full object-cover rounded-lg"
                         />
                       ) : (
-                        <Scissors className="w-8 h-8 text-[#ededed]" />
+                        <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-[#ededed]" />
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
+                    <div className="space-y-3 sm:space-y-2 flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Button 
                           size="sm"
                           variant="outline" 
-                          className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                          className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full sm:w-auto"
                           onClick={() => document.getElementById('logo-upload')?.click()}
                           title="Alterar logo do estabelecimento"
                         >
-                          <Camera className="w-4 h-4" />
-                          <span className="hidden sm:inline ml-2">{businessData.logo ? 'Alterar Logo' : 'Fazer Upload'}</span>
+                          <Camera className="w-4 h-4 mr-2" />
+                          {businessData.logo ? 'Alterar Logo' : 'Fazer Upload'}
                         </Button>
                         {businessData.logo && (
                           <Button 
                             size="sm"
                             variant="outline" 
-                            className="border-red-600 text-red-400 hover:text-red-300 bg-transparent h-8 w-8 p-0 sm:w-auto sm:p-2"
+                            className="border-red-600 text-red-400 hover:text-red-300 bg-transparent w-full sm:w-auto"
                             onClick={() => updateField('logo', '')}
                             title="Remover logo"
                           >
-                            <X className="w-4 h-4" />
-                            <span className="hidden sm:inline ml-2">Remover</span>
+                            <X className="w-4 h-4 mr-2" />
+                            Remover
                           </Button>
                         )}
                       </div>
