@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
             in: ['CONFIRMED']
           },
           dateTime: {
-            gte: getBrazilNow() // Apenas futuros
+            gte: brazilNow // Apenas futuros
           }
         }
       }),
@@ -236,8 +236,8 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           dateTime: {
-            gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
-            lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
+            gte: getBrazilStartOfDay(brazilNow), // Desde o início do dia atual
+            lte: getBrazilEndOfDay(brazilNow) // Até o final do dia atual
           },
           status: {
             in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
@@ -274,8 +274,8 @@ export async function GET(request: NextRequest) {
             tenantId: user.tenantId,
             professionalId: prof.id,
             dateTime: {
-              gte: getBrazilStartOfDay(getBrazilNow()), // Desde o início do dia atual
-              lte: getBrazilEndOfDay(getBrazilNow()) // Até o final do dia atual
+              gte: getBrazilStartOfDay(brazilNow), // Desde o início do dia atual
+              lte: getBrazilEndOfDay(brazilNow) // Até o final do dia atual
             },
             status: {
               in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
@@ -331,7 +331,7 @@ export async function GET(request: NextRequest) {
       clients: number
     }> = []
     for (let i = 6; i >= 0; i--) {
-      const date = getBrazilStartOfDay(getBrazilNow())
+      const date = getBrazilStartOfDay(brazilNow)
       date.setDate(date.getDate() - i)
       const endOfDay = getBrazilEndOfDay(date)
       
@@ -404,8 +404,8 @@ export async function GET(request: NextRequest) {
             tenantId: user.tenantId,
             professionalId: prof.id,
             dateTime: {
-              gte: getBrazilStartOfDay(getBrazilNow()),
-              lte: getBrazilEndOfDay(getBrazilNow())
+              gte: getBrazilStartOfDay(brazilNow),
+              lte: getBrazilEndOfDay(brazilNow)
             },
             status: {
               not: 'CANCELLED' // Excluir cancelados
@@ -427,7 +427,7 @@ export async function GET(request: NextRequest) {
         }, 0)
 
         // Buscar horário de funcionamento para hoje
-        const today = getBrazilNow()
+        const today = brazilNow
         const dayName = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
         
         const workingHour = await prisma.workingHours.findFirst({
@@ -521,7 +521,7 @@ export async function GET(request: NextRequest) {
       dateRange: {
         startDate: toLocalISOString(startDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
         endDate: toLocalISOString(endDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
-        brazilNow: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO: Usar função brasileira
+        brazilNow: toLocalISOString(brazilNow) // 🇧🇷 CORREÇÃO: Usar função brasileira
       }
     })
 
