@@ -276,23 +276,6 @@ export default function ClientesPage() {
         </Dialog>
       </div>
 
-      {/* Search and filters */}
-      <Card className="bg-[#18181b] border-[#27272a]">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#3f3f46] w-4 h-4" />
-              <Input
-                placeholder="Buscar clientes por nome ou telefone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#3f3f46]"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#18181b] border-[#27272a]">
@@ -358,6 +341,23 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Search and filters */}
+      <Card className="bg-[#18181b] border-[#27272a]">
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#3f3f46] w-4 h-4" />
+              <Input
+                placeholder="Buscar clientes por nome ou telefone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-[#27272a] border-[#3f3f46] text-[#ededed] placeholder:text-[#3f3f46]"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
