@@ -1384,29 +1384,29 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-lg mx-4 sm:mx-auto backdrop-blur-xl">
+                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] max-w-sm mx-2 sm:max-w-lg sm:mx-auto backdrop-blur-xl">
                   <DialogHeader className="sr-only">
                     <DialogTitle>Alterar Foto de Perfil</DialogTitle>
                   </DialogHeader>
                   {/* Header com gradiente */}
-                  <div className="relative p-6 border-b border-[#1a1a1a]">
+                  <div className="relative p-4 sm:p-6 border-b border-[#1a1a1a]">
                     <div className="text-center">
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Camera className="w-6 h-6 text-white" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                        <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <h2 className="text-2xl font-bold text-[#ededed] mb-2">Foto de Perfil</h2>
-                      <p className="text-[#71717a] text-sm">
+                      <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Foto de Perfil</h2>
+                      <p className="text-[#71717a] text-xs sm:text-sm">
                         {selectedProfessionalForAvatar?.name && `Alterar foto de perfil de ${selectedProfessionalForAvatar.name}`}
                       </p>
                     </div>
                   </div>
 
                   {/* Conteúdo principal */}
-                  <div className="p-6 space-y-6">
+                  <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                     {/* Preview da foto */}
                     <div className="flex justify-center">
                       <div className="relative">
-                        <div className="w-32 h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
                           {selectedProfessionalForAvatar?.avatar ? (
                             <img 
                               src={selectedProfessionalForAvatar.avatar} 
@@ -1414,8 +1414,8 @@ export default function ConfiguracoesPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-xl">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold text-lg sm:text-xl">
                                 {selectedProfessionalForAvatar?.name?.charAt(0) || 'P'}
                               </span>
                             </div>
@@ -1425,7 +1425,7 @@ export default function ConfiguracoesPage() {
                     </div>
 
                     {/* Botões de ação */}
-                    <div className="flex gap-3 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <Button
                         onClick={() => {
                           const input = document.createElement('input');
@@ -1471,7 +1471,7 @@ export default function ConfiguracoesPage() {
                           };
                           input.click();
                         }}
-                        className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5"
+                        className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5 w-full sm:w-auto"
                       >
                         <Camera className="w-4 h-4 mr-2" />
                         Alterar Foto
@@ -1481,7 +1481,7 @@ export default function ConfiguracoesPage() {
                         <Button
                           variant="outline"
                           onClick={() => handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, null)}
-                          className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5"
+                          className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto"
                         >
                           <X className="w-4 h-4 mr-2" />
                           Remover Foto
@@ -1490,20 +1490,20 @@ export default function ConfiguracoesPage() {
                     </div>
 
                     {/* Requisitos com emojis */}
-                    <div className="bg-[#111111] rounded-lg p-4 border border-[#1a1a1a]">
-                      <div className="space-y-2 text-sm text-[#a1a1aa]">
-                        <p className="text-[#ededed] font-medium mb-3 text-center">Requisitos</p>
-                        <div className="space-y-1.5">
-                          <p>📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
-                          <p>📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
-                          <p>✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+                    <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#1a1a1a]">
+                      <div className="space-y-2 text-xs sm:text-sm text-[#a1a1aa]">
+                        <p className="text-[#ededed] font-medium mb-2 sm:mb-3 text-center text-sm sm:text-base">Requisitos</p>
+                        <div className="space-y-1 sm:space-y-1.5">
+                          <p className="text-xs sm:text-sm">📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
+                          <p className="text-xs sm:text-sm">📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
+                          <p className="text-xs sm:text-sm">✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Footer */}
-                  <div className="p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
+                  <div className="p-4 sm:p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
                     <Button 
                       variant="outline" 
                       onClick={handleCloseAvatarUpload}
