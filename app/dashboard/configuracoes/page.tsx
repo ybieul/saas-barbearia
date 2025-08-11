@@ -1950,7 +1950,7 @@ export default function ConfiguracoesPage() {
           {activeTab === "horarios" && (
             <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
-                <CardTitle className="text-[#a1a1aa]">Horários de Funcionamento</CardTitle>
+                <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Horários de Funcionamento</CardTitle>
                 <CardDescription className="text-[#71717a]">
                   Defina os horários de funcionamento do seu estabelecimento
                 </CardDescription>
@@ -1970,10 +1970,10 @@ export default function ConfiguracoesPage() {
                   <div className="space-y-3">
                     {Object.entries(workingHours).map(([day, hours]) => (
                       <div key={day} className="group relative bg-[#27272a]/50 hover:bg-[#27272a] transition-colors rounded-xl border border-[#3f3f46] overflow-hidden">
-                        <div className="p-5">
-                          <div className="flex items-center justify-between">
+                        <div className="p-3 sm:p-5">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             {/* Lado esquerdo - Dia e Switch */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3 sm:gap-4">
                               <div className="relative">
                                 <Switch
                                   checked={hours.active}
@@ -1984,7 +1984,7 @@ export default function ConfiguracoesPage() {
                                 />
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[#ededed] font-semibold text-lg">
+                                <span className="text-[#ededed] font-semibold text-base sm:text-lg">
                                   {day === 'monday' && 'Segunda-feira'}
                                   {day === 'tuesday' && 'Terça-feira'}
                                   {day === 'wednesday' && 'Quarta-feira'}
@@ -1993,23 +1993,23 @@ export default function ConfiguracoesPage() {
                                   {day === 'saturday' && 'Sábado'}
                                   {day === 'sunday' && 'Domingo'}
                                 </span>
-                                <span className="text-[#71717a] text-sm">
+                                <span className="text-[#71717a] text-xs sm:text-sm">
                                   {hours.active ? 'Estabelecimento aberto' : 'Estabelecimento fechado'}
                                 </span>
                               </div>
                             </div>
 
                             {/* Lado direito - Horários ou Status */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                               {hours.active ? (
-                                <div className="flex items-center gap-3 bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]">
-                                  <div className="flex flex-col items-center">
-                                    <label className="text-[#a1a1aa] text-xs font-medium mb-1">Abertura</label>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
+                                  <div className="flex items-center gap-2 sm:flex-col sm:items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1">Abertura</label>
                                     <Select
                                       value={hours.start}
                                       onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -2021,16 +2021,16 @@ export default function ConfiguracoesPage() {
                                       </SelectContent>
                                     </Select>
                                   </div>
-                                  <div className="flex items-center px-2">
-                                    <span className="text-[#71717a] font-medium">até</span>
+                                  <div className="flex items-center justify-center px-1 sm:px-2">
+                                    <span className="text-[#71717a] font-medium text-xs sm:text-sm">até</span>
                                   </div>
-                                  <div className="flex flex-col items-center">
-                                    <label className="text-[#a1a1aa] text-xs font-medium mb-1">Fechamento</label>
+                                  <div className="flex items-center gap-2 sm:flex-col sm:items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1">Fechamento</label>
                                     <Select
                                       value={hours.end}
                                       onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-24 h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981]">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-8 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -2044,9 +2044,9 @@ export default function ConfiguracoesPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2 px-4 py-2 bg-red-900/20 rounded-lg border border-red-700/30">
+                                <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-900/20 rounded-lg border border-red-700/30">
                                   <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                  <span className="text-red-400 font-medium">Fechado</span>
+                                  <span className="text-red-400 font-medium text-xs sm:text-sm">Fechado</span>
                                 </div>
                               )}
                             </div>
@@ -2061,14 +2061,14 @@ export default function ConfiguracoesPage() {
                     ))}
                     
                     {/* Informações adicionais */}
-                    <div className="mt-6 p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
-                      <div className="flex items-start gap-3">
-                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                           <span className="text-white text-xs font-bold">ℹ</span>
                         </div>
-                        <div className="space-y-2">
-                          <h4 className="text-blue-400 font-medium">Informações Importantes</h4>
-                          <ul className="text-blue-300 text-sm space-y-1">
+                        <div className="space-y-1 sm:space-y-2">
+                          <h4 className="text-blue-400 font-medium text-sm sm:text-base">Informações Importantes</h4>
+                          <ul className="text-blue-300 text-xs sm:text-sm space-y-0.5 sm:space-y-1">
                             <li>• Os horários definidos aqui controlam quando novos agendamentos podem ser feitos</li>
                             <li>• Agendamentos já existentes não são afetados pelas mudanças</li>
                             <li>• As alterações são salvas automaticamente</li>
