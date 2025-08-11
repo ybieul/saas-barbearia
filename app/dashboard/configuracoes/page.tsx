@@ -1290,7 +1290,7 @@ export default function ConfiguracoesPage() {
                               {professional.isActive ? "Ativo" : "Inativo"}
                             </Badge>
                             {professional.createdAt && (
-                              <span>Cadastrado: {formatBrazilDate(professional.createdAt)}</span>
+                              <span>Cadastrado: {formatBrazilDate(new Date(professional.createdAt))}</span>
                             )}
                           </div>
                         </div>
