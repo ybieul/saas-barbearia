@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString, parseISOStringAsLocal, toMySQLDateTime } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -17,30 +17,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      // 🇧🇷 CORREÇÃO ROBUSTA: Criar range de data considerando timezone brasileiro
-      // O frontend envia "2025-08-12", precisamos buscar independente do timezone do banco
-      
-      console.log('🔍 Filtro de data recebido:', { date, timezone: 'America/Sao_Paulo' })
-      
-      // Método 1: Range amplo para capturar independente de timezone
-      const searchDate = new Date(date + 'T00:00:00.000-03:00') // Força timezone brasileiro
-      const startDate = new Date(searchDate)
+      const startDate = new Date(date)
       startDate.setHours(0, 0, 0, 0)
-      const endDate = new Date(searchDate)  
+      const endDate = new Date(date)
       endDate.setHours(23, 59, 59, 999)
       
-      // Método 2: Range expandido para capturar mesmo com +/-3h de diferença
-      const expandedStart = new Date(startDate.getTime() - (6 * 60 * 60 * 1000)) // -6h
-      const expandedEnd = new Date(endDate.getTime() + (6 * 60 * 60 * 1000))     // +6h
-      
-      console.log('🔍 Range de busca expandido:', {
-        original: { start: startDate.toISOString(), end: endDate.toISOString() },
-        expanded: { start: expandedStart.toISOString(), end: expandedEnd.toISOString() }
-      })
-      
       where.dateTime = {
-        gte: expandedStart,  // Busca em range expandido para capturar timezone issues
-        lte: expandedEnd
+        gte: startDate,
+        lte: endDate
       }
     }
 
@@ -81,18 +65,6 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-    })
-
-    // 🔍 LOG DE DEBUG: Verificar dados retornados
-    console.log('🔍 Agendamentos encontrados:', {
-      count: appointments.length,
-      dateFilter: date,
-      appointments: appointments.map(apt => ({
-        id: apt.id,
-        dateTime: apt.dateTime.toString(),
-        dateTimeISO: apt.dateTime.toISOString(),
-        clientName: apt.endUser?.name
-      }))
     })
 
     return NextResponse.json({ appointments })
@@ -166,23 +138,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
-    // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC
-    console.log('🔧 Backend recebeu dateTime:', dateTime)
-    console.log('🔧 Tipo do dateTime recebido:', typeof dateTime)
-    
-    const appointmentDate = parseISOStringAsLocal(dateTime)
-    
-    console.log('🚨 ANÁLISE CRÍTICA DO PROBLEMA:')
-    console.log('📅 Data original enviada pelo frontend:', dateTime)
-    console.log('📅 Data após parseISOStringAsLocal:', appointmentDate.toString())
-    console.log('📅 Data como ISO (UTC):', appointmentDate.toISOString())
-    console.log('📅 Data como LocaleString (Brasil):', appointmentDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
-    console.log('📅 Horário local sem timezone:', appointmentDate.getHours() + ':' + appointmentDate.getMinutes().toString().padStart(2, '0'))
-    console.log('📅 toTimeString():', appointmentDate.toTimeString())
-    console.log('📅 toTimeString().substring(0, 5):', appointmentDate.toTimeString().substring(0, 5))
+    const appointmentDate = new Date(dateTime)
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
-    debugTimezone(appointmentDate, 'Agendamento processado no backend')
+    debugTimezone(appointmentDate, 'Agendamento recebido')
     
     // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
     // Verificar se a data não é no passado
@@ -231,18 +190,6 @@ export async function POST(request: NextRequest) {
     const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
     const startTime = dayConfig.startTime
     const endTime = dayConfig.endTime
-    
-    console.log('🕐 DEBUG HORÁRIO DE FUNCIONAMENTO:', {
-      appointmentTime,
-      startTime,
-      endTime,
-      appointmentTimeType: typeof appointmentTime,
-      startTimeType: typeof startTime,
-      endTimeType: typeof endTime,
-      condition1: appointmentTime < startTime,
-      condition2: appointmentTime >= endTime,
-      wouldFail: appointmentTime < startTime || appointmentTime >= endTime
-    })
     
     if (appointmentTime < startTime || appointmentTime >= endTime) {
       return NextResponse.json(
@@ -319,16 +266,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 🇧🇷 CORREÇÃO CRÍTICA: Salvar como string formatada para evitar conversão UTC do Prisma
-    console.log('🔧 Preparando dados para salvar no banco:', {
-      appointmentDate: appointmentDate.toString(),
-      appointmentDateISO: appointmentDate.toISOString(),
-      mysqlDateTime: toMySQLDateTime(appointmentDate)
-    })
-
+    // 🇧🇷 NOVO: Salvar o agendamento diretamente no banco
     const newAppointment = await prisma.appointment.create({
       data: {
-        dateTime: appointmentDate, // � VOLTA: Prisma precisa de Date object ISO
+        dateTime: appointmentDate, // Salva diretamente
         duration: totalDuration,
         totalPrice: totalPrice,
         status: 'CONFIRMED',
@@ -367,14 +308,6 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    })
-
-    // 🔧 Log para verificar como os dados saem do banco
-    console.log('✅ Agendamento criado no banco:', {
-      id: newAppointment.id,
-      dateTime: newAppointment.dateTime.toString(),
-      dateTimeISO: newAppointment.dateTime.toISOString(),
-      dateTimeBrazil: toBrazilISOString(newAppointment.dateTime)
     })
 
     return NextResponse.json({ appointment: newAppointment, message: 'Agendamento criado com sucesso' })
@@ -583,12 +516,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC no UPDATE
-      console.log('🔧 UPDATE - Backend recebeu dateTime:', dateTime)
-      const parsedDateTime = parseISOStringAsLocal(dateTime)
-      
-      console.log('🔧 UPDATE - MySQL DateTime:', toMySQLDateTime(parsedDateTime))
-      updateData.dateTime = toMySQLDateTime(parsedDateTime) // � CORREÇÃO: String MySQL em vez de Date
+      updateData.dateTime = new Date(dateTime) // Salva horário brasileiro
     }
     if (notes !== undefined) {
       updateData.notes = notes

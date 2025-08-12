@@ -301,36 +301,6 @@ export function toLocalISOString(date: Date): string {
 }
 
 /**
- * 🇧🇷 Converte Date para string ISO COM timezone brasileiro explícito (-03:00)
- * Esta função garante que o MySQL interprete corretamente o horário como brasileiro
- * 
- * @param date - Data a ser convertida
- * @returns String no formato ISO com timezone brasileiro (-03:00)
- */
-export function toBrazilISOString(date: Date): string {
-  try {
-    if (!date || !isValid(date)) {
-      console.warn('⚠️ Data inválida fornecida para conversão ISO brasileiro')
-      return ''
-    }
-    
-    // Formatar manualmente sem conversão UTC
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    
-    // Retornar no formato ISO com timezone brasileiro explícito
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000-03:00`
-  } catch (error) {
-    console.error('❌ Erro ao converter data para ISO brasileiro:', error)
-    return ''
-  }
-}
-
-/**
  * 🇧🇷 Extrai apenas a data no formato YYYY-MM-DD sem conversão UTC
  * Substitui o uso de .toISOString().split('T')[0] que causava conversão UTC
  * 
@@ -352,96 +322,6 @@ export function toLocalDateString(date: Date): string {
   } catch (error) {
     console.error('❌ Erro ao extrair data local:', error)
     return date.toISOString().split('T')[0] // fallback
-  }
-}
-
-/**
- * 🇧🇷 Converte Date para string MySQL DATETIME para evitar conversão UTC do Prisma
- * Esta função é crítica para evitar que o Prisma aplique conversão de timezone automática
- * 
- * @param date - Date object em horário brasileiro local
- * @returns String no formato MySQL DATETIME "YYYY-MM-DD HH:mm:ss"
- */
-export function toMySQLDateTime(date: Date): string {
-  if (!date || !isValid(date)) {
-    console.warn('⚠️ Data inválida fornecida para conversão MySQL DATETIME')
-    return ''
-  }
-  
-  try {
-    // Formatar manualmente para MySQL DATETIME sem conversão timezone
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    
-    const mysqlDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 toMySQLDateTime:', {
-        input: date.toString(),
-        output: mysqlDateTime,
-        note: 'String MySQL DATETIME - evita conversão UTC do Prisma'
-      })
-    }
-    
-    return mysqlDateTime
-  } catch (error) {
-    console.error('❌ Erro ao converter data para MySQL DATETIME:', error)
-    return ''
-  }
-}
-
-/**
- * 🇧🇷 Parse seguro de string ISO para Date brasileiro (evita interpretação UTC)
- * Esta função substitui new Date(isoString) para garantir interpretação local
- * 🚨 CORREÇÃO CRÍTICA: Cria Date como UTC para compensar conversão automática do Prisma
- * 
- * @param isoString - String no formato ISO "2025-08-12T09:00:00.000" ou similar
- * @returns Date object que será salvo corretamente no banco após conversão do Prisma
- */
-export function parseISOStringAsLocal(isoString: string): Date {
-  if (!isoString) {
-    console.warn('⚠️ String ISO vazia fornecida para parseISOStringAsLocal')
-    return new Date()
-  }
-  
-  try {
-    if (isoString.includes('T')) {
-      // Parse manual para garantir interpretação como horário brasileiro
-      const [datePart, timePart] = isoString.split('T')
-      const [year, month, day] = datePart.split('-').map(Number)
-      const [hours, minutes, seconds = 0] = timePart.replace('.000', '').replace('Z', '').split(':').map(Number)
-      
-      // 🚨 CORREÇÃO CRÍTICA: Criar como UTC para compensar conversão automática do Prisma
-      // Quando o Prisma converter para UTC, vai resultar no horário brasileiro correto
-      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, Math.floor(seconds)))
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔧 parseISOStringAsLocal CORRIGIDO:', {
-          input: isoString,
-          parsed: { year, month, day, hours, minutes, seconds },
-          utcResult: utcDate.toString(),
-          utcResultISO: utcDate.toISOString(),
-          localString: utcDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-          note: 'Criado como UTC para compensar conversão do Prisma'
-        })
-      }
-      
-      return utcDate
-    } else {
-      // Fallback para new Date() se não for formato ISO
-      const fallbackDate = new Date(isoString)
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 parseISOStringAsLocal - Fallback usado para:', isoString)
-      }
-      return fallbackDate
-    }
-  } catch (error) {
-    console.error('❌ Erro ao fazer parse de ISO string:', error)
-    return new Date() // fallback seguro
   }
 }
 
