@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
       tenantId: business.id,
       endUserId: client.id,
       professionalId: finalProfessionalId,
-      dateTime: appointmentDate,
+      dateTime: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
       duration: totalDuration,
       totalPrice: totalPrice,
       status: 'CONFIRMED',

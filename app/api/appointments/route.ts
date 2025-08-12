@@ -266,10 +266,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 🇧🇷 NOVO: Salvar o agendamento diretamente no banco
+    // 🇧🇷 FINAL: Salvar usando string ISO brasileira - NUNCA Date object para evitar conversão UTC do Prisma
+    const dateTimeForSave = toLocalISOString(appointmentDate)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🇧🇷 DEBUG SALVAMENTO NO BANCO:', {
+        originalDateTime: dateTime,
+        parsedDate: appointmentDate,
+        stringForSave: dateTimeForSave,
+        timezone: 'BRASILEIRO - SEM UTC'
+      })
+    }
+    
     const newAppointment = await prisma.appointment.create({
       data: {
-        dateTime: appointmentDate, // Salva diretamente
+        dateTime: dateTimeForSave, // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         duration: totalDuration,
         totalPrice: totalPrice,
         status: 'CONFIRMED',
@@ -516,7 +527,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO FINAL: Usar função brasileira para salvar
+      updateData.dateTime = toLocalISOString(parseDatabaseDateTime(dateTime)) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
     }
     if (notes !== undefined) {
       updateData.notes = notes
@@ -606,7 +617,7 @@ export async function PUT(request: NextRequest) {
         data: {
           totalVisits: clientStats._count,
           totalSpent: clientStats._sum.totalPrice || 0,
-          lastVisit: new Date()
+          lastVisit: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         }
       })
     }

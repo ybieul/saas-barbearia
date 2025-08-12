@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getBrazilNow, toLocalISOString } from "@/lib/timezone"
 
 export async function PATCH(
   request: NextRequest,
@@ -57,7 +58,7 @@ export async function PATCH(
           status: "COMPLETED",
           paymentMethod: paymentMethod,
           paymentStatus: "PAID",
-          completedAt: new Date(),
+          completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice // Atualizar com preço calculado
         },
         include: {
@@ -77,7 +78,7 @@ export async function PATCH(
           totalSpent: {
             increment: totalPrice, // Incrementa o gasto total
           },
-          lastVisit: new Date(), // Atualiza a data da última visita
+          lastVisit: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         },
       })
 
@@ -90,7 +91,7 @@ export async function PATCH(
           paymentMethod: paymentMethod,
           reference: appointmentId,
           tenantId: appointment.tenantId,
-          date: new Date()
+          date: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         }
       })
 
