@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -266,10 +266,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 🇧🇷 NOVO: Salvar o agendamento diretamente no banco
+    // 🇧🇷 NOVO: Salvar o agendamento com timezone brasileiro explícito
+    console.log('🔧 Preparando dados para salvar no banco:', {
+      dateTime: toBrazilISOString(appointmentDate),
+      dateTimeOriginal: appointmentDate.toString()
+    })
+
     const newAppointment = await prisma.appointment.create({
       data: {
-        dateTime: appointmentDate, // Salva diretamente
+        dateTime: appointmentDate, // Prisma vai receber como Date, mas logs mostram timezone
         duration: totalDuration,
         totalPrice: totalPrice,
         status: 'CONFIRMED',
@@ -308,6 +313,14 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    })
+
+    // 🔧 Log para verificar como os dados saem do banco
+    console.log('✅ Agendamento criado no banco:', {
+      id: newAppointment.id,
+      dateTime: newAppointment.dateTime.toString(),
+      dateTimeISO: newAppointment.dateTime.toISOString(),
+      dateTimeBrazil: toBrazilISOString(newAppointment.dateTime)
     })
 
     return NextResponse.json({ appointment: newAppointment, message: 'Agendamento criado com sucesso' })

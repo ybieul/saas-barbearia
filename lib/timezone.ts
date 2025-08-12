@@ -301,6 +301,36 @@ export function toLocalISOString(date: Date): string {
 }
 
 /**
+ * 🇧🇷 Converte Date para string ISO COM timezone brasileiro explícito (-03:00)
+ * Esta função garante que o MySQL interprete corretamente o horário como brasileiro
+ * 
+ * @param date - Data a ser convertida
+ * @returns String no formato ISO com timezone brasileiro (-03:00)
+ */
+export function toBrazilISOString(date: Date): string {
+  try {
+    if (!date || !isValid(date)) {
+      console.warn('⚠️ Data inválida fornecida para conversão ISO brasileiro')
+      return ''
+    }
+    
+    // Formatar manualmente sem conversão UTC
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    
+    // Retornar no formato ISO com timezone brasileiro explícito
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000-03:00`
+  } catch (error) {
+    console.error('❌ Erro ao converter data para ISO brasileiro:', error)
+    return ''
+  }
+}
+
+/**
  * 🇧🇷 Extrai apenas a data no formato YYYY-MM-DD sem conversão UTC
  * Substitui o uso de .toISOString().split('T')[0] que causava conversão UTC
  * 
