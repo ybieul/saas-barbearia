@@ -45,20 +45,23 @@ export async function GET(
       )
     }
 
-    // 🇧🇷 CORREÇÃO CRÍTICA: Usar timezone brasileiro para criar range de busca
+    // 🇧🇷 CORREÇÃO CRÍTICA: Usar range de busca exatamente igual ao dashboard
     const startOfDayBrazil = parseDateTime(date, '00:00')
-    const endOfDayBrazil = parseDateTime(date, '23:59')
+    const endOfDayBrazil = parseDateTime(date, '23:59:59')
     
-    // Converter para strings brasileiras para query consistente com dados salvos
-    const startOfDayStr = toLocalISOString(startOfDayBrazil)
-    const endOfDayStr = toLocalISOString(endOfDayBrazil)
+    // Usar exatamente o mesmo formato que o dashboard usa para salvar e buscar
+    const startOfDayForQuery = toLocalISOString(startOfDayBrazil)
+    const endOfDayForQuery = toLocalISOString(endOfDayBrazil)
+
+    console.log(`🔍 DEBUG - Data: ${date}`)
+    console.log(`🔍 Range: ${startOfDayForQuery} até ${endOfDayForQuery}`)
 
     // Buscar agendamentos para a data específica
     const whereClause: any = {
       tenantId: business.id,
       dateTime: {
-        gte: startOfDayStr,
-        lte: endOfDayStr
+        gte: startOfDayForQuery,
+        lte: endOfDayForQuery
       },
       status: {
         in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
@@ -85,9 +88,13 @@ export async function GET(
     })
 
     // Processar agendamentos para retornar apenas os dados necessários
+    console.log(`🔍 Total agendamentos encontrados: ${appointments.length}`)
+    
     const occupiedSlots = appointments.map(apt => {
       // 🇧🇷 CORREÇÃO CRÍTICA: Usar função direta para Date objects (sem conversão string)
       const aptStartTime = extractTimeFromDateObject(apt.dateTime)
+      
+      console.log(`🔍 Agendamento: ${apt.id} - ${aptStartTime} (original: ${apt.dateTime})`)
       
       return {
         id: apt.id,
