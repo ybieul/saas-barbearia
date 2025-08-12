@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString, toLocalISOString, parseDatabaseDateTime, extractTimeFromDateObject } from '@/lib/timezone'
+import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString, toLocalISOString, parseDatabaseDateTime, extractTimeFromDateObject, extractTimeFromDateTime } from '@/lib/timezone'
 
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
@@ -306,7 +306,7 @@ export async function GET(request: NextRequest) {
           },
           nextAppointment: nextAppointment ? {
             id: nextAppointment.id,
-            time: extractTimeFromDateObject(nextAppointment.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
+            time: extractTimeFromDateTime(nextAppointment.dateTime.toISOString()), // ✅ CORREÇÃO: Usar função para strings ISO
             date: nextAppointment.dateTime.toLocaleDateString('pt-BR'), // 🇧🇷 CORREÇÃO FINAL: Direto do Date object
             client: nextAppointment.endUser?.name || 'Cliente sem nome',
             service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
@@ -561,7 +561,7 @@ export async function GET(request: NextRequest) {
         },
         todayAppointments: todayAppointments.map(apt => ({
           id: apt.id,
-          time: extractTimeFromDateObject(apt.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
+          time: extractTimeFromDateTime(apt.dateTime.toISOString()), // ✅ CORREÇÃO: Usar função para strings ISO
           client: apt.endUser?.name || 'Cliente sem nome',
           service: apt.services?.length > 0 ? apt.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: apt.professional?.name || 'Sem profissional',
@@ -570,7 +570,7 @@ export async function GET(request: NextRequest) {
         })),
         nextAppointment: nextAppointment ? {
           id: nextAppointment.id,
-          time: extractTimeFromDateObject(nextAppointment.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
+          time: extractTimeFromDateTime(nextAppointment.dateTime.toISOString()), // ✅ CORREÇÃO: Usar função para strings ISO
           date: nextAppointment.dateTime.toDateString(), // 🇧🇷 CORREÇÃO FINAL: Direto do Date object
           client: nextAppointment.endUser?.name || 'Cliente sem nome',
           service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
