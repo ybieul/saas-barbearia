@@ -52,12 +52,15 @@ export async function GET(
     const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
     const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
 
+    console.log(`🔍 API Debug - Buscando agendamentos para ${date}`)
+    console.log(`🔍 Range: ${startOfDay.toISOString()} até ${endOfDay.toISOString()}`)
+
     // Buscar agendamentos para a data específica
     const whereClause: any = {
       tenantId: business.id,
       dateTime: {
-        gte: toLocalISOString(startOfDay),
-        lte: toLocalISOString(endOfDay)
+        gte: startOfDay,
+        lte: endOfDay
       },
       status: {
         in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
