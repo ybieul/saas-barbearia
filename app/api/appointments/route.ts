@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
 
     const newAppointment = await prisma.appointment.create({
       data: {
-        dateTime: toMySQLDateTime(appointmentDate), // 🚨 CORREÇÃO: String MySQL em vez de Date object
+        dateTime: appointmentDate, // � VOLTA: Prisma precisa de Date object ISO
         duration: totalDuration,
         totalPrice: totalPrice,
         status: 'CONFIRMED',
