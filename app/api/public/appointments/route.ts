@@ -143,8 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (mesmo sistema do dashboard)
-    // 🇧🇷 CORREÇÃO: Converter UTC recebido de volta para horário brasileiro
-    const appointmentDate = parseDatabaseDateTime(appointmentDateTime)
+    const appointmentDate = new Date(appointmentDateTime)
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
     debugTimezone(appointmentDate, 'Agendamento público recebido')
@@ -251,7 +250,7 @@ export async function POST(request: NextRequest) {
         const hasConflict = conflictingAppointments.some(existingApt => {
           if (existingApt.professionalId !== prof.id) return false
           
-          const existingStart = parseDatabaseDateTime(existingApt.dateTime.toISOString())
+          const existingStart = new Date(existingApt.dateTime)
           const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
           const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
           
@@ -279,7 +278,7 @@ export async function POST(request: NextRequest) {
       for (const existingApt of conflictingAppointments) {
         if (existingApt.professionalId !== professionalId) continue
         
-        const existingStart = parseDatabaseDateTime(existingApt.dateTime.toISOString())
+        const existingStart = new Date(existingApt.dateTime)
         const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         
