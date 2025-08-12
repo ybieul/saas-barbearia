@@ -512,18 +512,22 @@ export default function FinanceiroPage() {
           previousEnd.setHours(23, 59, 59, 999)
           break
         case 'week':
-          // Semana anterior
+          // 7 dias anteriores (do dia -13 ao dia -7)
           previousStart = new Date(today)
-          previousStart.setDate(today.getDate() - 14)
+          previousStart.setDate(today.getDate() - 13)
+          previousStart.setHours(0, 0, 0, 0)
           previousEnd = new Date(today)
           previousEnd.setDate(today.getDate() - 7)
+          previousEnd.setHours(23, 59, 59, 999)
           break
         case 'month':
-          // Mês anterior
+          // 30 dias anteriores (do dia -59 ao dia -30)
           previousStart = new Date(today)
-          previousStart.setMonth(today.getMonth() - 2)
+          previousStart.setDate(today.getDate() - 59)
+          previousStart.setHours(0, 0, 0, 0)
           previousEnd = new Date(today)
-          previousEnd.setMonth(today.getMonth() - 1)
+          previousEnd.setDate(today.getDate() - 30)
+          previousEnd.setHours(23, 59, 59, 999)
           break
         default:
           // Ontem como padrão
@@ -564,9 +568,17 @@ export default function FinanceiroPage() {
       
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Dados período anterior:', {
+          period,
+          previousStart: toLocalISOString(previousStart),
+          previousEnd: toLocalISOString(previousEnd),
           totalAppointments: previousAppointments.length,
           completedAppointments: previousCompleted.length,
-          revenue: previousRevenue
+          revenue: previousRevenue,
+          calculatedData: {
+            revenue: previousRevenue,
+            completedCount: previousCompleted.length,
+            totalCount: previousAppointments.length
+          }
         })
       }
       
@@ -584,9 +596,11 @@ export default function FinanceiroPage() {
   }, [appointments, period])
   
   const currentPeriodRevenue = useMemo(() => {
+    if (!Array.isArray(completedAppointments)) return 0
+    
     const today = getBrazilNow()
     let currentStart: Date
-    let currentEnd: Date = today
+    let currentEnd: Date
     
     switch (period) {
       case 'today':
@@ -597,11 +611,17 @@ export default function FinanceiroPage() {
         break
       case 'week':
         currentStart = new Date(today)
-        currentStart.setDate(today.getDate() - 7)
+        currentStart.setDate(today.getDate() - 6) // Últimos 7 dias incluindo hoje
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
         break
       case 'month':
         currentStart = new Date(today)
-        currentStart.setMonth(today.getMonth() - 1)
+        currentStart.setDate(today.getDate() - 29) // Últimos 30 dias incluindo hoje
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
         break
       default:
         currentStart = new Date(today)
@@ -619,9 +639,21 @@ export default function FinanceiroPage() {
       }
     })
     
-    return currentPeriodAppointments.reduce((total, app) => 
+    const revenue = currentPeriodAppointments.reduce((total, app) => 
       total + (parseFloat(app.totalPrice) || 0), 0
     )
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Current Period Revenue:', {
+        period,
+        currentStart: toLocalISOString(currentStart),
+        currentEnd: toLocalISOString(currentEnd),
+        appointmentsFound: currentPeriodAppointments.length,
+        revenue
+      })
+    }
+    
+    return revenue
   }, [completedAppointments, period])
   
   // Cálculo do ticket médio com dados reais
@@ -635,9 +667,21 @@ export default function FinanceiroPage() {
     previousPeriodData.revenue / previousPeriodData.completedCount : 0
   
   const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return { change: "Novo", type: "positive" }
+    // Verificar se ambos os valores são válidos
+    if (typeof current !== 'number' || typeof previous !== 'number') {
+      return { change: "N/A", type: "neutral" }
+    }
+    
+    if (previous === 0) {
+      // Se anterior é 0 mas atual é maior que 0, mostrar como novo
+      if (current > 0) return { change: "Novo", type: "positive" }
+      // Se ambos são 0, não há mudança
+      if (current === 0) return { change: "0%", type: "neutral" }
+    }
+    
     const changePercent = ((current - previous) / previous) * 100
     const sign = changePercent >= 0 ? "+" : ""
+    
     return {
       change: `${sign}${Math.round(changePercent)}%`,
       type: changePercent >= 0 ? "positive" : "negative"
@@ -651,6 +695,15 @@ export default function FinanceiroPage() {
     previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
+
+  // Debug das mudanças calculadas
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 Mudanças calculadas:', {
+      revenue: { current: currentPeriodRevenue, previous: previousPeriodData.revenue, change: revenueChange },
+      completed: { current: completedAppointments.length, previous: previousPeriodData.completedCount, change: completedChange },
+      ticket: { current: currentTicketMedio, previous: previousTicketMedio, change: ticketChange }
+    })
+  }
 
   // ✅ FUTURO: Função para exportar relatório com sanitização (comentada para implementação futura)
   /*
@@ -723,26 +776,27 @@ export default function FinanceiroPage() {
     {
       title: "Faturamento Hoje",
       value: (() => {
-        // Calcular faturamento real baseado nos agendamentos concluídos hoje
-        const today = getBrazilNow()
-        const todayString = today.toDateString()
-        
-        const todayRevenue = completedAppointments
-          .filter(app => {
-            try {
-              const appointmentDate = utcToBrazil(new Date(app.dateTime))
-              return appointmentDate.toDateString() === todayString
-            } catch {
-              return false
-            }
-          })
-          .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('💰 Faturamento hoje calculado:', todayRevenue)
+        // Usar o valor calculado do período atual ao invés de calcular separadamente
+        if (period === 'today') {
+          return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentPeriodRevenue)
+        } else {
+          // Para períodos diferentes de hoje, calcular faturamento específico
+          const today = getBrazilNow()
+          const todayString = today.toDateString()
+          
+          const todayRevenue = completedAppointments
+            .filter(app => {
+              try {
+                const appointmentDate = utcToBrazil(new Date(app.dateTime))
+                return appointmentDate.toDateString() === todayString
+              } catch {
+                return false
+              }
+            })
+            .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
+          
+          return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
         }
-        
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
       })(),
       change: revenueChange.change,
       changeType: revenueChange.type,
