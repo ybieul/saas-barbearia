@@ -178,6 +178,8 @@ export async function POST(request: NextRequest) {
     console.log('📅 Data como ISO (UTC):', appointmentDate.toISOString())
     console.log('📅 Data como LocaleString (Brasil):', appointmentDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
     console.log('📅 Horário local sem timezone:', appointmentDate.getHours() + ':' + appointmentDate.getMinutes().toString().padStart(2, '0'))
+    console.log('📅 toTimeString():', appointmentDate.toTimeString())
+    console.log('📅 toTimeString().substring(0, 5):', appointmentDate.toTimeString().substring(0, 5))
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
     debugTimezone(appointmentDate, 'Agendamento processado no backend')
@@ -229,6 +231,18 @@ export async function POST(request: NextRequest) {
     const appointmentTime = appointmentDate.toTimeString().substring(0, 5) // HH:MM
     const startTime = dayConfig.startTime
     const endTime = dayConfig.endTime
+    
+    console.log('🕐 DEBUG HORÁRIO DE FUNCIONAMENTO:', {
+      appointmentTime,
+      startTime,
+      endTime,
+      appointmentTimeType: typeof appointmentTime,
+      startTimeType: typeof startTime,
+      endTimeType: typeof endTime,
+      condition1: appointmentTime < startTime,
+      condition2: appointmentTime >= endTime,
+      wouldFail: appointmentTime < startTime || appointmentTime >= endTime
+    })
     
     if (appointmentTime < startTime || appointmentTime >= endTime) {
       return NextResponse.json(
