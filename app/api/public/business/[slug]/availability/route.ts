@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseDatabaseDateTime, extractTimeFromDateTime, toLocalISOString, extractTimeFromDateObject, parseDateTime } from '@/lib/timezone'
+import { parseDatabaseDateTime, extractTimeFromDateTime, toLocalISOString } from '@/lib/timezone'
 
 // GET - Buscar horários ocupados para um profissional em uma data específica
 export async function GET(
@@ -45,23 +45,19 @@ export async function GET(
       )
     }
 
-    // 🇧🇷 CORREÇÃO CRÍTICA: Usar range de busca exatamente igual ao dashboard
-    const startOfDayBrazil = parseDateTime(date, '00:00')
-    const endOfDayBrazil = parseDateTime(date, '23:59:59')
+    // 🇧🇷 CORREÇÃO: Converter data recebida (YYYY-MM-DD) para range brasileiro
+    const [year, month, day] = date.split('-').map(Number)
     
-    // Usar exatamente o mesmo formato que o dashboard usa para salvar e buscar
-    const startOfDayForQuery = toLocalISOString(startOfDayBrazil)
-    const endOfDayForQuery = toLocalISOString(endOfDayBrazil)
-
-    console.log(`🔍 DEBUG - Data: ${date}`)
-    console.log(`🔍 Range: ${startOfDayForQuery} até ${endOfDayForQuery}`)
+    // Criar range de início e fim do dia em timezone brasileiro
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
 
     // Buscar agendamentos para a data específica
     const whereClause: any = {
       tenantId: business.id,
       dateTime: {
-        gte: startOfDayForQuery,
-        lte: endOfDayForQuery
+        gte: toLocalISOString(startOfDay),
+        lte: toLocalISOString(endOfDay)
       },
       status: {
         in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
@@ -88,18 +84,14 @@ export async function GET(
     })
 
     // Processar agendamentos para retornar apenas os dados necessários
-    console.log(`🔍 Total agendamentos encontrados: ${appointments.length}`)
-    
     const occupiedSlots = appointments.map(apt => {
-      // 🇧🇷 CORREÇÃO CRÍTICA: Usar função direta para Date objects (sem conversão string)
-      const aptStartTime = extractTimeFromDateObject(apt.dateTime)
-      
-      console.log(`🔍 Agendamento: ${apt.id} - ${aptStartTime} (original: ${apt.dateTime})`)
+      // 🇧🇷 CORREÇÃO: Parse direto do objeto Date do banco (já está em horário brasileiro)
+      const aptStartTime = extractTimeFromDateTime(toLocalISOString(apt.dateTime))
       
       return {
         id: apt.id,
         professionalId: apt.professionalId,
-        startTime: aptStartTime, // HH:mm em horário brasileiro direto
+        startTime: aptStartTime, // HH:mm em horário brasileiro
         duration: apt.duration || 30, // usar duração salva no agendamento
         dateTime: apt.dateTime
       }
