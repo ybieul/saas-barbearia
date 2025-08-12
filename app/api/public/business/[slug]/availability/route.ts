@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseDatabaseDateTime, extractTimeFromDateTime, toLocalISOString, extractTimeFromDateObject } from '@/lib/timezone'
+import { parseDatabaseDateTime, extractTimeFromDateTime, toLocalISOString, extractTimeFromDateObject, parseDateTime } from '@/lib/timezone'
 
 // GET - Buscar horários ocupados para um profissional em uma data específica
 export async function GET(
@@ -45,22 +45,20 @@ export async function GET(
       )
     }
 
-    // 🇧🇷 CORREÇÃO: Converter data recebida (YYYY-MM-DD) para range brasileiro
-    const [year, month, day] = date.split('-').map(Number)
+    // 🇧🇷 CORREÇÃO CRÍTICA: Usar timezone brasileiro para criar range de busca
+    const startOfDayBrazil = parseDateTime(date, '00:00')
+    const endOfDayBrazil = parseDateTime(date, '23:59')
     
-    // Criar range de início e fim do dia em timezone brasileiro
-    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
-    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
-
-    console.log(`🔍 API Debug - Buscando agendamentos para ${date}`)
-    console.log(`🔍 Range: ${startOfDay.toISOString()} até ${endOfDay.toISOString()}`)
+    // Converter para strings brasileiras para query consistente com dados salvos
+    const startOfDayStr = toLocalISOString(startOfDayBrazil)
+    const endOfDayStr = toLocalISOString(endOfDayBrazil)
 
     // Buscar agendamentos para a data específica
     const whereClause: any = {
       tenantId: business.id,
       dateTime: {
-        gte: startOfDay,
-        lte: endOfDay
+        gte: startOfDayStr,
+        lte: endOfDayStr
       },
       status: {
         in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
