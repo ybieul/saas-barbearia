@@ -17,14 +17,27 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      const startDate = new Date(date)
-      startDate.setHours(0, 0, 0, 0)
-      const endDate = new Date(date)
-      endDate.setHours(23, 59, 59, 999)
+      // 🇧🇷 CORREÇÃO CRÍTICA: Criar range de data sem conversão UTC
+      // Parse da data como brasileira: YYYY-MM-DD → Date brasileiro
+      const [year, month, day] = date.split('-').map(Number)
+      
+      // Criar início e fim do dia em timezone brasileiro
+      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
+      const endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🇧🇷 Range de busca de agendamentos:', {
+          inputDate: date,
+          startDate: startDate.toString(),
+          endDate: endDate.toString(),
+          startISO: toLocalISOString(startDate),
+          endISO: toLocalISOString(endDate)
+        })
+      }
       
       where.dateTime = {
-        gte: startDate,
-        lte: endDate
+        gte: toLocalISOString(startDate),
+        lte: toLocalISOString(endDate)
       }
     }
 

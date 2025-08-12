@@ -45,22 +45,19 @@ export async function GET(
       )
     }
 
-    // Converter data recebida (YYYY-MM-DD) para range de datas
-    const targetDate = new Date(date)
+    // 🇧🇷 CORREÇÃO: Converter data recebida (YYYY-MM-DD) para range brasileiro
+    const [year, month, day] = date.split('-').map(Number)
     
-    // Criar range de início e fim do dia em UTC
-    const startOfDay = new Date(targetDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    
-    const endOfDay = new Date(targetDate)
-    endOfDay.setHours(23, 59, 59, 999)
+    // Criar range de início e fim do dia em timezone brasileiro
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
 
     // Buscar agendamentos para a data específica
     const whereClause: any = {
       tenantId: business.id,
       dateTime: {
-        gte: startOfDay,
-        lte: endOfDay
+        gte: toLocalISOString(startOfDay),
+        lte: toLocalISOString(endOfDay)
       },
       status: {
         in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']

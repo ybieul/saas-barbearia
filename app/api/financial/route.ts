@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
+import { toLocalISOString, parseDatabaseDateTime } from '@/lib/timezone'
 
 // GET - Listar registros financeiros do tenant
 export async function GET(request: NextRequest) {
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
         amount: parseFloat(amount),
         description,
         category,
-        date: date ? new Date(date) : new Date(),
+        date: date ? toLocalISOString(parseDatabaseDateTime(date)) : toLocalISOString(new Date()),
         paymentMethod,
         reference: reference || null,
         tenantId: user.tenantId
@@ -156,7 +157,7 @@ export async function PUT(request: NextRequest) {
         amount: amount ? parseFloat(amount) : existingRecord.amount,
         description: description || existingRecord.description,
         category: category || existingRecord.category,
-        date: date ? new Date(date) : existingRecord.date,
+        date: date ? toLocalISOString(parseDatabaseDateTime(date)) : existingRecord.date,
         paymentMethod: paymentMethod || existingRecord.paymentMethod,
         reference: reference !== undefined ? reference : existingRecord.reference
       }
