@@ -501,3 +501,23 @@ if (process.env.NODE_ENV === 'development') {
 Migração concluída com sucesso! 🎉
 `)
 }
+
+/**
+ * 🇧🇷 Extrai horário HH:MM de um Date object diretamente
+ * NUNCA usa toISOString() - acesso direto aos componentes
+ * 
+ * @param date - Date object do Prisma ou qualquer outro
+ * @returns String no formato HH:MM em horário local brasileiro
+ */
+export function extractTimeFromDateObject(date: Date): string {
+  if (!date || !isValid(date)) {
+    console.warn('⚠️ Data inválida fornecida para extractTimeFromDateObject')
+    return '00:00'
+  }
+  
+  // Acesso direto aos componentes sem conversão UTC
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  
+  return `${hours}:${minutes}`
+}

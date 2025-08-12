@@ -250,9 +250,9 @@ export async function POST(request: NextRequest) {
         }
       })
       
-      // Verificar sobreposição de horários - USANDO APENAS TIMEZONE BRASILEIRO
+      // Verificar sobreposição de horários - USANDO ACESSO DIRETO AO DATE OBJECT
       for (const existing of dayAppointments) {
-        const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
+        const existingStart = existing.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
         const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
         const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
         
@@ -488,7 +488,7 @@ export async function PUT(request: NextRequest) {
         
         // Verificar sobreposição de horários
         for (const existing of dayAppointments) {
-          const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
+          const existingStart = existing.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
           const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
           const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
           
@@ -516,7 +516,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO: Salvar usando função brasileira
+      updateData.dateTime = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO FINAL: Usar função brasileira para salvar
     }
     if (notes !== undefined) {
       updateData.notes = notes

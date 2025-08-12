@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString, toLocalISOString, parseDatabaseDateTime } from '@/lib/timezone'
+import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString, toLocalISOString, parseDatabaseDateTime, extractTimeFromDateObject } from '@/lib/timezone'
 
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
@@ -306,8 +306,8 @@ export async function GET(request: NextRequest) {
           },
           nextAppointment: nextAppointment ? {
             id: nextAppointment.id,
-            time: parseDatabaseDateTime(nextAppointment.dateTime.toISOString()).toTimeString().substring(0, 5), // 🇧🇷 CORREÇÃO: Usar função brasileira
-            date: parseDatabaseDateTime(nextAppointment.dateTime.toISOString()).toLocaleDateString('pt-BR'), // 🇧🇷 CORREÇÃO: Usar função brasileira
+            time: extractTimeFromDateObject(nextAppointment.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
+            date: nextAppointment.dateTime.toLocaleDateString('pt-BR'), // 🇧🇷 CORREÇÃO FINAL: Direto do Date object
             client: nextAppointment.endUser?.name || 'Cliente sem nome',
             service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
             duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
@@ -561,7 +561,7 @@ export async function GET(request: NextRequest) {
         },
         todayAppointments: todayAppointments.map(apt => ({
           id: apt.id,
-          time: parseDatabaseDateTime(apt.dateTime.toISOString()).toTimeString().substring(0, 5), // 🇧🇷 CORREÇÃO: Usar função brasileira
+          time: extractTimeFromDateObject(apt.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
           client: apt.endUser?.name || 'Cliente sem nome',
           service: apt.services?.length > 0 ? apt.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: apt.professional?.name || 'Sem profissional',
@@ -570,8 +570,8 @@ export async function GET(request: NextRequest) {
         })),
         nextAppointment: nextAppointment ? {
           id: nextAppointment.id,
-          time: parseDatabaseDateTime(nextAppointment.dateTime.toISOString()).toTimeString().substring(0, 5), // 🇧🇷 CORREÇÃO: Usar função brasileira
-          date: parseDatabaseDateTime(nextAppointment.dateTime.toISOString()).toDateString(), // 🇧🇷 CORREÇÃO: Usar função brasileira
+          time: extractTimeFromDateObject(nextAppointment.dateTime), // 🇧🇷 CORREÇÃO FINAL: Função específica sem UTC
+          date: nextAppointment.dateTime.toDateString(), // 🇧🇷 CORREÇÃO FINAL: Direto do Date object
           client: nextAppointment.endUser?.name || 'Cliente sem nome',
           service: nextAppointment.services?.length > 0 ? nextAppointment.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: nextAppointment.professional?.name || 'Sem profissional',
