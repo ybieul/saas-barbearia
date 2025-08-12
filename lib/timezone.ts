@@ -294,9 +294,9 @@ export function toLocalISOString(date: Date): string {
     const seconds = String(date.getSeconds()).padStart(2, '0')
     const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
     
-    // Retornar no formato ISO sem timezone (será interpretado como local pelo MySQL)
-    // SEM 'Z' para que seja tratado como horário local brasileiro
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`
+    // Retornar no formato ISO completo: YYYY-MM-DDTHH:mm:ss.sssZ
+    // Usar 'Z' para indicar que é tratado como UTC pelo Prisma (mas é horário brasileiro)
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`
   } catch (error) {
     console.error('❌ Erro ao converter data para ISO local:', error)
     return new Date().toISOString() // Fallback válido
