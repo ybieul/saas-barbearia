@@ -17,14 +17,30 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      const startDate = new Date(date)
+      // 🇧🇷 CORREÇÃO ROBUSTA: Criar range de data considerando timezone brasileiro
+      // O frontend envia "2025-08-12", precisamos buscar independente do timezone do banco
+      
+      console.log('🔍 Filtro de data recebido:', { date, timezone: 'America/Sao_Paulo' })
+      
+      // Método 1: Range amplo para capturar independente de timezone
+      const searchDate = new Date(date + 'T00:00:00.000-03:00') // Força timezone brasileiro
+      const startDate = new Date(searchDate)
       startDate.setHours(0, 0, 0, 0)
-      const endDate = new Date(date)
+      const endDate = new Date(searchDate)  
       endDate.setHours(23, 59, 59, 999)
       
+      // Método 2: Range expandido para capturar mesmo com +/-3h de diferença
+      const expandedStart = new Date(startDate.getTime() - (6 * 60 * 60 * 1000)) // -6h
+      const expandedEnd = new Date(endDate.getTime() + (6 * 60 * 60 * 1000))     // +6h
+      
+      console.log('🔍 Range de busca expandido:', {
+        original: { start: startDate.toISOString(), end: endDate.toISOString() },
+        expanded: { start: expandedStart.toISOString(), end: expandedEnd.toISOString() }
+      })
+      
       where.dateTime = {
-        gte: startDate,
-        lte: endDate
+        gte: expandedStart,  // Busca em range expandido para capturar timezone issues
+        lte: expandedEnd
       }
     }
 
@@ -65,6 +81,18 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    })
+
+    // 🔍 LOG DE DEBUG: Verificar dados retornados
+    console.log('🔍 Agendamentos encontrados:', {
+      count: appointments.length,
+      dateFilter: date,
+      appointments: appointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toString(),
+        dateTimeISO: apt.dateTime.toISOString(),
+        clientName: apt.endUser?.name
+      }))
     })
 
     return NextResponse.json({ appointments })

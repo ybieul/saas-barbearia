@@ -359,13 +359,49 @@ export default function AgendaPage() {
 
   // 🇧🇷 OTIMIZADO: Obter agendamentos do dia atual (sem conversões UTC) usando useMemo
   const todayAppointments = useMemo(() => {
+    console.log('🔍 FRONTEND DEBUG - Filtrando agendamentos:', {
+      totalAppointments: appointments.length,
+      currentDate: currentDate.toString(),
+      currentDateString: toLocalDateString(currentDate),
+      allAppointments: appointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime,
+        parsedDate: parseDatabaseDateTime(apt.dateTime || apt.date),
+        dateString: toLocalDateString(parseDatabaseDateTime(apt.dateTime || apt.date)),
+        clientName: apt.endUser?.name
+      }))
+    })
+
     return appointments.filter(apt => {
       // Parse seguro do dateTime do banco (sem conversão UTC automática)
       const aptDate = parseDatabaseDateTime(apt.dateTime || apt.date)
       const aptDateString = toLocalDateString(aptDate) // YYYY-MM-DD
-      const currentDateString = toLocalDateString(currentDate) // YYYY-MM-DD
       
-      return aptDateString === currentDateString
+      // 🔧 CORREÇÃO ROBUSTA: Usar getFullYear, getMonth, getDate para comparação
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1 // +1 porque getMonth é 0-indexed
+      const currentDay = currentDate.getDate()
+      const currentDateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`
+      
+      const aptYear = aptDate.getFullYear()
+      const aptMonth = aptDate.getMonth() + 1
+      const aptDay = aptDate.getDate()
+      const aptDateStringRobust = `${aptYear}-${String(aptMonth).padStart(2, '0')}-${String(aptDay).padStart(2, '0')}`
+      
+      const matches = aptDateStringRobust === currentDateString
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Comparação robusta de data:`, {
+          aptId: apt.id,
+          aptDateTime: apt.dateTime,
+          aptDate: aptDate.toString(),
+          aptDateStringRobust,
+          currentDateString,
+          matches
+        })
+      }
+      
+      return matches
     })
   }, [appointments, currentDate]) // Dependências: só recalcula quando appointments ou currentDate mudam
 
