@@ -313,7 +313,8 @@ export function toLocalISOString(date: Date): string {
 export function toLocalDateString(date: Date): string {
   if (!date || !isValid(date)) {
     console.warn('⚠️ Data inválida fornecida para toLocalDateString')
-    return new Date().toISOString().split('T')[0]
+    const fallback = new Date()
+    return `${fallback.getFullYear()}-${String(fallback.getMonth() + 1).padStart(2, '0')}-${String(fallback.getDate()).padStart(2, '0')}`
   }
   
   try {
@@ -324,7 +325,9 @@ export function toLocalDateString(date: Date): string {
     return `${year}-${month}-${day}`
   } catch (error) {
     console.error('❌ Erro ao extrair data local:', error)
-    return date.toISOString().split('T')[0] // fallback
+    // Fallback seguro sem conversão UTC
+    const fallback = new Date()
+    return `${fallback.getFullYear()}-${String(fallback.getMonth() + 1).padStart(2, '0')}-${String(fallback.getDate()).padStart(2, '0')}`
   }
 }
 
