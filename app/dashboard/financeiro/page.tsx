@@ -180,6 +180,43 @@ export default function FinanceiroPage() {
         return []
       }
       
+      // ✅ CORREÇÃO: Calcular período atual baseado no filtro selecionado
+      const today = getBrazilNow()
+      let currentStart: Date
+      let currentEnd: Date
+      
+      switch (period) {
+        case 'today':
+          currentStart = new Date(today)
+          currentStart.setHours(0, 0, 0, 0)
+          currentEnd = new Date(today)
+          currentEnd.setHours(23, 59, 59, 999)
+          break
+        case 'week':
+          currentStart = new Date(today)
+          currentStart.setDate(today.getDate() - 7)
+          currentEnd = today
+          break
+        case 'month':
+          currentStart = new Date(today)
+          currentStart.setMonth(today.getMonth() - 1)
+          currentEnd = today
+          break
+        default:
+          currentStart = new Date(today)
+          currentStart.setHours(0, 0, 0, 0)
+          currentEnd = new Date(today)
+          currentEnd.setHours(23, 59, 59, 999)
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📅 Período atual para filtros:', { 
+          period,
+          currentStart: toLocalISOString(currentStart), 
+          currentEnd: toLocalISOString(currentEnd) 
+        })
+      }
+      
       const filtered = appointments.filter(app => {
         // ✅ SEGURANÇA: Validação robusta dos dados
         if (!app || typeof app !== 'object') {
@@ -217,13 +254,17 @@ export default function FinanceiroPage() {
             return false
           }
           
+          // ✅ CORREÇÃO: Aplicar filtro de período selecionado
+          const isInPeriod = appointmentDate >= currentStart && appointmentDate <= currentEnd
+          if (!isInPeriod) {
+            return false
+          }
+          
           // Filtro por profissional
           if (selectedProfessional !== 'todos' && app.professionalId !== selectedProfessional) {
             return false
           }
           
-          // ✅ CORREÇÃO: Remover filtro de data passada - agendamentos concluídos devem aparecer independente da data original
-          // O que importa é o status COMPLETED/IN_PROGRESS, não se a data é passada ou futura
           return true
         } catch (err) {
           if (process.env.NODE_ENV === 'development') {
@@ -234,9 +275,10 @@ export default function FinanceiroPage() {
       })
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Agendamentos filtrados:', { 
+        console.log('✅ Agendamentos filtrados por período:', { 
           total: filtered.length,
-          totalValue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0)
+          totalValue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0),
+          period: period
         })
       }
       
@@ -247,7 +289,7 @@ export default function FinanceiroPage() {
       }
       return []
     }
-  }, [appointments, selectedProfessional])
+  }, [appointments, selectedProfessional, period])
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
@@ -583,46 +625,12 @@ export default function FinanceiroPage() {
     }
   }, [appointments, period])
   
+  // ✅ CORREÇÃO: Calcular receita do período atual baseada nos agendamentos já filtrados
   const currentPeriodRevenue = useMemo(() => {
-    const today = getBrazilNow()
-    let currentStart: Date
-    let currentEnd: Date = today
-    
-    switch (period) {
-      case 'today':
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-        break
-      case 'week':
-        currentStart = new Date(today)
-        currentStart.setDate(today.getDate() - 7)
-        break
-      case 'month':
-        currentStart = new Date(today)
-        currentStart.setMonth(today.getMonth() - 1)
-        break
-      default:
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-    }
-    
-    const currentPeriodAppointments = completedAppointments.filter(app => {
-      try {
-        const appointmentDate = utcToBrazil(new Date(app.dateTime))
-        return appointmentDate >= currentStart && appointmentDate <= currentEnd
-      } catch {
-        return false
-      }
-    })
-    
-    return currentPeriodAppointments.reduce((total, app) => 
+    return completedAppointments.reduce((total, app) => 
       total + (parseFloat(app.totalPrice) || 0), 0
     )
-  }, [completedAppointments, period])
+  }, [completedAppointments])
   
   // Cálculo do ticket médio com dados reais
   const currentTicketMedio = completedAppointments.length > 0 ? 
@@ -635,22 +643,96 @@ export default function FinanceiroPage() {
     previousPeriodData.revenue / previousPeriodData.completedCount : 0
   
   const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return { change: "Novo", type: "positive" }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Calculando mudança:', { current, previous })
+    }
+    
+    if (previous === 0) {
+      if (current === 0) {
+        return { change: "Sem dados", type: "neutral" }
+      }
+      return { change: "Novo", type: "positive" }
+    }
+    
     const changePercent = ((current - previous) / previous) * 100
     const sign = changePercent >= 0 ? "+" : ""
+    
     return {
       change: `${sign}${Math.round(changePercent)}%`,
       type: changePercent >= 0 ? "positive" : "negative"
     }
   }
   
+  // ✅ CORREÇÃO: Calcular dados do período atual para comparação correta
+  const currentPeriodData = useMemo(() => {
+    const today = getBrazilNow()
+    let currentStart: Date
+    let currentEnd: Date
+    
+    switch (period) {
+      case 'today':
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+        break
+      case 'week':
+        currentStart = new Date(today)
+        currentStart.setDate(today.getDate() - 7)
+        currentEnd = today
+        break
+      case 'month':
+        currentStart = new Date(today)
+        currentStart.setMonth(today.getMonth() - 1)
+        currentEnd = today
+        break
+      default:
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+    }
+    
+    // Todos os agendamentos do período atual (para calcular conversão)
+    const allCurrentPeriodAppointments = appointments.filter(app => {
+      if (!app?.dateTime) return false
+      try {
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
+        return appointmentDate >= currentStart && appointmentDate <= currentEnd
+      } catch {
+        return false
+      }
+    })
+    
+    return {
+      totalAppointments: allCurrentPeriodAppointments.length,
+      completedAppointments: completedAppointments.length, // Já filtrados
+      revenue: currentPeriodRevenue
+    }
+  }, [appointments, completedAppointments, currentPeriodRevenue, period])
+  
   const revenueChange = calculateChange(currentPeriodRevenue, previousPeriodData.revenue)
   const completedChange = calculateChange(completedAppointments.length, previousPeriodData.completedCount)
   const conversionChange = calculateChange(
-    (completedAppointments.length / Math.max(appointments.length, 1)) * 100,
+    currentPeriodData.totalAppointments > 0 ? (currentPeriodData.completedAppointments / currentPeriodData.totalAppointments) * 100 : 0,
     previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
+
+  // ✅ DEBUG: Log dos cálculos de comparação
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 === DEBUG COMPARAÇÕES ===')
+    console.log('🔍 Período selecionado:', period)
+    console.log('💰 Receita atual vs anterior:', { current: currentPeriodRevenue, previous: previousPeriodData.revenue, change: revenueChange })
+    console.log('📈 Concluídos atual vs anterior:', { current: completedAppointments.length, previous: previousPeriodData.completedCount, change: completedChange })
+    console.log('🎯 Conversão atual vs anterior:', { 
+      currentRate: currentPeriodData.totalAppointments > 0 ? (currentPeriodData.completedAppointments / currentPeriodData.totalAppointments) * 100 : 0,
+      previousRate: previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0,
+      change: conversionChange 
+    })
+    console.log('🎫 Ticket médio atual vs anterior:', { current: currentTicketMedio, previous: previousTicketMedio, change: ticketChange })
+    console.log('📊 === FIM DEBUG ===')
+  }
 
   // ✅ FUTURO: Função para exportar relatório com sanitização (comentada para implementação futura)
   /*
@@ -721,28 +803,22 @@ export default function FinanceiroPage() {
 
   const financialStats = [
     {
-      title: "Faturamento Hoje",
+      title: "Faturamento do Período",
       value: (() => {
-        // Calcular faturamento real baseado nos agendamentos concluídos hoje
-        const today = getBrazilNow()
-        const todayString = today.toDateString()
-        
-        const todayRevenue = completedAppointments
-          .filter(app => {
-            try {
-              const appointmentDate = utcToBrazil(new Date(app.dateTime))
-              return appointmentDate.toDateString() === todayString
-            } catch {
-              return false
-            }
-          })
-          .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
+        // ✅ CORREÇÃO: Usar completedAppointments que já estão filtrados por período
+        const periodRevenue = completedAppointments.reduce((total, app) => {
+          return total + (parseFloat(app.totalPrice) || 0)
+        }, 0)
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('💰 Faturamento hoje calculado:', todayRevenue)
+          console.log('💰 Faturamento do período calculado:', { 
+            periodRevenue, 
+            period, 
+            appointmentsCount: completedAppointments.length 
+          })
         }
         
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodRevenue)
       })(),
       change: revenueChange.change,
       changeType: revenueChange.type,
@@ -757,7 +833,7 @@ export default function FinanceiroPage() {
     },
     {
       title: "Taxa de Conversão",
-      value: `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`,
+      value: `${Math.round(currentPeriodData.totalAppointments > 0 ? (currentPeriodData.completedAppointments / currentPeriodData.totalAppointments) * 100 : 0)}%`,
       change: conversionChange.change,
       changeType: conversionChange.type,
       icon: Calendar,
