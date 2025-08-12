@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -138,7 +138,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
-    const appointmentDate = new Date(dateTime)
+    // 🇧🇷 CORREÇÃO: Converter UTC recebido de volta para horário brasileiro
+    const appointmentDate = parseDatabaseDateTime(dateTime)
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
     debugTimezone(appointmentDate, 'Agendamento recebido')
@@ -252,7 +253,7 @@ export async function POST(request: NextRequest) {
       
       // Verificar sobreposição de horários
       for (const existing of dayAppointments) {
-        const existingStart = new Date(existing.dateTime)
+        const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString())
         const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
         const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
         
@@ -360,7 +361,8 @@ export async function PUT(request: NextRequest) {
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (apenas se dateTime está sendo alterado)
     if (dateTime) {
-      const appointmentDate = new Date(dateTime)
+      // 🇧🇷 CORREÇÃO: Converter UTC recebido de volta para horário brasileiro
+      const appointmentDate = parseDatabaseDateTime(dateTime)
       
       // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
       debugTimezone(appointmentDate, 'Update de agendamento recebido')
@@ -488,7 +490,7 @@ export async function PUT(request: NextRequest) {
         
         // Verificar sobreposição de horários
         for (const existing of dayAppointments) {
-          const existingStart = new Date(existing.dateTime)
+          const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString())
           const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
           const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
           
@@ -516,7 +518,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = new Date(dateTime) // Salva horário brasileiro
+      updateData.dateTime = parseDatabaseDateTime(dateTime) // Salva horário brasileiro
     }
     if (notes !== undefined) {
       updateData.notes = notes
