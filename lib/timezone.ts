@@ -193,13 +193,14 @@ export function debugTimezone(date: Date, context: string = 'Debug'): void {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🔍 [${context}] Debug de Data:`, {
-      original: date,
-      isoString: date.toISOString(),
-      localString: date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      timeString: date.toTimeString(),
-      brazilFormatted: formatBrazilTime(date),
-      dayOfWeek: getBrazilDayOfWeek(date)
+    console.log(`🇧🇷 [${context}] DEBUG TIMEZONE BRASILEIRO:`, {
+      '📅 Data original': date,
+      '⏰ Horário local': date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      '🕐 Hora extraída': date.getHours() + ':' + date.getMinutes().toString().padStart(2, '0'),
+      '📊 ISO String': date.toISOString(),
+      '🔄 Local ISO': toLocalISOString(date),
+      '🌎 Timezone server': Intl.DateTimeFormat().resolvedOptions().timeZone,
+      '⚡ Sistema': 'APENAS BRASILEIRO - SEM UTC'
     })
   }
 }

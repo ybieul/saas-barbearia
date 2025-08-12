@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow } from '@/lib/timezone'
 
 // POST - Criar agendamento público
 export async function POST(request: NextRequest) {
@@ -142,14 +142,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (mesmo sistema do dashboard)
-    const appointmentDate = new Date(appointmentDateTime)
+    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO - USANDO APENAS TIMEZONE BRASILEIRO
+    const appointmentDate = parseDatabaseDateTime(appointmentDateTime) // 🇧🇷 CORREÇÃO: Usar função brasileira
     
-    // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
-    debugTimezone(appointmentDate, 'Agendamento público recebido')
+    // 🇧🇷 EXPLÍCITO: Sistema brasileiro direto - SEM UTC
+    debugTimezone(appointmentDate, 'Agendamento público recebido (BRASILEIRO)')
     
-    // Verificar se a data não é no passado
-    const now = new Date()
+    // Verificar se a data não é no passado (USANDO APENAS TIMEZONE BRASILEIRO)
+    const now = getBrazilNow() // 🇧🇷 CORREÇÃO: Usar função brasileira
     if (appointmentDate < now) {
       return NextResponse.json(
         { message: 'Não é possível agendar em datas/horários passados' },
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         const hasConflict = conflictingAppointments.some(existingApt => {
           if (existingApt.professionalId !== prof.id) return false
           
-          const existingStart = new Date(existingApt.dateTime)
+          const existingStart = parseDatabaseDateTime(existingApt.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
           const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
           const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
           
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
       for (const existingApt of conflictingAppointments) {
         if (existingApt.professionalId !== professionalId) continue
         
-        const existingStart = new Date(existingApt.dateTime)
+        const existingStart = parseDatabaseDateTime(existingApt.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
         const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         

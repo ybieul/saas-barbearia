@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -137,16 +137,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
-    const appointmentDate = new Date(dateTime)
+    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO - USANDO APENAS TIMEZONE BRASILEIRO
+    const appointmentDate = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO: Usar função brasileira
     
-    // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
-    debugTimezone(appointmentDate, 'Agendamento recebido')
+    // 🇧🇷 EXPLÍCITO: Sistema brasileiro direto - SEM UTC
+    debugTimezone(appointmentDate, 'Agendamento recebido (BRASILEIRO)')
     
     // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
-    // Verificar se a data não é no passado
-    // const now = new Date()
-    // if (appointmentDate < now) {
+    // Verificar se a data não é no passado (USANDO APENAS TIMEZONE BRASILEIRO)
+    // const nowBrazil = getBrazilNow() // 🇧🇷 CORREÇÃO: Usar função brasileira
+    // if (appointmentDate < nowBrazil) {
     //   return NextResponse.json(
     //     { message: 'Não é possível agendar em datas/horários passados' },
     //     { status: 400 }
@@ -250,9 +250,9 @@ export async function POST(request: NextRequest) {
         }
       })
       
-      // Verificar sobreposição de horários
+      // Verificar sobreposição de horários - USANDO APENAS TIMEZONE BRASILEIRO
       for (const existing of dayAppointments) {
-        const existingStart = new Date(existing.dateTime)
+        const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
         const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
         const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
         
@@ -358,16 +358,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (apenas se dateTime está sendo alterado)
+    // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO (apenas se dateTime está sendo alterado) - USANDO APENAS TIMEZONE BRASILEIRO
     if (dateTime) {
-      const appointmentDate = new Date(dateTime)
+      const appointmentDate = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO: Usar função brasileira
       
-      // 🇧🇷 CORREÇÃO: Agora o banco armazena horários brasileiros diretamente
-      debugTimezone(appointmentDate, 'Update de agendamento recebido')
+      // 🇧🇷 EXPLÍCITO: Sistema brasileiro direto - SEM UTC
+      debugTimezone(appointmentDate, 'Update de agendamento recebido (BRASILEIRO)')
       
       // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
-      // Verificar se a data não é no passado (usando timezone brasileiro)
-      // const nowBrazil = new Date()
+      // Verificar se a data não é no passado (usando APENAS timezone brasileiro)
+      // const nowBrazil = getBrazilNow() // 🇧🇷 CORREÇÃO: Usar função brasileira
       // if (appointmentDate < nowBrazil) {
       //   return NextResponse.json(
       //     { message: 'Não é possível agendar em datas/horários passados' },
@@ -488,7 +488,7 @@ export async function PUT(request: NextRequest) {
         
         // Verificar sobreposição de horários
         for (const existing of dayAppointments) {
-          const existingStart = new Date(existing.dateTime)
+          const existingStart = parseDatabaseDateTime(existing.dateTime.toISOString()) // 🇧🇷 CORREÇÃO: Usar função brasileira
           const existingDuration = existing.duration || existing.services?.[0]?.duration || 30
           const existingEnd = new Date(existingStart.getTime() + existingDuration * 60000)
           
@@ -516,7 +516,7 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = new Date(dateTime) // Salva horário brasileiro
+      updateData.dateTime = parseDatabaseDateTime(dateTime) // 🇧🇷 CORREÇÃO: Salvar usando função brasileira
     }
     if (notes !== undefined) {
       updateData.notes = notes
