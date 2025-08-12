@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString, parseISOStringAsLocal } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -166,10 +166,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
-    const appointmentDate = new Date(dateTime)
+    // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC
+    console.log('🔧 Backend recebeu dateTime:', dateTime)
+    
+    const appointmentDate = parseISOStringAsLocal(dateTime)
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
-    debugTimezone(appointmentDate, 'Agendamento recebido')
+    debugTimezone(appointmentDate, 'Agendamento processado no backend')
     
     // ✅ PERMITIR agendamentos retroativos no dashboard - comentado para permitir retroagendamento
     // Verificar se a data não é no passado
@@ -557,7 +560,9 @@ export async function PUT(request: NextRequest) {
       updateData.professionalId = professionalId || null
     }
     if (dateTime !== undefined) {
-      updateData.dateTime = new Date(dateTime) // Salva horário brasileiro
+      // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC no UPDATE
+      console.log('🔧 UPDATE - Backend recebeu dateTime:', dateTime)
+      updateData.dateTime = parseISOStringAsLocal(dateTime)
     }
     if (notes !== undefined) {
       updateData.notes = notes

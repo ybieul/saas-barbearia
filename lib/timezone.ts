@@ -356,6 +356,53 @@ export function toLocalDateString(date: Date): string {
 }
 
 /**
+ * 🇧🇷 Parse seguro de string ISO para Date brasileiro (evita interpretação UTC)
+ * Esta função substitui new Date(isoString) para garantir interpretação local
+ * 
+ * @param isoString - String no formato ISO "2025-08-12T09:00:00.000" ou similar
+ * @returns Date object em horário brasileiro local
+ */
+export function parseISOStringAsLocal(isoString: string): Date {
+  if (!isoString) {
+    console.warn('⚠️ String ISO vazia fornecida para parseISOStringAsLocal')
+    return new Date()
+  }
+  
+  try {
+    if (isoString.includes('T')) {
+      // Parse manual para garantir interpretação como horário brasileiro
+      const [datePart, timePart] = isoString.split('T')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes, seconds = 0] = timePart.replace('.000', '').replace('Z', '').split(':').map(Number)
+      
+      // Criar Date com valores locais (brasileiro)
+      const localDate = new Date(year, month - 1, day, hours, minutes, Math.floor(seconds))
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 parseISOStringAsLocal:', {
+          input: isoString,
+          parsed: { year, month, day, hours, minutes, seconds },
+          result: localDate.toString(),
+          resultISO: localDate.toISOString()
+        })
+      }
+      
+      return localDate
+    } else {
+      // Fallback para new Date() se não for formato ISO
+      const fallbackDate = new Date(isoString)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔧 parseISOStringAsLocal - Fallback usado para:', isoString)
+      }
+      return fallbackDate
+    }
+  } catch (error) {
+    console.error('❌ Erro ao fazer parse de ISO string:', error)
+    return new Date() // fallback seguro
+  }
+}
+
+/**
  * 🇧🇷 Parse seguro de dateTime do banco de dados (evita conversão UTC automática)
  * Força o interpretação como horário brasileiro local
  * 
