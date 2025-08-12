@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString, parseISOStringAsLocal } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, toBrazilISOString, parseISOStringAsLocal, toMySQLDateTime } from '@/lib/timezone'
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -297,15 +297,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 🇧🇷 NOVO: Salvar o agendamento com timezone brasileiro explícito
+    // 🇧🇷 CORREÇÃO CRÍTICA: Salvar como string formatada para evitar conversão UTC do Prisma
     console.log('🔧 Preparando dados para salvar no banco:', {
-      dateTime: toBrazilISOString(appointmentDate),
-      dateTimeOriginal: appointmentDate.toString()
+      appointmentDate: appointmentDate.toString(),
+      appointmentDateISO: appointmentDate.toISOString(),
+      mysqlDateTime: toMySQLDateTime(appointmentDate)
     })
 
     const newAppointment = await prisma.appointment.create({
       data: {
-        dateTime: appointmentDate, // Prisma vai receber como Date, mas logs mostram timezone
+        dateTime: toMySQLDateTime(appointmentDate), // 🚨 CORREÇÃO: String MySQL em vez de Date object
         duration: totalDuration,
         totalPrice: totalPrice,
         status: 'CONFIRMED',
@@ -562,7 +563,10 @@ export async function PUT(request: NextRequest) {
     if (dateTime !== undefined) {
       // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC no UPDATE
       console.log('🔧 UPDATE - Backend recebeu dateTime:', dateTime)
-      updateData.dateTime = parseISOStringAsLocal(dateTime)
+      const parsedDateTime = parseISOStringAsLocal(dateTime)
+      
+      console.log('🔧 UPDATE - MySQL DateTime:', toMySQLDateTime(parsedDateTime))
+      updateData.dateTime = toMySQLDateTime(parsedDateTime) // � CORREÇÃO: String MySQL em vez de Date
     }
     if (notes !== undefined) {
       updateData.notes = notes

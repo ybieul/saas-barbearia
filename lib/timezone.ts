@@ -356,6 +356,45 @@ export function toLocalDateString(date: Date): string {
 }
 
 /**
+ * 🇧🇷 Converte Date para string MySQL DATETIME para evitar conversão UTC do Prisma
+ * Esta função é crítica para evitar que o Prisma aplique conversão de timezone automática
+ * 
+ * @param date - Date object em horário brasileiro local
+ * @returns String no formato MySQL DATETIME "YYYY-MM-DD HH:mm:ss"
+ */
+export function toMySQLDateTime(date: Date): string {
+  if (!date || !isValid(date)) {
+    console.warn('⚠️ Data inválida fornecida para conversão MySQL DATETIME')
+    return ''
+  }
+  
+  try {
+    // Formatar manualmente para MySQL DATETIME sem conversão timezone
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    
+    const mysqlDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 toMySQLDateTime:', {
+        input: date.toString(),
+        output: mysqlDateTime,
+        note: 'String MySQL DATETIME - evita conversão UTC do Prisma'
+      })
+    }
+    
+    return mysqlDateTime
+  } catch (error) {
+    console.error('❌ Erro ao converter data para MySQL DATETIME:', error)
+    return ''
+  }
+}
+
+/**
  * 🇧🇷 Parse seguro de string ISO para Date brasileiro (evita interpretação UTC)
  * Esta função substitui new Date(isoString) para garantir interpretação local
  * 
