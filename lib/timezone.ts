@@ -282,7 +282,7 @@ export function toLocalISOString(date: Date): string {
   try {
     if (!date || !isValid(date)) {
       console.warn('⚠️ Data inválida fornecida para conversão ISO local')
-      return ''
+      return new Date().toISOString() // Fallback válido
     }
     
     // Formatar manualmente sem conversão UTC
@@ -292,12 +292,14 @@ export function toLocalISOString(date: Date): string {
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
     const seconds = String(date.getSeconds()).padStart(2, '0')
+    const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
     
-    // Retornar no formato ISO mas SEM conversão UTC
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000`
+    // Retornar no formato ISO completo: YYYY-MM-DDTHH:mm:ss.sssZ
+    // Usar 'Z' para indicar que é tratado como UTC pelo Prisma (mas é horário brasileiro)
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`
   } catch (error) {
     console.error('❌ Erro ao converter data para ISO local:', error)
-    return ''
+    return new Date().toISOString() // Fallback válido
   }
 }
 
