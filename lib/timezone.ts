@@ -397,9 +397,10 @@ export function toMySQLDateTime(date: Date): string {
 /**
  * 🇧🇷 Parse seguro de string ISO para Date brasileiro (evita interpretação UTC)
  * Esta função substitui new Date(isoString) para garantir interpretação local
+ * 🚨 CORREÇÃO CRÍTICA: Cria Date como UTC para compensar conversão automática do Prisma
  * 
  * @param isoString - String no formato ISO "2025-08-12T09:00:00.000" ou similar
- * @returns Date object em horário brasileiro local
+ * @returns Date object que será salvo corretamente no banco após conversão do Prisma
  */
 export function parseISOStringAsLocal(isoString: string): Date {
   if (!isoString) {
@@ -414,19 +415,22 @@ export function parseISOStringAsLocal(isoString: string): Date {
       const [year, month, day] = datePart.split('-').map(Number)
       const [hours, minutes, seconds = 0] = timePart.replace('.000', '').replace('Z', '').split(':').map(Number)
       
-      // Criar Date com valores locais (brasileiro)
-      const localDate = new Date(year, month - 1, day, hours, minutes, Math.floor(seconds))
+      // 🚨 CORREÇÃO CRÍTICA: Criar como UTC para compensar conversão automática do Prisma
+      // Quando o Prisma converter para UTC, vai resultar no horário brasileiro correto
+      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, Math.floor(seconds)))
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔧 parseISOStringAsLocal:', {
+        console.log('🔧 parseISOStringAsLocal CORRIGIDO:', {
           input: isoString,
           parsed: { year, month, day, hours, minutes, seconds },
-          result: localDate.toString(),
-          resultISO: localDate.toISOString()
+          utcResult: utcDate.toString(),
+          utcResultISO: utcDate.toISOString(),
+          localString: utcDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+          note: 'Criado como UTC para compensar conversão do Prisma'
         })
       }
       
-      return localDate
+      return utcDate
     } else {
       // Fallback para new Date() se não for formato ISO
       const fallbackDate = new Date(isoString)

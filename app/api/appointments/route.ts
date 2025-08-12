@@ -168,8 +168,16 @@ export async function POST(request: NextRequest) {
     // 🔒 VALIDAÇÃO DE HORÁRIOS DE FUNCIONAMENTO
     // 🚨 CORREÇÃO CRÍTICA: Parse seguro para evitar interpretação UTC
     console.log('🔧 Backend recebeu dateTime:', dateTime)
+    console.log('🔧 Tipo do dateTime recebido:', typeof dateTime)
     
     const appointmentDate = parseISOStringAsLocal(dateTime)
+    
+    console.log('🚨 ANÁLISE CRÍTICA DO PROBLEMA:')
+    console.log('📅 Data original enviada pelo frontend:', dateTime)
+    console.log('📅 Data após parseISOStringAsLocal:', appointmentDate.toString())
+    console.log('📅 Data como ISO (UTC):', appointmentDate.toISOString())
+    console.log('📅 Data como LocaleString (Brasil):', appointmentDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    console.log('📅 Horário local sem timezone:', appointmentDate.getHours() + ':' + appointmentDate.getMinutes().toString().padStart(2, '0'))
     
     // 🇧🇷 NOVO: Sistema simplificado - horários brasileiros diretos
     debugTimezone(appointmentDate, 'Agendamento processado no backend')
