@@ -123,8 +123,8 @@ export default function ClientesInativosPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Clientes Inativos</h1>
           <p className="text-[#71717a]">Reative clientes com ofertas personalizadas</p>
         </div>
-        {/* Botão Enviar Promoção - responsivo */}
-        <div className="w-full md:w-auto">
+        {/* Botão Enviar Promoção - apenas desktop */}
+        <div className="hidden md:block w-full md:w-auto">
           <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
             <DialogTrigger asChild>
               <Button className="w-full md:w-auto bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200">
@@ -320,6 +320,146 @@ export default function ClientesInativosPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Botão Enviar Promoção - apenas mobile, abaixo dos cards */}
+      <div className="block md:hidden">
+        <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200">
+              <Send className="w-4 h-4 mr-2" />
+              Enviar Promoção ({selectedClients.length})
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+            {/* Header responsivo */}
+            <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
+              <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                  <Send className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                </div>
+                Enviar Promoção
+              </DialogTitle>
+              <p className="text-[#71717a] text-sm hidden md:block">
+                Envie ofertas personalizadas para reativar clientes
+              </p>
+            </DialogHeader>
+            
+            <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+              {/* Seção de Clientes Selecionados - responsiva */}
+              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                  <p className="text-[#ededed] font-medium text-sm md:text-base">
+                    {selectedClients.length} cliente{selectedClients.length > 1 ? 's' : ''} selecionado{selectedClients.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="bg-[#27272a]/50 p-2 md:p-3 rounded-lg max-h-20 md:max-h-24 overflow-y-auto space-y-1">
+                  {selectedClients.map((clientId) => {
+                    const client = filteredClients.find(c => c.id === clientId)
+                    return (
+                      <div key={clientId} className="flex items-center gap-2 text-xs md:text-sm text-[#d4d4d8] md:text-[#ededed]">
+                        <div className="w-1 h-1 bg-emerald-400 md:bg-[#10b981] rounded-full flex-shrink-0"></div>
+                        <span className="font-medium">{client?.name}</span>
+                        <span className="text-[#71717a]">•</span>
+                        <span className="text-[#a1a1aa] md:text-[#71717a]">{client?.phone}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Seleção de Template - responsiva */}
+              <div className="space-y-2 md:space-y-3">
+                <label className="text-sm font-medium text-[#ededed] flex items-center gap-2 md:block">
+                  <div className="w-1 h-1 bg-blue-400 rounded-full md:hidden"></div>
+                  Modelo de Mensagem
+                </label>
+                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-10 md:h-11">
+                    <SelectValue placeholder="Selecione um template" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46]">
+                    {promotionTemplates.map((template) => (
+                      <SelectItem 
+                        key={template.id} 
+                        value={template.id}
+                        className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]"
+                      >
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{template.name}</span>
+                          {template.title && (
+                            <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {promotionTemplates.length === 0 && (
+                  <div className="md:bg-amber-500/10 md:border md:border-amber-500/20 md:rounded-lg md:p-3">
+                    <p className="text-xs text-[#71717a] mt-2 italic md:text-amber-400 md:text-sm md:flex md:items-center md:gap-2 md:mt-0 md:not-italic">
+                      <AlertTriangle className="w-4 h-4 hidden md:inline" />
+                      Nenhum template encontrado{". "}
+                      <span className="md:block md:text-amber-400/80 md:text-xs md:mt-1">
+                        Crie templates em Configurações → Promoções
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Prévia da Mensagem - responsiva */}
+              {selectedTemplate && getSelectedTemplateData() && (
+                <div className="space-y-2 md:space-y-3">
+                  <label className="text-sm font-medium text-[#ededed] flex items-center gap-2 md:block">
+                    <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
+                    Prévia da Mensagem
+                  </label>
+                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-32 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                    {getSelectedTemplateData()?.title && (
+                      <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
+                        <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
+                        <p className="text-emerald-400 md:text-[#10b981] text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
+                          <span className="hidden md:inline">📢 </span>
+                          {getSelectedTemplateData()?.title}
+                        </p>
+                      </div>
+                    )}
+                    <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                      {getSelectedTemplateData()?.message}
+                    </div>
+                    <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
+                      <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                      <span className="text-xs text-[#71717a]">
+                        Será enviado via WhatsApp para {selectedClients.length} cliente(s)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Botões de Ação - responsivos */}
+              <div className="flex gap-3 pt-1 md:pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPromotionModalOpen(false)}
+                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px] md:touch-manipulation"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSendPromotion}
+                  disabled={!selectedTemplate || selectedClients.length === 0}
+                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar Promoção
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search and Filter Bar */}
