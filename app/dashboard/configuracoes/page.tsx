@@ -224,101 +224,73 @@ export default function ConfiguracoesPage() {
   // Horários formatados para a UI
   const workingHours = convertToUIFormat(workingHoursData || [])
 
-  // Previne foco automático no modal de editar profissional
+  // Previne foco automático no modal de editar profissional (apenas no primeiro input)
   useEffect(() => {
     if (isEditProfessionalOpen) {
       const timer = setTimeout(() => {
-        // Remove foco de qualquer input ativo
-        const activeElement = document.activeElement as HTMLElement
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-          activeElement.blur()
+        // Remove foco apenas do primeiro input quando o modal abre
+        const modal = document.querySelector('[data-state="open"]')
+        if (modal) {
+          const firstInput = modal.querySelector('input[id="editProfessionalName"]') as HTMLElement
+          if (firstInput && firstInput === document.activeElement) {
+            firstInput.blur()
+          }
         }
-        
-        // Remove foco de qualquer input no modal especificamente
-        const editModal = document.querySelector('[data-state="open"]')
-        if (editModal) {
-          const inputs = editModal.querySelectorAll('input, textarea')
-          inputs.forEach((input: any) => {
-            if (input === document.activeElement) {
-              input.blur()
-            }
-          })
-        }
-      }, 150) // Timeout maior para garantir que o modal esteja totalmente renderizado
+      }, 100)
       
       return () => clearTimeout(timer)
     }
   }, [isEditProfessionalOpen])
   
-  // Previne foco automático no modal de novo profissional
+  // Previne foco automático no modal de novo profissional (apenas no primeiro input)
   useEffect(() => {
     if (isNewProfessionalOpen) {
       const timer = setTimeout(() => {
-        // Remove foco de qualquer input ativo
-        const activeElement = document.activeElement as HTMLElement
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-          activeElement.blur()
+        // Remove foco apenas do primeiro input quando o modal abre
+        const modal = document.querySelector('[data-state="open"]')
+        if (modal) {
+          const firstInput = modal.querySelector('input[id="professionalName"]') as HTMLElement
+          if (firstInput && firstInput === document.activeElement) {
+            firstInput.blur()
+          }
         }
-        
-        // Remove foco de qualquer input no modal especificamente
-        const newModal = document.querySelector('[data-state="open"]')
-        if (newModal) {
-          const inputs = newModal.querySelectorAll('input, textarea')
-          inputs.forEach((input: any) => {
-            if (input === document.activeElement) {
-              input.blur()
-            }
-          })
-        }
-      }, 150)
+      }, 100)
       
       return () => clearTimeout(timer)
     }
   }, [isNewProfessionalOpen])
   
-  // Previne foco automático nos modais de serviços
+  // Previne foco automático nos modais de serviços (apenas no primeiro input)
   useEffect(() => {
     if (isNewServiceOpen || isEditServiceOpen) {
       const timer = setTimeout(() => {
-        const activeElement = document.activeElement as HTMLElement
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-          activeElement.blur()
-        }
-        
+        // Remove foco apenas do primeiro input quando o modal abre
         const modal = document.querySelector('[data-state="open"]')
         if (modal) {
-          const inputs = modal.querySelectorAll('input, textarea')
-          inputs.forEach((input: any) => {
-            if (input === document.activeElement) {
-              input.blur()
-            }
-          })
+          const firstInput = modal.querySelector('input[id="serviceName"], input[id="editServiceName"]') as HTMLElement
+          if (firstInput && firstInput === document.activeElement) {
+            firstInput.blur()
+          }
         }
-      }, 150)
+      }, 100)
       
       return () => clearTimeout(timer)
     }
   }, [isNewServiceOpen, isEditServiceOpen])
   
-  // Previne foco automático no modal de templates
+  // Previne foco automático no modal de templates (apenas no primeiro input)
   useEffect(() => {
     if (isNewTemplateOpen) {
       const timer = setTimeout(() => {
-        const activeElement = document.activeElement as HTMLElement
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-          activeElement.blur()
-        }
-        
+        // Remove foco apenas do primeiro input quando o modal abre
         const modal = document.querySelector('[data-state="open"]')
         if (modal) {
-          const inputs = modal.querySelectorAll('input, textarea')
-          inputs.forEach((input: any) => {
-            if (input === document.activeElement) {
-              input.blur()
-            }
-          })
+          const firstInput = modal.querySelector('input') as HTMLElement
+          if (firstInput && firstInput === document.activeElement) {
+            firstInput.blur()
+          }
         }
-      }, 150)
+      }, 100)
       
       return () => clearTimeout(timer)
     }
@@ -1479,7 +1451,6 @@ export default function ConfiguracoesPage() {
                               className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                               placeholder="Nome completo do profissional"
                               autoFocus={false}
-                              onFocus={(e) => e.target.blur()}
                             />
                           </div>
                           
@@ -1744,7 +1715,6 @@ export default function ConfiguracoesPage() {
                                   className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                                   placeholder="Ex: Corte masculino"
                                   autoFocus={false}
-                                  onFocus={(e) => e.target.blur()}
                                 />
                               </div>
                               
@@ -1988,7 +1958,6 @@ export default function ConfiguracoesPage() {
                             className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                             placeholder="Ex: Corte masculino"
                             autoFocus={false}
-                            onFocus={(e) => e.target.blur()}
                           />
                         </div>
                         

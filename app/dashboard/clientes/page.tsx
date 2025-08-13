@@ -66,27 +66,19 @@ export default function ClientesPage() {
     fetchClients(true) // Buscar apenas clientes ativos
   }, [fetchClients])
 
-  // Previne foco automático no modal de novo/editar cliente
+  // Previne foco automático no modal de novo/editar cliente (apenas no primeiro input)
   useEffect(() => {
     if (showAddDialog) {
       const timer = setTimeout(() => {
-        // Remove foco de qualquer input ativo
-        const activeElement = document.activeElement as HTMLElement
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-          activeElement.blur()
-        }
-        
-        // Remove foco de qualquer input no modal especificamente
+        // Remove foco apenas do primeiro input quando o modal abre
         const modal = document.querySelector('[data-state="open"]')
         if (modal) {
-          const inputs = modal.querySelectorAll('input, textarea')
-          inputs.forEach((input: any) => {
-            if (input === document.activeElement) {
-              input.blur()
-            }
-          })
+          const firstInput = modal.querySelector('input[id="name"]') as HTMLElement
+          if (firstInput && firstInput === document.activeElement) {
+            firstInput.blur()
+          }
         }
-      }, 150) // Timeout para garantir que o modal esteja totalmente renderizado
+      }, 100) // Timeout menor para ser menos invasivo
       
       return () => clearTimeout(timer)
     }
@@ -265,7 +257,6 @@ export default function ClientesPage() {
                         placeholder="Nome completo do cliente"
                         required
                         autoFocus={false}
-                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                     
