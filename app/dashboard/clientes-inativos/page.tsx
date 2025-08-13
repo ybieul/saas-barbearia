@@ -132,9 +132,9 @@ export default function ClientesInativosPage() {
                 Enviar Promoção ({selectedClients.length})
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl h-[80vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
               {/* Header responsivo */}
-              <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center flex-shrink-0">
+              <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
                 <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
                   <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
                     <Send className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
@@ -146,7 +146,7 @@ export default function ClientesInativosPage() {
                 </p>
               </DialogHeader>
               
-              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4 overflow-y-auto flex-1 px-4 sm:px-6">
+              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Clientes Selecionados - responsiva */}
                 <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -239,25 +239,25 @@ export default function ClientesInativosPage() {
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Footer fixo com botões */}
-              <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsPromotionModalOpen(false)}
-                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px] md:touch-manipulation"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleSendPromotion}
-                  disabled={!selectedTemplate || selectedClients.length === 0}
-                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar Promoção
-                </Button>
+                {/* Botões de Ação - responsivos */}
+                <div className="flex gap-3 pt-1 md:pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsPromotionModalOpen(false)}
+                    className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px] md:touch-manipulation"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSendPromotion}
+                    disabled={!selectedTemplate || selectedClients.length === 0}
+                    className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Enviar Promoção
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
