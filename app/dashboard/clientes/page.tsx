@@ -718,16 +718,75 @@ export default function ClientesPage() {
                     <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    <div className="space-y-1 md:space-y-2">
-                      <Label className="text-[#71717a] text-xs md:text-sm">Nome</Label>
-                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                  {/* Layout mobile otimizado */}
+                  <div className="block md:hidden space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-[#71717a] text-xs">Nome Completo</Label>
+                      <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm font-medium">
                         {selectedClient.name}
                       </div>
                     </div>
                     
-                    <div className="space-y-1 md:space-y-2">
-                      <Label className="text-[#71717a] text-xs md:text-sm">Status</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-xs">Status</Label>
+                        <div className="flex items-center justify-center bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5">
+                          <Badge className={selectedClient.isActive 
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-1' 
+                            : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20 px-2 py-1'
+                          }>
+                            {selectedClient.isActive ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-xs">Telefone</Label>
+                        <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
+                          {selectedClient.phone}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedClient.email && (
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-xs">E-mail</Label>
+                        <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm break-all">
+                          {selectedClient.email}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedClient.birthday && (
+                        <div className="space-y-2">
+                          <Label className="text-[#71717a] text-xs">Aniversário</Label>
+                          <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
+                            {formatBrazilDate(new Date(selectedClient.birthday))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-xs">Cliente desde</Label>
+                        <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
+                          {formatBrazilDate(new Date(selectedClient.createdAt))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Layout desktop (grid 2x3) */}
+                  <div className="hidden md:grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[#71717a] text-sm">Nome</Label>
+                      <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
+                        {selectedClient.name}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-[#71717a] text-sm">Status</Label>
                       <div className="flex items-center">
                         <Badge className={selectedClient.isActive 
                           ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
@@ -738,34 +797,34 @@ export default function ClientesPage() {
                       </div>
                     </div>
                     
-                    <div className="space-y-1 md:space-y-2">
-                      <Label className="text-[#71717a] text-xs md:text-sm">Telefone</Label>
-                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                    <div className="space-y-2">
+                      <Label className="text-[#71717a] text-sm">Telefone</Label>
+                      <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
                         {selectedClient.phone}
                       </div>
                     </div>
                     
                     {selectedClient.email && (
-                      <div className="space-y-1 md:space-y-2">
-                        <Label className="text-[#71717a] text-xs md:text-sm">E-mail</Label>
-                        <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base break-all">
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-sm">E-mail</Label>
+                        <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base break-all">
                           {selectedClient.email}
                         </div>
                       </div>
                     )}
                     
                     {selectedClient.birthday && (
-                      <div className="space-y-1 md:space-y-2">
-                        <Label className="text-[#71717a] text-xs md:text-sm">Data de Nascimento</Label>
-                        <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                      <div className="space-y-2">
+                        <Label className="text-[#71717a] text-sm">Data de Nascimento</Label>
+                        <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
                           {formatBrazilDate(new Date(selectedClient.birthday))}
                         </div>
                       </div>
                     )}
                     
-                    <div className="space-y-1 md:space-y-2">
-                      <Label className="text-[#71717a] text-xs md:text-sm">Cliente desde</Label>
-                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                    <div className="space-y-2">
+                      <Label className="text-[#71717a] text-sm">Cliente desde</Label>
+                      <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
                         {formatBrazilDate(new Date(selectedClient.createdAt))}
                       </div>
                     </div>
@@ -774,15 +833,14 @@ export default function ClientesPage() {
 
                 {/* Seção de Observações */}
                 {selectedClient.notes && (
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex items-center gap-2 md:hidden">
-                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-                      <h3 className="text-[#ededed] font-medium text-sm">Observações</h3>
+                  <div className="bg-gradient-to-br from-purple-500/5 to-purple-600/5 border border-purple-500/20 rounded-lg p-3 md:p-4 md:bg-transparent md:border-none md:rounded-none">
+                    <div className="flex items-center gap-2 mb-3 md:mb-4">
+                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-400 md:bg-purple-500 rounded-full"></div>
+                      <h3 className="text-[#ededed] font-medium text-sm md:text-base">Observações</h3>
                     </div>
                     
-                    <div className="space-y-1 md:space-y-2">
-                      <Label className="text-[#71717a] text-xs md:text-sm hidden md:block">Observações</Label>
-                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base min-h-16 md:min-h-20">
+                    <div className="space-y-2">
+                      <div className="bg-[#27272a]/70 md:bg-[#27272a] border border-purple-500/30 md:border-[#3f3f46] rounded-md px-3 py-3 md:py-2 text-[#ededed] text-sm md:text-base min-h-[60px] md:min-h-20 leading-relaxed">
                         {selectedClient.notes}
                       </div>
                     </div>
@@ -796,34 +854,71 @@ export default function ClientesPage() {
                     <h3 className="text-[#ededed] font-medium text-sm md:text-base">Estatísticas</h3>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2 md:gap-4">
-                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
-                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                  {/* Layout mobile otimizado */}
+                  <div className="block md:hidden space-y-2">
+                    {/* Primeiro card - Agendamentos (destaque) */}
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-emerald-400 mb-1">
                         {calculateClientStats(selectedClient).totalAppointments}
                       </div>
-                      <div className="text-xs md:text-sm text-[#71717a]">Agendamentos</div>
+                      <div className="text-xs text-emerald-300">Total de Agendamentos</div>
                     </div>
                     
-                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
-                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                    {/* Cards secundários em grid 2x1 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-[#27272a]/50 border border-[#3f3f46] rounded-lg p-3 text-center">
+                        <div className="text-base font-bold text-[#10b981] mb-1 leading-tight">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL',
+                            maximumFractionDigits: 0
+                          }).format(calculateClientStats(selectedClient).totalSpent)}
+                        </div>
+                        <div className="text-xs text-[#71717a] leading-tight">Total Gasto</div>
+                      </div>
+                      
+                      <div className="bg-[#27272a]/50 border border-[#3f3f46] rounded-lg p-3 text-center">
+                        <div className="text-base font-bold text-[#10b981] mb-1 leading-tight">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL',
+                            maximumFractionDigits: 0
+                          }).format(calculateClientStats(selectedClient).averageTicket)}
+                        </div>
+                        <div className="text-xs text-[#71717a] leading-tight">Ticket Médio</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Layout desktop (3 colunas) */}
+                  <div className="hidden md:grid grid-cols-3 gap-4">
+                    <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#10b981] mb-1">
+                        {calculateClientStats(selectedClient).totalAppointments}
+                      </div>
+                      <div className="text-sm text-[#71717a]">Agendamentos</div>
+                    </div>
+                    
+                    <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#10b981] mb-1">
                         {new Intl.NumberFormat('pt-BR', { 
                           style: 'currency', 
                           currency: 'BRL',
                           maximumFractionDigits: 0
                         }).format(calculateClientStats(selectedClient).totalSpent)}
                       </div>
-                      <div className="text-xs md:text-sm text-[#71717a]">Total Gasto</div>
+                      <div className="text-sm text-[#71717a]">Total Gasto</div>
                     </div>
                     
-                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
-                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                    <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#10b981] mb-1">
                         {new Intl.NumberFormat('pt-BR', { 
                           style: 'currency', 
                           currency: 'BRL',
                           maximumFractionDigits: 0
                         }).format(calculateClientStats(selectedClient).averageTicket)}
                       </div>
-                      <div className="text-xs md:text-sm text-[#71717a]">Ticket Médio</div>
+                      <div className="text-sm text-[#71717a]">Ticket Médio</div>
                     </div>
                   </div>
                 </div>
