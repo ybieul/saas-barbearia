@@ -693,121 +693,167 @@ export default function ClientesPage() {
 
       {/* Modal de Detalhes do Cliente */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="bg-gray-900 border-[#27272a] max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white">Detalhes do Cliente</DialogTitle>
-            <DialogDescription className="text-[#71717a]">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          {/* Header fixo */}
+          <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+            <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+              <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+              </div>
+              Detalhes do Cliente
+            </DialogTitle>
+            <DialogDescription className="text-[#71717a] text-sm hidden md:block">
               Informações completas e estatísticas do cliente
             </DialogDescription>
           </DialogHeader>
           
-          {selectedClient && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-[#71717a] mb-2">Nome</h3>
-                  <p className="text-white">{selectedClient.name}</p>
+          {/* Conteúdo com scroll */}
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+            {selectedClient && (
+              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                {/* Seção de Informações Básicas */}
+                <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                  <div className="flex items-center gap-2 mb-2 md:mb-3">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                    <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-[#71717a] text-xs md:text-sm">Nome</Label>
+                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                        {selectedClient.name}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-[#71717a] text-xs md:text-sm">Status</Label>
+                      <div className="flex items-center">
+                        <Badge className={selectedClient.isActive 
+                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                          : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20'
+                        }>
+                          {selectedClient.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-[#71717a] text-xs md:text-sm">Telefone</Label>
+                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                        {selectedClient.phone}
+                      </div>
+                    </div>
+                    
+                    {selectedClient.email && (
+                      <div className="space-y-1 md:space-y-2">
+                        <Label className="text-[#71717a] text-xs md:text-sm">E-mail</Label>
+                        <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base break-all">
+                          {selectedClient.email}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedClient.birthday && (
+                      <div className="space-y-1 md:space-y-2">
+                        <Label className="text-[#71717a] text-xs md:text-sm">Data de Nascimento</Label>
+                        <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                          {formatBrazilDate(new Date(selectedClient.birthday))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-[#71717a] text-xs md:text-sm">Cliente desde</Label>
+                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base">
+                        {formatBrazilDate(new Date(selectedClient.createdAt))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-[#71717a] mb-2">Status</h3>
-                  <Badge className={getStatusColor(selectedClient.isActive ? 'active' : 'inactive')}>
-                    {getStatusLabel(selectedClient.isActive ? 'active' : 'inactive')}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-[#71717a] mb-2">Telefone</h3>
-                  <p className="text-white">{selectedClient.phone}</p>
-                </div>
-                
-                {selectedClient.email && (
-                  <div>
-                    <h3 className="text-sm font-medium text-[#71717a] mb-2">E-mail</h3>
-                    <p className="text-white">{selectedClient.email}</p>
+
+                {/* Seção de Observações */}
+                {selectedClient.notes && (
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex items-center gap-2 md:hidden">
+                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                      <h3 className="text-[#ededed] font-medium text-sm">Observações</h3>
+                    </div>
+                    
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-[#71717a] text-xs md:text-sm hidden md:block">Observações</Label>
+                      <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm md:text-base min-h-16 md:min-h-20">
+                        {selectedClient.notes}
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {selectedClient.birthday && (
-                  <div>
-                    <h3 className="text-sm font-medium text-[#71717a] mb-2">Data de Nascimento</h3>
-                    <p className="text-white">
-                      {formatBrazilDate(new Date(selectedClient.birthday))}
-                    </p>
+                {/* Seção de Estatísticas */}
+                <div className="space-y-3 md:space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 md:bg-yellow-500 rounded-full"></div>
+                    <h3 className="text-[#ededed] font-medium text-sm md:text-base">Estatísticas</h3>
                   </div>
-                )}
-
-                <div>
-                  <h3 className="text-sm font-medium text-[#71717a] mb-2">Cliente desde</h3>
-                  <p className="text-white">
-                    {formatBrazilDate(new Date(selectedClient.createdAt))}
-                  </p>
+                  
+                  <div className="grid grid-cols-3 gap-2 md:gap-4">
+                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
+                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                        {calculateClientStats(selectedClient).totalAppointments}
+                      </div>
+                      <div className="text-xs md:text-sm text-[#71717a]">Agendamentos</div>
+                    </div>
+                    
+                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
+                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                        {new Intl.NumberFormat('pt-BR', { 
+                          style: 'currency', 
+                          currency: 'BRL',
+                          maximumFractionDigits: 0
+                        }).format(calculateClientStats(selectedClient).totalSpent)}
+                      </div>
+                      <div className="text-xs md:text-sm text-[#71717a]">Total Gasto</div>
+                    </div>
+                    
+                    <div className="bg-[#27272a]/50 md:bg-[#27272a] border border-[#3f3f46] rounded-lg p-3 md:p-4 text-center">
+                      <div className="text-lg md:text-2xl font-bold text-[#10b981] mb-1">
+                        {new Intl.NumberFormat('pt-BR', { 
+                          style: 'currency', 
+                          currency: 'BRL',
+                          maximumFractionDigits: 0
+                        }).format(calculateClientStats(selectedClient).averageTicket)}
+                      </div>
+                      <div className="text-xs md:text-sm text-[#71717a]">Ticket Médio</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {selectedClient.notes && (
-                <div>
-                  <h3 className="text-sm font-medium text-[#71717a] mb-2">Observações</h3>
-                  <p className="text-white bg-gray-800 p-3 rounded-lg">{selectedClient.notes}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-800">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#10b981]">
-                    {calculateClientStats(selectedClient).totalAppointments}
-                  </div>
-                  <div className="text-sm text-[#71717a]">Agendamentos</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#10b981]">
-                    {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL' 
-                    }).format(calculateClientStats(selectedClient).totalSpent)}
-                  </div>
-                  <div className="text-sm text-[#71717a]">Total Gasto</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#10b981]">
-                    {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL' 
-                    }).format(calculateClientStats(selectedClient).averageTicket)}
-                  </div>
-                  <div className="text-sm text-[#71717a]">Ticket Médio</div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-gray-800">
-                <Button 
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-                  onClick={() => {
-                    const phone = selectedClient.phone.replace(/\D/g, '')
-                    const message = `Olá ${selectedClient.name}! Como posso ajudá-lo hoje?`
-                    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank')
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Enviar WhatsApp
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-gray-600 text-[#a1a1aa] hover:bg-gray-700"
-                  onClick={() => {
-                    setShowDetailsModal(false)
-                    // Aqui você pode implementar a navegação para agenda
-                    // router.push('/dashboard/agenda?cliente=' + selectedClient.id)
-                  }}
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Novo Agendamento
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
+          
+          {/* Footer fixo */}
+          <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDetailsModal(false)} 
+              className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+            >
+              Fechar
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedClient) {
+                  const phone = selectedClient.phone.replace(/\D/g, '')
+                  const message = `Olá ${selectedClient.name}! Como posso ajudá-lo hoje?`
+                  window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank')
+                }
+              }}
+              className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Enviar WhatsApp
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
