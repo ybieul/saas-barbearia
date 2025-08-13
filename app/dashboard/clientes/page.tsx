@@ -720,20 +720,14 @@ export default function ClientesPage() {
                   
                   {/* Layout mobile otimizado */}
                   <div className="block md:hidden space-y-3">
-                    <div className="space-y-2">
-                      <Label className="text-[#71717a] text-xs">Nome Completo</Label>
-                      <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm font-medium">
-                        {selectedClient.name}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       <div className="space-y-2">
-                        <Label className="text-[#71717a] text-xs">Status</Label>
-                        <div className="flex items-center justify-center bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5">
+                        <Label className="text-[#71717a] text-xs">Nome Completo</Label>
+                        <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm font-medium flex items-center justify-between">
+                          <span>{selectedClient.name}</span>
                           <Badge className={selectedClient.isActive 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-1' 
-                            : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20 px-2 py-1'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 px-2 py-1 text-xs' 
+                            : 'bg-red-500/15 text-red-400 border-red-500/30 px-2 py-1 text-xs'
                           }>
                             {selectedClient.isActive ? 'Ativo' : 'Inativo'}
                           </Badge>
@@ -780,17 +774,11 @@ export default function ClientesPage() {
                   <div className="hidden md:grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[#71717a] text-sm">Nome</Label>
-                      <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
-                        {selectedClient.name}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-[#71717a] text-sm">Status</Label>
-                      <div className="flex items-center">
+                      <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base flex items-center justify-between">
+                        <span>{selectedClient.name}</span>
                         <Badge className={selectedClient.isActive 
-                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
-                          : 'bg-[#3f3f46]/10 text-[#71717a] border-[#3f3f46]/20'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 px-3 py-1.5' 
+                          : 'bg-red-500/15 text-red-400 border-red-500/30 px-3 py-1.5'
                         }>
                           {selectedClient.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
@@ -805,7 +793,7 @@ export default function ClientesPage() {
                     </div>
                     
                     {selectedClient.email && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 col-span-2">
                         <Label className="text-[#71717a] text-sm">E-mail</Label>
                         <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base break-all">
                           {selectedClient.email}
