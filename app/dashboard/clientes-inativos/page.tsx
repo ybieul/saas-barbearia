@@ -132,7 +132,7 @@ export default function ClientesInativosPage() {
                 Enviar Promoção ({selectedClients.length})
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl">
               {/* Header responsivo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
                 <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
@@ -331,7 +331,7 @@ export default function ClientesInativosPage() {
               Enviar Promoção ({selectedClients.length})
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl">
             {/* Header responsivo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
               <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
