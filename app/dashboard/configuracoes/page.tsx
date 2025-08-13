@@ -285,7 +285,7 @@ export default function ConfiguracoesPage() {
         // Remove foco apenas do primeiro input quando o modal abre
         const modal = document.querySelector('[data-state="open"]')
         if (modal) {
-          const firstInput = modal.querySelector('input') as HTMLElement
+          const firstInput = modal.querySelector('input[id="templateName"]') as HTMLElement
           if (firstInput && firstInput === document.activeElement) {
             firstInput.blur()
           }
@@ -2326,72 +2326,131 @@ export default function ConfiguracoesPage() {
                   </div>
                   <Dialog open={isNewTemplateOpen} onOpenChange={setIsNewTemplateOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a] w-full sm:w-auto">
+                      <Button className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-[#0a0a0a] shadow-lg shadow-amber-500/20 transition-all duration-200 w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Novo Template
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md left-1/2 -translate-x-1/2 sm:max-w-md sm:mx-auto">
-                      <DialogHeader className="text-center pb-2 sm:pb-4">
-                        <DialogTitle className="text-lg sm:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                          <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-[#10b981]" />
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[75vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                      {/* Header fixo */}
+                      <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                        <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                          <div className="p-1.5 md:p-2 bg-gradient-to-br from-amber-500/20 to-yellow-600/20 rounded-lg">
+                            <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-amber-400 md:text-amber-500" />
+                          </div>
                           {editingTemplate ? 'Editar Template' : 'Novo Template'}
                         </DialogTitle>
-                        <DialogDescription className="text-[#71717a] text-xs sm:text-sm">
-                          {editingTemplate ? 'Edite o template de promoção' : 'Crie um novo template de promoção'}
+                        <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                          {editingTemplate ? 'Edite o template de promoção' : 'Crie um novo template de mensagem promocional'}
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label htmlFor="templateName" className="text-[#ededed] text-sm">Nome do Template *</Label>
-                          <Input
-                            id="templateName"
-                            value={newTemplate.name}
-                            onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9 sm:h-10"
-                            placeholder="Ex: Promoção de Natal"
-                            autoFocus={false}
-                          />
-                        </div>
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label htmlFor="templateTitle" className="text-[#ededed] text-sm">Título da Promoção</Label>
-                          <Input
-                            id="templateTitle"
-                            value={newTemplate.title}
-                            onChange={(e) => setNewTemplate({ ...newTemplate, title: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9 sm:h-10"
-                            placeholder="🎄 Promoção Especial de Natal!"
-                          />
-                        </div>
-                        <div className="space-y-1 sm:space-y-2">
-                          <Label htmlFor="templateMessage" className="text-[#ededed] text-sm">Mensagem *</Label>
-                          <Textarea
-                            id="templateMessage"
-                            value={newTemplate.message}
-                            onChange={(e) => setNewTemplate({ ...newTemplate, message: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-[120px] sm:min-h-[100px] text-sm"
-                            placeholder="Olá [nome]! Aproveite nossa promoção especial de Natal com 20% de desconto em todos os serviços! 🎁✂️"
-                          />
-                          <div className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 p-2 rounded border border-[#fbbf24]/20">
-                            💡 <strong>Dica:</strong> Use <code className="bg-[#27272a] px-1 rounded">[nome]</code> para personalizar automaticamente com o nome do cliente
+                      
+                      {/* Conteúdo com scroll */}
+                      <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                        <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                          {/* Seção de Informações Básicas */}
+                          <div className="bg-gradient-to-br from-amber-500/10 to-yellow-600/5 p-3 md:p-4 rounded-lg border border-amber-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                            <div className="flex items-center gap-2 mb-2 md:mb-3">
+                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-amber-400 md:bg-amber-500 rounded-full"></div>
+                              <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações do Template</h3>
+                            </div>
+                            
+                            <div className="space-y-3 md:space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="templateName" className="text-[#ededed] text-sm font-medium">
+                                  Nome do Template *
+                                </Label>
+                                <Input
+                                  id="templateName"
+                                  value={newTemplate.name}
+                                  onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="Ex: Promoção de Natal"
+                                  autoFocus={false}
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="templateTitle" className="text-[#ededed] text-sm font-medium">
+                                  Título da Promoção
+                                </Label>
+                                <Input
+                                  id="templateTitle"
+                                  value={newTemplate.title}
+                                  onChange={(e) => setNewTemplate({ ...newTemplate, title: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="🎄 Promoção Especial de Natal!"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Seção de Mensagem */}
+                          <div className="space-y-3 md:space-y-4">
+                            <div className="flex items-center gap-2 md:hidden">
+                              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                              <h3 className="text-[#ededed] font-medium text-sm">Conteúdo da Mensagem</h3>
+                            </div>
+                            
+                            <div className="space-y-3 md:space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="templateMessage" className="text-[#ededed] text-sm font-medium">
+                                  Mensagem *
+                                </Label>
+                                <Textarea
+                                  id="templateMessage"
+                                  value={newTemplate.message}
+                                  onChange={(e) => setNewTemplate({ ...newTemplate, message: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-[120px] text-sm resize-none"
+                                  placeholder="Olá [nome]! Aproveite nossa promoção especial de Natal com 20% de desconto em todos os serviços! 🎁✂️"
+                                />
+                              </div>
+                              
+                              {/* Dica sobre personalização */}
+                              <div className="bg-gradient-to-r from-amber-500/10 to-yellow-600/10 p-3 rounded-lg border border-amber-500/20">
+                                <div className="flex items-start gap-2">
+                                  <div className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-[#0a0a0a] text-xs font-bold">!</span>
+                                  </div>
+                                  <div className="flex-1 text-xs">
+                                    <p className="text-amber-400 font-medium mb-1">💡 Personalização Automática</p>
+                                    <p className="text-[#a1a1aa] mb-2">
+                                      Use <code className="bg-[#27272a] px-1.5 py-0.5 rounded text-amber-400 font-mono">[nome]</code> para personalizar automaticamente com o nome do cliente
+                                    </p>
+                                    <div className="space-y-1">
+                                      <p className="text-[#71717a]">📝 Exemplo: "Olá [nome]! Temos uma oferta especial..."</p>
+                                      <p className="text-[#71717a]">📤 Enviado: "Olá João! Temos uma oferta especial..."</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
+                      </div>
+                      
+                      {/* Footer fixo */}
+                      <DialogFooter className="border-t border-[#27272a] pt-3 md:pt-4 flex-shrink-0 px-4 sm:px-6">
+                        <div className="flex flex-row justify-center sm:justify-end gap-3 w-full">
                           <Button 
                             variant="outline" 
                             onClick={handleCancelTemplate}
-                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent h-9 sm:h-10 text-sm order-2 sm:order-1"
+                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
                           >
                             Cancelar
                           </Button>
                           <Button 
                             onClick={editingTemplate ? handleUpdateTemplate : handleAddTemplate}
-                            className="bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0a0a0a] h-9 sm:h-10 text-sm order-1 sm:order-2"
+                            className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-[#0a0a0a] shadow-lg shadow-amber-500/20 transition-all duration-200 min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
+                            disabled={templatesLoading}
                           >
-                            {editingTemplate ? 'Atualizar' : 'Criar'} Template
+                            {templatesLoading 
+                              ? (editingTemplate ? "Atualizando..." : "Criando...") 
+                              : (editingTemplate ? "Atualizar Template" : "Criar Template")
+                            }
                           </Button>
                         </div>
-                      </div>
+                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
