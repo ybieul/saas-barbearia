@@ -66,6 +66,56 @@ export default function ClientesPage() {
     fetchClients(true) // Buscar apenas clientes ativos
   }, [fetchClients])
 
+  // Previne foco automático no modal de adicionar/editar cliente
+  useEffect(() => {
+    if (showAddDialog) {
+      const timer = setTimeout(() => {
+        // Remove foco de qualquer input ativo
+        const activeElement = document.activeElement as HTMLElement
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.blur()
+        }
+        
+        // Remove foco de qualquer input no modal especificamente
+        const modal = document.querySelector('[data-state="open"]')
+        if (modal) {
+          const inputs = modal.querySelectorAll('input, textarea')
+          inputs.forEach((input: any) => {
+            if (input === document.activeElement) {
+              input.blur()
+            }
+          })
+        }
+      }, 150) // Timeout para garantir que o modal esteja totalmente renderizado
+      
+      return () => clearTimeout(timer)
+    }
+  }, [showAddDialog])
+
+  // Previne foco automático no modal de detalhes
+  useEffect(() => {
+    if (showDetailsModal) {
+      const timer = setTimeout(() => {
+        const activeElement = document.activeElement as HTMLElement
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.blur()
+        }
+        
+        const modal = document.querySelector('[data-state="open"]')
+        if (modal) {
+          const inputs = modal.querySelectorAll('input, textarea')
+          inputs.forEach((input: any) => {
+            if (input === document.activeElement) {
+              input.blur()
+            }
+          })
+        }
+      }, 150)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [showDetailsModal])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -238,6 +288,8 @@ export default function ClientesPage() {
                         className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                         placeholder="Nome completo do cliente"
                         required
+                        autoFocus={false}
+                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                     
@@ -252,6 +304,8 @@ export default function ClientesPage() {
                         className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                         placeholder="(11) 99999-9999"
                         required
+                        autoFocus={false}
+                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                   </div>
@@ -276,6 +330,8 @@ export default function ClientesPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                         className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                         placeholder="email@exemplo.com"
+                        autoFocus={false}
+                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                     
@@ -289,6 +345,8 @@ export default function ClientesPage() {
                         value={formData.birthday}
                         onChange={(e) => setFormData(prev => ({ ...prev, birthday: e.target.value }))}
                         className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                        autoFocus={false}
+                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                     
@@ -302,6 +360,8 @@ export default function ClientesPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                         className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none overflow-y-auto md:overflow-y-visible text-sm resize-none"
                         placeholder="Preferências, alergias, etc..."
+                        autoFocus={false}
+                        onFocus={(e) => e.target.blur()}
                       />
                     </div>
                   </div>
