@@ -2020,9 +2020,8 @@ export default function AgendaPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="client" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                    <div className="w-1 h-1 bg-blue-400 rounded-full md:hidden"></div>
-                    Cliente *
+                  <Label htmlFor="client" className="text-[#ededed] text-sm font-medium">
+                    Buscar Cliente *
                   </Label>
                   <div className="relative mt-2" data-client-dropdown>
                     <div className="relative">
@@ -2101,14 +2100,13 @@ export default function AgendaPage() {
               {/* Seção de Serviço e Profissional */}
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center gap-2 md:hidden">
-                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                   <h3 className="text-[#ededed] font-medium text-sm">Serviço & Profissional</h3>
                 </div>
                 
                 <div className="space-y-3 md:space-y-4">
                   <div>
-                    <Label htmlFor="service" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                      <div className="w-1 h-1 bg-green-400 rounded-full md:hidden"></div>
+                    <Label htmlFor="service" className="text-[#ededed] text-sm font-medium">
                       Serviço *
                     </Label>
                     <Select 
@@ -2136,8 +2134,7 @@ export default function AgendaPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="professional" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                      <div className="w-1 h-1 bg-yellow-400 rounded-full md:hidden"></div>
+                    <Label htmlFor="professional" className="text-[#ededed] text-sm font-medium">
                       Profissional
                     </Label>
                     <Select 
@@ -2167,15 +2164,14 @@ export default function AgendaPage() {
               {/* Seção de Data e Horário */}
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center gap-2 md:hidden">
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
                   <h3 className="text-[#ededed] font-medium text-sm">Data & Horário</h3>
                 </div>
                 
                 {/* Layout otimizado para mobile */}
                 <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                      <div className="w-1 h-1 bg-pink-400 rounded-full md:hidden"></div>
+                    <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">
                       Data *
                     </Label>
                     <Input
@@ -2213,8 +2209,7 @@ export default function AgendaPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="time" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                      <div className="w-1 h-1 bg-indigo-400 rounded-full md:hidden"></div>
+                    <Label htmlFor="time" className="text-[#ededed] text-sm font-medium">
                       Horário *
                     </Label>
                     <Select 
@@ -2277,8 +2272,7 @@ export default function AgendaPage() {
 
               {/* Observações */}
               <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
-                  <div className="w-1 h-1 bg-teal-400 rounded-full md:hidden"></div>
+                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium">
                   Observações
                 </Label>
                 <Textarea
