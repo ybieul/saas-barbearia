@@ -1708,79 +1708,118 @@ export default function ConfiguracoesPage() {
                         Novo Serviço
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full">
-                      <DialogHeader className="text-center pb-4">
-                        <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                          <Wrench className="w-5 h-5 text-[#10b981]" />
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                      {/* Header fixo */}
+                      <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                        <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                          <div className="p-1.5 md:p-2 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg">
+                            <Wrench className="w-4 h-4 md:w-5 md:h-5 text-purple-400 md:text-purple-500" />
+                          </div>
                           Novo Serviço
                         </DialogTitle>
-                        <DialogDescription className="text-[#71717a] text-sm">
+                        <DialogDescription className="text-[#71717a] text-sm hidden md:block">
                           Preencha os dados do novo serviço
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="serviceName" className="text-[#ededed]">Nome do Serviço *</Label>
-                          <Input
-                            id="serviceName"
-                            value={newService.name}
-                            onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="Ex: Corte masculino"
-                            autoFocus={false}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="serviceDescription" className="text-[#ededed]">Descrição</Label>
-                          <Input
-                            id="serviceDescription"
-                            value={newService.description}
-                            onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                            placeholder="Descrição do serviço"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="servicePrice" className="text-[#ededed]">Preço (R$) *</Label>
-                            <Input
-                              id="servicePrice"
-                              type="number"
-                              step="0.01"
-                              value={newService.price}
-                              onChange={(e) => setNewService({ ...newService, price: e.target.value })}
-                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                              placeholder="0,00"
-                            />
+                      
+                      {/* Conteúdo com scroll */}
+                      <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                        <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                          {/* Seção de Informações Básicas */}
+                          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-3 md:p-4 rounded-lg border border-purple-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                            <div className="flex items-center gap-2 mb-2 md:mb-3">
+                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-400 md:bg-purple-500 rounded-full"></div>
+                              <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações do Serviço</h3>
+                            </div>
+                            
+                            <div className="space-y-3 md:space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="serviceName" className="text-[#ededed] text-sm font-medium">
+                                  Nome do Serviço *
+                                </Label>
+                                <Input
+                                  id="serviceName"
+                                  value={newService.name}
+                                  onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="Ex: Corte masculino"
+                                  autoFocus={false}
+                                  onFocus={(e) => e.target.blur()}
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="serviceDescription" className="text-[#ededed] text-sm font-medium">
+                                  Descrição
+                                </Label>
+                                <Input
+                                  id="serviceDescription"
+                                  value={newService.description}
+                                  onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="Descrição do serviço"
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="serviceDuration" className="text-[#ededed]">Duração (min) *</Label>
-                            <Input
-                              id="serviceDuration"
-                              type="number"
-                              value={newService.duration}
-                              onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
-                              className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                              placeholder="30"
-                            />
+
+                          {/* Seção de Valores e Duração */}
+                          <div className="space-y-3 md:space-y-4">
+                            <div className="flex items-center gap-2 md:hidden">
+                              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                              <h3 className="text-[#ededed] font-medium text-sm">Valores e Duração</h3>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="servicePrice" className="text-[#ededed] text-sm font-medium">
+                                  Preço (R$) *
+                                </Label>
+                                <Input
+                                  id="servicePrice"
+                                  type="number"
+                                  step="0.01"
+                                  value={newService.price}
+                                  onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="0,00"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="serviceDuration" className="text-[#ededed] text-sm font-medium">
+                                  Duração (min) *
+                                </Label>
+                                <Input
+                                  id="serviceDuration"
+                                  type="number"
+                                  value={newService.duration}
+                                  onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                  placeholder="30"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex justify-end gap-3 mt-6">
-                          <Button 
-                            variant="outline" 
-                            onClick={handleCancelAddService}
-                            className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
-                          >
-                            Cancelar
-                          </Button>
-                          <Button 
-                            onClick={handleAddService}
-                            className="bg-purple-500 hover:bg-purple-600 text-[#ededed] min-h-[44px] px-6 touch-manipulation"
-                            disabled={servicesLoading}
-                          >
-                            {servicesLoading ? "Adicionando..." : "Adicionar Serviço"}
-                          </Button>
-                        </div>
+                      </div>
+                      
+                      {/* Footer fixo */}
+                      <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCancelAddService}
+                          className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          onClick={handleAddService}
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-[#ededed] shadow-lg shadow-purple-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                          disabled={servicesLoading}
+                        >
+                          {servicesLoading ? "Adicionando..." : "Adicionar Serviço"}
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -1913,79 +1952,118 @@ export default function ConfiguracoesPage() {
             
             {/* Dialog para editar serviço */}
             <Dialog open={isEditServiceOpen} onOpenChange={setIsEditServiceOpen}>
-              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full">
-                <DialogHeader className="text-center pb-4">
-                  <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                    <Edit className="w-5 h-5 text-[#10b981]" />
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                {/* Header fixo */}
+                <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                  <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                    <div className="p-1.5 md:p-2 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg">
+                      <Edit className="w-4 h-4 md:w-5 md:h-5 text-purple-400 md:text-purple-500" />
+                    </div>
                     Editar Serviço
                   </DialogTitle>
-                  <DialogDescription className="text-[#71717a] text-sm">
+                  <DialogDescription className="text-[#71717a] text-sm hidden md:block">
                     Atualize os dados do serviço
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="editServiceName" className="text-[#ededed]">Nome do Serviço *</Label>
-                    <Input
-                      id="editServiceName"
-                      value={editService.name}
-                      onChange={(e) => setEditService({ ...editService, name: e.target.value })}
-                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="Ex: Corte masculino"
-                      autoFocus={false}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="editServiceDescription" className="text-[#ededed]">Descrição</Label>
-                    <Input
-                      id="editServiceDescription"
-                      value={editService.description}
-                      onChange={(e) => setEditService({ ...editService, description: e.target.value })}
-                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      placeholder="Descrição do serviço"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="editServicePrice" className="text-[#ededed]">Preço (R$) *</Label>
-                      <Input
-                        id="editServicePrice"
-                        type="number"
-                        step="0.01"
-                        value={editService.price}
-                        onChange={(e) => setEditService({ ...editService, price: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="0,00"
-                      />
+                
+                {/* Conteúdo com scroll */}
+                <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                  <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                    {/* Seção de Informações Básicas */}
+                    <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-3 md:p-4 rounded-lg border border-purple-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                      <div className="flex items-center gap-2 mb-2 md:mb-3">
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-400 md:bg-purple-500 rounded-full"></div>
+                        <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações do Serviço</h3>
+                      </div>
+                      
+                      <div className="space-y-3 md:space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editServiceName" className="text-[#ededed] text-sm font-medium">
+                            Nome do Serviço *
+                          </Label>
+                          <Input
+                            id="editServiceName"
+                            value={editService.name}
+                            onChange={(e) => setEditService({ ...editService, name: e.target.value })}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            placeholder="Ex: Corte masculino"
+                            autoFocus={false}
+                            onFocus={(e) => e.target.blur()}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="editServiceDescription" className="text-[#ededed] text-sm font-medium">
+                            Descrição
+                          </Label>
+                          <Input
+                            id="editServiceDescription"
+                            value={editService.description}
+                            onChange={(e) => setEditService({ ...editService, description: e.target.value })}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            placeholder="Descrição do serviço"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editServiceDuration" className="text-[#ededed]">Duração (min) *</Label>
-                      <Input
-                        id="editServiceDuration"
-                        type="number"
-                        value={editService.duration}
-                        onChange={(e) => setEditService({ ...editService, duration: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="30"
-                      />
+
+                    {/* Seção de Valores e Duração */}
+                    <div className="space-y-3 md:space-y-4">
+                      <div className="flex items-center gap-2 md:hidden">
+                        <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                        <h3 className="text-[#ededed] font-medium text-sm">Valores e Duração</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editServicePrice" className="text-[#ededed] text-sm font-medium">
+                            Preço (R$) *
+                          </Label>
+                          <Input
+                            id="editServicePrice"
+                            type="number"
+                            step="0.01"
+                            value={editService.price}
+                            onChange={(e) => setEditService({ ...editService, price: e.target.value })}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            placeholder="0,00"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="editServiceDuration" className="text-[#ededed] text-sm font-medium">
+                            Duração (min) *
+                          </Label>
+                          <Input
+                            id="editServiceDuration"
+                            type="number"
+                            value={editService.duration}
+                            onChange={(e) => setEditService({ ...editService, duration: e.target.value })}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            placeholder="30"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-end gap-3 mt-6">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleCancelEditService}
-                      className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      onClick={handleUpdateService}
-                      className="bg-purple-500 hover:bg-purple-600 text-[#ededed] min-h-[44px] px-6 touch-manipulation"
-                      disabled={servicesLoading}
-                    >
-                      {servicesLoading ? "Salvando..." : "Salvar Alterações"}
-                    </Button>
-                  </div>
+                </div>
+                
+                {/* Footer fixo */}
+                <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelEditService}
+                    className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleUpdateService}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-[#ededed] shadow-lg shadow-purple-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                    disabled={servicesLoading}
+                  >
+                    {servicesLoading ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
