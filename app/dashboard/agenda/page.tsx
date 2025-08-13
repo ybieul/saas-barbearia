@@ -1987,17 +1987,21 @@ export default function AgendaPage() {
             }
           }}
         >
-          <Card className="bg-[#18181b] border-[#27272a] w-full max-w-lg mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
-            <CardHeader className="pb-4 flex-shrink-0">
-              <CardTitle className="text-[#ededed] text-base md:text-xl">
+          <Card className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
+            {/* Header responsivo */}
+            <CardHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+              <CardTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                </div>
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-sm md:text-sm">
+              <CardDescription className="text-[#71717a] text-sm hidden md:block">
                 {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
               </CardDescription>
             </CardHeader>
             
-            <CardContent className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6">
+            <CardContent className="space-y-4 md:space-y-6 mt-3 md:mt-4 overflow-y-auto flex-1 px-4 sm:px-6">
               {/* Exibir erro do backend */}
               {backendError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -2008,236 +2012,287 @@ export default function AgendaPage() {
                 </div>
               )}
               
-              <div>
-                <Label htmlFor="client" className="text-[#ededed]">Cliente *</Label>
-                <div className="relative" data-client-dropdown>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
-                    <Input
-                      placeholder="Buscar cliente por nome, telefone ou email..."
-                      value={clientSearchTerm}
-                      onChange={(e) => {
-                        setClientSearchTerm(e.target.value)
-                        setIsClientDropdownOpen(true)
-                      }}
-                      onFocus={() => setIsClientDropdownOpen(true)}
-                      className="bg-[#18181b] border-[#27272a] text-[#ededed] pl-10 pr-10"
-                    />
-                    <ChevronDown 
-                      className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
-                      onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
-                    />
-                  </div>
-                  
-                  {/* Cliente selecionado */}
-                  {newAppointment.endUserId && (
-                    <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-[#10b981]" />
-                        <span className="text-[#ededed] text-sm">
-                          {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setNewAppointment(prev => ({...prev, endUserId: ""}))
-                          setClientSearchTerm("")
-                        }}
-                        className="h-6 w-6 p-0 hover:bg-red-500/20"
-                      >
-                        <X className="h-3 w-3 text-red-400" />
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Dropdown de resultados */}
-                  {isClientDropdownOpen && (
-                    <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                      {filteredClients.length > 0 ? (
-                        filteredClients.map((client) => (
-                          <div
-                            key={client.id}
-                            className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
-                            onClick={() => {
-                              setNewAppointment(prev => ({...prev, endUserId: client.id}))
-                              setClientSearchTerm(client.name)
-                              setIsClientDropdownOpen(false)
-                            }}
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
-                              <span className="text-[#71717a] text-xs">{client.phone}</span>
-                              {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-3 text-center text-[#71717a] text-sm">
-                          {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="service" className="text-[#ededed]">Serviço *</Label>
-                <Select 
-                  value={newAppointment.serviceId} 
-                  onValueChange={(value) => {
-                    setNewAppointment(prev => ({...prev, serviceId: value}))
-                  }}
-                >
-                  <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                    <SelectValue placeholder="Selecione um serviço" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-[#27272a]">
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name} - {formatCurrency(service.price)} ({service.duration || 0}min)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="professional" className="text-[#ededed]">Profissional</Label>
-                <Select 
-                  value={newAppointment.professionalId} 
-                  onValueChange={(value) => {
-                    setNewAppointment(prev => ({...prev, professionalId: value}))
-                  }}
-                >
-                  <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-                    <SelectValue placeholder="Selecione um profissional (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] border-[#27272a]">
-                    {professionalsData?.map((professional) => (
-                      <SelectItem key={professional.id} value={professional.id}>
-                        {professional.name} - {professional.specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Data e Horário - Layout otimizado para mobile */}
-              <div className="space-y-6 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">Data *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newAppointment.date}
-                    // ✅ PERMITIR datas passadas para retroagendamento
-                    onChange={(e) => {
-                      setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
-                    }}
-                    className="bg-[#18181b] border-[#27272a] text-[#ededed] h-12 text-base sm:h-11 sm:text-sm w-full min-w-0 block"
-                  />
-                  {newAppointment.date && (
-                    <div className="mt-2">
-                      {(() => {
-                        const dateStatus = getDateStatus()
-                        if (dateStatus.isOpen === false) {
-                          return (
-                            <p className="text-xs text-red-400 flex items-start gap-1">
-                              <span className="flex-shrink-0">❌</span>
-                              <span className="break-words leading-tight">{dateStatus.message}</span>
-                            </p>
-                          )
-                        } else if (dateStatus.isOpen === true) {
-                          return (
-                            <p className="text-xs text-[#10b981] flex items-start gap-1">
-                              <span className="flex-shrink-0">✅</span>
-                              <span className="break-words leading-tight">{dateStatus.message}</span>
-                            </p>
-                          )
-                        }
-                        return null
-                      })()}
-                    </div>
-                  )}
+              {/* Seção de Cliente */}
+              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm md:text-base">Cliente</h3>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-[#ededed] text-sm font-medium">Horário *</Label>
-                  <Select 
-                    value={newAppointment.time} 
-                    onValueChange={(value) => {
-                      setNewAppointment(prev => ({...prev, time: value}))
-                    }}
-                    disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
-                  >
-                    <SelectTrigger className="bg-[#18181b] border-[#27272a] text-[#ededed] h-12 text-base sm:h-11 sm:text-sm w-full min-w-0">
-                      <SelectValue placeholder={
-                        !newAppointment.date ? "Data primeiro" :
-                        !newAppointment.serviceId ? "Serviço primeiro" :
-                        !getDateStatus().isOpen ? "Fechado" :
-                        "Selecione horário"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
-                      {getAvailableTimeSlots(editingAppointment?.id).length > 0 ? (
-                        getAvailableTimeSlots(editingAppointment?.id).map((time: string) => {
-                          const isPast = isTimeInPast(newAppointment.date, time)
-                          return (
-                            <SelectItem key={time} value={time} className="text-sm">
-                              <div className="flex items-center justify-between w-full">
-                                <span>{isPast ? '⏱️ ' : ''}{time}</span>
-                                {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
-                              </div>
-                            </SelectItem>
-                          )
-                        })
-                      ) : (
-                        <div className="p-3 text-center text-[#a1a1aa] text-sm">
-                          {!newAppointment.date ? "Selecione uma data" :
-                           !newAppointment.serviceId ? "Selecione um serviço" :
-                           !getDateStatus().isOpen ? "Estabelecimento fechado" :
-                           "Nenhum horário disponível"
-                          }
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {newAppointment.date && newAppointment.serviceId && (
-                    <div className="mt-1 space-y-1">
-                      <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
-                          `${getAvailableTimeSlots(editingAppointment?.id).length} horários disponíveis` : 
-                          'Estabelecimento fechado neste dia'
-                        }
-                      </p>
-                      {getAvailableTimeSlots(editingAppointment?.id).some((time: string) => isTimeInPast(newAppointment.date, time)) && (
-                        <p className="text-xs text-[#d97706] flex items-start gap-1">
-                          <span className="flex-shrink-0">⏱️</span>
-                          <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>
-                        </p>
-                      )}
+                <div>
+                  <Label htmlFor="client" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                    <div className="w-1 h-1 bg-blue-400 rounded-full md:hidden"></div>
+                    Cliente *
+                  </Label>
+                  <div className="relative mt-2" data-client-dropdown>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
+                      <Input
+                        placeholder="Buscar cliente por nome, telefone ou email..."
+                        value={clientSearchTerm}
+                        onChange={(e) => {
+                          setClientSearchTerm(e.target.value)
+                          setIsClientDropdownOpen(true)
+                        }}
+                        onFocus={() => setIsClientDropdownOpen(true)}
+                        className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] pl-10 pr-10 h-10 md:h-11"
+                      />
+                      <ChevronDown 
+                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
+                        onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                      />
                     </div>
-                  )}
+                    
+                    {/* Cliente selecionado */}
+                    {newAppointment.endUserId && (
+                      <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-[#10b981]" />
+                          <span className="text-[#ededed] text-sm">
+                            {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setNewAppointment(prev => ({...prev, endUserId: ""}))
+                            setClientSearchTerm("")
+                          }}
+                          className="h-6 w-6 p-0 hover:bg-red-500/20"
+                        >
+                          <X className="h-3 w-3 text-red-400" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Dropdown de resultados */}
+                    {isClientDropdownOpen && (
+                      <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filteredClients.length > 0 ? (
+                          filteredClients.map((client) => (
+                            <div
+                              key={client.id}
+                              className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
+                              onClick={() => {
+                                setNewAppointment(prev => ({...prev, endUserId: client.id}))
+                                setClientSearchTerm(client.name)
+                                setIsClientDropdownOpen(false)
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
+                                <span className="text-[#71717a] text-xs">{client.phone}</span>
+                                {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-[#71717a] text-sm">
+                            {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção de Serviço e Profissional */}
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 md:hidden">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm">Serviço & Profissional</h3>
+                </div>
+                
+                <div className="space-y-3 md:space-y-4">
+                  <div>
+                    <Label htmlFor="service" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-green-400 rounded-full md:hidden"></div>
+                      Serviço *
+                    </Label>
+                    <Select 
+                      value={newAppointment.serviceId} 
+                      onValueChange={(value) => {
+                        setNewAppointment(prev => ({...prev, serviceId: value}))
+                      }}
+                    >
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 mt-2">
+                        <SelectValue placeholder="Selecione um serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#18181b] md:bg-[#18181b] border-[#27272a]">
+                        {services.map((service) => (
+                          <SelectItem key={service.id} value={service.id} className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{service.name}</span>
+                              <span className="text-xs text-emerald-400 md:text-[#71717a]">
+                                {formatCurrency(service.price)} • {service.duration || 0}min
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="professional" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-yellow-400 rounded-full md:hidden"></div>
+                      Profissional
+                    </Label>
+                    <Select 
+                      value={newAppointment.professionalId} 
+                      onValueChange={(value) => {
+                        setNewAppointment(prev => ({...prev, professionalId: value}))
+                      }}
+                    >
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 mt-2">
+                        <SelectValue placeholder="Selecione um profissional (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#18181b] border-[#27272a]">
+                        {professionalsData?.map((professional) => (
+                          <SelectItem key={professional.id} value={professional.id} className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{professional.name}</span>
+                              <span className="text-xs text-emerald-400 md:text-[#71717a]">{professional.specialty}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção de Data e Horário */}
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 md:hidden">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm">Data & Horário</h3>
+                </div>
+                
+                {/* Layout otimizado para mobile */}
+                <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-pink-400 rounded-full md:hidden"></div>
+                      Data *
+                    </Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={newAppointment.date}
+                      onChange={(e) => {
+                        setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
+                      }}
+                      className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 w-full min-w-0 block"
+                    />
+                    {newAppointment.date && (
+                      <div className="mt-2">
+                        {(() => {
+                          const dateStatus = getDateStatus()
+                          if (dateStatus.isOpen === false) {
+                            return (
+                              <p className="text-xs text-red-400 flex items-start gap-1">
+                                <span className="flex-shrink-0">❌</span>
+                                <span className="break-words leading-tight">{dateStatus.message}</span>
+                              </p>
+                            )
+                          } else if (dateStatus.isOpen === true) {
+                            return (
+                              <p className="text-xs text-[#10b981] flex items-start gap-1">
+                                <span className="flex-shrink-0">✅</span>
+                                <span className="break-words leading-tight">{dateStatus.message}</span>
+                              </p>
+                            )
+                          }
+                          return null
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-indigo-400 rounded-full md:hidden"></div>
+                      Horário *
+                    </Label>
+                    <Select 
+                      value={newAppointment.time} 
+                      onValueChange={(value) => {
+                        setNewAppointment(prev => ({...prev, time: value}))
+                      }}
+                      disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
+                    >
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 w-full min-w-0">
+                        <SelectValue placeholder={
+                          !newAppointment.date ? "Data primeiro" :
+                          !newAppointment.serviceId ? "Serviço primeiro" :
+                          !getDateStatus().isOpen ? "Fechado" :
+                          "Selecione horário"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
+                        {getAvailableTimeSlots(editingAppointment?.id).length > 0 ? (
+                          getAvailableTimeSlots(editingAppointment?.id).map((time: string) => {
+                            const isPast = isTimeInPast(newAppointment.date, time)
+                            return (
+                              <SelectItem key={time} value={time} className="text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{isPast ? '⏱️ ' : ''}{time}</span>
+                                  {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
+                                </div>
+                              </SelectItem>
+                            )
+                          })
+                        ) : (
+                          <div className="p-3 text-center text-[#a1a1aa] text-sm">
+                            {!newAppointment.date ? "Selecione uma data" :
+                             !newAppointment.serviceId ? "Selecione um serviço" :
+                             !getDateStatus().isOpen ? "Estabelecimento fechado" :
+                             "Nenhum horário disponível"
+                            }
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {newAppointment.date && newAppointment.serviceId && (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
+                            `${getAvailableTimeSlots(editingAppointment?.id).length} horários disponíveis` : 
+                            'Estabelecimento fechado neste dia'
+                          }
+                        </p>
+                        {getAvailableTimeSlots(editingAppointment?.id).some((time: string) => isTimeInPast(newAppointment.date, time)) && (
+                          <p className="text-xs text-[#d97706] flex items-start gap-1">
+                            <span className="flex-shrink-0">⏱️</span>
+                            <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Observações */}
               <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium">Observações</Label>
+                <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                  <div className="w-1 h-1 bg-teal-400 rounded-full md:hidden"></div>
+                  Observações
+                </Label>
                 <Textarea
                   id="notes"
                   placeholder="Observações sobre o agendamento..."
                   value={newAppointment.notes}
                   onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
-                  className="bg-[#18181b] border-[#27272a] text-[#ededed] min-h-[80px] text-sm resize-none"
+                  className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none overflow-y-auto md:overflow-y-visible text-sm resize-none mt-2"
                 />
               </div>
             </CardContent>
             
             {/* Botões responsivos */}
-            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:justify-end sm:p-6 flex-shrink-0">
+            <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2245,7 +2300,7 @@ export default function AgendaPage() {
                   setEditingAppointment(null)
                   resetForm()
                 }}
-                className="border-[#27272a] hover:bg-[#27272a] text-sm h-11 w-full sm:w-auto order-2 sm:order-1"
+                className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
               >
                 Cancelar
               </Button>
@@ -2275,7 +2330,7 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-sm h-11 w-full sm:w-auto order-1 sm:order-2"
+                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px]"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
