@@ -904,17 +904,6 @@ export default function ConfiguracoesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Configurações</h1>
           <p className="text-[#3f3f46]">Gerencie as configurações do seu estabelecimento</p>
         </div>
-        {/* Botão Salvar apenas na aba Estabelecimento */}
-        {activeTab === "estabelecimento" && (
-          <Button 
-            onClick={handleSave} 
-            disabled={businessSaving}
-            className="bg-[#10b981] hover:bg-[#059669] text-[#ededed] disabled:opacity-50"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {businessSaving ? "Salvando..." : "Salvar Alterações"}
-          </Button>
-        )}
       </div>
 
       {/* Tabs */}
@@ -1148,6 +1137,18 @@ export default function ConfiguracoesPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Botão Salvar Alterações */}
+                <div className="flex justify-center sm:justify-end pt-4">
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={businessSaving}
+                    className="bg-[#10b981] hover:bg-[#059669] text-[#ededed] disabled:opacity-50 w-full sm:w-auto px-6 py-2.5"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {businessSaving ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
                 </div>
 
                 <div className="p-4 bg-emerald-900/20 rounded-lg border border-emerald-700/50">
