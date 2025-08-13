@@ -1098,7 +1098,7 @@ export default function ConfiguracoesPage() {
                           Novo Profissional
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                      <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[70vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
                         {/* Header fixo */}
                         <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                           <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
@@ -1192,17 +1192,17 @@ export default function ConfiguracoesPage() {
                         
                         {/* Footer fixo */}
                         <DialogFooter className="border-t border-[#27272a] pt-3 md:pt-4 flex-shrink-0 px-4 sm:px-6">
-                          <div className="flex justify-end gap-3 w-full">
+                          <div className="flex flex-col sm:flex-row justify-end gap-3 w-full">
                             <Button 
                               variant="outline" 
                               onClick={handleCancelAddProfessional}
-                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[44px] px-6 touch-manipulation"
+                              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation w-full sm:w-auto order-2 sm:order-1"
                             >
                               Cancelar
                             </Button>
                             <Button 
                               onClick={handleAddProfessional}
-                              className="bg-blue-500 hover:bg-blue-600 text-[#ededed] min-h-[44px] px-6 touch-manipulation"
+                              className="bg-blue-500 hover:bg-blue-600 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation w-full sm:w-auto order-1 sm:order-2"
                               disabled={professionalsLoading}
                             >
                               {professionalsLoading ? "Adicionando..." : "Adicionar Profissional"}
