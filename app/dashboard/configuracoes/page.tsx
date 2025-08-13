@@ -1192,7 +1192,7 @@ export default function ConfiguracoesPage() {
                         
                         {/* Footer fixo */}
                         <DialogFooter className="border-t border-[#27272a] pt-3 md:pt-4 flex-shrink-0 px-4 sm:px-6">
-                          <div className="flex flex-row justify-end gap-3 w-full">
+                          <div className="flex flex-row justify-center sm:justify-end gap-3 w-full">
                             <Button 
                               variant="outline" 
                               onClick={handleCancelAddProfessional}
