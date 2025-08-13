@@ -2401,7 +2401,7 @@ export default function ConfiguracoesPage() {
                                   id="templateMessage"
                                   value={newTemplate.message}
                                   onChange={(e) => setNewTemplate({ ...newTemplate, message: e.target.value })}
-                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-[120px] text-sm resize-none"
+                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-[180px] md:min-h-[200px] text-sm resize-none"
                                   placeholder="Olá [nome]! Aproveite nossa promoção especial de Natal com 20% de desconto em todos os serviços! 🎁✂️"
                                 />
                               </div>
