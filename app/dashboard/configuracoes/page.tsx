@@ -1529,7 +1529,7 @@ export default function ConfiguracoesPage() {
                         Novo Serviço
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+                    <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full">
                       <DialogHeader className="text-center pb-4">
                         <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
                           <Wrench className="w-5 h-5 text-[#10b981]" />
@@ -1733,7 +1733,7 @@ export default function ConfiguracoesPage() {
             
             {/* Dialog para editar serviço */}
             <Dialog open={isEditServiceOpen} onOpenChange={setIsEditServiceOpen}>
-              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md mx-4 sm:mx-auto">
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full">
                 <DialogHeader className="text-center pb-4">
                   <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
                     <Edit className="w-5 h-5 text-[#10b981]" />
@@ -1811,7 +1811,7 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-xs left-1/2 -translate-x-1/2 sm:max-w-lg sm:mx-auto backdrop-blur-xl">
+              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-xs sm:max-w-lg backdrop-blur-xl">
                 <DialogHeader className="sr-only">
                   <DialogTitle>Alterar Imagem do Serviço</DialogTitle>
                 </DialogHeader>
