@@ -1133,6 +1133,7 @@ export default function ConfiguracoesPage() {
                                     onChange={(e) => setNewProfessional({ ...newProfessional, name: e.target.value })}
                                     className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                                     placeholder="Nome completo do profissional"
+                                    autoFocus={false}
                                   />
                                 </div>
                                 
@@ -1369,6 +1370,7 @@ export default function ConfiguracoesPage() {
                               onChange={(e) => setEditProfessional({ ...editProfessional, name: e.target.value })}
                               className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                               placeholder="Nome completo do profissional"
+                              autoFocus={false}
                             />
                           </div>
                           
@@ -1616,6 +1618,7 @@ export default function ConfiguracoesPage() {
                             onChange={(e) => setNewService({ ...newService, name: e.target.value })}
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                             placeholder="Ex: Corte masculino"
+                            autoFocus={false}
                           />
                         </div>
                         <div className="space-y-2">
@@ -1820,6 +1823,7 @@ export default function ConfiguracoesPage() {
                       onChange={(e) => setEditService({ ...editService, name: e.target.value })}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="Ex: Corte masculino"
+                      autoFocus={false}
                     />
                   </div>
                   <div className="space-y-2">
@@ -2190,6 +2194,7 @@ export default function ConfiguracoesPage() {
                             onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                             className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-9 sm:h-10"
                             placeholder="Ex: Promoção de Natal"
+                            autoFocus={false}
                           />
                         </div>
                         <div className="space-y-1 sm:space-y-2">
