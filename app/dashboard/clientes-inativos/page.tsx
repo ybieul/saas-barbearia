@@ -217,7 +217,7 @@ export default function ClientesInativosPage() {
                       <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                       Prévia da Mensagem
                     </label>
-                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3">
+                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-32 md:max-h-none overflow-y-auto md:overflow-y-visible">
                       {getSelectedTemplateData()?.title && (
                         <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
                           <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
