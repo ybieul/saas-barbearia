@@ -1382,7 +1382,7 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-xs sm:max-w-lg backdrop-blur-xl">
+                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full backdrop-blur-xl">
                   <DialogHeader className="sr-only">
                     <DialogTitle>Alterar Foto de Perfil</DialogTitle>
                   </DialogHeader>
@@ -1811,7 +1811,7 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-xs sm:max-w-lg backdrop-blur-xl">
+              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full backdrop-blur-xl">
                 <DialogHeader className="sr-only">
                   <DialogTitle>Alterar Imagem do Serviço</DialogTitle>
                 </DialogHeader>
