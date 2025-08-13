@@ -132,80 +132,116 @@ export default function ClientesInativosPage() {
                 Enviar Promoção ({selectedClients.length})
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-[#ededed]">Enviar Promoção</DialogTitle>
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+              <DialogHeader className="text-center pb-4">
+                <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
+                  <Send className="w-5 h-5 text-[#10b981]" />
+                  Enviar Promoção
+                </DialogTitle>
+                <p className="text-[#71717a] text-sm">
+                  Envie ofertas personalizadas para reativar clientes
+                </p>
               </DialogHeader>
               
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[#ededed] mb-3">
-                    Você está prestes a enviar uma promoção para <strong>{selectedClients.length} cliente(s):</strong>
-                  </p>
-                  <div className="bg-[#27272a] p-3 rounded-lg max-h-20 overflow-y-auto">
-                    {selectedClients.map((clientId, index) => {
+              <div className="space-y-6">
+                {/* Clientes selecionados */}
+                <div className="bg-[#0a0a0a]/50 rounded-lg p-4 border border-[#27272a]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 bg-[#10b981] rounded-full"></div>
+                    <p className="text-[#ededed] font-medium">
+                      {selectedClients.length} cliente(s) selecionado(s)
+                    </p>
+                  </div>
+                  <div className="bg-[#27272a]/50 p-3 rounded-lg max-h-24 overflow-y-auto space-y-1">
+                    {selectedClients.map((clientId) => {
                       const client = filteredClients.find(c => c.id === clientId)
                       return (
-                        <p key={clientId} className="text-sm text-[#ededed]">
-                          • {client?.name} - {client?.phone}
-                        </p>
+                        <div key={clientId} className="flex items-center gap-2 text-sm">
+                          <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                          <span className="text-[#ededed] font-medium">{client?.name}</span>
+                          <span className="text-[#71717a]">•</span>
+                          <span className="text-[#71717a]">{client?.phone}</span>
+                        </div>
                       )
                     })}
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#ededed] mb-2">
+                {/* Seleção de template */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-[#ededed]">
                     Modelo de Mensagem
                   </label>
                   <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed]">
-                      <SelectValue placeholder="Selecione um template" />
+                    <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed] h-11">
+                      <SelectValue placeholder="Selecione um template de promoção" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#27272a] border-[#3f3f46]">
                       {promotionTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name} {template.title && `(${template.title})`}
+                        <SelectItem key={template.id} value={template.id} className="text-[#ededed]">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{template.name}</span>
+                            {template.title && (
+                              <span className="text-xs text-[#71717a]">{template.title}</span>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {promotionTemplates.length === 0 && (
-                    <p className="text-xs text-[#71717a] mt-1">
-                      Nenhum template encontrado. Crie templates em Configurações → Promoções
-                    </p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                      <p className="text-amber-400 text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Nenhum template encontrado
+                      </p>
+                      <p className="text-amber-400/80 text-xs mt-1">
+                        Crie templates em Configurações → Promoções
+                      </p>
+                    </div>
                   )}
                 </div>
 
+                {/* Prévia da mensagem */}
                 {selectedTemplate && getSelectedTemplateData() && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#ededed] mb-2">
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-[#ededed]">
                       Prévia da Mensagem
                     </label>
-                    <div className="bg-[#27272a] p-4 rounded-lg space-y-2">
+                    <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 border border-[#10b981]/20 rounded-lg p-4">
                       {getSelectedTemplateData()?.title && (
-                        <p className="text-emerald-400 text-sm font-medium">
-                          {getSelectedTemplateData()?.title}
-                        </p>
+                        <div className="bg-[#10b981]/20 rounded-lg px-3 py-2 mb-3">
+                          <p className="text-[#10b981] text-sm font-semibold">
+                            📢 {getSelectedTemplateData()?.title}
+                          </p>
+                        </div>
                       )}
-                      <div className="text-[#ededed] text-sm whitespace-pre-line">
+                      <div className="text-[#ededed] text-sm whitespace-pre-line leading-relaxed">
                         {getSelectedTemplateData()?.message}
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
+                        <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                        <span className="text-xs text-[#71717a]">
+                          Será enviado via WhatsApp para {selectedClients.length} cliente(s)
+                        </span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                {/* Botões de ação */}
+                <div className="flex gap-3 pt-2">
                   <Button 
                     variant="outline" 
                     onClick={() => setIsPromotionModalOpen(false)}
-                    className="flex-1 border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+                    className="flex-1 border-[#3f3f46] text-[#71717a] hover:text-[#ededed] hover:bg-[#27272a] min-h-[44px] touch-manipulation"
                   >
                     Cancelar
                   </Button>
                   <Button 
                     onClick={handleSendPromotion}
-                    className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]"
+                    disabled={!selectedTemplate || selectedClients.length === 0}
+                    className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Enviar Promoção
@@ -279,85 +315,115 @@ export default function ClientesInativosPage() {
       <div className="block md:hidden">
         <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]">
+            <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200">
               <Send className="w-4 h-4 mr-2" />
               Enviar Promoção ({selectedClients.length})
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#3f3f46] border-[#52525b] text-[#ededed] max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-[#ededed]">Enviar Promoção</DialogTitle>
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+            <DialogHeader className="border-b border-[#27272a] pb-4">
+              <DialogTitle className="text-[#ededed] text-lg font-semibold flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                  <Send className="w-5 h-5 text-emerald-400" />
+                </div>
+                Enviar Promoção
+              </DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-4">
-              <div>
-                <p className="text-[#ededed] mb-3">
-                  Você está prestes a enviar uma promoção para <strong>{selectedClients.length} cliente(s):</strong>
-                </p>
-                <div className="bg-[#27272a] p-3 rounded-lg max-h-20 overflow-y-auto">
-                  {selectedClients.map((clientId, index) => {
+            <div className="space-y-6 mt-4">
+              {/* Seção de Clientes Selecionados */}
+              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-4 rounded-lg border border-emerald-500/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                  <p className="text-[#ededed] font-medium">
+                    {selectedClients.length} cliente{selectedClients.length > 1 ? 's' : ''} selecionado{selectedClients.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="bg-[#27272a]/50 p-3 rounded-lg max-h-24 overflow-y-auto space-y-1">
+                  {selectedClients.map((clientId) => {
                     const client = filteredClients.find(c => c.id === clientId)
                     return (
-                      <p key={clientId} className="text-sm text-[#ededed]">
-                        • {client?.name} - {client?.phone}
-                      </p>
+                      <div key={clientId} className="flex items-center gap-2 text-sm text-[#d4d4d8]">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0"></div>
+                        <span className="font-medium">{client?.name}</span>
+                        <span className="text-[#71717a]">•</span>
+                        <span className="text-[#a1a1aa]">{client?.phone}</span>
+                      </div>
                     )
                   })}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#ededed] mb-2">
+              {/* Seção de Template */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-[#ededed] flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                   Modelo de Mensagem
                 </label>
                 <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed]">
+                  <SelectTrigger className="bg-[#27272a]/50 border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors">
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#27272a] border-[#3f3f46]">
+                  <SelectContent className="bg-[#18181b] border-[#27272a]">
                     {promotionTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name} {template.title && `(${template.title})`}
+                      <SelectItem 
+                        key={template.id} 
+                        value={template.id}
+                        className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]"
+                      >
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{template.name}</span>
+                          {template.title && (
+                            <span className="text-xs text-emerald-400">{template.title}</span>
+                          )}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {promotionTemplates.length === 0 && (
-                  <p className="text-xs text-[#71717a] mt-1">
+                  <p className="text-xs text-[#71717a] mt-2 italic">
                     Nenhum template encontrado. Crie templates em Configurações → Promoções
                   </p>
                 )}
               </div>
 
+              {/* Prévia da Mensagem */}
               {selectedTemplate && getSelectedTemplateData() && (
-                <div>
-                  <label className="block text-sm font-medium text-[#ededed] mb-2">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-[#ededed] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
                     Prévia da Mensagem
                   </label>
-                  <div className="bg-[#27272a] p-4 rounded-lg space-y-2">
+                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] p-4 rounded-lg border border-[#3f3f46] space-y-3">
                     {getSelectedTemplateData()?.title && (
-                      <p className="text-emerald-400 text-sm font-medium">
-                        {getSelectedTemplateData()?.title}
-                      </p>
+                      <div className="flex items-start gap-2">
+                        <div className="w-1 h-4 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5"></div>
+                        <p className="text-emerald-400 text-sm font-medium leading-relaxed">
+                          {getSelectedTemplateData()?.title}
+                        </p>
+                      </div>
                     )}
-                    <div className="text-[#ededed] text-sm whitespace-pre-line">
+                    <div className="text-[#d4d4d8] text-sm whitespace-pre-line leading-relaxed pl-3 border-l border-[#3f3f46]">
                       {getSelectedTemplateData()?.message}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              {/* Botões de Ação */}
+              <div className="flex gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsPromotionModalOpen(false)}
-                  className="flex-1 border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]"
+                  className="flex-1 border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] hover:border-[#52525b] transition-all duration-200"
                 >
                   Cancelar
                 </Button>
                 <Button 
                   onClick={handleSendPromotion}
-                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed]"
+                  disabled={!selectedTemplate || selectedClients.length === 0}
+                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   Enviar Promoção
