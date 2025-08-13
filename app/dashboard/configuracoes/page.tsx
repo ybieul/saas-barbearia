@@ -1334,83 +1334,117 @@ export default function ConfiguracoesPage() {
               
               {/* Dialog para editar profissional */}
               <Dialog open={isEditProfessionalOpen} onOpenChange={setIsEditProfessionalOpen}>
-                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full">
-                  <DialogHeader className="text-center pb-4">
-                    <DialogTitle className="text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                      <Edit className="w-5 h-5 text-[#10b981]" />
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[75vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                  {/* Header fixo */}
+                  <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                    <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                      <div className="p-1.5 md:p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg">
+                        <Edit className="w-4 h-4 md:w-5 md:h-5 text-blue-400 md:text-blue-500" />
+                      </div>
                       Editar Profissional
                     </DialogTitle>
-                    <DialogDescription className="text-[#71717a] text-sm">{}
+                    <DialogDescription className="text-[#71717a] text-sm hidden md:block">
                       Atualize os dados do profissional
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="editProfessionalName" className="text-[#ededed]">
-                        Nome Completo *
-                      </Label>
-                      <Input
-                        id="editProfessionalName"
-                        value={editProfessional.name}
-                        onChange={(e) => setEditProfessional({ ...editProfessional, name: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="Digite o nome do profissional"
-                      />
+                  
+                  {/* Conteúdo com scroll */}
+                  <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                    <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                      {/* Seção de Informações Básicas */}
+                      <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-3 md:p-4 rounded-lg border border-blue-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-2 mb-2 md:mb-3">
+                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-400 md:bg-blue-500 rounded-full"></div>
+                          <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
+                        </div>
+                        
+                        <div className="space-y-3 md:space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="editProfessionalName" className="text-[#ededed] text-sm font-medium">
+                              Nome Completo *
+                            </Label>
+                            <Input
+                              id="editProfessionalName"
+                              value={editProfessional.name}
+                              onChange={(e) => setEditProfessional({ ...editProfessional, name: e.target.value })}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder="Nome completo do profissional"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="editProfessionalEmail" className="text-[#ededed] text-sm font-medium">
+                              E-mail
+                            </Label>
+                            <Input
+                              id="editProfessionalEmail"
+                              type="email"
+                              value={editProfessional.email}
+                              onChange={(e) => setEditProfessional({ ...editProfessional, email: e.target.value })}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder="profissional@email.com"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Seção de Informações Adicionais */}
+                      <div className="space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-2 md:hidden">
+                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                          <h3 className="text-[#ededed] font-medium text-sm">Informações Adicionais</h3>
+                        </div>
+                        
+                        <div className="space-y-3 md:space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="editProfessionalPhone" className="text-[#ededed] text-sm font-medium">
+                              Telefone
+                            </Label>
+                            <Input
+                              id="editProfessionalPhone"
+                              value={editProfessional.phone}
+                              onChange={(e) => setEditProfessional({ ...editProfessional, phone: e.target.value })}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder="(11) 99999-9999"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="editProfessionalSpecialty" className="text-[#ededed] text-sm font-medium">
+                              Especialidade
+                            </Label>
+                            <Input
+                              id="editProfessionalSpecialty"
+                              value={editProfessional.specialty}
+                              onChange={(e) => setEditProfessional({ ...editProfessional, specialty: e.target.value })}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder="Ex: Corte masculino, Barba, etc."
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editProfessionalEmail" className="text-[#ededed]">
-                        E-mail
-                      </Label>
-                      <Input
-                        id="editProfessionalEmail"
-                        type="email"
-                        value={editProfessional.email}
-                        onChange={(e) => setEditProfessional({ ...editProfessional, email: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="profissional@email.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editProfessionalPhone" className="text-[#ededed]">
-                        Telefone
-                      </Label>
-                      <Input
-                        id="editProfessionalPhone"
-                        value={editProfessional.phone}
-                        onChange={(e) => setEditProfessional({ ...editProfessional, phone: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="(11) 99999-9999"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editProfessionalSpecialty" className="text-[#ededed]">
-                        Especialidade
-                      </Label>
-                      <Input
-                        id="editProfessionalSpecialty"
-                        value={editProfessional.specialty}
-                        onChange={(e) => setEditProfessional({ ...editProfessional, specialty: e.target.value })}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                        placeholder="Ex: Corte masculino, Barba, etc."
-                      />
-                    </div>
-                    <div className="flex justify-end gap-3 mt-6">
+                  </div>
+                  
+                  {/* Footer fixo */}
+                  <DialogFooter className="border-t border-[#27272a] pt-3 md:pt-4 flex-shrink-0 px-4 sm:px-6">
+                    <div className="flex flex-row justify-center sm:justify-end gap-3 w-full">
                       <Button 
                         variant="outline" 
                         onClick={handleCancelEditProfessional}
-                        className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                        className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
                       >
                         Cancelar
                       </Button>
                       <Button 
                         onClick={handleUpdateProfessional}
-                        className="bg-blue-500 hover:bg-blue-600 text-[#ededed]"
+                        className="bg-blue-500 hover:bg-blue-600 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
                         disabled={professionalsLoading}
                       >
-                        {professionalsLoading ? "Salvando..." : "Salvar Alterações"}
+                        {professionalsLoading ? "Salvando..." : "Salvar"}
                       </Button>
                     </div>
-                  </div>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
 
