@@ -202,7 +202,7 @@ export default function ClientesPage() {
               Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
             {/* Header fixo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
               <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
