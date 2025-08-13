@@ -202,72 +202,125 @@ export default function ClientesPage() {
               Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#18181b] border-[#27272a]">
-            <DialogHeader>
-              <DialogTitle className="text-[#ededed]">
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl">
+            <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4">
+              <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                  <Plus className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                </div>
                 {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
               </DialogTitle>
-              <DialogDescription className="text-[#3f3f46]">
+              <DialogDescription className="text-[#71717a] text-sm hidden md:block">
                 {editingClient ? 'Edite as informações do cliente' : 'Adicione um novo cliente à sua base'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-[#ededed]">Nome *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+              {/* Seção de Informações Básicas */}
+              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
+                </div>
+                
+                <div className="space-y-3 md:space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-blue-400 rounded-full md:hidden"></div>
+                      Nome *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                      placeholder="Nome completo do cliente"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-green-400 rounded-full md:hidden"></div>
+                      Telefone *
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                      placeholder="(11) 99999-9999"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-[#ededed]">Telefone *</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                  placeholder="(11) 99999-9999"
-                  required
-                />
+
+              {/* Seção de Informações Adicionais */}
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 md:hidden">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm">Informações Adicionais</h3>
+                </div>
+                
+                <div className="space-y-3 md:space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-yellow-400 rounded-full md:hidden"></div>
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="birthday" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-pink-400 rounded-full md:hidden"></div>
+                      Data de Nascimento
+                    </Label>
+                    <Input
+                      id="birthday"
+                      type="date"
+                      value={formData.birthday}
+                      onChange={(e) => setFormData(prev => ({ ...prev, birthday: e.target.value }))}
+                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notes" className="text-[#ededed] text-sm font-medium flex items-center gap-2 md:block">
+                      <div className="w-1 h-1 bg-orange-400 rounded-full md:hidden"></div>
+                      Observações
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none overflow-y-auto md:overflow-y-visible"
+                      placeholder="Preferências, alergias, etc..."
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#ededed]">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="birthday" className="text-[#ededed]">Data de Nascimento</Label>
-                <Input
-                  id="birthday"
-                  type="date"
-                  value={formData.birthday}
-                  onChange={(e) => setFormData(prev => ({ ...prev, birthday: e.target.value }))}
-                  className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[#ededed]">Observações</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                  placeholder="Preferências, alergias, etc..."
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={resetForm} className="border-[#27272a] text-[#ededed] hover:bg-[#27272a]">
+
+              <DialogFooter className="gap-3 pt-1 md:pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={resetForm} 
+                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                >
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white">
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                >
                   {editingClient ? 'Salvar' : 'Criar Cliente'}
                 </Button>
               </DialogFooter>
