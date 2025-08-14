@@ -185,13 +185,26 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     console.log('🔄 [DEBUG PUT] workingDays para salvar:', workingDays)
     console.log('🔄 [DEBUG PUT] workingHours para salvar:', workingHours)
     
+    // Preparar dados para update
+    const updateData: any = { updatedAt: new Date() }
+    
+    if (workingDays !== undefined) {
+      const workingDaysJson = JSON.stringify(workingDays)
+      updateData.workingDays = workingDaysJson
+      console.log('🔄 [DEBUG PUT] workingDays JSON:', workingDaysJson)
+    }
+    
+    if (workingHours !== undefined) {
+      const workingHoursJson = JSON.stringify(workingHours)
+      updateData.workingHours = workingHoursJson
+      console.log('🔄 [DEBUG PUT] workingHours JSON:', workingHoursJson)
+    }
+    
+    console.log('🔄 [DEBUG PUT] updateData final:', updateData)
+    
     const updatedProfessional = await prisma.professional.update({
       where: { id: professionalId },
-      data: {
-        ...(workingDays !== undefined && { workingDays: JSON.stringify(workingDays) }),
-        ...(workingHours !== undefined && { workingHours: JSON.stringify(workingHours) }),
-        updatedAt: new Date()
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,

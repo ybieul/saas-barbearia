@@ -2435,10 +2435,22 @@ export default function ConfiguracoesPage() {
                                         <Switch
                                           checked={professionalSchedule.workingDays[day as keyof typeof professionalSchedule.workingDays]}
                                           onCheckedChange={(checked) => {
+                                            console.log('🔍 [DEBUG DASHBOARD] ========== SWITCH CHANGE ==========')
+                                            console.log('🔍 [DEBUG DASHBOARD] Day:', day)
+                                            console.log('🔍 [DEBUG DASHBOARD] Checked:', checked)
+                                            console.log('🔍 [DEBUG DASHBOARD] Current professionalSchedule:', professionalSchedule)
+                                            console.log('🔍 [DEBUG DASHBOARD] Current workingDays:', professionalSchedule.workingDays)
+                                            console.log('🔍 [DEBUG DASHBOARD] Current workingHours:', professionalSchedule.workingHours)
+                                            
                                             const updatedWorkingDays = {
                                               ...professionalSchedule.workingDays,
                                               [day]: checked
                                             }
+                                            
+                                            console.log('🔍 [DEBUG DASHBOARD] Updated workingDays:', updatedWorkingDays)
+                                            console.log('🔍 [DEBUG DASHBOARD] professionalSchedule.workingHours a ser enviado:', professionalSchedule.workingHours)
+                                            console.log('🔍 [DEBUG DASHBOARD] selectedProfessionalId:', selectedProfessionalId)
+                                            
                                             updateProfessionalSchedule(
                                               selectedProfessionalId, 
                                               updatedWorkingDays, 

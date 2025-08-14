@@ -69,6 +69,9 @@ export function useProfessionalSchedule(professionalId?: string) {
       setLoading(true)
       setError(null)
       
+      console.log('🔍 [DEBUG HOOK] ========== FETCH SCHEDULE ==========')
+      console.log('🔍 [DEBUG HOOK] Carregando horários para profissional ID:', id)
+      
       const token = localStorage.getItem('auth_token')
       if (!token) {
         throw new Error('Token de autenticação não encontrado')
@@ -82,21 +85,23 @@ export function useProfessionalSchedule(professionalId?: string) {
         },
       })
 
+      console.log('🔍 [DEBUG HOOK] GET Response status:', response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ [DEBUG HOOK] Erro no GET:', errorData)
         throw new Error(errorData.message || 'Erro ao buscar horários do profissional')
       }
 
       const data = await response.json()
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 API Response - Horários do profissional carregados:', data)
-      }
+      console.log('🔍 [DEBUG HOOK] Dados carregados do GET:', data)
+      console.log('🔍 [DEBUG HOOK] Professional data:', data.professional)
+      console.log('🔍 [DEBUG HOOK] workingDays carregados:', data.professional?.workingDays)
+      console.log('🔍 [DEBUG HOOK] workingHours carregados:', data.professional?.workingHours)
       
       setSchedule(data.professional)
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao buscar horários do profissional:', err)
-      }
+      console.error('❌ [DEBUG HOOK] Erro ao buscar horários:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -111,9 +116,14 @@ export function useProfessionalSchedule(professionalId?: string) {
     try {
       setError(null)
       
-      console.log('🔍 [DEBUG HOOK] Enviando dados para profissional:', id)
-      console.log('🔍 [DEBUG HOOK] workingDays:', workingDays)
-      console.log('🔍 [DEBUG HOOK] workingHours:', workingHours)
+      console.log('🔍 [DEBUG HOOK] ========== INÍCIO UPDATE ==========')
+      console.log('🔍 [DEBUG HOOK] Profissional ID:', id)
+      console.log('🔍 [DEBUG HOOK] workingDays recebidos:', workingDays)
+      console.log('🔍 [DEBUG HOOK] workingHours recebidos:', workingHours)
+      console.log('🔍 [DEBUG HOOK] Tipos:', {
+        workingDays: typeof workingDays,
+        workingHours: typeof workingHours
+      })
       
       const token = localStorage.getItem('auth_token')
       if (!token) {
@@ -121,7 +131,8 @@ export function useProfessionalSchedule(professionalId?: string) {
       }
 
       const payload = { workingDays, workingHours }
-      console.log('🔍 [DEBUG HOOK] Payload completo:', JSON.stringify(payload, null, 2))
+      console.log('🔍 [DEBUG HOOK] Payload antes do stringify:', payload)
+      console.log('🔍 [DEBUG HOOK] Payload JSON:', JSON.stringify(payload, null, 2))
 
       const response = await fetch(`/api/professionals/${id}/working-hours`, {
         method: 'PUT',
@@ -133,6 +144,7 @@ export function useProfessionalSchedule(professionalId?: string) {
       })
 
       console.log('🔍 [DEBUG HOOK] Response status:', response.status)
+      console.log('🔍 [DEBUG HOOK] Response headers:', Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -141,7 +153,8 @@ export function useProfessionalSchedule(professionalId?: string) {
       }
 
       const data = await response.json()
-      console.log('✅ [DEBUG HOOK] Dados recebidos de volta:', data.professional)
+      console.log('✅ [DEBUG HOOK] Dados recebidos de volta:', data)
+      console.log('✅ [DEBUG HOOK] Professional updated:', data.professional)
       
       setSchedule(data.professional)
       return data.professional
