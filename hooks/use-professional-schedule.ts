@@ -15,7 +15,7 @@ export interface ProfessionalWorkingDays {
 export interface ProfessionalBreak {
   start: string
   end: string
-  reason: string
+  label: string // Alterado de 'reason' para 'label' para melhor UX
 }
 
 export interface ProfessionalDaySchedule {
@@ -23,6 +23,24 @@ export interface ProfessionalDaySchedule {
   end: string
   breaks: ProfessionalBreak[]
 }
+
+// Função auxiliar para criar horário padrão para um dia
+export const createDefaultDaySchedule = (): ProfessionalDaySchedule => ({
+  start: "08:00",
+  end: "18:00", 
+  breaks: []
+})
+
+// Função auxiliar para criar todos os dias com horários padrão
+export const createDefaultWorkingHours = (): ProfessionalWorkingHours => ({
+  monday: createDefaultDaySchedule(),
+  tuesday: createDefaultDaySchedule(),
+  wednesday: createDefaultDaySchedule(),
+  thursday: createDefaultDaySchedule(),
+  friday: createDefaultDaySchedule(),
+  saturday: createDefaultDaySchedule(),
+  sunday: createDefaultDaySchedule(),
+})
 
 export interface ProfessionalWorkingHours {
   monday: ProfessionalDaySchedule

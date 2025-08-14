@@ -24,7 +24,7 @@ import { useServices } from "@/hooks/use-services"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
-import { useProfessionalSchedule } from "@/hooks/use-professional-schedule"
+import { useProfessionalSchedule, ProfessionalWorkingDays, ProfessionalWorkingHours } from "@/hooks/use-professional-schedule"
 import {
   Upload,
   Save,
@@ -911,6 +911,141 @@ export default function ConfiguracoesPage() {
     setNewTemplate({ name: "", title: "", message: "" })
     setEditingTemplate(null)
     setIsNewTemplateOpen(false)
+  }
+
+  // Funções para manipular horários específicos dos profissionais
+  const updateProfessionalDaySchedule = async (
+    dayName: keyof ProfessionalWorkingDays, 
+    field: 'start' | 'end', 
+    value: string
+  ) => {
+    if (!professionalSchedule || !selectedProfessionalId) return
+
+    const updatedSchedule = { ...professionalSchedule }
+    
+    // Inicializa o dia se não existir
+    if (!updatedSchedule.workingHours[dayName as keyof ProfessionalWorkingHours]) {
+      (updatedSchedule.workingHours as any)[dayName] = {
+        start: "08:00",
+        end: "18:00",
+        breaks: []
+      }
+    }
+    
+    (updatedSchedule.workingHours as any)[dayName][field] = value
+    
+    try {
+      await updateProfessionalSchedule(
+        selectedProfessionalId, 
+        updatedSchedule.workingDays, 
+        updatedSchedule.workingHours
+      )
+      toast({
+        title: "Horário atualizado",
+        description: `Horário de ${field === 'start' ? 'início' : 'fim'} atualizado com sucesso`,
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar horário",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const addProfessionalBreak = async (dayName: keyof ProfessionalWorkingDays) => {
+    if (!professionalSchedule || !selectedProfessionalId) return
+
+    const updatedSchedule = { ...professionalSchedule }
+    
+    // Inicializa o dia se não existir
+    if (!updatedSchedule.workingHours[dayName as keyof ProfessionalWorkingHours]) {
+      (updatedSchedule.workingHours as any)[dayName] = {
+        start: "08:00",
+        end: "18:00", 
+        breaks: []
+      }
+    }
+    
+    // Adiciona novo intervalo
+    (updatedSchedule.workingHours as any)[dayName].breaks.push({
+      start: "12:00",
+      end: "13:00",
+      label: "Almoço"
+    })
+    
+    try {
+      await updateProfessionalSchedule(
+        selectedProfessionalId, 
+        updatedSchedule.workingDays, 
+        updatedSchedule.workingHours
+      )
+      toast({
+        title: "Intervalo adicionado",
+        description: "Novo intervalo criado com sucesso",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar intervalo",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const updateProfessionalBreak = async (
+    dayName: keyof ProfessionalWorkingDays,
+    breakIndex: number,
+    field: 'start' | 'end' | 'label',
+    value: string
+  ) => {
+    if (!professionalSchedule || !selectedProfessionalId) return
+
+    const updatedSchedule = { ...professionalSchedule }
+    if (!(updatedSchedule.workingHours as any)[dayName]?.breaks[breakIndex]) return
+    
+    (updatedSchedule.workingHours as any)[dayName].breaks[breakIndex][field] = value
+    
+    try {
+      await updateProfessionalSchedule(
+        selectedProfessionalId, 
+        updatedSchedule.workingDays, 
+        updatedSchedule.workingHours
+      )
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar intervalo",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const removeProfessionalBreak = async (dayName: keyof ProfessionalWorkingDays, breakIndex: number) => {
+    if (!professionalSchedule || !selectedProfessionalId) return
+
+    const updatedSchedule = { ...professionalSchedule }
+    if (!(updatedSchedule.workingHours as any)[dayName]) return
+    
+    (updatedSchedule.workingHours as any)[dayName].breaks.splice(breakIndex, 1)
+    
+    try {
+      await updateProfessionalSchedule(
+        selectedProfessionalId, 
+        updatedSchedule.workingDays, 
+        updatedSchedule.workingHours
+      )
+      toast({
+        title: "Intervalo removido",
+        description: "Intervalo removido com sucesso",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro", 
+        description: "Erro ao remover intervalo",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -2328,24 +2463,140 @@ export default function ConfiguracoesPage() {
                                   </div>
                                 </div>
 
-                                {/* Informações de Implementação Futura */}
-                                <div className="mt-6 p-4 bg-amber-900/10 rounded-lg border border-amber-700/30">
-                                  <div className="flex items-start gap-3">
-                                    <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                      <span className="text-white text-xs font-bold">!</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                      <h4 className="text-amber-400 font-medium">Próximas Funcionalidades</h4>
-                                      <ul className="text-amber-300 text-sm space-y-1">
-                                        <li>• Configuração de horários específicos por dia da semana</li>
-                                        <li>• Adição de intervalos personalizados (almoço, pausas, etc.)</li>
-                                        <li>• Horários flexíveis para situações especiais</li>
-                                      </ul>
+                                {/* Horários Específicos por Dia */}
+                                <div className="mt-6">
+                                  <h4 className="text-[#ededed] font-medium mb-4 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" />
+                                    Horários Específicos por Dia
+                                  </h4>
+                                  
+                                  <div className="space-y-4">
+                                    {Object.entries(professionalSchedule?.workingDays || {}).map(([day, isWorking]) => {
+                                      if (!isWorking) return null // Só mostra dias de trabalho
+                                      
+                                      const dayName = day as keyof ProfessionalWorkingDays
+                                      const daySchedule = (professionalSchedule?.workingHours as any)?.[dayName]
+                                      const dayLabel = {
+                                        monday: 'Segunda-feira',
+                                        tuesday: 'Terça-feira', 
+                                        wednesday: 'Quarta-feira',
+                                        thursday: 'Quinta-feira',
+                                        friday: 'Sexta-feira',
+                                        saturday: 'Sábado',
+                                        sunday: 'Domingo'
+                                      }[dayName]
+
+                                      return (
+                                        <div key={day} className="p-4 bg-[#18181b]/60 rounded-lg border border-[#3f3f46]">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <h5 className="font-medium text-[#ededed]">{dayLabel}</h5>
+                                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                                              Dia de Trabalho
+                                            </Badge>
+                                          </div>
+                                          
+                                          {/* Horário de Início e Fim */}
+                                          <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                              <Label className="text-sm text-[#a1a1aa]">Início</Label>
+                                              <Input
+                                                type="time"
+                                                value={daySchedule?.start || "08:00"}
+                                                onChange={(e) => updateProfessionalDaySchedule(dayName, 'start', e.target.value)}
+                                                className="mt-1 bg-[#09090b] border-[#27272a] text-[#ededed]"
+                                              />
+                                            </div>
+                                            <div>
+                                              <Label className="text-sm text-[#a1a1aa]">Fim</Label>
+                                              <Input
+                                                type="time"
+                                                value={daySchedule?.end || "18:00"}
+                                                onChange={(e) => updateProfessionalDaySchedule(dayName, 'end', e.target.value)}
+                                                className="mt-1 bg-[#09090b] border-[#27272a] text-[#ededed]"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          {/* Intervalos */}
+                                          <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <Label className="text-sm text-[#a1a1aa]">Intervalos</Label>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => addProfessionalBreak(dayName)}
+                                                className="h-8 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                                              >
+                                                <Plus className="w-3 h-3 mr-1" />
+                                                Adicionar
+                                              </Button>
+                                            </div>
+                                            
+                                            {daySchedule?.breaks && daySchedule.breaks.length > 0 ? (
+                                              <div className="space-y-2">
+                                                {daySchedule.breaks.map((breakItem: any, index: number) => (
+                                                  <div key={index} className="flex items-center gap-2 p-3 bg-[#0a0a0a]/80 rounded border border-[#27272a]">
+                                                    <Input
+                                                      placeholder="Almoço, Pausa, etc."
+                                                      value={breakItem.label || ""}
+                                                      onChange={(e) => updateProfessionalBreak(dayName, index, 'label', e.target.value)}
+                                                      className="flex-1 h-8 bg-[#09090b] border-[#27272a] text-[#ededed] text-sm"
+                                                    />
+                                                    <Input
+                                                      type="time"
+                                                      value={breakItem.start}
+                                                      onChange={(e) => updateProfessionalBreak(dayName, index, 'start', e.target.value)}
+                                                      className="w-20 h-8 bg-[#09090b] border-[#27272a] text-[#ededed] text-sm"
+                                                    />
+                                                    <span className="text-[#71717a] text-sm">às</span>
+                                                    <Input
+                                                      type="time"
+                                                      value={breakItem.end}
+                                                      onChange={(e) => updateProfessionalBreak(dayName, index, 'end', e.target.value)}
+                                                      className="w-20 h-8 bg-[#09090b] border-[#27272a] text-[#ededed] text-sm"
+                                                    />
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      onClick={() => removeProfessionalBreak(dayName, index)}
+                                                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                    >
+                                                      <X className="w-3 h-3" />
+                                                    </Button>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-[#71717a] italic">
+                                                Nenhum intervalo configurado. Clique em "Adicionar" para criar pausas como almoço, coffee break, etc.
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                  
+                                  {/* Informações sobre dias desabilitados */}
+                                  {professionalSchedule?.workingDays && Object.values(professionalSchedule.workingDays).some(day => !day) && (
+                                    <div className="mt-4 p-3 bg-amber-900/10 rounded border border-amber-700/30">
                                       <p className="text-amber-300 text-sm">
-                                        <strong>Fase 1 (Atual):</strong> Configuração de dias de trabalho já está ativa e integrada ao sistema de agendamentos.
+                                        <strong>Dias desabilitados:</strong> {Object.entries(professionalSchedule.workingDays)
+                                          .filter(([_, isWorking]) => !isWorking)
+                                          .map(([day]) => ({
+                                            monday: 'Segunda',
+                                            tuesday: 'Terça', 
+                                            wednesday: 'Quarta',
+                                            thursday: 'Quinta',
+                                            friday: 'Sexta',
+                                            saturday: 'Sábado',
+                                            sunday: 'Domingo'
+                                          }[day as string]))
+                                          .join(', ')
+                                        }. Estes dias não aparecerão para configuração de horários específicos.
                                       </p>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             )}

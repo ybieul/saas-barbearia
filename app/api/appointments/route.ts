@@ -241,6 +241,50 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado`)
+
+        // 🆕 FASE 2: Verificar horários específicos e intervalos
+        if (professional.workingHours) {
+          const professionalWorkingHours = professional.workingHours as any
+          const daySchedule = professionalWorkingHours[dayName]
+          
+          if (daySchedule) {
+            const appointmentTimeStr = appointmentDate.toTimeString().substring(0, 5) // HH:MM
+            const timeToMinutes = (time: string) => {
+              const [hours, minutes] = time.split(':').map(Number)
+              return hours * 60 + minutes
+            }
+            
+            const appointmentMinutes = timeToMinutes(appointmentTimeStr)
+            const startMinutes = timeToMinutes(daySchedule.start)
+            const endMinutes = timeToMinutes(daySchedule.end)
+            
+            // Verificar se está dentro do horário de trabalho específico
+            if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
+              return NextResponse.json(
+                { message: `Agendamento fora do horário de trabalho do profissional ${professional.name}. Horário permitido: ${daySchedule.start} às ${daySchedule.end}` },
+                { status: 400 }
+              )
+            }
+            
+            // Verificar se não está em um intervalo
+            if (daySchedule.breaks && Array.isArray(daySchedule.breaks)) {
+              for (const breakItem of daySchedule.breaks) {
+                const breakStartMinutes = timeToMinutes(breakItem.start)
+                const breakEndMinutes = timeToMinutes(breakItem.end)
+                
+                if (appointmentMinutes >= breakStartMinutes && appointmentMinutes < breakEndMinutes) {
+                  const breakLabel = breakItem.label || 'Intervalo'
+                  return NextResponse.json(
+                    { message: `Agendamento não disponível. ${professional.name} está em ${breakLabel.toLowerCase()} das ${breakItem.start} às ${breakItem.end}` },
+                    { status: 400 }
+                  )
+                }
+              }
+            }
+            
+            console.log(`✅ Horário ${appointmentTimeStr} disponível para ${professional.name}`)
+          }
+        }
       }
     }
 
@@ -509,6 +553,50 @@ export async function PUT(request: NextRequest) {
           }
 
           console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado (UPDATE)`)
+
+          // 🆕 FASE 2: Verificar horários específicos e intervalos (UPDATE)
+          if (professional.workingHours) {
+            const professionalWorkingHours = professional.workingHours as any
+            const daySchedule = professionalWorkingHours[dayName]
+            
+            if (daySchedule) {
+              const appointmentTimeStr = appointmentDate.toTimeString().substring(0, 5) // HH:MM
+              const timeToMinutes = (time: string) => {
+                const [hours, minutes] = time.split(':').map(Number)
+                return hours * 60 + minutes
+              }
+              
+              const appointmentMinutes = timeToMinutes(appointmentTimeStr)
+              const startMinutes = timeToMinutes(daySchedule.start)
+              const endMinutes = timeToMinutes(daySchedule.end)
+              
+              // Verificar se está dentro do horário de trabalho específico
+              if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
+                return NextResponse.json(
+                  { message: `Agendamento fora do horário de trabalho do profissional ${professional.name}. Horário permitido: ${daySchedule.start} às ${daySchedule.end}` },
+                  { status: 400 }
+                )
+              }
+              
+              // Verificar se não está em um intervalo
+              if (daySchedule.breaks && Array.isArray(daySchedule.breaks)) {
+                for (const breakItem of daySchedule.breaks) {
+                  const breakStartMinutes = timeToMinutes(breakItem.start)
+                  const breakEndMinutes = timeToMinutes(breakItem.end)
+                  
+                  if (appointmentMinutes >= breakStartMinutes && appointmentMinutes < breakEndMinutes) {
+                    const breakLabel = breakItem.label || 'Intervalo'
+                    return NextResponse.json(
+                      { message: `Agendamento não disponível. ${professional.name} está em ${breakLabel.toLowerCase()} das ${breakItem.start} às ${breakItem.end}` },
+                      { status: 400 }
+                    )
+                  }
+                }
+              }
+              
+              console.log(`✅ Horário ${appointmentTimeStr} disponível para ${professional.name} (UPDATE)`)
+            }
+          }
         }
       }
       
