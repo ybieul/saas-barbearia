@@ -2295,8 +2295,12 @@ function generateAvailableSlots(
       // Verificar se o profissional trabalha neste dia
       if (schedule.workingDays && !schedule.workingDays.includes(dayOfWeek)) {
         console.log(`🚫 [DEBUG] Profissional ${professionalId} não trabalha no dia ${dayOfWeek}`)
+        console.log(`🚫 [DEBUG] workingDays do profissional:`, schedule.workingDays)
+        console.log(`🚫 [DEBUG] Comparando dayOfWeek ${dayOfWeek} com workingDays:`, schedule.workingDays.includes(dayOfWeek))
         return []
       }
+
+      console.log(`✅ [DEBUG] Profissional ${professionalId} trabalha no dia ${dayOfWeek}`)
 
       // Usar horários específicos se configurados
       if (schedule.workingHours && schedule.workingHours[dayOfWeek]) {
