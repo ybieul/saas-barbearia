@@ -2350,51 +2350,119 @@ export default function AgendaPage() {
           })
         }
       }}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
-          <DialogHeader>
-            <DialogTitle className="text-[#ededed]">
-              {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Agendamento'}
-            </DialogTitle>
-            <DialogDescription className="text-[#a1a1aa]">
-              {confirmDialog.type === 'cancel'
-                ? 'Tem certeza que deseja cancelar este serviço?'
-                : 'Tem certeza que deseja excluir este agendamento permanentemente? Esta ação não pode ser desfeita.'
-              }
-            </DialogDescription>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          {/* Header Fixo */}
+          <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                confirmDialog.type === 'cancel' 
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-600' 
+                  : 'bg-gradient-to-br from-red-500 to-red-600'
+              }`}>
+                {confirmDialog.type === 'cancel' ? (
+                  <XCircle className="w-5 h-5 text-white" />
+                ) : (
+                  <Trash2 className="w-5 h-5 text-white" />
+                )}
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-[#ededed] text-lg md:text-xl font-semibold">
+                  {confirmDialog.type === 'cancel' ? 'Cancelar Agendamento' : 'Excluir Agendamento'}
+                </DialogTitle>
+                <DialogDescription className="text-[#a1a1aa] text-sm md:text-base">
+                  {confirmDialog.type === 'cancel'
+                    ? 'Tem certeza que deseja cancelar este agendamento?'
+                    : 'Tem certeza que deseja excluir este agendamento permanentemente? Esta ação não pode ser desfeita.'
+                  }
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="py-4">
-            <div className="space-y-2">
-              <p className="text-[#ededed]">
-                <strong>Cliente:</strong> {confirmDialog.clientName}
-              </p>
-              <p className="text-[#a1a1aa]">
-                <strong>Serviço:</strong> {confirmDialog.serviceName}
-              </p>
+          {/* Conteúdo com informações do agendamento */}
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4">
+            <div className={`bg-gradient-to-br p-3 md:p-4 rounded-lg border space-y-3 md:space-y-4 ${
+              confirmDialog.type === 'cancel'
+                ? 'from-amber-500/10 to-amber-600/5 border-amber-500/20'
+                : 'from-red-500/10 to-red-600/5 border-red-500/20'
+            }`}>
+              <div className="flex items-center gap-2 mb-2 md:mb-3">
+                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${
+                  confirmDialog.type === 'cancel' ? 'bg-amber-400' : 'bg-red-400'
+                }`}></div>
+                <h3 className="text-[#ededed] font-medium text-sm md:text-base">Detalhes do Agendamento</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-[#71717a] text-xs md:text-sm">Cliente</label>
+                  <div className={`border rounded-md px-3 py-2.5 text-[#ededed] text-sm md:text-base font-medium ${
+                    confirmDialog.type === 'cancel'
+                      ? 'bg-[#27272a]/70 border-amber-500/30'
+                      : 'bg-[#27272a]/70 border-red-500/30'
+                  }`}>
+                    {confirmDialog.clientName}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[#71717a] text-xs md:text-sm">Serviço</label>
+                  <div className={`border rounded-md px-3 py-2.5 text-[#ededed] text-sm md:text-base ${
+                    confirmDialog.type === 'cancel'
+                      ? 'bg-[#27272a]/70 border-amber-500/30'
+                      : 'bg-[#27272a]/70 border-red-500/30'
+                  }`}>
+                    {confirmDialog.serviceName}
+                  </div>
+                </div>
+                
+                {confirmDialog.type === 'delete' && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 mt-3">
+                    <p className="text-red-400 text-xs md:text-sm">
+                      ⚠️ Este agendamento será removido permanentemente do sistema e não poderá ser recuperado.
+                    </p>
+                  </div>
+                )}
+                
+                {confirmDialog.type === 'cancel' && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3 mt-3">
+                    <p className="text-amber-400 text-xs md:text-sm">
+                      ℹ️ O agendamento será marcado como cancelado e poderá ser reagendado posteriormente.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({
-                isOpen: false,
-                type: null,
-                appointmentId: '',
-                clientName: '',
-                serviceName: ''
-              })}
-              className="border-[#27272a] hover:bg-[#27272a] w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmAction}
-              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
-            >
-              {confirmDialog.type === 'cancel' ? 'Cancelar Serviço' : 'Excluir Permanentemente'}
-            </Button>
-          </DialogFooter>
+          {/* Footer com botões */}
+          <div className="border-t border-[#27272a] pt-3 md:pt-4 px-4 sm:px-6 pb-4 sm:pb-6 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDialog({
+                  isOpen: false,
+                  type: null,
+                  appointmentId: '',
+                  clientName: '',
+                  serviceName: ''
+                })}
+                className="border-[#27272a] hover:bg-[#27272a] w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmAction}
+                className={`w-full sm:w-auto ${
+                  confirmDialog.type === 'cancel'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmDialog.type === 'cancel' ? 'Cancelar Agendamento' : 'Excluir Permanentemente'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
