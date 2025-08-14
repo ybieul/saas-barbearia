@@ -403,7 +403,7 @@ export default function AgendamentoPage() {
   }, [selectedDate])
 
   // Gerar horários disponíveis baseados nos horários de funcionamento
-  const generateAvailableSlots = (date: string) => {
+  const generateAvailableSlots = async (date: string) => {
     if (!selectedServiceId || workingHours.length === 0) return []
 
     // Converter data para timezone brasileiro
@@ -414,10 +414,34 @@ export default function AgendamentoPage() {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     const dayName = dayNames[dayOfWeek]
     
-    // Encontrar horário de funcionamento para o dia
+    // Encontrar horário de funcionamento para o dia (estabelecimento)
     const daySchedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isActive)
     
     if (!daySchedule) return []
+
+    // 🔥 NOVA VALIDAÇÃO: Verificar se profissional trabalha neste dia (se selecionado)
+    if (selectedProfessional) {
+      try {
+        const response = await fetch(`/api/professionals/${selectedProfessional.id}/working-hours`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          const professionalSchedule = data.professional
+          
+          // Verificar se profissional trabalha neste dia
+          if (professionalSchedule && professionalSchedule.workingDays) {
+            if (!professionalSchedule.workingDays[dayName]) {
+              console.log(`🚫 Profissional ${selectedProfessional.name} não trabalha em ${dayName}`)
+              return [] // Profissional não trabalha neste dia
+            }
+            console.log(`✅ Profissional ${selectedProfessional.name} trabalha em ${dayName}`)
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao verificar horários do profissional:', error)
+        // Continuar com horários do estabelecimento em caso de erro
+      }
+    }
 
     const slots = []
     const [startHour, startMinute] = daySchedule.startTime.split(':').map(Number)

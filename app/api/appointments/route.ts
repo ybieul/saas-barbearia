@@ -213,6 +213,37 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
 
+    // 🔥 NOVA VALIDAÇÃO: Verificar horários individuais do profissional se especificado
+    if (professionalId) {
+      const professional = await prisma.professional.findFirst({
+        where: {
+          id: professionalId,
+          tenantId: user.tenantId
+        },
+        select: {
+          id: true,
+          name: true,
+          workingDays: true,
+          workingHours: true
+        }
+      })
+
+      if (professional && professional.workingDays) {
+        const professionalWorkingDays = professional.workingDays as any
+        
+        // Verificar se profissional trabalha neste dia
+        if (professionalWorkingDays[dayName] === false) {
+          const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+          return NextResponse.json(
+            { message: `O profissional ${professional.name} não trabalha ${dayNamePt}. Escolha outro dia ou profissional.` },
+            { status: 400 }
+          )
+        }
+
+        console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado`)
+      }
+    }
+
     // Calcular duração e preço totais
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
@@ -447,9 +478,41 @@ export async function PUT(request: NextRequest) {
       
       console.log(`✅ Validação de horário (UPDATE) aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
       
-      // Verificar conflitos de horário (apenas se professionalId está sendo alterado ou mantido)
+      // 🔥 NOVA VALIDAÇÃO: Verificar horários individuais do profissional se especificado (UPDATE)
+      // Determinar qual profissional será usado
       const finalProfessionalId = professionalId !== undefined ? professionalId : existingAppointment.professionalId
       
+      if (finalProfessionalId) {
+        const professional = await prisma.professional.findFirst({
+          where: {
+            id: finalProfessionalId,
+            tenantId: user.tenantId
+          },
+          select: {
+            id: true,
+            name: true,
+            workingDays: true,
+            workingHours: true
+          }
+        })
+
+        if (professional && professional.workingDays) {
+          const professionalWorkingDays = professional.workingDays as any
+          
+          // Verificar se profissional trabalha neste dia
+          if (professionalWorkingDays[dayName] === false) {
+            const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+            return NextResponse.json(
+              { message: `O profissional ${professional.name} não trabalha ${dayNamePt}. Escolha outro dia ou profissional.` },
+              { status: 400 }
+            )
+          }
+
+          console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado (UPDATE)`)
+        }
+      }
+      
+      // Verificar conflitos de horário
       if (finalProfessionalId) {
         // Obter dados dos serviços para calcular duração
         let totalDuration = 0

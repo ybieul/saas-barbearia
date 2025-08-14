@@ -206,6 +206,39 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    console.log(`✅ Validação de horário aprovada (PUBLIC): ${appointmentTime} está entre ${startTime} e ${endTime}`)
+
+    // 🔥 NOVA VALIDAÇÃO: Verificar horários individuais do profissional se especificado (PUBLIC)
+    if (professionalId) {
+      const professional = await prisma.professional.findFirst({
+        where: {
+          id: professionalId,
+          tenantId: business.id
+        },
+        select: {
+          id: true,
+          name: true,
+          workingDays: true,
+          workingHours: true
+        }
+      })
+
+      if (professional && professional.workingDays) {
+        const professionalWorkingDays = professional.workingDays as any
+        
+        // Verificar se profissional trabalha neste dia
+        if (professionalWorkingDays[dayName] === false) {
+          const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+          return NextResponse.json(
+            { message: `O profissional ${professional.name} não trabalha ${dayNamePt}. Escolha outro dia ou profissional.` },
+            { status: 400 }
+          )
+        }
+
+        console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado (PUBLIC)`)
+      }
+    }
     
     // 🔒 VALIDAÇÃO DE CONFLITOS (mesmo sistema do dashboard)
     const serviceDuration = totalDuration // Usar duração total calculada
