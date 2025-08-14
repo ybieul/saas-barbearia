@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, DollarSign, Smartphone } from "lucide-react"
+import { CreditCard, DollarSign, Smartphone, CheckCircle2 } from "lucide-react"
 
 interface PaymentMethodModalProps {
   isOpen: boolean
@@ -35,22 +35,25 @@ export function PaymentMethodModal({
       id: "CASH",
       label: "Dinheiro",
       icon: DollarSign,
-      color: "bg-green-500 hover:bg-green-600",
-      description: "Pagamento em espécie"
+      color: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
+      description: "Pagamento em espécie",
+      emoji: "💵"
     },
     {
       id: "PIX",
       label: "PIX",
       icon: Smartphone,
-      color: "bg-blue-500 hover:bg-blue-600",
-      description: "Transferência instantânea"
+      color: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
+      description: "Transferência instantânea",
+      emoji: "📱"
     },
     {
       id: "CARD",
       label: "Cartão",
       icon: CreditCard,
-      color: "bg-purple-500 hover:bg-purple-600",
-      description: "Débito ou crédito"
+      color: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
+      description: "Débito ou crédito",
+      emoji: "💳"
     }
   ]
 
@@ -60,74 +63,104 @@ export function PaymentMethodModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#18181b] border-[#27272a]">
-        <DialogHeader>
-          <DialogTitle className="text-[#ededed] text-lg">
-            💰 Como foi pago?
-          </DialogTitle>
-          
-          {appointmentData && (
-            <div className="bg-[#0a0a0a]/50 rounded-lg p-3 mt-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#a1a1aa]">Cliente:</span>
-                <span className="text-sm font-medium text-[#ededed]">{appointmentData.client}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#a1a1aa]">Serviço:</span>
-                <span className="text-sm font-medium text-[#ededed]">{appointmentData.service}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#a1a1aa]">Horário:</span>
-                <span className="text-sm font-medium text-[#ededed]">{appointmentData.time}</span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-[#27272a]">
-                <span className="text-sm font-medium text-[#a1a1aa]">Total:</span>
-                <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(appointmentData.totalPrice)}
-                </Badge>
-              </div>
+      <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-md mx-auto h-auto sm:h-auto flex flex-col rounded-xl">
+        {/* Header fixo */}
+        <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+          <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+            <div className="p-1.5 md:p-2 bg-gradient-to-br from-emerald-500/20 to-green-600/20 rounded-lg">
+              <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-emerald-500" />
             </div>
-          )}
-          
-          <DialogDescription className="text-[#a1a1aa] mt-3">
-            Selecione como o cliente realizou o pagamento deste serviço:
+            Como foi pago?
+          </DialogTitle>
+          <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+            Selecione a forma de pagamento utilizada pelo cliente
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Conteúdo com scroll */}
+        <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+          <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+            {/* Seção de Resumo do Agendamento */}
+            {appointmentData && (
+              <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-emerald-500 rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm md:text-base">Resumo do Atendimento</h3>
+                </div>
+                
+                <div className="space-y-2 md:space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs md:text-sm text-[#a1a1aa]">Cliente:</span>
+                    <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.client}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs md:text-sm text-[#a1a1aa]">Serviço:</span>
+                    <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.service}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs md:text-sm text-[#a1a1aa]">Horário:</span>
+                    <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.time}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-emerald-500/20 md:border-[#27272a]">
+                    <span className="text-xs md:text-sm font-medium text-[#a1a1aa]">Total:</span>
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs md:text-sm">
+                      {new Intl.NumberFormat('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                      }).format(appointmentData.totalPrice)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        <div className="grid grid-cols-1 gap-3 py-4">
-          {paymentMethods.map((method) => {
-            const IconComponent = method.icon
-            return (
-              <Button
-                key={method.id}
-                onClick={() => handlePaymentSelect(method.id)}
-                disabled={isLoading}
-                className={`${method.color} text-white h-auto p-4 justify-start gap-3 transition-all hover:scale-105`}
-              >
-                <div className="bg-white/20 rounded-full p-2">
-                  <IconComponent className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <div className="font-semibold text-base">{method.label}</div>
-                  <div className="text-xs opacity-90">{method.description}</div>
-                </div>
-              </Button>
-            )
-          })}
+            {/* Seção de Formas de Pagamento */}
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-center gap-2 md:hidden">
+                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <h3 className="text-[#ededed] font-medium text-sm">Forma de Pagamento</h3>
+              </div>
+              
+              <div className="space-y-2 md:space-y-3">
+                {paymentMethods.map((method) => {
+                  const IconComponent = method.icon
+                  return (
+                    <Button
+                      key={method.id}
+                      onClick={() => handlePaymentSelect(method.id)}
+                      disabled={isLoading}
+                      className={`${method.color} text-white h-auto p-3 md:p-4 justify-start gap-3 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] w-full`}
+                    >
+                      <div className="bg-white/20 rounded-full p-1.5 md:p-2 flex-shrink-0">
+                        <IconComponent className="w-4 h-4 md:w-5 md:h-5" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className="font-semibold text-sm md:text-base flex items-center gap-2">
+                          <span className="text-base md:text-lg">{method.emoji}</span>
+                          {method.label}
+                        </div>
+                        <div className="text-xs md:text-sm opacity-90">{method.description}</div>
+                      </div>
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         </div>
-
-        <DialogFooter className="flex-col gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="w-full border-[#27272a] text-[#a1a1aa] hover:bg-[#18181b] hover:text-[#ededed]"
-          >
-            Cancelar
-          </Button>
+        
+        {/* Footer fixo */}
+        <DialogFooter className="border-t border-[#27272a] pt-3 md:pt-4 flex-shrink-0 px-4 sm:px-6">
+          <div className="flex justify-center w-full">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
