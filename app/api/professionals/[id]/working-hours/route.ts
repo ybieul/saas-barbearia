@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const professionalId = params.id
     const { workingDays, workingHours } = await request.json()
 
-    console.log('PUT professional working hours - Dados:', { 
+    console.log('🔍 [DEBUG PUT] Recebendo dados:', { 
       professionalId, 
       workingDays, 
       workingHours, 
@@ -91,11 +91,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     })
 
     if (!existingProfessional) {
+      console.log('❌ [DEBUG PUT] Profissional não encontrado:', professionalId)
       return NextResponse.json(
         { message: 'Profissional não encontrado' },
         { status: 404 }
       )
     }
+
+    console.log('✅ [DEBUG PUT] Profissional encontrado:', existingProfessional.name)
 
     // Validar dados de entrada
     if (workingDays && typeof workingDays !== 'object') {
@@ -165,11 +168,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Atualizar no banco de dados
+    console.log('🔄 [DEBUG PUT] Atualizando dados no banco...')
+    console.log('🔄 [DEBUG PUT] workingDays para salvar:', workingDays)
+    console.log('🔄 [DEBUG PUT] workingHours para salvar:', workingHours)
+    
     const updatedProfessional = await prisma.professional.update({
       where: { id: professionalId },
       data: {
-        ...(workingDays && { workingDays }),
-        ...(workingHours && { workingHours }),
+        ...(workingDays !== undefined && { workingDays: JSON.stringify(workingDays) }),
+        ...(workingHours !== undefined && { workingHours: JSON.stringify(workingHours) }),
         updatedAt: new Date()
       },
       select: {
@@ -180,11 +187,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     })
 
-    console.log('Horários do profissional atualizados:', updatedProfessional.id)
+    console.log('✅ [DEBUG PUT] Dados salvos com sucesso!')
+    console.log('✅ [DEBUG PUT] workingDays salvo:', updatedProfessional.workingDays)
+    console.log('✅ [DEBUG PUT] workingHours salvo:', updatedProfessional.workingHours)
 
     return NextResponse.json({
       success: true,
-      professional: updatedProfessional
+      professional: {
+        ...updatedProfessional,
+        workingDays: updatedProfessional.workingDays ? JSON.parse(String(updatedProfessional.workingDays)) : null,
+        workingHours: updatedProfessional.workingHours ? JSON.parse(String(updatedProfessional.workingHours)) : null
+      }
     })
   } catch (error) {
     console.error('Erro ao atualizar horários do profissional:', error)

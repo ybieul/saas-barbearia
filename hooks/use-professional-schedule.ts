@@ -111,10 +111,17 @@ export function useProfessionalSchedule(professionalId?: string) {
     try {
       setError(null)
       
+      console.log('🔍 [DEBUG HOOK] Enviando dados para profissional:', id)
+      console.log('🔍 [DEBUG HOOK] workingDays:', workingDays)
+      console.log('🔍 [DEBUG HOOK] workingHours:', workingHours)
+      
       const token = localStorage.getItem('auth_token')
       if (!token) {
         throw new Error('Token de autenticação não encontrado')
       }
+
+      const payload = { workingDays, workingHours }
+      console.log('🔍 [DEBUG HOOK] Payload completo:', JSON.stringify(payload, null, 2))
 
       const response = await fetch(`/api/professionals/${id}/working-hours`, {
         method: 'PUT',
@@ -122,28 +129,24 @@ export function useProfessionalSchedule(professionalId?: string) {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          workingDays,
-          workingHours
-        }),
+        body: JSON.stringify(payload),
       })
+
+      console.log('🔍 [DEBUG HOOK] Response status:', response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ [DEBUG HOOK] Erro na response:', errorData)
         throw new Error(errorData.message || 'Erro ao atualizar horários do profissional')
       }
 
       const data = await response.json()
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Horários do profissional atualizados:', data.professional)
-      }
+      console.log('✅ [DEBUG HOOK] Dados recebidos de volta:', data.professional)
       
       setSchedule(data.professional)
       return data.professional
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao atualizar horários do profissional:', err)
-      }
+      console.error('❌ [DEBUG HOOK] Erro ao atualizar horários:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
       throw err
     }
