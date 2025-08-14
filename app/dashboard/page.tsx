@@ -322,7 +322,7 @@ export default function DashboardPage() {
                         >
                           <User className="w-3 h-3 mr-1" />
                           <span className="hidden sm:inline">Ver Cliente</span>
-                          <span className="sm:hidden">Ver</span>
+                          <span className="sm:hidden">Ver Cliente</span>
                         </Button>
                         <Button 
                           size="sm" 
@@ -437,7 +437,7 @@ export default function DashboardPage() {
                     className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-sm lg:text-base px-2 sm:px-3"
                   >
                     <span className="hidden sm:inline">Ver Todos</span>
-                    <span className="sm:hidden">Ver</span>
+                    <span className="sm:hidden">Ver Agendamentos</span>
                     <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                   </Button>
                 </div>
