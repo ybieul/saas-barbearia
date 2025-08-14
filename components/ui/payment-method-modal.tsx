@@ -96,12 +96,12 @@ export function PaymentMethodModal({
                     </span>
                     <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.client}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs md:text-sm text-[#a1a1aa] flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-0">
+                    <span className="text-xs md:text-sm text-[#a1a1aa] flex items-center gap-2 flex-shrink-0">
                       <Scissors className="w-3 h-3 md:w-4 md:h-4" />
                       Serviço:
                     </span>
-                    <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.service}</span>
+                    <span className="text-xs md:text-sm font-medium text-[#ededed] text-right sm:text-left break-words">{appointmentData.service}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs md:text-sm text-[#a1a1aa] flex items-center gap-2">
