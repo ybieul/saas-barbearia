@@ -325,27 +325,34 @@ export default function AgendamentoPage() {
     if (professionals.length === 0) return
 
     setLoadingProfessionalSchedules(true)
+    console.log('🔍 [DEBUG] Carregando horários dos profissionais...')
     const schedules: Record<string, any> = {}
 
     try {
       // Carregar horários de todos os profissionais em paralelo
       const promises = professionals.map(async (professional) => {
         try {
-          const response = await fetch(`/api/professionals/${professional.id}/working-hours`)
+          console.log(`🔍 [DEBUG] Carregando horários para ${professional.name} (ID: ${professional.id})`)
+          const response = await fetch(`/api/public/professionals/${professional.id}/working-hours`)
+          
           if (response.ok) {
             const data = await response.json()
             schedules[professional.id] = data.professional
+            console.log(`✅ [DEBUG] Horários carregados para ${professional.name}:`, data.professional)
+          } else {
+            console.warn(`⚠️ [DEBUG] Erro ao carregar horários para ${professional.name}: ${response.status} ${response.statusText}`)
           }
         } catch (error) {
-          console.warn(`Erro ao carregar horários do profissional ${professional.name}:`, error)
+          console.warn(`❌ [DEBUG] Erro ao carregar horários do profissional ${professional.name}:`, error)
           // Continuar sem horários específicos para este profissional
         }
       })
 
       await Promise.all(promises)
       setProfessionalSchedules(schedules)
+      console.log('✅ [DEBUG] Todos os horários carregados:', schedules)
     } catch (error) {
-      console.error('Erro ao carregar horários dos profissionais:', error)
+      console.error('❌ [DEBUG] Erro ao carregar horários dos profissionais:', error)
     } finally {
       setLoadingProfessionalSchedules(false)
     }
@@ -443,57 +450,6 @@ export default function AgendamentoPage() {
       })
     }
   }, [selectedDate])
-
-  // Gerar horários disponíveis baseados nos horários de funcionamento
-  const generateAvailableSlots = (date: string) => {
-    if (!selectedServiceId || workingHours.length === 0) return []
-
-    // Converter data para timezone brasileiro
-    const selectedDateBrazil = parseDate(date)
-    const dayOfWeek = getBrazilDayNumber(selectedDateBrazil)
-    
-    // Mapear dias da semana
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[dayOfWeek]
-    
-    // Encontrar horário de funcionamento para o dia (estabelecimento)
-    const daySchedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isActive)
-    
-    if (!daySchedule) return []
-
-    // Nota: A validação completa de horários específicos dos profissionais 
-    // será feita pela API durante o agendamento. Aqui usamos apenas horários do estabelecimento
-    // para manter a interface responsiva.
-
-    const slots = []
-    const [startHour, startMinute] = daySchedule.startTime.split(':').map(Number)
-    const [endHour, endMinute] = daySchedule.endTime.split(':').map(Number)
-    
-    // Gerar slots de 5 em 5 minutos
-    let currentTime = startHour * 60 + startMinute // em minutos
-    const endTime = endHour * 60 + endMinute
-    const { totalDuration } = calculateTotals()
-    
-    while (currentTime + totalDuration <= endTime) {
-      const hour = Math.floor(currentTime / 60)
-      const minute = currentTime % 60
-      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-      
-      // Verificar se o horário está disponível (considerando duração do serviço)
-      const isAvailable = isTimeSlotAvailable(timeString)
-      
-      slots.push({
-        time: timeString,
-        available: isAvailable,
-        occupied: !isAvailable,
-        period: hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
-      })
-      
-      currentTime += 5 // incrementar 5 minutos
-    }
-    
-    return slots
-  }
 
   // Agrupar horários por período
   const groupSlotsByPeriod = (slots: any[]) => {
@@ -1590,7 +1546,15 @@ export default function AgendamentoPage() {
                   {selectedDate ? (
                     (() => {
                       const selectedServiceData = getMainService()
-                      const availableSlots = generateAvailableSlots(selectedDate)
+                      const availableSlots = generateAvailableSlots(
+                        selectedDate,
+                        selectedProfessional?.id,
+                        professionalSchedules,
+                        businessData,
+                        selectedServiceData,
+                        professionals,
+                        occupiedSlots
+                      )
                       const groupedSlots = groupSlotsByPeriod(availableSlots)
                       
                       if (availableSlots.length === 0) {
@@ -2301,50 +2265,72 @@ interface TimeSlot {
 }
 
 // Gerar slots disponíveis considerando os horários dos profissionais
-function generateAvailableSlots(dateString: string, professionalId?: string, professionalSchedules?: Map<string, any>, businessData?: any, selectedService?: any, professionals?: any[], occupiedSlots?: any[]): TimeSlot[] {
-  if (!businessData || !selectedService || !dateString) return []
+function generateAvailableSlots(
+  dateString: string, 
+  professionalId?: string, 
+  professionalSchedules?: Record<string, any>, 
+  businessData?: any, 
+  selectedService?: any, 
+  professionals?: any[], 
+  occupiedSlots?: any[]
+): TimeSlot[] {
+  if (!businessData || !selectedService || !dateString) {
+    console.log('🚫 [DEBUG] Parâmetros insuficientes para gerar slots')
+    return []
+  }
 
   const date = parseDate(dateString)
   const dayOfWeek = getBrazilDayNumber(date)
   
+  console.log(`🔍 [DEBUG] Gerando slots para ${dateString}, dia da semana: ${dayOfWeek}, profissional: ${professionalId || 'qualquer'}`)
+  
   try {
     let workingHours: { start: string; end: string }[]
 
-    if (professionalId && professionalSchedules?.has(professionalId)) {
+    if (professionalId && professionalSchedules && professionalSchedules[professionalId]) {
       // 🆕 Usar horários específicos do profissional
-      const schedule = professionalSchedules.get(professionalId)!
+      const schedule = professionalSchedules[professionalId]
+      console.log(`🔍 [DEBUG] Horários específicos encontrados para profissional ${professionalId}:`, schedule)
       
       // Verificar se o profissional trabalha neste dia
       if (schedule.workingDays && !schedule.workingDays.includes(dayOfWeek)) {
-        console.log(`Professional ${professionalId} doesn't work on day ${dayOfWeek}`)
+        console.log(`🚫 [DEBUG] Profissional ${professionalId} não trabalha no dia ${dayOfWeek}`)
         return []
       }
 
       // Usar horários específicos se configurados
       if (schedule.workingHours && schedule.workingHours[dayOfWeek]) {
         workingHours = schedule.workingHours[dayOfWeek].periods || []
+        console.log(`⏰ [DEBUG] Períodos de trabalho encontrados:`, workingHours)
         
         // Remover intervalos (breaks) dos horários de trabalho
-        if (schedule.workingHours[dayOfWeek].breaks) {
+        if (schedule.workingHours[dayOfWeek].breaks && schedule.workingHours[dayOfWeek].breaks.length > 0) {
+          console.log(`🍽️ [DEBUG] Aplicando intervalos:`, schedule.workingHours[dayOfWeek].breaks)
           workingHours = removeBreaksFromWorkingHours(workingHours, schedule.workingHours[dayOfWeek].breaks)
+          console.log(`⏰ [DEBUG] Períodos após remover intervalos:`, workingHours)
         }
       } else {
         // Fallback para horários do estabelecimento
+        console.log(`⚠️ [DEBUG] Horários específicos não encontrados para dia ${dayOfWeek}, usando horários do estabelecimento`)
         const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
         if (!businessHours) return []
         workingHours = [{ start: businessHours.start, end: businessHours.end }]
       }
     } else if (professionalId === null || professionalId === undefined) {
       // 🆕 Lógica "Qualquer Profissional" - usar horários do estabelecimento mas verificar disponibilidade de pelo menos um profissional
+      console.log(`🔍 [DEBUG] Modo 'qualquer profissional'`)
       const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
       if (!businessHours) return []
       workingHours = [{ start: businessHours.start, end: businessHours.end }]
     } else {
       // Fallback para horários do estabelecimento
+      console.log(`⚠️ [DEBUG] Horários específicos não encontrados, usando horários do estabelecimento`)
       const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
       if (!businessHours) return []
       workingHours = [{ start: businessHours.start, end: businessHours.end }]
     }
+
+    console.log(`✅ [DEBUG] Horários finais de trabalho:`, workingHours)
 
     // Gerar slots para cada período de trabalho
     const allSlots: TimeSlot[] = []
@@ -2362,9 +2348,10 @@ function generateAvailableSlots(dateString: string, professionalId?: string, pro
       allSlots.push(...periodSlots)
     }
 
+    console.log(`🎯 [DEBUG] Total de slots gerados: ${allSlots.length}`)
     return allSlots
   } catch (error) {
-    console.error('Error generating slots:', error)
+    console.error('❌ [DEBUG] Erro ao gerar slots:', error)
     return []
   }
 }
@@ -2434,13 +2421,15 @@ function generateSlotsForPeriod(
   serviceDuration: number,
   dateString: string,
   professionalId?: string,
-  professionalSchedules?: Map<string, any>,
+  professionalSchedules?: Record<string, any>,
   professionals?: any[],
   occupiedSlots?: any[]
 ): TimeSlot[] {
   const slots: TimeSlot[] = []
   const startMinutes = timeToMinutes(startTime)
   const endMinutes = timeToMinutes(endTime)
+  
+  console.log(`🔍 [DEBUG] Gerando slots para período ${startTime} - ${endTime}`)
   
   // Gerar slots de 30 em 30 minutos
   for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += 30) {
@@ -2462,6 +2451,7 @@ function generateSlotsForPeriod(
     })
   }
   
+  console.log(`📋 [DEBUG] Slots gerados para ${startTime}-${endTime}: ${slots.length} slots`)
   return slots
 }
 
@@ -2471,7 +2461,7 @@ function isTimeSlotAvailable(
   dateString: string, 
   serviceDuration: number,
   professionalId?: string,
-  professionalSchedules?: Map<string, any>,
+  professionalSchedules?: Record<string, any>,
   professionals?: any[],
   occupiedSlots?: any[]
 ): boolean {
