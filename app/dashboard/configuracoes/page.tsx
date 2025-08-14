@@ -2573,6 +2573,8 @@ export default function ConfiguracoesPage() {
         confirmText="Remover"
         confirmVariant="destructive"
         cancelText="Cancelar"
+        type={confirmDialog.type as 'professional' | 'service' | 'template' | 'default'}
+        itemName={confirmDialog.item?.name}
       />
     </div>
   )
