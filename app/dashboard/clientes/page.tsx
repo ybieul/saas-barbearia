@@ -953,7 +953,7 @@ export default function ClientesPage() {
                   Excluir Cliente
                 </DialogTitle>
                 <DialogDescription className="text-[#a1a1aa] text-sm md:text-base">
-                  Tem certeza que deseja excluir este cliente permanentemente? Esta ação não pode ser desfeita.
+                  Tem certeza que deseja excluir este cliente permanentemente?
                 </DialogDescription>
               </div>
             </div>
