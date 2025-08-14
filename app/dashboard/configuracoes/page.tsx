@@ -1533,7 +1533,7 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[75vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
                   {/* Header fixo */}
                   <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                     <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
@@ -1950,7 +1950,7 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[75vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
                 {/* Header fixo */}
                 <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                   <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
