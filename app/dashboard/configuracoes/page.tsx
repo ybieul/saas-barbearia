@@ -1533,130 +1533,40 @@ export default function ConfiguracoesPage() {
 
               {/* Dialog para upload de avatar */}
               <Dialog open={isAvatarUploadOpen} onOpenChange={setIsAvatarUploadOpen}>
-                <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full backdrop-blur-xl">
-                  <DialogHeader className="sr-only">
-                    <DialogTitle>Alterar Foto de Perfil</DialogTitle>
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                  {/* Header fixo */}
+                  <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                    <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                      <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                        <Camera className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                      </div>
+                      Foto de Perfil
+                    </DialogTitle>
+                    <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                      Altere a foto de perfil do profissional
+                    </DialogDescription>
                   </DialogHeader>
-                  {/* Header com gradiente */}
-                  <div className="relative p-4 sm:p-6 border-b border-[#1a1a1a]">
-                    <div className="text-center">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Foto de Perfil</h2>
-                      <p className="text-[#71717a] text-xs sm:text-sm">
-                        {selectedProfessionalForAvatar?.name && `Alterar foto de perfil de ${selectedProfessionalForAvatar.name}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Conteúdo principal */}
-                  <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                    {/* Preview da foto */}
-                    <div className="flex justify-center">
-                      <div className="relative">
-                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
-                          {selectedProfessionalForAvatar?.avatar ? (
-                            <img 
-                              src={selectedProfessionalForAvatar.avatar} 
-                              alt={selectedProfessionalForAvatar.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-lg sm:text-xl">
-                                {selectedProfessionalForAvatar?.name?.charAt(0) || 'P'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Botões de ação */}
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'image/jpeg,image/jpg,image/png,image/gif';
-                          input.onchange = async (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              try {
-                                // Validar tipo de arquivo
-                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                                if (!allowedTypes.includes(file.type)) {
-                                  toast({
-                                    title: "Formato não suportado",
-                                    description: "Use apenas JPG, PNG ou GIF.",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                // Validar tamanho (5MB)
-                                if (file.size > 5 * 1024 * 1024) {
-                                  toast({
-                                    title: "Arquivo muito grande",
-                                    description: "O arquivo deve ter no máximo 5MB.",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-
-                                // Usar a mesma abordagem do estabelecimento
-                                const base64 = await uploadLogo(file);
-                                await handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, base64);
-                              } catch (error) {
-                                console.error('Erro ao processar arquivo:', error);
-                                toast({
-                                  title: "Erro no upload",
-                                  description: "Erro ao processar o arquivo selecionado.",
-                                  variant: "destructive",
-                                });
-                              }
-                            }
-                          };
-                          input.click();
-                        }}
-                        className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5 w-full sm:w-auto"
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Alterar Foto
-                      </Button>
-                      
-                      {selectedProfessionalForAvatar?.avatar && (
-                        <Button
-                          variant="outline"
-                          onClick={() => handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, null)}
-                          className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Remover Foto
-                        </Button>
+                  
+                  {/* Conteúdo com scroll */}
+                  <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                    <div className="mt-3 md:mt-4">
+                      {selectedProfessionalForAvatar && (
+                        <ProfessionalAvatarUpload
+                          currentAvatar={selectedProfessionalForAvatar.avatar}
+                          professionalName={selectedProfessionalForAvatar.name}
+                          onAvatarChange={(avatar) => handleProfessionalAvatarChange(selectedProfessionalForAvatar.id, avatar)}
+                          size="lg"
+                        />
                       )}
                     </div>
-
-                    {/* Requisitos com emojis */}
-                    <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#1a1a1a]">
-                      <div className="space-y-2 text-xs sm:text-sm text-[#a1a1aa]">
-                        <p className="text-[#ededed] font-medium mb-2 sm:mb-3 text-center text-sm sm:text-base">Requisitos</p>
-                        <div className="space-y-1 sm:space-y-1.5">
-                          <p className="text-xs sm:text-sm">📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
-                          <p className="text-xs sm:text-sm">📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
-                          <p className="text-xs sm:text-sm">✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-
-                  {/* Footer */}
-                  <div className="p-4 sm:p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
+                  
+                  {/* Footer fixo */}
+                  <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
                     <Button 
                       variant="outline" 
                       onClick={handleCloseAvatarUpload}
-                      className="w-full border-[#3f3f46] text-[#71717a] hover:text-[#ededed] hover:bg-[#1a1a1a] py-2.5"
+                      className="w-full border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
                     >
                       Fechar
                     </Button>
@@ -2040,130 +1950,40 @@ export default function ConfiguracoesPage() {
 
             {/* Dialog para upload de imagem do serviço */}
             <Dialog open={isServiceImageUploadOpen} onOpenChange={setIsServiceImageUploadOpen}>
-              <DialogContent className="bg-[#0a0a0a] border-[#1a1a1a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full backdrop-blur-xl">
-                <DialogHeader className="sr-only">
-                  <DialogTitle>Alterar Imagem do Serviço</DialogTitle>
+              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+                {/* Header fixo */}
+                <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                  <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                    <div className="p-1.5 md:p-2 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg">
+                      <Camera className="w-4 h-4 md:w-5 md:h-5 text-purple-400 md:text-purple-500" />
+                    </div>
+                    Imagem do Serviço
+                  </DialogTitle>
+                  <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                    Altere a imagem do serviço
+                  </DialogDescription>
                 </DialogHeader>
-                {/* Header com gradiente */}
-                <div className="relative p-4 sm:p-6 border-b border-[#1a1a1a]">
-                  <div className="text-center">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                      <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Imagem do Serviço</h2>
-                    <p className="text-[#71717a] text-xs sm:text-sm">
-                      {selectedServiceForImage?.name && `Alterar imagem do serviço ${selectedServiceForImage.name}`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Conteúdo principal */}
-                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                  {/* Preview da imagem */}
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#1a1a1a] overflow-hidden bg-[#18181b] flex items-center justify-center">
-                        {selectedServiceForImage?.image ? (
-                          <img 
-                            src={selectedServiceForImage.image} 
-                            alt={selectedServiceForImage.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-lg sm:text-xl">
-                              {selectedServiceForImage?.name?.charAt(0) || 'S'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botões de ação */}
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/jpeg,image/jpg,image/png,image/gif';
-                        input.onchange = async (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) {
-                            try {
-                              // Validar tipo de arquivo
-                              const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                              if (!allowedTypes.includes(file.type)) {
-                                toast({
-                                  title: "Formato não suportado",
-                                  description: "Use apenas JPG, PNG ou GIF.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              
-                              // Validar tamanho (5MB)
-                              if (file.size > 5 * 1024 * 1024) {
-                                toast({
-                                  title: "Arquivo muito grande",
-                                  description: "O arquivo deve ter no máximo 5MB.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-
-                              // Usar a mesma abordagem do estabelecimento
-                              const base64 = await uploadLogo(file);
-                              await handleServiceImageChange(selectedServiceForImage.id, base64);
-                            } catch (error) {
-                              console.error('Erro ao processar arquivo:', error);
-                              toast({
-                                title: "Erro no upload",
-                                description: "Erro ao processar o arquivo selecionado.",
-                                variant: "destructive",
-                              });
-                            }
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5 w-full sm:w-auto"
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      Alterar Foto
-                    </Button>
-                    
-                    {selectedServiceForImage?.image && (
-                      <Button
-                        variant="outline"
-                        onClick={() => handleServiceImageChange(selectedServiceForImage.id, null)}
-                        className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Remover Foto
-                      </Button>
+                
+                {/* Conteúdo com scroll */}
+                <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                  <div className="mt-3 md:mt-4">
+                    {selectedServiceForImage && (
+                      <ServiceImageUpload
+                        currentImage={selectedServiceForImage.image}
+                        serviceName={selectedServiceForImage.name}
+                        onImageChange={(image) => handleServiceImageChange(selectedServiceForImage.id, image)}
+                        size="lg"
+                      />
                     )}
                   </div>
-
-                  {/* Requisitos com emojis */}
-                  <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#1a1a1a]">
-                    <div className="space-y-2 text-xs sm:text-sm text-[#a1a1aa]">
-                      <p className="text-[#ededed] font-medium mb-2 sm:mb-3 text-center text-sm sm:text-base">Requisitos</p>
-                      <div className="space-y-1 sm:space-y-1.5">
-                        <p className="text-xs sm:text-sm">📐 <strong>Resolução:</strong> 1024x1024px (quadrada)</p>
-                        <p className="text-xs sm:text-sm">📁 <strong>Formatos:</strong> JPG, PNG, GIF (máx. 5MB)</p>
-                        <p className="text-xs sm:text-sm">✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-
-                {/* Footer */}
-                <div className="p-4 sm:p-6 border-t border-[#1a1a1a] bg-[#0f0f0f]">
+                
+                {/* Footer fixo */}
+                <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
                   <Button 
                     variant="outline" 
                     onClick={handleCloseServiceImageUpload}
-                    className="w-full border-[#3f3f46] text-[#71717a] hover:text-[#ededed] hover:bg-[#1a1a1a] py-2.5"
+                    className="w-full border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
                   >
                     Fechar
                   </Button>

@@ -2,10 +2,8 @@
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { User, Upload, Camera, X } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Camera, X } from "lucide-react"
 
 interface ProfessionalAvatarUploadProps {
   currentAvatar?: string | null
@@ -26,15 +24,6 @@ export function ProfessionalAvatarUpload({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(currentAvatar || null)
-
-  // Configurações de tamanho
-  const sizeConfig = {
-    sm: { container: "w-16 h-16", text: "text-xs" },
-    md: { container: "w-24 h-24", text: "text-sm" },
-    lg: { container: "w-32 h-32", text: "text-base" }
-  }
-
-  const currentSize = sizeConfig[size]
 
   // Função para redimensionar e comprimir imagem
   const resizeAndCompressImage = (file: File): Promise<string> => {
@@ -142,8 +131,6 @@ export function ProfessionalAvatarUpload({
     setIsUploading(true)
     try {
       await onAvatarChange(previewAvatar)
-      // Não mostramos toast aqui pois o dialog será fechado automaticamente
-      // O toast será mostrado pela função pai após o fechamento do modal
     } catch (error) {
       toast({
         title: "Erro ao salvar",
@@ -197,98 +184,92 @@ export function ProfessionalAvatarUpload({
   const hasChanges = previewAvatar !== currentAvatar
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      {/* Avatar Display */}
-      <div className={`relative ${currentSize.container}`}>
-        <Avatar className={`${currentSize.container} border-2 border-[#27272a]`}>
-          <AvatarImage 
-            src={previewAvatar || undefined} 
-            alt={`Foto de ${professionalName}`}
-            className="object-cover"
-          />
-          <AvatarFallback className="bg-[#27272a] text-[#a1a1aa] font-medium">
-            {previewAvatar ? (
-              <div className="animate-pulse">
-                <User className="w-1/2 h-1/2" />
-              </div>
-            ) : (
-              getInitials(professionalName)
-            )}
-          </AvatarFallback>
-        </Avatar>
-
-        {/* Indicador de carregamento */}
-        {isUploading && (
-          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#10b981]"></div>
-          </div>
-        )}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header com ícone e título */}
+      <div className="text-center">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Foto de Perfil</h2>
+        <p className="text-[#71717a] text-xs sm:text-sm">
+          Alterar foto de perfil de {professionalName}
+        </p>
       </div>
 
-      {/* Controles */}
-      <div className="flex flex-col gap-3 items-center">
-        {/* Input de arquivo (oculto) */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,image/webp"
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={disabled || isUploading}
-        />
-
-        {/* Botões principais */}
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {/* Botão de upload */}
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isUploading}
-            variant="outline"
-            size="sm"
-            className="border-[#27272a] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed] w-full sm:w-auto min-h-[44px] touch-manipulation"
-          >
-            <Camera className="w-4 h-4 mr-2" />
-            {previewAvatar ? 'Alterar' : 'Adicionar'} Foto
-          </Button>
-
-          {/* Botão de remover (apenas se há avatar) */}
-          {previewAvatar && (
-            <Button
-              onClick={handleRemoveAvatar}
-              disabled={disabled || isUploading}
-              variant="outline"
-              size="sm"
-              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white w-full sm:w-auto min-h-[44px] touch-manipulation"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Remover
-            </Button>
-          )}
+      {/* Preview da foto */}
+      <div className="flex justify-center">
+        <div className="relative">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#27272a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+            {isUploading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
+              </div>
+            ) : previewAvatar ? (
+              <img 
+                src={previewAvatar} 
+                alt={professionalName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg sm:text-xl">
+                  {getInitials(professionalName)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Ações de confirmação (apenas se há mudanças) */}
-        {hasChanges && (
+      {/* Botões de ação */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        {!hasChanges ? (
+          <>
+            {/* Input de arquivo (oculto) */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={disabled || isUploading}
+            />
+
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || isUploading}
+              className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              {previewAvatar ? 'Alterar Foto' : 'Adicionar Foto'}
+            </Button>
+            
+            {previewAvatar && (
+              <Button
+                variant="outline"
+                onClick={handleRemoveAvatar}
+                disabled={disabled || isUploading}
+                className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Remover Foto
+              </Button>
+            )}
+          </>
+        ) : (
+          /* Botões de confirmação quando há mudanças */
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               onClick={handleSaveAvatar}
               disabled={disabled || isUploading}
-              size="sm"
               className="bg-[#10b981] hover:bg-[#059669] text-white w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
-              {isUploading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Salvando...
-                </>
-              ) : (
-                "Salvar Alteração"
-              )}
+              {isUploading ? "Salvando..." : "Salvar Alteração"}
             </Button>
             <Button
               onClick={handleCancelPreview}
               disabled={disabled || isUploading}
               variant="outline"
-              size="sm"
               className="border-[#27272a] text-[#a1a1aa] hover:bg-[#27272a] w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
               Cancelar
@@ -297,13 +278,15 @@ export function ProfessionalAvatarUpload({
         )}
       </div>
 
-      {/* Informações sobre formato e tamanho */}
-      <div className={`text-center ${currentSize.text} text-[#71717a] max-w-xs px-4`}>
-        <div className="space-y-1">
-          <p className="font-medium text-center">Requisitos:</p>
-          <p>• JPG, PNG, WEBP</p>
-          <p>• Máximo: 5MB</p>
-          <p>• Preferencialmente quadrada</p>
+      {/* Requisitos com emojis */}
+      <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#27272a]">
+        <div className="space-y-2 text-xs sm:text-sm text-[#a1a1aa]">
+          <p className="text-[#ededed] font-medium mb-2 sm:mb-3 text-center text-sm sm:text-base">Requisitos</p>
+          <div className="space-y-1 sm:space-y-1.5">
+            <p className="text-xs sm:text-sm">📐 <strong>Resolução:</strong> 1024×1024px (quadrada)</p>
+            <p className="text-xs sm:text-sm">📁 <strong>Formatos:</strong> JPG, PNG, WEBP (máx. 5MB)</p>
+            <p className="text-xs sm:text-sm">✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+          </div>
         </div>
       </div>
     </div>

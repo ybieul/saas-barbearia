@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Camera, Upload, X, Loader2, Check } from 'lucide-react'
+import { Camera, X, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface ServiceImageUploadProps {
@@ -24,24 +24,6 @@ export default function ServiceImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
-  const sizeClasses = {
-    sm: 'w-16 h-16',
-    md: 'w-24 h-24', 
-    lg: 'w-32 h-32'
-  }
-
-  const iconSizes = {
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5'
-  }
-
-  const buttonSizes = {
-    sm: 'text-xs px-2 py-1',
-    md: 'text-sm px-3 py-1.5',
-    lg: 'text-base px-4 py-2'
-  }
-
   const getServiceInitials = (name: string) => {
     return name
       .split(' ')
@@ -52,11 +34,7 @@ export default function ServiceImageUpload({
   }
 
   const handleUploadClick = () => {
-    if (previewCandidate) {
-      setPreviewCandidate(null)
-    } else {
-      fileInputRef.current?.click()
-    }
+    fileInputRef.current?.click()
   }
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,50 +197,47 @@ export default function ServiceImageUpload({
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      {/* Container da imagem */}
-      <div className={`${sizeClasses[size]} rounded-lg overflow-hidden border-2 border-dashed border-[#3f3f46] relative bg-[#27272a] flex items-center justify-center`}>
-        {isUploading && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-            <Loader2 className="w-6 h-6 animate-spin text-white" />
-          </div>
-        )}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header com ícone e título */}
+      <div className="text-center">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-purple-500/30">
+          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Imagem do Serviço</h2>
+        <p className="text-[#71717a] text-xs sm:text-sm">
+          Alterar imagem do serviço {serviceName}
+        </p>
+      </div>
 
-        {previewCandidate ? (
-          // Pré-visualização da nova imagem
-          <>
-            <img
-              src={previewCandidate}
-              alt="Pré-visualização"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1">
-              <Camera className="w-3 h-3 text-white" />
-            </div>
-          </>
-        ) : preview ? (
-          // Imagem atual
-          <>
-            <img
-              src={preview}
-              alt={`Imagem do serviço ${serviceName}`}
-              className="w-full h-full object-cover"
-            />
-            {isUploading && (
-              <div className="absolute bottom-1 right-1 bg-green-600 rounded-full p-1">
-                <X className="w-3 h-3 text-white" />
+      {/* Preview da imagem */}
+      <div className="flex justify-center">
+        <div className="relative">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#27272a] overflow-hidden bg-[#18181b] flex items-center justify-center">
+            {isUploading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
+              </div>
+            ) : previewCandidate ? (
+              <img
+                src={previewCandidate}
+                alt="Pré-visualização"
+                className="w-full h-full object-cover"
+              />
+            ) : preview ? (
+              <img
+                src={preview}
+                alt={`Imagem do serviço ${serviceName}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg sm:text-xl">
+                  {getServiceInitials(serviceName)}
+                </span>
               </div>
             )}
-          </>
-        ) : (
-          // Fallback com iniciais do serviço
-          <div className="w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">
-              {getServiceInitials(serviceName || 'SV')}
-            </span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Botões de pré-visualização */}
@@ -274,7 +249,7 @@ export default function ServiceImageUpload({
             disabled={isUploading}
             className="bg-green-600 hover:bg-green-700 text-white border-0 min-h-[44px] touch-manipulation"
           >
-            <Check className={iconSizes[size]} />
+            <Check className="w-4 h-4" />
             <span className="ml-2">Confirmar</span>
           </Button>
           <Button
@@ -284,7 +259,7 @@ export default function ServiceImageUpload({
             disabled={isUploading}
             className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white min-h-[44px] touch-manipulation"
           >
-            <X className={iconSizes[size]} />
+            <X className="w-4 h-4" />
             <span className="ml-2">Cancelar</span>
           </Button>
         </div>
@@ -292,37 +267,23 @@ export default function ServiceImageUpload({
 
       {/* Botões de ação principais */}
       {!previewCandidate && (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleUploadClick}
-            disabled={isUploading}
-            className={`border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent ${buttonSizes[size]} min-h-[44px] touch-manipulation`}
-          >
-            {preview ? (
-              <>
-                <Camera className={iconSizes[size]} />
-                <span className="hidden sm:inline ml-2">Alterar</span>
-              </>
-            ) : (
-              <>
-                <Upload className={iconSizes[size]} />
-                <span className="hidden sm:inline ml-2">Upload</span>
-              </>
-            )}
-          </Button>
-
-          {preview && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
-              size="sm"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              {preview ? 'Alterar Foto' : 'Adicionar Foto'}
+            </Button>          {preview && (
+            <Button
               variant="outline"
               onClick={handleRemoveImage}
               disabled={isUploading}
-              className={`border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent ${buttonSizes[size]} min-h-[44px] touch-manipulation`}
+              className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
-              <X className={iconSizes[size]} />
-              <span className="hidden sm:inline ml-2">Remover</span>
+              <X className="w-4 h-4 mr-2" />
+              Remover Foto
             </Button>
           )}
         </div>
@@ -337,16 +298,16 @@ export default function ServiceImageUpload({
         className="hidden"
       />
 
-      {/* Dicas de uso */}
-      <div className="text-xs text-[#71717a] text-center space-y-1 max-w-xs">
-        <p>📐 <strong>Recomendado:</strong> 300x300px</p>
-        <p>📁 <strong>Formatos:</strong> JPG, PNG, WEBP (máx. 5MB)</p>
-        <p>✨ <strong>Automático:</strong> Redimensionamento e crop centralizado</p>
-        {previewCandidate && (
-          <p className="text-blue-600 dark:text-blue-400 font-medium">
-            👆 <strong>Pré-visualização ativa</strong> - Confirme ou cancele acima
-          </p>
-        )}
+      {/* Requisitos com emojis */}
+      <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#27272a]">
+        <div className="space-y-2 text-xs sm:text-sm text-[#a1a1aa]">
+          <p className="text-[#ededed] font-medium mb-2 sm:mb-3 text-center text-sm sm:text-base">Requisitos</p>
+          <div className="space-y-1 sm:space-y-1.5">
+            <p className="text-xs sm:text-sm">📐 <strong>Resolução:</strong> 1024×1024px (quadrada)</p>
+            <p className="text-xs sm:text-sm">📁 <strong>Formatos:</strong> JPG, PNG, WEBP (máx. 5MB)</p>
+            <p className="text-xs sm:text-sm">✨ <strong>Dica:</strong> Imagem será redimensionada automaticamente</p>
+          </div>
+        </div>
       </div>
     </div>
   )
