@@ -2439,7 +2439,11 @@ export default function ConfiguracoesPage() {
                                               ...professionalSchedule.workingDays,
                                               [day]: checked
                                             }
-                                            updateProfessionalSchedule(selectedProfessionalId, updatedWorkingDays)
+                                            updateProfessionalSchedule(
+                                              selectedProfessionalId, 
+                                              updatedWorkingDays, 
+                                              professionalSchedule.workingHours
+                                            )
                                               .then(() => {
                                                 toast({
                                                   title: "Horários atualizados!",

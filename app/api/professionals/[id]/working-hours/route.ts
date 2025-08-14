@@ -30,7 +30,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Retornar horários ou valores padrão
-    const workingDays = professional.workingDays || {
+    const parsedWorkingDays = professional.workingDays ? JSON.parse(String(professional.workingDays)) : null
+    const parsedWorkingHours = professional.workingHours ? JSON.parse(String(professional.workingHours)) : null
+    
+    const workingDays = parsedWorkingDays || {
       monday: true,
       tuesday: true,
       wednesday: true,
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       sunday: false
     }
 
-    const workingHours = professional.workingHours || {
+    const workingHours = parsedWorkingHours || {
       monday: { start: "08:00", end: "18:00", breaks: [] },
       tuesday: { start: "08:00", end: "18:00", breaks: [] },
       wednesday: { start: "08:00", end: "18:00", breaks: [] },
@@ -73,7 +76,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const user = verifyToken(request)
     const professionalId = params.id
-    const { workingDays, workingHours } = await request.json()
+    const body = await request.json()
+    const { workingDays, workingHours } = body
+
+    console.log('🔍 [DEBUG PUT] ============ INÍCIO PUT ============')
+    console.log('🔍 [DEBUG PUT] Profissional ID:', professionalId)
+    console.log('🔍 [DEBUG PUT] Body completo recebido:', JSON.stringify(body, null, 2))
+    console.log('🔍 [DEBUG PUT] workingDays recebidos:', workingDays)
+    console.log('🔍 [DEBUG PUT] workingHours recebidos:', workingHours)
+    console.log('🔍 [DEBUG PUT] Tipo workingDays:', typeof workingDays)
+    console.log('🔍 [DEBUG PUT] Tipo workingHours:', typeof workingHours)
+    console.log('🔍 [DEBUG PUT] User tenant:', user.tenantId)
 
     console.log('🔍 [DEBUG PUT] Recebendo dados:', { 
       professionalId, 
