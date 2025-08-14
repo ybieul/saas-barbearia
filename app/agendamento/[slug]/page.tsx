@@ -2436,8 +2436,8 @@ function generateSlotsForPeriod(
   
   console.log(`🔍 [DEBUG] Gerando slots para período ${startTime} - ${endTime}`)
   
-  // Gerar slots de 30 em 30 minutos
-  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += 30) {
+  // Gerar slots de 5 em 5 minutos
+  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += 5) {
     const slotTime = minutesToTime(minutes)
     const available = isTimeSlotAvailable(
       slotTime, 
