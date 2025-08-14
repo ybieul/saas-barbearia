@@ -436,6 +436,7 @@ export default function DashboardPage() {
                     onClick={() => router.push('/dashboard/agenda')}
                     className="border-[#27272a] hover:bg-[#27272a] text-xs sm:text-sm lg:text-base px-2 sm:px-3"
                   >
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span className="hidden sm:inline">Ver Todos</span>
                     <span className="sm:hidden">Ver Agendamentos</span>
                     <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
