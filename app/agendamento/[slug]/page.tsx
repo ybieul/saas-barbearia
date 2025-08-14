@@ -48,7 +48,7 @@ import {
   toLocalISOString,
   toLocalDateString
 } from "@/lib/timezone"
-import { formatCurrency } from "@/lib/currency"
+import { formatCurrency as formatCurrencyLib } from "@/lib/currency"
 
 // Types
 interface BusinessData {
@@ -135,6 +135,10 @@ export default function AgendamentoPage() {
   // Estados para verificação de disponibilidade
   const [occupiedSlots, setOccupiedSlots] = useState<any[]>([])
   const [loadingAvailability, setLoadingAvailability] = useState(false)
+
+  // 🆕 NOVO: Estados para horários específicos dos profissionais
+  const [professionalSchedules, setProfessionalSchedules] = useState<Record<string, any>>({})
+  const [loadingProfessionalSchedules, setLoadingProfessionalSchedules] = useState(false)
 
   // Estados para formulário inteligente de cliente
   const [searchingClient, setSearchingClient] = useState(false)
@@ -316,6 +320,37 @@ export default function AgendamentoPage() {
     }
   }
 
+  // 🆕 NOVA: Função para carregar horários específicos dos profissionais
+  const loadProfessionalSchedules = async () => {
+    if (professionals.length === 0) return
+
+    setLoadingProfessionalSchedules(true)
+    const schedules: Record<string, any> = {}
+
+    try {
+      // Carregar horários de todos os profissionais em paralelo
+      const promises = professionals.map(async (professional) => {
+        try {
+          const response = await fetch(`/api/professionals/${professional.id}/working-hours`)
+          if (response.ok) {
+            const data = await response.json()
+            schedules[professional.id] = data.professional
+          }
+        } catch (error) {
+          console.warn(`Erro ao carregar horários do profissional ${professional.name}:`, error)
+          // Continuar sem horários específicos para este profissional
+        }
+      })
+
+      await Promise.all(promises)
+      setProfessionalSchedules(schedules)
+    } catch (error) {
+      console.error('Erro ao carregar horários dos profissionais:', error)
+    } finally {
+      setLoadingProfessionalSchedules(false)
+    }
+  }
+
   // Função para verificar se um horário está disponível (considerando duração do serviço)
   const isTimeSlotAvailable = (time: string) => {
     if (!selectedServiceId) return false
@@ -390,6 +425,13 @@ export default function AgendamentoPage() {
       loadAvailability(selectedDate, selectedProfessional?.id)
     }
   }, [selectedDate, selectedProfessional?.id, params.slug])
+
+  // 🆕 NOVO: Carregar horários dos profissionais quando eles são carregados
+  useEffect(() => {
+    if (professionals.length > 0) {
+      loadProfessionalSchedules()
+    }
+  }, [professionals])
 
   // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
@@ -1140,7 +1182,7 @@ export default function AgendamentoPage() {
                                     <span>{service.duration}min</span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span>{formatCurrency(service.price)}</span>
+                                    <span>{formatCurrencyLib(service.price)}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1547,6 +1589,7 @@ export default function AgendamentoPage() {
                   
                   {selectedDate ? (
                     (() => {
+                      const selectedServiceData = getMainService()
                       const availableSlots = generateAvailableSlots(selectedDate)
                       const groupedSlots = groupSlotsByPeriod(availableSlots)
                       
@@ -2246,4 +2289,327 @@ export default function AgendamentoPage() {
       </div>
     </div>
   )
+}
+
+// 🆕 NOVAS FUNÇÕES DE SUPORTE PARA HORÁRIOS DOS PROFISSIONAIS
+
+// Tipo para um slot de horário
+interface TimeSlot {
+  time: string
+  available: boolean
+  professionalId?: string
+}
+
+// Gerar slots disponíveis considerando os horários dos profissionais
+function generateAvailableSlots(dateString: string, professionalId?: string, professionalSchedules?: Map<string, any>, businessData?: any, selectedService?: any, professionals?: any[], occupiedSlots?: any[]): TimeSlot[] {
+  if (!businessData || !selectedService || !dateString) return []
+
+  const date = parseDate(dateString)
+  const dayOfWeek = getBrazilDayNumber(date)
+  
+  try {
+    let workingHours: { start: string; end: string }[]
+
+    if (professionalId && professionalSchedules?.has(professionalId)) {
+      // 🆕 Usar horários específicos do profissional
+      const schedule = professionalSchedules.get(professionalId)!
+      
+      // Verificar se o profissional trabalha neste dia
+      if (schedule.workingDays && !schedule.workingDays.includes(dayOfWeek)) {
+        console.log(`Professional ${professionalId} doesn't work on day ${dayOfWeek}`)
+        return []
+      }
+
+      // Usar horários específicos se configurados
+      if (schedule.workingHours && schedule.workingHours[dayOfWeek]) {
+        workingHours = schedule.workingHours[dayOfWeek].periods || []
+        
+        // Remover intervalos (breaks) dos horários de trabalho
+        if (schedule.workingHours[dayOfWeek].breaks) {
+          workingHours = removeBreaksFromWorkingHours(workingHours, schedule.workingHours[dayOfWeek].breaks)
+        }
+      } else {
+        // Fallback para horários do estabelecimento
+        const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
+        if (!businessHours) return []
+        workingHours = [{ start: businessHours.start, end: businessHours.end }]
+      }
+    } else if (professionalId === null || professionalId === undefined) {
+      // 🆕 Lógica "Qualquer Profissional" - usar horários do estabelecimento mas verificar disponibilidade de pelo menos um profissional
+      const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
+      if (!businessHours) return []
+      workingHours = [{ start: businessHours.start, end: businessHours.end }]
+    } else {
+      // Fallback para horários do estabelecimento
+      const businessHours = getBusinessHoursForDay(businessData, dayOfWeek)
+      if (!businessHours) return []
+      workingHours = [{ start: businessHours.start, end: businessHours.end }]
+    }
+
+    // Gerar slots para cada período de trabalho
+    const allSlots: TimeSlot[] = []
+    for (const period of workingHours) {
+      const periodSlots = generateSlotsForPeriod(
+        period.start, 
+        period.end, 
+        selectedService.duration,
+        dateString,
+        professionalId,
+        professionalSchedules,
+        professionals,
+        occupiedSlots
+      )
+      allSlots.push(...periodSlots)
+    }
+
+    return allSlots
+  } catch (error) {
+    console.error('Error generating slots:', error)
+    return []
+  }
+}
+
+// Obter horários do estabelecimento para um dia específico
+function getBusinessHoursForDay(businessData: any, dayOfWeek: number) {
+  if (!businessData?.operatingHours) return null
+  
+  const businessHours = businessData.operatingHours[dayOfWeek.toString()]
+  if (!businessHours?.isOpen) return null
+  
+  return businessHours
+}
+
+// Remover intervalos (breaks) dos períodos de trabalho
+function removeBreaksFromWorkingHours(workingHours: { start: string; end: string }[], breaks: { start: string; end: string }[]) {
+  const result: { start: string; end: string }[] = []
+  
+  for (const period of workingHours) {
+    let currentPeriods = [period]
+    
+    // Para cada intervalo, dividir os períodos
+    for (const breakTime of breaks) {
+      const newPeriods: { start: string; end: string }[] = []
+      
+      for (const currentPeriod of currentPeriods) {
+        const periodStart = timeToMinutes(currentPeriod.start)
+        const periodEnd = timeToMinutes(currentPeriod.end)
+        const breakStart = timeToMinutes(breakTime.start)
+        const breakEnd = timeToMinutes(breakTime.end)
+        
+        if (breakEnd <= periodStart || breakStart >= periodEnd) {
+          // Intervalo não afeta este período
+          newPeriods.push(currentPeriod)
+        } else {
+          // Intervalo divide este período
+          if (breakStart > periodStart) {
+            // Período antes do intervalo
+            newPeriods.push({
+              start: currentPeriod.start,
+              end: minutesToTime(breakStart)
+            })
+          }
+          if (breakEnd < periodEnd) {
+            // Período após o intervalo
+            newPeriods.push({
+              start: minutesToTime(breakEnd),
+              end: currentPeriod.end
+            })
+          }
+        }
+      }
+      
+      currentPeriods = newPeriods
+    }
+    
+    result.push(...currentPeriods)
+  }
+  
+  return result
+}
+
+// Gerar slots para um período específico
+function generateSlotsForPeriod(
+  startTime: string, 
+  endTime: string, 
+  serviceDuration: number,
+  dateString: string,
+  professionalId?: string,
+  professionalSchedules?: Map<string, any>,
+  professionals?: any[],
+  occupiedSlots?: any[]
+): TimeSlot[] {
+  const slots: TimeSlot[] = []
+  const startMinutes = timeToMinutes(startTime)
+  const endMinutes = timeToMinutes(endTime)
+  
+  // Gerar slots de 30 em 30 minutos
+  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += 30) {
+    const slotTime = minutesToTime(minutes)
+    const available = isTimeSlotAvailable(
+      slotTime, 
+      dateString, 
+      serviceDuration, 
+      professionalId, 
+      professionalSchedules, 
+      professionals, 
+      occupiedSlots
+    )
+    
+    slots.push({
+      time: slotTime,
+      available,
+      professionalId
+    })
+  }
+  
+  return slots
+}
+
+// Verificar se um horário específico está disponível
+function isTimeSlotAvailable(
+  time: string, 
+  dateString: string, 
+  serviceDuration: number,
+  professionalId?: string,
+  professionalSchedules?: Map<string, any>,
+  professionals?: any[],
+  occupiedSlots?: any[]
+): boolean {
+  const slotStartMinutes = timeToMinutes(time)
+  const slotEndMinutes = slotStartMinutes + serviceDuration
+  
+  // 🕒 Verificar se o horário já passou (apenas para hoje)
+  if (dateString) {
+    const selectedDateParsed = parseDate(dateString)
+    const now = getBrazilNow()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selectedDateOnly = new Date(selectedDateParsed.getFullYear(), selectedDateParsed.getMonth(), selectedDateParsed.getDate())
+    
+    // Se é hoje, verificar se o horário já passou
+    if (selectedDateOnly.getTime() === today.getTime()) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes()
+      if (slotStartMinutes <= nowMinutes) {
+        return false // Horário já passou
+      }
+    }
+  }
+  
+  // Verificar conflitos com agendamentos existentes
+  if (!occupiedSlots) return true
+  
+  if (professionalId === null || professionalId === undefined) {
+    // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
+    if (!professionals || professionals.length === 0) return true
+    
+    const allProfessionalsOccupied = professionals.every(prof => 
+      occupiedSlots.some(slot => {
+        if (slot.professionalId !== prof.id) return false
+        
+        const aptStartMinutes = timeToMinutes(slot.startTime)
+        const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+        
+        return (
+          (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+          (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+          (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+        )
+      })
+    )
+    
+    return !allProfessionalsOccupied
+  } else {
+    // Profissional específico: verificar apenas conflitos deste profissional
+    return !occupiedSlots.some(slot => {
+      if (slot.professionalId !== professionalId) return false
+      
+      const aptStartMinutes = timeToMinutes(slot.startTime)
+      const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+      
+      return (
+        (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+        (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+        (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+      )
+    })
+  }
+}
+
+// Agrupar slots por período do dia
+function groupSlotsByPeriod(slots: TimeSlot[]) {
+  const morning: TimeSlot[] = []
+  const afternoon: TimeSlot[] = []
+  const night: TimeSlot[] = []
+  
+  for (const slot of slots) {
+    const hour = parseInt(slot.time.split(':')[0])
+    
+    if (hour >= 6 && hour < 12) {
+      morning.push(slot)
+    } else if (hour >= 12 && hour < 18) {
+      afternoon.push(slot)
+    } else {
+      night.push(slot)
+    }
+  }
+  
+  return { morning, afternoon, night }
+}
+
+// Calcular estado inicial inteligente das seções
+function calculateInitialExpandedState(groupedSlots: { morning: TimeSlot[], afternoon: TimeSlot[], night: TimeSlot[] }) {
+  const periods = [
+    { name: 'morning', slots: groupedSlots.morning },
+    { name: 'afternoon', slots: groupedSlots.afternoon },
+    { name: 'night', slots: groupedSlots.night }
+  ].filter(p => p.slots.length > 0)
+  
+  // Se só tem um período, expandir automaticamente
+  if (periods.length === 1) {
+    return {
+      morning: periods[0].name === 'morning',
+      afternoon: periods[0].name === 'afternoon', 
+      night: periods[0].name === 'night'
+    }
+  }
+  
+  // Se tem múltiplos períodos, deixar todos contraídos inicialmente
+  return {
+    morning: false,
+    afternoon: false,
+    night: false
+  }
+}
+
+// Obter período de um horário selecionado
+function getSelectedTimePeriod(time: string) {
+  const hour = parseInt(time.split(':')[0])
+  
+  if (hour >= 6 && hour < 12) {
+    return 'morning'
+  } else if (hour >= 12 && hour < 18) {
+    return 'afternoon'
+  } else {
+    return 'night'
+  }
+}
+
+// Utilitário para converter horário em minutos
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Utilitário para converter minutos em horário
+function minutesToTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+}
+
+// Formatar moeda
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value)
 }
