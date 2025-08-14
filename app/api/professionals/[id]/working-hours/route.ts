@@ -30,8 +30,38 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Retornar horários ou valores padrão
-    const parsedWorkingDays = professional.workingDays ? JSON.parse(String(professional.workingDays)) : null
-    const parsedWorkingHours = professional.workingHours ? JSON.parse(String(professional.workingHours)) : null
+    let parsedWorkingDays = null
+    let parsedWorkingHours = null
+    
+    // Parse workingDays - verificar se já é objeto ou string
+    if (professional.workingDays) {
+      try {
+        if (typeof professional.workingDays === 'string') {
+          parsedWorkingDays = JSON.parse(professional.workingDays)
+        } else {
+          parsedWorkingDays = professional.workingDays
+        }
+        console.log('✅ [DEBUG GET] workingDays parseados:', parsedWorkingDays)
+      } catch (error) {
+        console.error('❌ [DEBUG GET] Erro ao fazer parse de workingDays:', error)
+        parsedWorkingDays = null
+      }
+    }
+    
+    // Parse workingHours - verificar se já é objeto ou string  
+    if (professional.workingHours) {
+      try {
+        if (typeof professional.workingHours === 'string') {
+          parsedWorkingHours = JSON.parse(professional.workingHours)
+        } else {
+          parsedWorkingHours = professional.workingHours
+        }
+        console.log('✅ [DEBUG GET] workingHours parseados:', parsedWorkingHours)
+      } catch (error) {
+        console.error('❌ [DEBUG GET] Erro ao fazer parse de workingHours:', error)
+        parsedWorkingHours = null
+      }
+    }
     
     const workingDays = parsedWorkingDays || {
       monday: true,

@@ -6,6 +6,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const professionalId = params.id
 
+    console.log('🔍 [DEBUG PUBLIC API] ========== INÍCIO PUBLIC API ==========')
+    console.log('🔍 [DEBUG PUBLIC API] ID do profissional:', professionalId)
+
     if (!professionalId) {
       return NextResponse.json(
         { message: 'ID do profissional é obrigatório' },
@@ -26,7 +29,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }
     })
 
+    console.log('🔍 [DEBUG PUBLIC API] Profissional encontrado:', professional?.name)
+    console.log('🔍 [DEBUG PUBLIC API] workingDays RAW do banco:', professional?.workingDays)
+    console.log('🔍 [DEBUG PUBLIC API] workingHours RAW do banco:', professional?.workingHours)
+    console.log('🔍 [DEBUG PUBLIC API] Tipos:', {
+      workingDays: typeof professional?.workingDays,
+      workingHours: typeof professional?.workingHours
+    })
+
     if (!professional) {
+      console.log('❌ [DEBUG PUBLIC API] Profissional não encontrado')
       return NextResponse.json(
         { message: 'Profissional não encontrado' },
         { status: 404 }
@@ -46,7 +58,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Parse e converter working days se existir
     if (professional.workingDays) {
       try {
-        const workingDaysObj = JSON.parse(String(professional.workingDays))
+        let workingDaysObj
+        if (typeof professional.workingDays === 'string') {
+          workingDaysObj = JSON.parse(professional.workingDays)
+        } else {
+          workingDaysObj = professional.workingDays
+        }
+        
         console.log('🔍 [DEBUG PUBLIC API] workingDays originais:', workingDaysObj)
         
         // Converter de formato { monday: true, tuesday: false, ... } para [1, 2, 3, 4, 5]
@@ -67,14 +85,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           console.log('✅ [DEBUG PUBLIC API] workingDays convertidos:', workingDaysArray)
         }
       } catch (error) {
-        console.warn('Erro ao fazer parse dos workingDays:', error)
+        console.warn('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingDays:', error)
       }
     }
 
     // Parse e converter working hours se existir
     if (professional.workingHours) {
       try {
-        const workingHoursObj = JSON.parse(String(professional.workingHours))
+        let workingHoursObj
+        if (typeof professional.workingHours === 'string') {
+          workingHoursObj = JSON.parse(professional.workingHours)
+        } else {
+          workingHoursObj = professional.workingHours
+        }
+        
         console.log('🔍 [DEBUG PUBLIC API] workingHours originais:', workingHoursObj)
         
         // Converter de formato { monday: { start: "10:00", end: "16:00", breaks: [...] } } 
