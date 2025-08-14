@@ -2427,7 +2427,7 @@ export default function AgendaPage() {
                 {confirmDialog.type === 'cancel' && (
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3 mt-3">
                     <p className="text-amber-400 text-xs md:text-sm">
-                      ℹ️ O agendamento será marcado como cancelado e poderá ser reagendado posteriormente.
+                      ℹ️ O agendamento será marcado como cancelado e não poderá ser reagendado posteriormente.
                     </p>
                   </div>
                 )}
