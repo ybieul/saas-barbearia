@@ -451,17 +451,6 @@ export default function AgendamentoPage() {
     }
   }, [selectedDate])
 
-  // Agrupar horários por período
-  const groupSlotsByPeriod = (slots: any[]) => {
-    const groups = {
-      morning: slots.filter(slot => slot.period === 'morning'),
-      afternoon: slots.filter(slot => slot.period === 'afternoon'),
-      night: slots.filter(slot => slot.period === 'night')
-    }
-    
-    return groups
-  }
-
   // Calcular estado inicial inteligente das seções baseado na hora atual
   const calculateInitialExpandedState = (groupedSlots: any) => {
     if (!selectedDate) return { morning: false, afternoon: false, night: false }
