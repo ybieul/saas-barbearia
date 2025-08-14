@@ -403,7 +403,7 @@ export default function AgendamentoPage() {
   }, [selectedDate])
 
   // Gerar horários disponíveis baseados nos horários de funcionamento
-  const generateAvailableSlots = async (date: string) => {
+  const generateAvailableSlots = (date: string) => {
     if (!selectedServiceId || workingHours.length === 0) return []
 
     // Converter data para timezone brasileiro
@@ -419,29 +419,9 @@ export default function AgendamentoPage() {
     
     if (!daySchedule) return []
 
-    // 🔥 NOVA VALIDAÇÃO: Verificar se profissional trabalha neste dia (se selecionado)
-    if (selectedProfessional) {
-      try {
-        const response = await fetch(`/api/professionals/${selectedProfessional.id}/working-hours`)
-        
-        if (response.ok) {
-          const data = await response.json()
-          const professionalSchedule = data.professional
-          
-          // Verificar se profissional trabalha neste dia
-          if (professionalSchedule && professionalSchedule.workingDays) {
-            if (!professionalSchedule.workingDays[dayName]) {
-              console.log(`🚫 Profissional ${selectedProfessional.name} não trabalha em ${dayName}`)
-              return [] // Profissional não trabalha neste dia
-            }
-            console.log(`✅ Profissional ${selectedProfessional.name} trabalha em ${dayName}`)
-          }
-        }
-      } catch (error) {
-        console.warn('Erro ao verificar horários do profissional:', error)
-        // Continuar com horários do estabelecimento em caso de erro
-      }
-    }
+    // Nota: A validação completa de horários específicos dos profissionais 
+    // será feita pela API durante o agendamento. Aqui usamos apenas horários do estabelecimento
+    // para manter a interface responsiva.
 
     const slots = []
     const [startHour, startMinute] = daySchedule.startTime.split(':').map(Number)
