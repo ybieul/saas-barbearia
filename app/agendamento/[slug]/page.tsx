@@ -1545,7 +1545,14 @@ export default function AgendamentoPage() {
                   
                   {selectedDate ? (
                     (() => {
+                      console.log('🎯 [DEBUG RENDER] ========== RENDERIZANDO SLOTS ==========')
+                      console.log('🎯 [DEBUG RENDER] selectedDate:', selectedDate)
+                      console.log('🎯 [DEBUG RENDER] selectedProfessional:', selectedProfessional)
+                      console.log('🎯 [DEBUG RENDER] professionalSchedules:', professionalSchedules)
+                      
                       const selectedServiceData = getMainService()
+                      console.log('🎯 [DEBUG RENDER] selectedServiceData:', selectedServiceData)
+                      
                       const availableSlots = generateAvailableSlots(
                         selectedDate,
                         selectedProfessional?.id,
@@ -1555,7 +1562,12 @@ export default function AgendamentoPage() {
                         professionals,
                         occupiedSlots
                       )
+                      
+                      console.log('🎯 [DEBUG RENDER] availableSlots retornados:', availableSlots)
+                      console.log('🎯 [DEBUG RENDER] availableSlots.length:', availableSlots.length)
+                      
                       const groupedSlots = groupSlotsByPeriod(availableSlots)
+                      console.log('🎯 [DEBUG RENDER] groupedSlots:', groupedSlots)
                       
                       if (availableSlots.length === 0) {
                         return (
