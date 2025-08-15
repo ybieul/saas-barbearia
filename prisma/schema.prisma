@@ -106,10 +106,12 @@ model Professional {
   workingHours  Json?    // Horários de trabalho
   
   // Relations
-  tenantId     String
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  services     Service[]
+  tenantId           String
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  services           Service[]
+  schedules          ProfessionalSchedule[]
+  scheduleExceptions ScheduleException[]
 
   @@index([tenantId])
   @@map("professionals")
@@ -319,8 +321,54 @@ model WorkingHours {
 }
 
 // ============================================
+// GERENCIAMENTO DE HORÁRIOS DOS PROFISSIONAIS
+// ============================================
+
+// Horários padrão semanais dos profissionais
+model ProfessionalSchedule {
+  id            String   @id @default(cuid())
+  professionalId String  @map("professional_id")
+  dayOfWeek     Int      @map("day_of_week") // 0=Domingo, 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta, 6=Sábado
+  startTime     String   @map("start_time") // Formato HH:MM:SS
+  endTime       String   @map("end_time")   // Formato HH:MM:SS
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, dayOfWeek])
+  @@index([professionalId])
+  @@map("professional_schedules")
+}
+
+// Bloqueios e exceções pontuais na agenda
+model ScheduleException {
+  id            String              @id @default(cuid())
+  professionalId String             @map("professional_id")
+  startDatetime DateTime           @map("start_datetime")
+  endDatetime   DateTime           @map("end_datetime")
+  reason        String?            @db.VarChar(500)
+  type          ScheduleExceptionType @default(BLOCK)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId])
+  @@index([startDatetime, endDatetime])
+  @@map("schedule_exceptions")
+}
+
+// ============================================
 // ENUMS
 // ============================================
+
+enum ScheduleExceptionType {
+  BLOCK   // Bloqueio pontual (ex: almoço, intervalo)
+  DAY_OFF // Folga/Férias
+}
 
 enum UserRole {
   OWNER        // Dono da barbearia
