@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 
+// Função utilitária para parse robusto de JSON com múltiplos escapes
+function parseJsonSafely(jsonString: any): any {
+  if (typeof jsonString !== 'string') {
+    return jsonString
+  }
+  
+  let result = jsonString
+  let parseAttempts = 0
+  const maxAttempts = 5 // Limite para evitar loop infinito
+  
+  while (parseAttempts < maxAttempts) {
+    try {
+      const parsed = JSON.parse(result)
+      // Se conseguiu fazer parse e não é mais string, retorna
+      if (typeof parsed !== 'string') {
+        console.log(`✅ Parse bem-sucedido após ${parseAttempts + 1} tentativa(s)`)
+        return parsed
+      }
+      // Se ainda é string, continua tentando fazer parse
+      result = parsed
+      parseAttempts++
+    } catch (error) {
+      console.error(`❌ Erro no parse após ${parseAttempts + 1} tentativa(s):`, error)
+      return null
+    }
+  }
+  
+  console.warn(`⚠️ Máximo de tentativas de parse atingido (${maxAttempts})`)
+  return null
+}
+
 // GET - Buscar horários de trabalho de um profissional específico
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -33,48 +64,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let parsedWorkingDays = null
     let parsedWorkingHours = null
     
-    // Parse workingDays - verificar se já é objeto ou string (com possível escape duplo)
+    // Parse workingDays usando função robusta
     if (professional.workingDays) {
-      try {
-        if (typeof professional.workingDays === 'string') {
-          try {
-            parsedWorkingDays = JSON.parse(professional.workingDays)
-          } catch (firstError) {
-            // Tentar duplo parse se o primeiro falhar (escape duplo)
-            console.log('🔄 [DEBUG GET] Tentando duplo parse para workingDays')
-            parsedWorkingDays = JSON.parse(JSON.parse(professional.workingDays))
-          }
-        } else {
-          parsedWorkingDays = professional.workingDays
-        }
-        console.log('✅ [DEBUG GET] workingDays parseados:', parsedWorkingDays)
-      } catch (error) {
-        console.error('❌ [DEBUG GET] Erro ao fazer parse de workingDays:', error)
-        console.error('❌ [DEBUG GET] workingDays raw:', professional.workingDays)
-        parsedWorkingDays = null
-      }
+      parsedWorkingDays = parseJsonSafely(professional.workingDays)
+      console.log('✅ [DEBUG GET] workingDays parseados:', parsedWorkingDays)
     }
     
-    // Parse workingHours - verificar se já é objeto ou string (com possível escape duplo)
+    // Parse workingHours usando função robusta
     if (professional.workingHours) {
-      try {
-        if (typeof professional.workingHours === 'string') {
-          try {
-            parsedWorkingHours = JSON.parse(professional.workingHours)
-          } catch (firstError) {
-            // Tentar duplo parse se o primeiro falhar (escape duplo)
-            console.log('🔄 [DEBUG GET] Tentando duplo parse para workingHours')
-            parsedWorkingHours = JSON.parse(JSON.parse(professional.workingHours))
-          }
-        } else {
-          parsedWorkingHours = professional.workingHours
-        }
-        console.log('✅ [DEBUG GET] workingHours parseados:', parsedWorkingHours)
-      } catch (error) {
-        console.error('❌ [DEBUG GET] Erro ao fazer parse de workingHours:', error)
-        console.error('❌ [DEBUG GET] workingHours raw:', professional.workingHours)
-        parsedWorkingHours = null
-      }
+      parsedWorkingHours = parseJsonSafely(professional.workingHours)
+      console.log('✅ [DEBUG GET] workingHours parseados:', parsedWorkingHours)
     }
     
     const workingDays = parsedWorkingDays || {

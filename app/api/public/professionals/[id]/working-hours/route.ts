@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Função utilitária para parse robusto de JSON com múltiplos escapes
+function parseJsonSafely(jsonString: any): any {
+  if (typeof jsonString !== 'string') {
+    return jsonString
+  }
+  
+  let result = jsonString
+  let parseAttempts = 0
+  const maxAttempts = 5 // Limite para evitar loop infinito
+  
+  while (parseAttempts < maxAttempts) {
+    try {
+      const parsed = JSON.parse(result)
+      // Se conseguiu fazer parse e não é mais string, retorna
+      if (typeof parsed !== 'string') {
+        console.log(`✅ Parse bem-sucedido após ${parseAttempts + 1} tentativa(s)`)
+        return parsed
+      }
+      // Se ainda é string, continua tentando fazer parse
+      result = parsed
+      parseAttempts++
+    } catch (error) {
+      console.error(`❌ Erro no parse após ${parseAttempts + 1} tentativa(s):`, error)
+      return null
+    }
+  }
+  
+  console.warn(`⚠️ Máximo de tentativas de parse atingido (${maxAttempts})`)
+  return null
+}
+
 // GET - Buscar horários de trabalho de um profissional específico (versão pública)
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -58,21 +89,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Parse e converter working days se existir
     if (professional.workingDays) {
       try {
-        let workingDaysObj
-        if (typeof professional.workingDays === 'string') {
-          // Tentar parse simples primeiro
-          try {
-            workingDaysObj = JSON.parse(professional.workingDays)
-          } catch (firstError) {
-            // Se falhar, pode ser que tenha escape duplo - tentar duplo parse
-            console.log('🔄 [DEBUG PUBLIC API] Tentando duplo parse para workingDays')
-            workingDaysObj = JSON.parse(JSON.parse(professional.workingDays))
-          }
-        } else {
-          workingDaysObj = professional.workingDays
-        }
+        const workingDaysObj = parseJsonSafely(professional.workingDays)
         
-        console.log('🔍 [DEBUG PUBLIC API] workingDays originais:', workingDaysObj)
+        console.log('� [DEBUG PUBLIC API] workingDays após parse robusto:', workingDaysObj)
         
         // Converter de formato { monday: true, tuesday: false, ... } para [1, 2, 3, 4, 5]
         if (typeof workingDaysObj === 'object' && workingDaysObj !== null) {
@@ -92,7 +111,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           console.log('✅ [DEBUG PUBLIC API] workingDays convertidos:', workingDaysArray)
         }
       } catch (error) {
-        console.error('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingDays:', error)
+        console.error('❌ [DEBUG PUBLIC API] Erro ao processar workingDays:', error)
         console.error('❌ [DEBUG PUBLIC API] workingDays raw que causou erro:', professional.workingDays)
       }
     }
@@ -100,50 +119,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Parse e converter working hours se existir
     if (professional.workingHours) {
       try {
-        let workingHoursObj
-        if (typeof professional.workingHours === 'string') {
-          workingHoursObj = JSON.parse(professional.workingHours)
-        } else {
-          workingHoursObj = professional.workingHours
-        }
+        const workingHoursObj = parseJsonSafely(professional.workingHours)
         
-        console.log('🔍 [DEBUG PUBLIC API] workingHours originais:', workingHoursObj)
-        
-    // Parse e converter working hours se existir
-    if (professional.workingHours) {
-      try {
-        let workingHoursObj
-        if (typeof professional.workingHours === 'string') {
-          // Tentar parse simples primeiro
-          try {
-            workingHoursObj = JSON.parse(professional.workingHours)
-          } catch (firstError) {
-            // Se falhar, pode ser que tenha escape duplo - tentar duplo parse
-            console.log('🔄 [DEBUG PUBLIC API] Tentando duplo parse para workingHours')
-            workingHoursObj = JSON.parse(JSON.parse(professional.workingHours))
-          }
-        } else {
-          workingHoursObj = professional.workingHours
-        }
-        
-        console.log('🔍 [DEBUG PUBLIC API] workingHours originais:', workingHoursObj)
-        console.log('🔍 [DEBUG PUBLIC API] workingHours keys:', Object.keys(workingHoursObj))
-        console.log('🔍 [DEBUG PUBLIC API] workingHours types:', typeof workingHoursObj)
+        console.log('🔍 [DEBUG PUBLIC API] workingHours após parse robusto:', workingHoursObj)
+        console.log('� [DEBUG PUBLIC API] workingHours keys:', Object.keys(workingHoursObj || {}))
         
         // Verificar se já está no formato numérico ou se precisa converter
-        const firstKey = Object.keys(workingHoursObj)[0]
-        const isNumericFormat = !isNaN(Number(firstKey))
-        
-        console.log('🔍 [DEBUG PUBLIC API] First key:', firstKey, 'isNumericFormat:', isNumericFormat)
-        
-        if (isNumericFormat) {
-          // Já está no formato correto para a página pública
-          processedData.professional.workingHours = workingHoursObj
-          console.log('✅ [DEBUG PUBLIC API] workingHours já no formato numérico:', workingHoursObj)
-        } else {
-          // Converter de formato { monday: { start: "10:00", end: "16:00", breaks: [...] } } 
-          // para { "1": { periods: [{ start: "10:00", end: "16:00" }], breaks: [...] } }
-          if (typeof workingHoursObj === 'object' && workingHoursObj !== null) {
+        if (workingHoursObj && typeof workingHoursObj === 'object') {
+          const firstKey = Object.keys(workingHoursObj)[0]
+          const isNumericFormat = !isNaN(Number(firstKey))
+          
+          console.log('🔍 [DEBUG PUBLIC API] First key:', firstKey, 'isNumericFormat:', isNumericFormat)
+          
+          if (isNumericFormat) {
+            // Já está no formato correto para a página pública
+            processedData.professional.workingHours = workingHoursObj
+            console.log('✅ [DEBUG PUBLIC API] workingHours já no formato numérico:', workingHoursObj)
+          } else {
+            // Converter de formato { monday: { start: "10:00", end: "16:00", breaks: [...] } } 
+            // para { "1": { periods: [{ start: "10:00", end: "16:00" }], breaks: [...] } }
             const dayMapping = {
               sunday: 0, monday: 1, tuesday: 2, wednesday: 3, 
               thursday: 4, friday: 5, saturday: 6
@@ -169,10 +163,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           }
         }
       } catch (error) {
-        console.error('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingHours:', error)
+        console.error('❌ [DEBUG PUBLIC API] Erro ao processar workingHours:', error)
         console.error('❌ [DEBUG PUBLIC API] workingHours raw que causou erro:', professional.workingHours)
-      }
-    }
       }
     }
 
