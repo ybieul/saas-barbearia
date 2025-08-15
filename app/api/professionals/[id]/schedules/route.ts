@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { isValidTimeFormat, normalizeTimeFormat, isValidTimeRange } from '@/lib/schedule-utils'
+import { isValidTimeFormat, normalizeTimeFormat, isValidTimeRange, timeToMinutes } from '@/lib/schedule-utils'
 import type { ProfessionalScheduleData } from '@/lib/types/schedule'
 
 // GET - Buscar horários padrão do profissional
@@ -28,10 +28,13 @@ export async function GET(
       )
     }
 
-    // Buscar horários padrão
+    // Buscar horários padrão com intervalos
     const schedules = await prisma.professionalSchedule.findMany({
       where: {
         professionalId
+      },
+      include: {
+        recurringBreaks: true
       },
       orderBy: {
         dayOfWeek: 'asc'
@@ -45,7 +48,11 @@ export async function GET(
         dayOfWeek,
         startTime: schedule?.startTime || null,
         endTime: schedule?.endTime || null,
-        isWorking: !!schedule
+        isWorking: !!schedule,
+        breaks: schedule?.recurringBreaks?.map(breakItem => ({
+          startTime: breakItem.startTime,
+          endTime: breakItem.endTime
+        })) || []
       }
     })
 
@@ -101,7 +108,7 @@ export async function PUT(
 
     // Validar cada horário
     for (const schedule of scheduleData) {
-      const { dayOfWeek, startTime, endTime } = schedule
+      const { dayOfWeek, startTime, endTime, breaks } = schedule
 
       // Validar dia da semana
       if (typeof dayOfWeek !== 'number' || dayOfWeek < 0 || dayOfWeek > 6) {
@@ -133,6 +140,45 @@ export async function PUT(
           { status: 400 }
         )
       }
+
+      // Validar intervalos (breaks) se fornecidos
+      if (breaks && breaks.length > 0) {
+        for (const breakItem of breaks) {
+          if (!isValidTimeFormat(breakItem.startTime)) {
+            return NextResponse.json(
+              { error: `Formato de hora de início do intervalo inválido: ${breakItem.startTime}. Use HH:MM.` },
+              { status: 400 }
+            )
+          }
+
+          if (!isValidTimeFormat(breakItem.endTime)) {
+            return NextResponse.json(
+              { error: `Formato de hora de fim do intervalo inválido: ${breakItem.endTime}. Use HH:MM.` },
+              { status: 400 }
+            )
+          }
+
+          if (!isValidTimeRange(breakItem.startTime, breakItem.endTime)) {
+            return NextResponse.json(
+              { error: `Hora de início do intervalo (${breakItem.startTime}) deve ser menor que hora de fim (${breakItem.endTime}).` },
+              { status: 400 }
+            )
+          }
+
+          // Verificar se o intervalo está dentro do horário de trabalho
+          const workStart = timeToMinutes(startTime)
+          const workEnd = timeToMinutes(endTime)
+          const breakStart = timeToMinutes(breakItem.startTime)
+          const breakEnd = timeToMinutes(breakItem.endTime)
+
+          if (breakStart < workStart || breakEnd > workEnd) {
+            return NextResponse.json(
+              { error: `Intervalo (${breakItem.startTime} - ${breakItem.endTime}) deve estar dentro do horário de trabalho (${startTime} - ${endTime}).` },
+              { status: 400 }
+            )
+          }
+        }
+      }
     }
 
     // Verificar duplicatas de dayOfWeek
@@ -146,7 +192,7 @@ export async function PUT(
 
     // Usar transação para garantir consistência
     await prisma.$transaction(async (tx) => {
-      // 1. Deletar horários existentes
+      // 1. Deletar horários existentes (incluirá intervalos por CASCADE)
       await tx.professionalSchedule.deleteMany({
         where: {
           professionalId
@@ -155,14 +201,28 @@ export async function PUT(
 
       // 2. Criar novos horários
       if (scheduleData.length > 0) {
-        await tx.professionalSchedule.createMany({
-          data: scheduleData.map(schedule => ({
-            professionalId,
-            dayOfWeek: schedule.dayOfWeek,
-            startTime: normalizeTimeFormat(schedule.startTime),
-            endTime: normalizeTimeFormat(schedule.endTime)
-          }))
-        })
+        for (const schedule of scheduleData) {
+          // Criar o horário base
+          const createdSchedule = await tx.professionalSchedule.create({
+            data: {
+              professionalId,
+              dayOfWeek: schedule.dayOfWeek,
+              startTime: normalizeTimeFormat(schedule.startTime),
+              endTime: normalizeTimeFormat(schedule.endTime)
+            }
+          })
+
+          // Criar intervalos recorrentes se existirem
+          if (schedule.breaks && schedule.breaks.length > 0) {
+            await tx.recurringBreak.createMany({
+              data: schedule.breaks.map(breakItem => ({
+                scheduleId: createdSchedule.id,
+                startTime: breakItem.startTime,
+                endTime: breakItem.endTime
+              }))
+            })
+          }
+        }
       }
     })
 

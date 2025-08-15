@@ -90,6 +90,9 @@ export async function GET(
       where: {
         professionalId,
         dayOfWeek
+      },
+      include: {
+        recurringBreaks: true
       }
     })
 
@@ -113,6 +116,35 @@ export async function GET(
       30, // Intervalo padrão de 30min
       serviceDuration
     )
+
+    // PASSO 2.5: Remover slots que estão dentro dos intervalos recorrentes (como almoço)
+    const recurringBreaks = await prisma.recurringBreak.findMany({
+      where: {
+        scheduleId: schedule.id
+      }
+    })
+
+    let availableSlotsAfterBreaks = initialSlots.filter(slotTime => {
+      // Converter slot time para minutos para comparação
+      const [slotHours, slotMinutes] = slotTime.split(':').map(Number)
+      const slotTimeInMinutes = slotHours * 60 + slotMinutes
+      
+      // Verificar se o slot está dentro de algum intervalo recorrente
+      for (const breakItem of recurringBreaks) {
+        const [breakStartHours, breakStartMinutes] = breakItem.startTime.split(':').map(Number)
+        const [breakEndHours, breakEndMinutes] = breakItem.endTime.split(':').map(Number)
+        
+        const breakStartInMinutes = breakStartHours * 60 + breakStartMinutes
+        const breakEndInMinutes = breakEndHours * 60 + breakEndMinutes
+        
+        // Se o slot está dentro do intervalo, remover
+        if (slotTimeInMinutes >= breakStartInMinutes && slotTimeInMinutes < breakEndInMinutes) {
+          return false
+        }
+      }
+      
+      return true
+    })
 
     // PASSO 3: Buscar agendamentos existentes para o dia
     const startOfTargetDay = startOfDay(targetDate)
@@ -167,7 +199,7 @@ export async function GET(
     })
 
     // PASSO 5: Processar slots e marcar indisponibilidade
-    const availableSlots: AvailabilitySlot[] = initialSlots.map(time => {
+    const availableSlots: AvailabilitySlot[] = availableSlotsAfterBreaks.map(time => {
       const [hours, minutes] = time.split(':').map(Number)
       const slotStart = new Date(targetDate)
       slotStart.setHours(hours, minutes, 0, 0)

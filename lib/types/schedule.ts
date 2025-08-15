@@ -1,9 +1,15 @@
 // Tipos para gerenciamento de horários dos profissionais
 
+export interface RecurringBreakData {
+  startTime: string // Formato HH:MM
+  endTime: string   // Formato HH:MM
+}
+
 export interface ProfessionalScheduleData {
   dayOfWeek: number
   startTime: string
   endTime: string
+  breaks?: RecurringBreakData[] // Intervalos recorrentes (como almoço)
 }
 
 export interface CreateScheduleExceptionData {

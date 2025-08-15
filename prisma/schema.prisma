@@ -336,10 +336,27 @@ model ProfessionalSchedule {
 
   // Relations
   professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  recurringBreaks RecurringBreak[]
 
   @@unique([professionalId, dayOfWeek])
   @@index([professionalId])
   @@map("professional_schedules")
+}
+
+// Intervalos recorrentes (como almoço) no horário de trabalho
+model RecurringBreak {
+  id         String   @id @default(cuid())
+  scheduleId String   @map("schedule_id")
+  startTime  String   @map("start_time") // Formato HH:MM
+  endTime    String   @map("end_time")   // Formato HH:MM
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  schedule ProfessionalSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@map("recurring_breaks")
 }
 
 // Bloqueios e exceções pontuais na agenda

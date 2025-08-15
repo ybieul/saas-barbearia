@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useProfessionalSchedule } from "@/hooks/use-schedule"
 import { Save, Clock } from "lucide-react"
-import type { ProfessionalScheduleData } from "@/lib/types/schedule"
+import type { ProfessionalScheduleData, RecurringBreakData } from "@/lib/types/schedule"
 
 interface ProfessionalScheduleManagerProps {
   professionalId: string
@@ -19,9 +19,10 @@ interface DaySchedule {
   isActive: boolean
   startTime: string
   endTime: string
+  breaks: RecurringBreakData[]
 }
 
-const DAYS_OF_WEEK: Omit<DaySchedule, 'isActive' | 'startTime' | 'endTime'>[] = [
+const DAYS_OF_WEEK: Pick<DaySchedule, 'dayOfWeek' | 'dayName'>[] = [
   { dayOfWeek: 1, dayName: 'Segunda-feira' },
   { dayOfWeek: 2, dayName: 'Terça-feira' },
   { dayOfWeek: 3, dayName: 'Quarta-feira' },
@@ -46,7 +47,8 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       ...day,
       isActive: false,
       startTime: DEFAULT_START_TIME,
-      endTime: DEFAULT_END_TIME
+      endTime: DEFAULT_END_TIME,
+      breaks: []
     }))
     setSchedules(initialSchedules)
   }, [])
@@ -65,7 +67,8 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
               ...day,
               isActive: existingSchedule?.isWorking || false,
               startTime: existingSchedule?.startTime || DEFAULT_START_TIME,
-              endTime: existingSchedule?.endTime || DEFAULT_END_TIME
+              endTime: existingSchedule?.endTime || DEFAULT_END_TIME,
+              breaks: existingSchedule?.breaks || []
             }
           })
           setSchedules(updatedSchedules)
@@ -114,7 +117,8 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
         .map(schedule => ({
           dayOfWeek: schedule.dayOfWeek,
           startTime: schedule.startTime,
-          endTime: schedule.endTime
+          endTime: schedule.endTime,
+          breaks: schedule.breaks
         }))
 
       const success = await updateSchedule(activeSchedules, professionalId)
