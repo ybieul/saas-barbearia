@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useProfessionalSchedule } from "@/hooks/use-schedule"
-import { Save, Clock } from "lucide-react"
+import { Save, Clock, Plus, Trash2 } from "lucide-react"
 import type { ProfessionalScheduleData, RecurringBreakData } from "@/lib/types/schedule"
 
 interface ProfessionalScheduleManagerProps {
@@ -68,7 +68,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
               isActive: existingSchedule?.isWorking || false,
               startTime: existingSchedule?.startTime || DEFAULT_START_TIME,
               endTime: existingSchedule?.endTime || DEFAULT_END_TIME,
-              breaks: existingSchedule?.breaks || []
+              breaks: [] // Será preenchido quando a API retornar os breaks
             }
           })
           setSchedules(updatedSchedules)
@@ -103,6 +103,46 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
     setSchedules(prev => prev.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { ...schedule, [field]: value }
+        : schedule
+    ))
+  }
+
+  // Adicionar novo intervalo para um dia específico
+  const addBreak = (dayOfWeek: number) => {
+    setSchedules(prev => prev.map(schedule => 
+      schedule.dayOfWeek === dayOfWeek 
+        ? { 
+            ...schedule, 
+            breaks: [...schedule.breaks, { startTime: '12:00', endTime: '13:00' }]
+          }
+        : schedule
+    ))
+  }
+
+  // Remover intervalo de um dia específico
+  const removeBreak = (dayOfWeek: number, breakIndex: number) => {
+    setSchedules(prev => prev.map(schedule => 
+      schedule.dayOfWeek === dayOfWeek 
+        ? { 
+            ...schedule, 
+            breaks: schedule.breaks.filter((_, index) => index !== breakIndex)
+          }
+        : schedule
+    ))
+  }
+
+  // Atualizar horário de um intervalo específico
+  const updateBreak = (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    setSchedules(prev => prev.map(schedule => 
+      schedule.dayOfWeek === dayOfWeek 
+        ? { 
+            ...schedule, 
+            breaks: schedule.breaks.map((breakItem, index) => 
+              index === breakIndex 
+                ? { ...breakItem, [field]: value }
+                : breakItem
+            )
+          }
         : schedule
     ))
   }
@@ -255,6 +295,107 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                     )}
                   </div>
                 </div>
+
+                {/* Seção de Intervalos Recorrentes - apenas para dias ativos */}
+                {schedule.isActive && (
+                  <div className="mt-4 pt-4 border-t border-[#3f3f46]/50">
+                    <div className="space-y-3">
+                      {/* Botão Adicionar Intervalo */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-[#a1a1aa]" />
+                          <span className="text-[#a1a1aa] text-sm font-medium">
+                            Intervalos ({schedule.breaks.length})
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => addBreak(schedule.dayOfWeek)}
+                          className="text-[#10b981] hover:text-[#059669] hover:bg-[#10b981]/10 text-xs h-7 px-2"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Adicionar intervalo
+                        </Button>
+                      </div>
+
+                      {/* Lista de Intervalos Existentes */}
+                      {schedule.breaks.length > 0 && (
+                        <div className="space-y-2">
+                          {schedule.breaks.map((breakItem, breakIndex) => (
+                            <div 
+                              key={breakIndex}
+                              className="flex items-center justify-between bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-[#a1a1aa] text-xs font-medium min-w-[50px]">
+                                  Intervalo
+                                </span>
+                                
+                                {/* Horário de Início do Intervalo */}
+                                <Select
+                                  value={breakItem.startTime}
+                                  onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'startTime', value)}
+                                >
+                                  <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 h-7 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                    {generateTimeOptions().map((time) => (
+                                      <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <span className="text-[#71717a] text-xs">até</span>
+
+                                {/* Horário de Fim do Intervalo */}
+                                <Select
+                                  value={breakItem.endTime}
+                                  onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'endTime', value)}
+                                >
+                                  <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 h-7 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                    {generateTimeOptions().map((time) => (
+                                      <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Botão Remover Intervalo */}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Mensagem quando não há intervalos */}
+                      {schedule.breaks.length === 0 && (
+                        <div className="text-center py-3">
+                          <p className="text-[#71717a] text-xs">
+                            Nenhum intervalo configurado para este dia
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
