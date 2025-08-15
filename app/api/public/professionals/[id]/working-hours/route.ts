@@ -60,7 +60,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       try {
         let workingDaysObj
         if (typeof professional.workingDays === 'string') {
-          workingDaysObj = JSON.parse(professional.workingDays)
+          // Tentar parse simples primeiro
+          try {
+            workingDaysObj = JSON.parse(professional.workingDays)
+          } catch (firstError) {
+            // Se falhar, pode ser que tenha escape duplo - tentar duplo parse
+            console.log('🔄 [DEBUG PUBLIC API] Tentando duplo parse para workingDays')
+            workingDaysObj = JSON.parse(JSON.parse(professional.workingDays))
+          }
         } else {
           workingDaysObj = professional.workingDays
         }
@@ -85,7 +92,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           console.log('✅ [DEBUG PUBLIC API] workingDays convertidos:', workingDaysArray)
         }
       } catch (error) {
-        console.warn('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingDays:', error)
+        console.error('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingDays:', error)
+        console.error('❌ [DEBUG PUBLIC API] workingDays raw que causou erro:', professional.workingDays)
       }
     }
 
@@ -106,7 +114,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       try {
         let workingHoursObj
         if (typeof professional.workingHours === 'string') {
-          workingHoursObj = JSON.parse(professional.workingHours)
+          // Tentar parse simples primeiro
+          try {
+            workingHoursObj = JSON.parse(professional.workingHours)
+          } catch (firstError) {
+            // Se falhar, pode ser que tenha escape duplo - tentar duplo parse
+            console.log('🔄 [DEBUG PUBLIC API] Tentando duplo parse para workingHours')
+            workingHoursObj = JSON.parse(JSON.parse(professional.workingHours))
+          }
         } else {
           workingHoursObj = professional.workingHours
         }

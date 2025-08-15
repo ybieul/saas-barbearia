@@ -33,32 +33,46 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let parsedWorkingDays = null
     let parsedWorkingHours = null
     
-    // Parse workingDays - verificar se já é objeto ou string
+    // Parse workingDays - verificar se já é objeto ou string (com possível escape duplo)
     if (professional.workingDays) {
       try {
         if (typeof professional.workingDays === 'string') {
-          parsedWorkingDays = JSON.parse(professional.workingDays)
+          try {
+            parsedWorkingDays = JSON.parse(professional.workingDays)
+          } catch (firstError) {
+            // Tentar duplo parse se o primeiro falhar (escape duplo)
+            console.log('🔄 [DEBUG GET] Tentando duplo parse para workingDays')
+            parsedWorkingDays = JSON.parse(JSON.parse(professional.workingDays))
+          }
         } else {
           parsedWorkingDays = professional.workingDays
         }
         console.log('✅ [DEBUG GET] workingDays parseados:', parsedWorkingDays)
       } catch (error) {
         console.error('❌ [DEBUG GET] Erro ao fazer parse de workingDays:', error)
+        console.error('❌ [DEBUG GET] workingDays raw:', professional.workingDays)
         parsedWorkingDays = null
       }
     }
     
-    // Parse workingHours - verificar se já é objeto ou string  
+    // Parse workingHours - verificar se já é objeto ou string (com possível escape duplo)
     if (professional.workingHours) {
       try {
         if (typeof professional.workingHours === 'string') {
-          parsedWorkingHours = JSON.parse(professional.workingHours)
+          try {
+            parsedWorkingHours = JSON.parse(professional.workingHours)
+          } catch (firstError) {
+            // Tentar duplo parse se o primeiro falhar (escape duplo)
+            console.log('🔄 [DEBUG GET] Tentando duplo parse para workingHours')
+            parsedWorkingHours = JSON.parse(JSON.parse(professional.workingHours))
+          }
         } else {
           parsedWorkingHours = professional.workingHours
         }
         console.log('✅ [DEBUG GET] workingHours parseados:', parsedWorkingHours)
       } catch (error) {
         console.error('❌ [DEBUG GET] Erro ao fazer parse de workingHours:', error)
+        console.error('❌ [DEBUG GET] workingHours raw:', professional.workingHours)
         parsedWorkingHours = null
       }
     }
