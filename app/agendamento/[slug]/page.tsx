@@ -320,44 +320,6 @@ export default function AgendamentoPage() {
     }
   }
 
-  // 🆕 NOVA: Função para carregar horários específicos dos profissionais
-  const loadProfessionalSchedules = async () => {
-    if (professionals.length === 0) return
-
-    setLoadingProfessionalSchedules(true)
-    console.log('🔍 [DEBUG] Carregando horários dos profissionais...')
-    const schedules: Record<string, any> = {}
-
-    try {
-      // Carregar horários de todos os profissionais em paralelo
-      const promises = professionals.map(async (professional) => {
-        try {
-          console.log(`🔍 [DEBUG] Carregando horários para ${professional.name} (ID: ${professional.id})`)
-          const response = await fetch(`/api/public/professionals/${professional.id}/working-hours`)
-          
-          if (response.ok) {
-            const data = await response.json()
-            schedules[professional.id] = data.professional
-            console.log(`✅ [DEBUG] Horários carregados para ${professional.name}:`, data.professional)
-          } else {
-            console.warn(`⚠️ [DEBUG] Erro ao carregar horários para ${professional.name}: ${response.status} ${response.statusText}`)
-          }
-        } catch (error) {
-          console.warn(`❌ [DEBUG] Erro ao carregar horários do profissional ${professional.name}:`, error)
-          // Continuar sem horários específicos para este profissional
-        }
-      })
-
-      await Promise.all(promises)
-      setProfessionalSchedules(schedules)
-      console.log('✅ [DEBUG] Todos os horários carregados:', schedules)
-    } catch (error) {
-      console.error('❌ [DEBUG] Erro ao carregar horários dos profissionais:', error)
-    } finally {
-      setLoadingProfessionalSchedules(false)
-    }
-  }
-
   // Função para verificar se um horário está disponível (considerando duração do serviço)
   const isTimeSlotAvailable = (time: string) => {
     if (!selectedServiceId) return false
@@ -423,6 +385,56 @@ export default function AgendamentoPage() {
     } else {
       // selectedProfessional === undefined (não selecionado): não mostrar disponibilidade
       return false
+    }
+  }
+
+  // 🆕 NOVO: Função para carregar horários individuais dos profissionais
+  const loadProfessionalSchedules = async () => {
+    if (!professionals || professionals.length === 0) {
+      console.log('📋 [DEBUG] Nenhum profissional para carregar horários')
+      return
+    }
+
+    try {
+      setLoadingProfessionalSchedules(true)
+      console.log('🔄 [DEBUG] Iniciando carregamento de horários dos profissionais...')
+      
+      const schedules: Record<string, any> = {}
+      
+      // Carregar horários de cada profissional em paralelo
+      const promises = professionals.map(async (professional) => {
+        try {
+          console.log(`🔍 [DEBUG] Carregando horários do profissional: ${professional.name} (${professional.id})`)
+          
+          const response = await fetch(`/api/public/professionals/${professional.id}/working-hours`)
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`✅ [DEBUG] Horários carregados para ${professional.name}:`, data)
+            
+            if (data.professional) {
+              schedules[professional.id] = {
+                workingDays: data.professional.workingDays || [],
+                workingHours: data.professional.workingHours || {}
+              }
+            }
+          } else {
+            console.error(`❌ [DEBUG] Erro ao carregar horários de ${professional.name}:`, response.status)
+          }
+        } catch (error) {
+          console.error(`❌ [DEBUG] Erro ao carregar horários de ${professional.name}:`, error)
+        }
+      })
+      
+      await Promise.all(promises)
+      
+      console.log('🎯 [DEBUG] Todos os horários carregados:', schedules)
+      setProfessionalSchedules(schedules)
+      
+    } catch (error) {
+      console.error('❌ [DEBUG] Erro geral ao carregar horários dos profissionais:', error)
+    } finally {
+      setLoadingProfessionalSchedules(false)
     }
   }
 
