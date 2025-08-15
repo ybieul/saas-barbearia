@@ -101,34 +101,63 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         
         console.log('🔍 [DEBUG PUBLIC API] workingHours originais:', workingHoursObj)
         
-        // Converter de formato { monday: { start: "10:00", end: "16:00", breaks: [...] } } 
-        // para { "1": { periods: [{ start: "10:00", end: "16:00" }], breaks: [...] } }
-        if (typeof workingHoursObj === 'object' && workingHoursObj !== null) {
-          const dayMapping = {
-            sunday: 0, monday: 1, tuesday: 2, wednesday: 3, 
-            thursday: 4, friday: 5, saturday: 6
-          }
-          
-          const convertedHours: any = {}
-          for (const [day, schedule] of Object.entries(workingHoursObj)) {
-            const dayNumber = dayMapping[day as keyof typeof dayMapping]
-            if (dayNumber !== undefined && schedule && typeof schedule === 'object') {
-              const daySchedule = schedule as { start: string, end: string, breaks?: any[] }
-              convertedHours[dayNumber.toString()] = {
-                periods: [{ 
-                  start: daySchedule.start, 
-                  end: daySchedule.end 
-                }],
-                breaks: daySchedule.breaks || []
+    // Parse e converter working hours se existir
+    if (professional.workingHours) {
+      try {
+        let workingHoursObj
+        if (typeof professional.workingHours === 'string') {
+          workingHoursObj = JSON.parse(professional.workingHours)
+        } else {
+          workingHoursObj = professional.workingHours
+        }
+        
+        console.log('🔍 [DEBUG PUBLIC API] workingHours originais:', workingHoursObj)
+        console.log('🔍 [DEBUG PUBLIC API] workingHours keys:', Object.keys(workingHoursObj))
+        console.log('🔍 [DEBUG PUBLIC API] workingHours types:', typeof workingHoursObj)
+        
+        // Verificar se já está no formato numérico ou se precisa converter
+        const firstKey = Object.keys(workingHoursObj)[0]
+        const isNumericFormat = !isNaN(Number(firstKey))
+        
+        console.log('🔍 [DEBUG PUBLIC API] First key:', firstKey, 'isNumericFormat:', isNumericFormat)
+        
+        if (isNumericFormat) {
+          // Já está no formato correto para a página pública
+          processedData.professional.workingHours = workingHoursObj
+          console.log('✅ [DEBUG PUBLIC API] workingHours já no formato numérico:', workingHoursObj)
+        } else {
+          // Converter de formato { monday: { start: "10:00", end: "16:00", breaks: [...] } } 
+          // para { "1": { periods: [{ start: "10:00", end: "16:00" }], breaks: [...] } }
+          if (typeof workingHoursObj === 'object' && workingHoursObj !== null) {
+            const dayMapping = {
+              sunday: 0, monday: 1, tuesday: 2, wednesday: 3, 
+              thursday: 4, friday: 5, saturday: 6
+            }
+            
+            const convertedHours: any = {}
+            for (const [day, schedule] of Object.entries(workingHoursObj)) {
+              const dayNumber = dayMapping[day as keyof typeof dayMapping]
+              if (dayNumber !== undefined && schedule && typeof schedule === 'object') {
+                const daySchedule = schedule as { start: string, end: string, breaks?: any[] }
+                convertedHours[dayNumber.toString()] = {
+                  periods: [{ 
+                    start: daySchedule.start, 
+                    end: daySchedule.end 
+                  }],
+                  breaks: daySchedule.breaks || []
+                }
               }
             }
+            
+            processedData.professional.workingHours = convertedHours
+            console.log('✅ [DEBUG PUBLIC API] workingHours convertidos de nomes para números:', convertedHours)
           }
-          
-          processedData.professional.workingHours = convertedHours
-          console.log('✅ [DEBUG PUBLIC API] workingHours convertidos:', convertedHours)
         }
       } catch (error) {
-        console.warn('Erro ao fazer parse dos workingHours:', error)
+        console.error('❌ [DEBUG PUBLIC API] Erro ao fazer parse dos workingHours:', error)
+        console.error('❌ [DEBUG PUBLIC API] workingHours raw que causou erro:', professional.workingHours)
+      }
+    }
       }
     }
 
