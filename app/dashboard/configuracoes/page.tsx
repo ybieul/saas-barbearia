@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +17,9 @@ import { ProfessionalAvatar } from "@/components/professional-avatar"
 import { ProfessionalAvatarUpload } from "@/components/professional-avatar-upload"
 import ServiceImage from "@/components/service-image"
 import ServiceImageUpload from "@/components/service-image-upload"
+import { ProfileSelector } from "@/components/profile-selector"
+import { ProfessionalScheduleManager } from "@/components/professional-schedule-manager"
+import { ScheduleExceptionsManager } from "@/components/schedule-exceptions-manager"
 import { useProfessionals } from "@/hooks/use-api"
 import { useServices } from "@/hooks/use-services"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
@@ -45,6 +46,10 @@ import {
 export default function ConfiguracoesPage() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
+  // Estados para gerenciamento de horários
+  const [selectedProfile, setSelectedProfile] = useState<string>("establishment");
+  const [professionalName, setProfessionalName] = useState<string>("");
+  
   const [activeTab, setActiveTab] = useState("estabelecimento")
 
   // Função para gerar horários
@@ -1995,143 +2000,170 @@ export default function ConfiguracoesPage() {
 
           {/* Horários Tab */}
           {activeTab === "horarios" && (
-            <Card className="bg-[#18181b] border-[#27272a]">
-              <CardHeader>
-                <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Horários de Funcionamento</CardTitle>
-                <CardDescription className="text-[#71717a]">
-                  Defina os horários de funcionamento do seu estabelecimento
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {workingHoursLoading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
-                    <span className="ml-3 text-[#71717a]">Carregando horários...</span>
-                  </div>
-                ) : workingHoursError ? (
-                  <div className="text-red-400 text-center py-8 bg-red-900/10 rounded-lg border border-red-700/30">
-                    <p className="font-medium">Erro ao carregar horários</p>
-                    <p className="text-sm mt-1">{workingHoursError}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(workingHours).map(([day, hours]) => (
-                      <div key={day} className="group relative bg-[#27272a]/50 hover:bg-[#27272a] transition-colors rounded-xl border border-[#3f3f46] overflow-hidden">
-                        <div className="p-3 sm:p-5">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            {/* Lado esquerdo - Dia e Switch */}
-                            <div className="flex items-center gap-3 sm:gap-4">
-                              <div className="relative">
-                                <Switch
-                                  checked={hours.active}
-                                  onCheckedChange={(checked) =>
-                                    handleWorkingHoursChange(day, 'active', checked)
-                                  }
-                                  className="data-[state=checked]:bg-[#10b981]"
-                                />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[#ededed] font-semibold text-base sm:text-lg">
-                                  {day === 'monday' && 'Segunda-feira'}
-                                  {day === 'tuesday' && 'Terça-feira'}
-                                  {day === 'wednesday' && 'Quarta-feira'}
-                                  {day === 'thursday' && 'Quinta-feira'}
-                                  {day === 'friday' && 'Sexta-feira'}
-                                  {day === 'saturday' && 'Sábado'}
-                                  {day === 'sunday' && 'Domingo'}
-                                </span>
-                                <span className="text-[#71717a] text-xs sm:text-sm">
-                                  {hours.active ? 'Estabelecimento aberto' : 'Estabelecimento fechado'}
-                                </span>
+            <div className="space-y-6">
+              {/* Seletor de Perfil */}
+              <ProfileSelector 
+                selectedProfile={selectedProfile}
+                onProfileChange={(profile, professionalData) => {
+                  setSelectedProfile(profile);
+                  setProfessionalName(professionalData?.name || "");
+                }}
+              />
+
+              {/* Renderização Condicional baseada no perfil selecionado */}
+              {selectedProfile === "establishment" ? (
+                // Interface existente para horários do estabelecimento
+                <Card className="bg-[#18181b] border-[#27272a]">
+                  <CardHeader>
+                    <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Horários de Funcionamento</CardTitle>
+                    <CardDescription className="text-[#71717a]">
+                      Defina os horários de funcionamento do seu estabelecimento
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {workingHoursLoading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                        <span className="ml-3 text-[#71717a]">Carregando horários...</span>
+                      </div>
+                    ) : workingHoursError ? (
+                      <div className="text-red-400 text-center py-8 bg-red-900/10 rounded-lg border border-red-700/30">
+                        <p className="font-medium">Erro ao carregar horários</p>
+                        <p className="text-sm mt-1">{workingHoursError}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {Object.entries(workingHours).map(([day, hours]) => (
+                          <div key={day} className="group relative bg-[#27272a]/50 hover:bg-[#27272a] transition-colors rounded-xl border border-[#3f3f46] overflow-hidden">
+                            <div className="p-3 sm:p-5">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                {/* Lado esquerdo - Dia e Switch */}
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                  <div className="relative">
+                                    <Switch
+                                      checked={hours.active}
+                                      onCheckedChange={(checked) =>
+                                        handleWorkingHoursChange(day, 'active', checked)
+                                      }
+                                      className="data-[state=checked]:bg-[#10b981]"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[#ededed] font-semibold text-base sm:text-lg">
+                                      {day === 'monday' && 'Segunda-feira'}
+                                      {day === 'tuesday' && 'Terça-feira'}
+                                      {day === 'wednesday' && 'Quarta-feira'}
+                                      {day === 'thursday' && 'Quinta-feira'}
+                                      {day === 'friday' && 'Sexta-feira'}
+                                      {day === 'saturday' && 'Sábado'}
+                                      {day === 'sunday' && 'Domingo'}
+                                    </span>
+                                    <span className="text-[#71717a] text-xs sm:text-sm">
+                                      {hours.active ? 'Estabelecimento aberto' : 'Estabelecimento fechado'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Lado direito - Horários ou Status */}
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  {hours.active ? (
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2.5 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
+                                      {/* Container de Abertura */}
+                                      <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
+                                        <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Abertura</label>
+                                        <Select
+                                          value={hours.start}
+                                          onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
+                                        >
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                            {generateTimeOptions().map((time) => (
+                                              <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                                {time}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      
+                                      {/* Separador "até" - apenas no desktop */}
+                                      <div className="hidden sm:flex items-center justify-center px-2 order-3 sm:order-2">
+                                        <span className="text-[#71717a] font-medium text-sm">até</span>
+                                      </div>
+                                      
+                                      {/* Container de Fechamento */}
+                                      <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center order-2 sm:order-3">
+                                        <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Fechamento</label>
+                                        <Select
+                                          value={hours.end}
+                                          onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
+                                        >
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                            {generateTimeOptions().map((time) => (
+                                              <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                                {time}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-900/20 rounded-lg border border-red-700/30">
+                                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                      <span className="text-red-400 font-medium text-xs sm:text-sm">Fechado</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-
-                            {/* Lado direito - Horários ou Status */}
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              {hours.active ? (
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2.5 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
-                                  {/* Container de Abertura */}
-                                  <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
-                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Abertura</label>
-                                    <Select
-                                      value={hours.start}
-                                      onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
-                                    >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                                        {generateTimeOptions().map((time) => (
-                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
-                                            {time}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  
-                                  {/* Separador "até" - apenas no desktop */}
-                                  <div className="hidden sm:flex items-center justify-center px-2 order-3 sm:order-2">
-                                    <span className="text-[#71717a] font-medium text-sm">até</span>
-                                  </div>
-                                  
-                                  {/* Container de Fechamento */}
-                                  <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center order-2 sm:order-3">
-                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Fechamento</label>
-                                    <Select
-                                      value={hours.end}
-                                      onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
-                                    >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                                        {generateTimeOptions().map((time) => (
-                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
-                                            {time}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-900/20 rounded-lg border border-red-700/30">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                  <span className="text-red-400 font-medium text-xs sm:text-sm">Fechado</span>
-                                </div>
-                              )}
+                            
+                            {/* Indicador visual sutil */}
+                            <div className={`h-1 w-full transition-colors ${
+                              hours.active ? 'bg-gradient-to-r from-[#10b981] to-[#059669]' : 'bg-gradient-to-r from-red-600 to-red-700'
+                            }`}></div>
+                          </div>
+                        ))}
+                        
+                        {/* Informações adicionais */}
+                        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-white text-xs font-bold">ℹ</span>
+                            </div>
+                            <div className="space-y-1 sm:space-y-2">
+                              <h4 className="text-blue-400 font-medium text-sm sm:text-base">Informações Importantes</h4>
+                              <ul className="text-blue-300 text-xs sm:text-sm space-y-0.5 sm:space-y-1">
+                                <li>• Os horários definidos aqui controlam quando novos agendamentos podem ser feitos</li>
+                                <li>• Agendamentos já existentes não são afetados pelas mudanças</li>
+                                <li>• As alterações são salvas automaticamente</li>
+                              </ul>
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Indicador visual sutil */}
-                        <div className={`h-1 w-full transition-colors ${
-                          hours.active ? 'bg-gradient-to-r from-[#10b981] to-[#059669]' : 'bg-gradient-to-r from-red-600 to-red-700'
-                        }`}></div>
                       </div>
-                    ))}
-                    
-                    {/* Informações adicionais */}
-                    <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white text-xs font-bold">ℹ</span>
-                        </div>
-                        <div className="space-y-1 sm:space-y-2">
-                          <h4 className="text-blue-400 font-medium text-sm sm:text-base">Informações Importantes</h4>
-                          <ul className="text-blue-300 text-xs sm:text-sm space-y-0.5 sm:space-y-1">
-                            <li>• Os horários definidos aqui controlam quando novos agendamentos podem ser feitos</li>
-                            <li>• Agendamentos já existentes não são afetados pelas mudanças</li>
-                            <li>• As alterações são salvas automaticamente</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                // Nova interface para horários dos profissionais
+                <div className="space-y-6">
+                  <ProfessionalScheduleManager 
+                    professionalId={selectedProfile}
+                    professionalName={professionalName}
+                  />
+                  <ScheduleExceptionsManager 
+                    professionalId={selectedProfile}
+                    professionalName={professionalName}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Promoções Tab */}
