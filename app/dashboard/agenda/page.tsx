@@ -264,86 +264,6 @@ export default function AgendaPage() {
     }
   }, [isNewAppointmentOpen])
 
-  // 🔥 NOVA FUNÇÃO: Gerar slots considerando horários individuais do profissional
-  const generateTimeSlotsForProfessional = async (date: Date, professionalId?: string) => {
-    try {
-      const slots = []
-      
-      // Primeiro, verificar se o estabelecimento está aberto no dia
-      if (!isEstablishmentOpen(date)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🚫 Estabelecimento fechado em ${date.toDateString()}`)
-        }
-        return []
-      }
-
-      // Se não há profissional especificado, usar horários do estabelecimento
-      if (!professionalId) {
-        return generateTimeSlotsForDate(date)
-      }
-
-      // Buscar horários individuais do profissional
-      try {
-        const token = localStorage.getItem('auth_token')
-        if (!token) {
-          console.warn('Token não encontrado, usando horários do estabelecimento')
-          return generateTimeSlotsForDate(date)
-        }
-
-        const response = await fetch(`/api/professionals/${professionalId}/working-hours`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (!response.ok) {
-          console.warn('Erro ao buscar horários do profissional, usando horários do estabelecimento')
-          return generateTimeSlotsForDate(date)
-        }
-
-        const data = await response.json()
-        const professionalSchedule = data.professional
-        
-        if (!professionalSchedule) {
-          return generateTimeSlotsForDate(date)
-        }
-
-        // Obter o dia da semana
-        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-        const dayName = daysOfWeek[date.getDay()]
-
-        // Verificar se o profissional trabalha neste dia
-        if (!professionalSchedule.workingDays[dayName]) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`🚫 Profissional ${professionalSchedule.name} não trabalha em ${dayName}`)
-          }
-          return []
-        }
-
-        // Por enquanto, usar horários do estabelecimento como base
-        // Na Fase 2, implementaremos horários específicos e intervalos do profissional
-        const establishmentSlots = generateTimeSlotsForDate(date)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Profissional ${professionalSchedule.name} trabalha em ${dayName}, usando horários do estabelecimento por enquanto`)
-        }
-        
-        return establishmentSlots
-
-      } catch (error) {
-        console.warn('Erro ao buscar horários do profissional:', error)
-        return generateTimeSlotsForDate(date)
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro ao gerar slots para profissional:', error)
-      }
-      return []
-    }
-  }
-
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
     try {
@@ -1424,16 +1344,22 @@ export default function AgendaPage() {
         console.log('🔍 getAvailableTimeSlots Debug:', {
           inputDate: newAppointment.date,
           selectedDate: selectedDate.toString(),
-          dayOfWeek: selectedDate.getDay(),
-          professionalId: newAppointment.professionalId
+          dayOfWeek: selectedDate.getDay()
         })
+      }
+      
+      // Verificar se o estabelecimento está aberto no dia
+      if (!isEstablishmentOpen(selectedDate)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 getAvailableTimeSlots: Estabelecimento fechado')
+        }
+        return []
       }
       
       // ✅ PERMITIR datas passadas para retroagendamento no dashboard
       // Não bloquear mais datas passadas - permitir retroagendamento
       
-      // Por enquanto, usar horários do estabelecimento (Fase 1)
-      // Na Fase 2, implementaremos a validação completa com horários individuais
+      // Gerar slots para a data específica
       const allSlots = generateTimeSlotsForDate(selectedDate)
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔍 getAvailableTimeSlots: ${allSlots.length} slots gerados para ${selectedDate.toDateString()}`)

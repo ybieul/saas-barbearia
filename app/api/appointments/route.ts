@@ -213,81 +213,6 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
 
-    // 🔥 NOVA VALIDAÇÃO: Verificar horários individuais do profissional se especificado
-    if (professionalId) {
-      const professional = await prisma.professional.findFirst({
-        where: {
-          id: professionalId,
-          tenantId: user.tenantId
-        },
-        select: {
-          id: true,
-          name: true,
-          workingDays: true,
-          workingHours: true
-        }
-      })
-
-      if (professional && professional.workingDays) {
-        const professionalWorkingDays = professional.workingDays as any
-        
-        // Verificar se profissional trabalha neste dia
-        if (professionalWorkingDays[dayName] === false) {
-          const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
-          return NextResponse.json(
-            { message: `O profissional ${professional.name} não trabalha ${dayNamePt}. Escolha outro dia ou profissional.` },
-            { status: 400 }
-          )
-        }
-
-        console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado`)
-
-        // 🆕 FASE 2: Verificar horários específicos e intervalos
-        if (professional.workingHours) {
-          const professionalWorkingHours = professional.workingHours as any
-          const daySchedule = professionalWorkingHours[dayName]
-          
-          if (daySchedule) {
-            const appointmentTimeStr = appointmentDate.toTimeString().substring(0, 5) // HH:MM
-            const timeToMinutes = (time: string) => {
-              const [hours, minutes] = time.split(':').map(Number)
-              return hours * 60 + minutes
-            }
-            
-            const appointmentMinutes = timeToMinutes(appointmentTimeStr)
-            const startMinutes = timeToMinutes(daySchedule.start)
-            const endMinutes = timeToMinutes(daySchedule.end)
-            
-            // Verificar se está dentro do horário de trabalho específico
-            if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
-              return NextResponse.json(
-                { message: `Agendamento fora do horário de trabalho do profissional ${professional.name}. Horário permitido: ${daySchedule.start} às ${daySchedule.end}` },
-                { status: 400 }
-              )
-            }
-            
-            // Verificar se não está em um intervalo
-            if (daySchedule.breaks && Array.isArray(daySchedule.breaks)) {
-              for (const breakItem of daySchedule.breaks) {
-                const breakStartMinutes = timeToMinutes(breakItem.start)
-                const breakEndMinutes = timeToMinutes(breakItem.end)
-                
-                if (appointmentMinutes >= breakStartMinutes && appointmentMinutes < breakEndMinutes) {
-                  const breakLabel = breakItem.label || 'Intervalo'
-                  return NextResponse.json(
-                    { message: `Agendamento não disponível. ${professional.name} está em ${breakLabel.toLowerCase()} das ${breakItem.start} às ${breakItem.end}` },
-                    { status: 400 }
-                  )
-                }
-              }
-            }
-            
-            console.log(`✅ Horário ${appointmentTimeStr} disponível para ${professional.name}`)
-          }
-        }
-      }
-    }
-
     // Calcular duração e preço totais
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
@@ -522,85 +447,9 @@ export async function PUT(request: NextRequest) {
       
       console.log(`✅ Validação de horário (UPDATE) aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
       
-      // 🔥 NOVA VALIDAÇÃO: Verificar horários individuais do profissional se especificado (UPDATE)
-      // Determinar qual profissional será usado
+      // Verificar conflitos de horário (apenas se professionalId está sendo alterado ou mantido)
       const finalProfessionalId = professionalId !== undefined ? professionalId : existingAppointment.professionalId
       
-      if (finalProfessionalId) {
-        const professional = await prisma.professional.findFirst({
-          where: {
-            id: finalProfessionalId,
-            tenantId: user.tenantId
-          },
-          select: {
-            id: true,
-            name: true,
-            workingDays: true,
-            workingHours: true
-          }
-        })
-
-        if (professional && professional.workingDays) {
-          const professionalWorkingDays = professional.workingDays as any
-          
-          // Verificar se profissional trabalha neste dia
-          if (professionalWorkingDays[dayName] === false) {
-            const dayNamePt = appointmentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
-            return NextResponse.json(
-              { message: `O profissional ${professional.name} não trabalha ${dayNamePt}. Escolha outro dia ou profissional.` },
-              { status: 400 }
-            )
-          }
-
-          console.log(`✅ Profissional ${professional.name} trabalha no dia selecionado (UPDATE)`)
-
-          // 🆕 FASE 2: Verificar horários específicos e intervalos (UPDATE)
-          if (professional.workingHours) {
-            const professionalWorkingHours = professional.workingHours as any
-            const daySchedule = professionalWorkingHours[dayName]
-            
-            if (daySchedule) {
-              const appointmentTimeStr = appointmentDate.toTimeString().substring(0, 5) // HH:MM
-              const timeToMinutes = (time: string) => {
-                const [hours, minutes] = time.split(':').map(Number)
-                return hours * 60 + minutes
-              }
-              
-              const appointmentMinutes = timeToMinutes(appointmentTimeStr)
-              const startMinutes = timeToMinutes(daySchedule.start)
-              const endMinutes = timeToMinutes(daySchedule.end)
-              
-              // Verificar se está dentro do horário de trabalho específico
-              if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
-                return NextResponse.json(
-                  { message: `Agendamento fora do horário de trabalho do profissional ${professional.name}. Horário permitido: ${daySchedule.start} às ${daySchedule.end}` },
-                  { status: 400 }
-                )
-              }
-              
-              // Verificar se não está em um intervalo
-              if (daySchedule.breaks && Array.isArray(daySchedule.breaks)) {
-                for (const breakItem of daySchedule.breaks) {
-                  const breakStartMinutes = timeToMinutes(breakItem.start)
-                  const breakEndMinutes = timeToMinutes(breakItem.end)
-                  
-                  if (appointmentMinutes >= breakStartMinutes && appointmentMinutes < breakEndMinutes) {
-                    const breakLabel = breakItem.label || 'Intervalo'
-                    return NextResponse.json(
-                      { message: `Agendamento não disponível. ${professional.name} está em ${breakLabel.toLowerCase()} das ${breakItem.start} às ${breakItem.end}` },
-                      { status: 400 }
-                    )
-                  }
-                }
-              }
-              
-              console.log(`✅ Horário ${appointmentTimeStr} disponível para ${professional.name} (UPDATE)`)
-            }
-          }
-        }
-      }
-      
-      // Verificar conflitos de horário
       if (finalProfessionalId) {
         // Obter dados dos serviços para calcular duração
         let totalDuration = 0
