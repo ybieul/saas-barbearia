@@ -104,12 +104,12 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
         throw new Error('Todos os campos de data e hora são obrigatórios.')
       }
 
-      // Combinar data e hora
-      const startDatetime = `${newException.startDate}T${newException.startTime}:00`
-      const endDatetime = `${newException.endDate}T${newException.endTime}:00`
+      // Combinar data e hora no formato YYYY-MM-DD HH:MM:SS (horário local do Brasil)
+      const startDatetime = `${newException.startDate} ${newException.startTime}:00`
+      const endDatetime = `${newException.endDate} ${newException.endTime}:00`
 
-      // Validar se data de fim é após início
-      if (new Date(endDatetime) <= new Date(startDatetime)) {
+      // Validar se data de fim é após início (comparação simples de strings)
+      if (endDatetime <= startDatetime) {
         throw new Error('A data/hora de fim deve ser posterior à data/hora de início.')
       }
 
@@ -179,22 +179,36 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
     }
   }
 
-  // Formatar data para exibição
+  // Formatar data para exibição (assumindo que já vem em horário local do Brasil)
   const formatExceptionDate = (startDatetime: string | Date, endDatetime: string | Date) => {
-    const start = typeof startDatetime === 'string' ? new Date(startDatetime) : startDatetime
-    const end = typeof endDatetime === 'string' ? new Date(endDatetime) : endDatetime
+    // Converter para string se for Date (assumindo que já está em horário local)
+    const startStr = typeof startDatetime === 'string' ? startDatetime : startDatetime.toISOString()
+    const endStr = typeof endDatetime === 'string' ? endDatetime : endDatetime.toISOString()
     
-    const startDate = format(start, 'dd/MM/yyyy', { locale: ptBR })
-    const startTime = format(start, 'HH:mm')
-    const endTime = format(end, 'HH:mm')
+    // Extrair data e hora diretamente da string (YYYY-MM-DD HH:MM:SS ou YYYY-MM-DDTHH:MM:SS)
+    const [startDatePart, startTimePart] = startStr.includes('T') 
+      ? startStr.split('T') 
+      : startStr.split(' ')
+    const [endDatePart, endTimePart] = endStr.includes('T') 
+      ? endStr.split('T') 
+      : endStr.split(' ')
+    
+    // Formatar data brasileira
+    const [startYear, startMonth, startDay] = startDatePart.split('-')
+    const startDate = `${startDay}/${startMonth}/${startYear}`
+    
+    // Extrair apenas HH:MM
+    const startTime = startTimePart.substring(0, 5)
+    const endTime = endTimePart.substring(0, 5)
     
     // Se é no mesmo dia
-    if (format(start, 'yyyy-MM-dd') === format(end, 'yyyy-MM-dd')) {
+    if (startDatePart === endDatePart) {
       return `${startDate} das ${startTime} às ${endTime}`
     }
     
     // Dias diferentes
-    const endDate = format(end, 'dd/MM/yyyy', { locale: ptBR })
+    const [endYear, endMonth, endDay] = endDatePart.split('-')
+    const endDate = `${endDay}/${endMonth}/${endYear}`
     return `${startDate} ${startTime} até ${endDate} ${endTime}`
   }
 

@@ -167,11 +167,23 @@ export async function POST(
     let endDateTime: Date
 
     try {
-      startDateTime = typeof startDatetime === 'string' ? parseISO(startDatetime) : startDatetime
-      endDateTime = typeof endDatetime === 'string' ? parseISO(endDatetime) : endDatetime
+      // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
+      if (typeof startDatetime === 'string') {
+        // Assumir que a string já está em horário local do Brasil
+        startDateTime = new Date(startDatetime.replace(' ', 'T'))
+      } else {
+        startDateTime = startDatetime
+      }
+
+      if (typeof endDatetime === 'string') {
+        // Assumir que a string já está em horário local do Brasil  
+        endDateTime = new Date(endDatetime.replace(' ', 'T'))
+      } else {
+        endDateTime = endDatetime
+      }
     } catch (error) {
       return NextResponse.json(
-        { error: 'Formato de data/hora inválido. Use ISO 8601 (YYYY-MM-DDTHH:mm:ss)' },
+        { error: 'Formato de data/hora inválido. Use YYYY-MM-DD HH:MM:SS' },
         { status: 400 }
       )
     }
