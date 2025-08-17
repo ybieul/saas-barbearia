@@ -15,6 +15,10 @@ export interface ProfessionalScheduleResponse {
     startTime: string | null
     endTime: string | null
     isWorking: boolean
+    breaks: Array<{
+      startTime: string
+      endTime: string
+    }>
   }>
 }
 

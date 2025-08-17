@@ -66,9 +66,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
             return {
               ...day,
               isActive: existingSchedule?.isWorking || false,
-              startTime: existingSchedule?.startTime || DEFAULT_START_TIME,
-              endTime: existingSchedule?.endTime || DEFAULT_END_TIME,
-              breaks: [] // Será preenchido quando a API retornar os breaks
+              startTime: existingSchedule?.startTime?.substring(0, 5) || DEFAULT_START_TIME,
+              endTime: existingSchedule?.endTime?.substring(0, 5) || DEFAULT_END_TIME,
+              breaks: existingSchedule?.breaks?.map(breakItem => ({
+                startTime: breakItem.startTime.substring(0, 5),
+                endTime: breakItem.endTime.substring(0, 5)
+              })) || []
             }
           })
           setSchedules(updatedSchedules)
