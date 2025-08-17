@@ -131,23 +131,18 @@ export async function POST(
     const professionalId = params.id
     const body: CreateScheduleExceptionData = await request.json()
 
+    // 🔍 LOGS CRÍTICOS - USANDO console.error PARA GARANTIR VISIBILIDADE
+    console.error('=== AUDITORIA TIMEZONE ===')
+    console.error('PONTO B - Backend recebeu:', body.startDatetime)
+    console.error('PONTO B - Tipo:', typeof body.startDatetime)
+
     // 🔍 DEBUG - Verificar timezone do MySQL e configurações
-    console.log('=== AUDITORIA TIMEZONE - PONTO 0: CONFIG DO SISTEMA ===')
-    console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
-    console.log('NODE_ENV:', process.env.NODE_ENV)
-    console.log('Sistema TZ:', process.env.TZ || 'sistema padrão')
-    console.log('Data atual do servidor:', new Date().toString())
+    console.error('=== CONFIG DO SISTEMA ===')
+    console.error('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
+    console.error('Data atual do servidor:', new Date().toString())
     
     const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
-    console.log('MySQL session timezone:', timezoneResult)
-
-    // 🔍 PONTO B - DADOS RECEBIDOS NO BACKEND (PRIMEIRA COISA QUE FAZEMOS)
-    console.log('=== PONTO B - DADOS RECEBIDOS NO BACKEND ===')
-    console.log('Backend request.body RAW:', JSON.stringify(body, null, 2))
-    console.log('Backend body.startDatetime:', body.startDatetime)
-    console.log('Backend body.endDatetime:', body.endDatetime)
-    console.log('Backend typeof body.startDatetime:', typeof body.startDatetime)
-    console.log('Backend typeof body.endDatetime:', typeof body.endDatetime)
+    console.error('MySQL session timezone:', timezoneResult)
 
     // Verificar se o profissional pertence ao tenant do usuário
     const professional = await prisma.professional.findFirst({
@@ -186,31 +181,28 @@ export async function POST(
 
     try {
       // 🔍 DEBUG - Verificar parsing de datas
-      console.log('=== AUDITORIA TIMEZONE - PONTO 2: PARSING DE DATAS ===')
+      console.error('=== PONTO DE PARSING ===')
       
       // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
       if (typeof startDatetime === 'string') {
-        console.log('Processando startDatetime como string:', startDatetime)
+        console.error('Processando startDatetime string:', startDatetime)
         
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = startDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hour, minute, second = 0] = timePart.split(':').map(Number)
         
-        console.log('Componentes extraídos - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Minute:', minute, 'Second:', second)
+        console.error('Componentes - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Min:', minute)
         
         startDateTime = new Date(year, month - 1, day, hour, minute, second)
-        console.log('Date criado (startDateTime):', startDateTime)
-        console.log('startDateTime.toString():', startDateTime.toString())
-        console.log('startDateTime.toISOString():', startDateTime.toISOString())
-        console.log('startDateTime.getHours():', startDateTime.getHours())
-        console.log('startDateTime.getTimezoneOffset():', startDateTime.getTimezoneOffset())
+        console.error('Date criado startDateTime:', startDateTime.toString())
+        console.error('startDateTime.getHours():', startDateTime.getHours())
       } else {
         startDateTime = startDatetime
       }
 
       if (typeof endDatetime === 'string') {
-        console.log('Processando endDatetime como string:', endDatetime)
+        console.error('Processando endDatetime string:', endDatetime)
         
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = endDatetime.split(' ')
@@ -266,7 +258,7 @@ export async function POST(
     }
 
     // 🔍 PONTO C - DADOS ANTES DE SALVAR NO BANCO (MAIS IMPORTANTE!)
-    console.log('=== PONTO C - DADOS IMEDIATAMENTE ANTES DO PRISMA ===')
+    console.error('=== PONTO C - ANTES DO PRISMA ===')
     
     const dataToSave = {
       professionalId,
@@ -276,30 +268,18 @@ export async function POST(
       type
     }
     
-    console.log('PONTO C - Objeto COMPLETO que será salvo:', JSON.stringify(dataToSave, null, 2))
-    console.log('PONTO C - startDateTime objeto Date:', startDateTime)
-    console.log('PONTO C - startDateTime.toString():', startDateTime.toString())
-    console.log('PONTO C - startDateTime.getHours():', startDateTime.getHours())
-    console.log('PONTO C - startDateTime.getMinutes():', startDateTime.getMinutes())
-    console.log('PONTO C - startDateTime.toISOString():', startDateTime.toISOString())
-    console.log('PONTO C - startDateTime.getTimezoneOffset():', startDateTime.getTimezoneOffset())
-    console.log('PONTO C - Sistema timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone)
-
-    // AQUI É ONDE PODE ESTAR ACONTECENDO A CONVERSÃO!
-    console.log('PONTO C - EXECUTANDO PRISMA.CREATE AGORA...')
+    console.error('PONTO C - startDateTime objeto:', startDateTime.toString())
+    console.error('PONTO C - startDateTime.getHours():', startDateTime.getHours())
+    console.error('PONTO C - EXECUTANDO PRISMA...')
+    
     const exception = await prisma.scheduleException.create({
       data: dataToSave
     })
-    console.log('PONTO C - PRISMA.CREATE EXECUTADO!')
-
-    // 🔍 PONTO D - DADOS DEPOIS DO BANCO
-    console.log('=== PONTO D - DADOS RETORNADOS DO BANCO ===')
-    console.log('PONTO D - Dados retornados:', JSON.stringify(exception, null, 2))
-    console.log('PONTO D - exception.startDatetime:', exception.startDatetime)
-    console.log('PONTO D - typeof exception.startDatetime:', typeof exception.startDatetime)
+    
+    console.error('PONTO C - PRISMA EXECUTADO!')
+    console.error('PONTO D - Retorno do banco:', exception.startDatetime)
     if (exception.startDatetime instanceof Date) {
-      console.log('PONTO D - exception.startDatetime.toString():', exception.startDatetime.toString())
-      console.log('PONTO D - exception.startDatetime.getHours():', exception.startDatetime.getHours())
+      console.error('PONTO D - exception.getHours():', exception.startDatetime.getHours())
     }
 
     return NextResponse.json({
