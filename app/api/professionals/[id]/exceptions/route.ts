@@ -169,15 +169,21 @@ export async function POST(
     try {
       // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
       if (typeof startDatetime === 'string') {
-        // Assumir que a string já está em horário local do Brasil
-        startDateTime = new Date(startDatetime.replace(' ', 'T'))
+        // Parse manual para garantir interpretação como horário local
+        const [datePart, timePart] = startDatetime.split(' ')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute, second = 0] = timePart.split(':').map(Number)
+        startDateTime = new Date(year, month - 1, day, hour, minute, second)
       } else {
         startDateTime = startDatetime
       }
 
       if (typeof endDatetime === 'string') {
-        // Assumir que a string já está em horário local do Brasil  
-        endDateTime = new Date(endDatetime.replace(' ', 'T'))
+        // Parse manual para garantir interpretação como horário local
+        const [datePart, timePart] = endDatetime.split(' ')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute, second = 0] = timePart.split(':').map(Number)
+        endDateTime = new Date(year, month - 1, day, hour, minute, second)
       } else {
         endDateTime = endDatetime
       }
