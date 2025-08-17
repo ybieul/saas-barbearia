@@ -131,17 +131,23 @@ export async function POST(
     const professionalId = params.id
     const body: CreateScheduleExceptionData = await request.json()
 
-    // 🔍 DEBUG - Verificar timezone do MySQL
+    // 🔍 DEBUG - Verificar timezone do MySQL e configurações
+    console.log('=== AUDITORIA TIMEZONE - PONTO 0: CONFIG DO SISTEMA ===')
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    console.log('Sistema TZ:', process.env.TZ || 'sistema padrão')
+    console.log('Data atual do servidor:', new Date().toString())
+    
     const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
-    console.log('=== AUDITORIA TIMEZONE - PONTO 0: CONFIG DO MYSQL ===')
     console.log('MySQL session timezone:', timezoneResult)
 
-    // 🔍 DEBUG - Verificar o que chega do frontend
-    console.log('=== AUDITORIA TIMEZONE - PONTO 1: ENTRADA DA API ===')
-    console.log('Body recebido:', JSON.stringify(body, null, 2))
-    console.log('startDatetime recebido:', body.startDatetime)
-    console.log('endDatetime recebido:', body.endDatetime)
-    console.log('Tipo de startDatetime:', typeof body.startDatetime)
+    // 🔍 PONTO B - DADOS RECEBIDOS NO BACKEND (PRIMEIRA COISA QUE FAZEMOS)
+    console.log('=== PONTO B - DADOS RECEBIDOS NO BACKEND ===')
+    console.log('Backend request.body RAW:', JSON.stringify(body, null, 2))
+    console.log('Backend body.startDatetime:', body.startDatetime)
+    console.log('Backend body.endDatetime:', body.endDatetime)
+    console.log('Backend typeof body.startDatetime:', typeof body.startDatetime)
+    console.log('Backend typeof body.endDatetime:', typeof body.endDatetime)
 
     // Verificar se o profissional pertence ao tenant do usuário
     const professional = await prisma.professional.findFirst({
@@ -259,8 +265,8 @@ export async function POST(
       )
     }
 
-    // 🔍 DEBUG - Verificar dados ANTES do Prisma
-    console.log('=== AUDITORIA TIMEZONE - PONTO 3: ANTES DO PRISMA ===')
+    // 🔍 PONTO C - DADOS ANTES DE SALVAR NO BANCO (MAIS IMPORTANTE!)
+    console.log('=== PONTO C - DADOS IMEDIATAMENTE ANTES DO PRISMA ===')
     
     const dataToSave = {
       professionalId,
@@ -269,25 +275,31 @@ export async function POST(
       reason: reason?.trim() || null,
       type
     }
-    console.log('Dados que serão salvos no banco:', JSON.stringify(dataToSave, null, 2))
-    console.log('startDateTime antes do Prisma:', startDateTime)
-    console.log('startDateTime.toString() antes do Prisma:', startDateTime.toString())
-    console.log('startDateTime.getHours() antes do Prisma:', startDateTime.getHours())
-    console.log('Timezone offset antes do Prisma:', startDateTime.getTimezoneOffset())
+    
+    console.log('PONTO C - Objeto COMPLETO que será salvo:', JSON.stringify(dataToSave, null, 2))
+    console.log('PONTO C - startDateTime objeto Date:', startDateTime)
+    console.log('PONTO C - startDateTime.toString():', startDateTime.toString())
+    console.log('PONTO C - startDateTime.getHours():', startDateTime.getHours())
+    console.log('PONTO C - startDateTime.getMinutes():', startDateTime.getMinutes())
+    console.log('PONTO C - startDateTime.toISOString():', startDateTime.toISOString())
+    console.log('PONTO C - startDateTime.getTimezoneOffset():', startDateTime.getTimezoneOffset())
+    console.log('PONTO C - Sistema timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone)
 
-    // Criar a exceção
+    // AQUI É ONDE PODE ESTAR ACONTECENDO A CONVERSÃO!
+    console.log('PONTO C - EXECUTANDO PRISMA.CREATE AGORA...')
     const exception = await prisma.scheduleException.create({
       data: dataToSave
     })
+    console.log('PONTO C - PRISMA.CREATE EXECUTADO!')
 
-    // 🔍 DEBUG - Verificar dados DEPOIS do Prisma
-    console.log('=== AUDITORIA TIMEZONE - PONTO 4: DEPOIS DO PRISMA ===')
-    console.log('Dados retornados do banco:', JSON.stringify(exception, null, 2))
-    console.log('exception.startDatetime:', exception.startDatetime)
-    console.log('Tipo de exception.startDatetime:', typeof exception.startDatetime)
+    // 🔍 PONTO D - DADOS DEPOIS DO BANCO
+    console.log('=== PONTO D - DADOS RETORNADOS DO BANCO ===')
+    console.log('PONTO D - Dados retornados:', JSON.stringify(exception, null, 2))
+    console.log('PONTO D - exception.startDatetime:', exception.startDatetime)
+    console.log('PONTO D - typeof exception.startDatetime:', typeof exception.startDatetime)
     if (exception.startDatetime instanceof Date) {
-      console.log('exception.startDatetime.toString():', exception.startDatetime.toString())
-      console.log('exception.startDatetime.getHours():', exception.startDatetime.getHours())
+      console.log('PONTO D - exception.startDatetime.toString():', exception.startDatetime.toString())
+      console.log('PONTO D - exception.startDatetime.getHours():', exception.startDatetime.getHours())
     }
 
     return NextResponse.json({

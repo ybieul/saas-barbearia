@@ -120,6 +120,13 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
         type: newException.type
       }
 
+      // 🔍 PONTO A - DADOS ENVIADOS PELO FRONTEND
+      console.log("=== PONTO A - DADOS ENVIADOS PELO FRONTEND ===")
+      console.log("Frontend payload completo:", JSON.stringify(exceptionData, null, 2))
+      console.log("Frontend startDatetime:", startDatetime)
+      console.log("Frontend endDatetime:", endDatetime)
+      console.log("Frontend tipo de startDatetime:", typeof startDatetime)
+
       const result = await createException(exceptionData, professionalId)
       
       if (result) {
