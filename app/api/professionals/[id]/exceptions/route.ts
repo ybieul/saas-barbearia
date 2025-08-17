@@ -131,6 +131,18 @@ export async function POST(
     const professionalId = params.id
     const body: CreateScheduleExceptionData = await request.json()
 
+    // 🔍 DEBUG - Verificar timezone do MySQL
+    const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
+    console.log('=== AUDITORIA TIMEZONE - PONTO 0: CONFIG DO MYSQL ===')
+    console.log('MySQL session timezone:', timezoneResult)
+
+    // 🔍 DEBUG - Verificar o que chega do frontend
+    console.log('=== AUDITORIA TIMEZONE - PONTO 1: ENTRADA DA API ===')
+    console.log('Body recebido:', JSON.stringify(body, null, 2))
+    console.log('startDatetime recebido:', body.startDatetime)
+    console.log('endDatetime recebido:', body.endDatetime)
+    console.log('Tipo de startDatetime:', typeof body.startDatetime)
+
     // Verificar se o profissional pertence ao tenant do usuário
     const professional = await prisma.professional.findFirst({
       where: {
@@ -167,22 +179,38 @@ export async function POST(
     let endDateTime: Date
 
     try {
+      // 🔍 DEBUG - Verificar parsing de datas
+      console.log('=== AUDITORIA TIMEZONE - PONTO 2: PARSING DE DATAS ===')
+      
       // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
       if (typeof startDatetime === 'string') {
+        console.log('Processando startDatetime como string:', startDatetime)
+        
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = startDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hour, minute, second = 0] = timePart.split(':').map(Number)
+        
+        console.log('Componentes extraídos - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Minute:', minute, 'Second:', second)
+        
         startDateTime = new Date(year, month - 1, day, hour, minute, second)
+        console.log('Date criado (startDateTime):', startDateTime)
+        console.log('startDateTime.toString():', startDateTime.toString())
+        console.log('startDateTime.toISOString():', startDateTime.toISOString())
+        console.log('startDateTime.getHours():', startDateTime.getHours())
+        console.log('startDateTime.getTimezoneOffset():', startDateTime.getTimezoneOffset())
       } else {
         startDateTime = startDatetime
       }
 
       if (typeof endDatetime === 'string') {
+        console.log('Processando endDatetime como string:', endDatetime)
+        
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = endDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hour, minute, second = 0] = timePart.split(':').map(Number)
+        
         endDateTime = new Date(year, month - 1, day, hour, minute, second)
       } else {
         endDateTime = endDatetime
@@ -231,16 +259,36 @@ export async function POST(
       )
     }
 
+    // 🔍 DEBUG - Verificar dados ANTES do Prisma
+    console.log('=== AUDITORIA TIMEZONE - PONTO 3: ANTES DO PRISMA ===')
+    
+    const dataToSave = {
+      professionalId,
+      startDatetime: startDateTime,
+      endDatetime: endDateTime,
+      reason: reason?.trim() || null,
+      type
+    }
+    console.log('Dados que serão salvos no banco:', JSON.stringify(dataToSave, null, 2))
+    console.log('startDateTime antes do Prisma:', startDateTime)
+    console.log('startDateTime.toString() antes do Prisma:', startDateTime.toString())
+    console.log('startDateTime.getHours() antes do Prisma:', startDateTime.getHours())
+    console.log('Timezone offset antes do Prisma:', startDateTime.getTimezoneOffset())
+
     // Criar a exceção
     const exception = await prisma.scheduleException.create({
-      data: {
-        professionalId,
-        startDatetime: startDateTime,
-        endDatetime: endDateTime,
-        reason: reason?.trim() || null,
-        type
-      }
+      data: dataToSave
     })
+
+    // 🔍 DEBUG - Verificar dados DEPOIS do Prisma
+    console.log('=== AUDITORIA TIMEZONE - PONTO 4: DEPOIS DO PRISMA ===')
+    console.log('Dados retornados do banco:', JSON.stringify(exception, null, 2))
+    console.log('exception.startDatetime:', exception.startDatetime)
+    console.log('Tipo de exception.startDatetime:', typeof exception.startDatetime)
+    if (exception.startDatetime instanceof Date) {
+      console.log('exception.startDatetime.toString():', exception.startDatetime.toString())
+      console.log('exception.startDatetime.getHours():', exception.startDatetime.getHours())
+    }
 
     return NextResponse.json({
       message: 'Bloqueio criado com sucesso',
