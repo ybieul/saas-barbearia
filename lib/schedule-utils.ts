@@ -24,23 +24,56 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
- * Gera slots de tempo disponíveis baseado no horário de trabalho e duração do serviço
+ * Gera slots de tempo disponíveis baseado no horário de trabalho
+ * Agora gera TODOS os slots de 5min independente da duração do serviço
  */
 export function generateTimeSlots(
   startTime: string,
   endTime: string,
-  slotDuration: number = 5, // ✅ CORRIGIDO: Slots de 5 em 5 minutos
-  serviceDuration: number = 30 // duração do serviço em minutos
+  slotDuration: number = 5, // Sempre 5 minutos por slot
+  serviceDuration: number = 30 // Não usado mais na geração, apenas para compatibilidade
 ): string[] {
   const startMinutes = timeToMinutes(startTime)
   const endMinutes = timeToMinutes(endTime)
   const slots: string[] = []
 
-  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += slotDuration) {
+  // ✅ CORRIGIDO: Gerar TODOS os slots de 5min, sem considerar duração do serviço
+  for (let minutes = startMinutes; minutes < endMinutes; minutes += slotDuration) {
     slots.push(minutesToTime(minutes))
   }
 
   return slots
+}
+
+/**
+ * Nova função: Verifica se um slot pode iniciar um serviço da duração especificada
+ */
+export function canSlotAccommodateService(
+  slotTime: string,
+  serviceDuration: number,
+  availableSlots: string[],
+  endTime: string
+): boolean {
+  const slotMinutes = timeToMinutes(slotTime)
+  const endMinutes = timeToMinutes(endTime)
+  const slotsNeeded = Math.ceil(serviceDuration / 5) // Quantos slots de 5min são necessários
+  
+  // Verificar se há tempo suficiente até o fim do expediente
+  if (slotMinutes + serviceDuration > endMinutes) {
+    return false
+  }
+  
+  // Verificar se todos os slots consecutivos necessários estão disponíveis
+  for (let i = 0; i < slotsNeeded; i++) {
+    const requiredSlotMinutes = slotMinutes + (i * 5)
+    const requiredSlotTime = minutesToTime(requiredSlotMinutes)
+    
+    if (!availableSlots.includes(requiredSlotTime)) {
+      return false
+    }
+  }
+  
+  return true
 }
 
 /**

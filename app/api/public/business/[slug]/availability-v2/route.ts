@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { format, parseISO, getDay, startOfDay, endOfDay, addMinutes, isSameDay } from 'date-fns'
-import { generateTimeSlots, timePeriodsOverlap, toSystemTimezone } from '@/lib/schedule-utils'
+import { generateTimeSlots, timePeriodsOverlap, toSystemTimezone, canSlotAccommodateService } from '@/lib/schedule-utils'
 import type { AvailabilitySlot, DayAvailability } from '@/lib/types/schedule'
 
 // GET - Buscar disponibilidade completa de um profissional
@@ -109,12 +109,11 @@ export async function GET(
       } as DayAvailability)
     }
 
-    // PASSO 2: Gerar slots iniciais baseados no horário de trabalho
-    const initialSlots = generateTimeSlots(
+    // PASSO 2: Gerar TODOS os slots de 5min baseados no horário de trabalho
+    const allSlots = generateTimeSlots(
       schedule.startTime.substring(0, 5), // Remover segundos se houver (HH:MM)
       schedule.endTime.substring(0, 5),
-      5, // ✅ CORRIGIDO: Slots de 5 em 5 minutos
-      serviceDuration
+      5 // Sempre slots de 5 em 5 minutos
     )
 
     // PASSO 2.5: Remover slots que estão dentro dos intervalos recorrentes (como almoço)
@@ -124,7 +123,7 @@ export async function GET(
       }
     })
 
-    let availableSlotsAfterBreaks = initialSlots.filter(slotTime => {
+    let availableSlotsAfterBreaks = allSlots.filter(slotTime => {
       // Converter slot time para minutos para comparação
       const [slotHours, slotMinutes] = slotTime.split(':').map(Number)
       const slotTimeInMinutes = slotHours * 60 + slotMinutes
@@ -198,17 +197,17 @@ export async function GET(
       }
     })
 
-    // PASSO 5: Processar slots e marcar indisponibilidade
-    const availableSlots: AvailabilitySlot[] = availableSlotsAfterBreaks.map(time => {
-      const [hours, minutes] = time.split(':').map(Number)
+    // PASSO 5: Processar cada slot de 5min individualmente
+    const allSlotsStatus: AvailabilitySlot[] = availableSlotsAfterBreaks.map(slotTime => {
+      const [hours, minutes] = slotTime.split(':').map(Number)
       const slotStart = new Date(targetDate)
       slotStart.setHours(hours, minutes, 0, 0)
-      const slotEnd = addMinutes(slotStart, serviceDuration)
+      const slotEnd = addMinutes(slotStart, 5) // ✅ CORRETO: Cada slot é de 5 minutos
 
       let available = true
       let reason: string | undefined
 
-      // Verificar conflito com agendamentos
+      // Verificar se este slot de 5min está ocupado por algum agendamento
       for (const appointment of existingAppointments) {
         const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
         
@@ -231,10 +230,31 @@ export async function GET(
       }
 
       return {
-        time,
+        time: slotTime,
         available,
         reason
       }
+    })
+
+    // PASSO 5.5: Filtrar slots que podem iniciar um serviço da duração solicitada
+    const availableSlots: AvailabilitySlot[] = allSlotsStatus.filter(slot => {
+      if (!slot.available) {
+        return false // Slot já está ocupado
+      }
+
+      // Verificar se há slots consecutivos suficientes para o serviço
+      const slotIndex = allSlotsStatus.findIndex(s => s.time === slot.time)
+      const slotsNeeded = Math.ceil(serviceDuration / 5) // Quantos slots de 5min são necessários
+      
+      // Verificar se há slots disponíveis suficientes a partir deste ponto
+      for (let i = 0; i < slotsNeeded; i++) {
+        const checkSlot = allSlotsStatus[slotIndex + i]
+        if (!checkSlot || !checkSlot.available) {
+          return false // Não há slots consecutivos suficientes
+        }
+      }
+      
+      return true // Este slot pode iniciar um serviço da duração solicitada
     })
 
     // PASSO 6: Verificar se há exceção de folga que cobre o dia inteiro
@@ -265,10 +285,20 @@ export async function GET(
       professionalId,
       professionalName: professional.name,
       workingHours: {
-        startTime: schedule.startTime,
-        endTime: schedule.endTime
+        startTime: schedule.startTime.substring(0, 5),
+        endTime: schedule.endTime.substring(0, 5)
       },
-      slots: availableSlots
+      serviceDuration,
+      slots: availableSlots,
+      totalSlots: availableSlots.length,
+      allSlotsStatus: process.env.NODE_ENV === 'development' ? allSlotsStatus : undefined, // Debug info apenas em dev
+      recurringBreaks: recurringBreaks.map(b => ({
+        startTime: b.startTime,
+        endTime: b.endTime
+      })),
+      message: availableSlots.length > 0 
+        ? `${availableSlots.length} horários disponíveis para serviço de ${serviceDuration} minutos`
+        : `Nenhum horário disponível para serviço de ${serviceDuration} minutos`
     } as DayAvailability)
 
   } catch (error) {

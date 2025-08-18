@@ -41,7 +41,14 @@ export interface DayAvailability {
     startTime: string
     endTime: string
   } | null
+  serviceDuration?: number // Duração do serviço solicitado
   slots: AvailabilitySlot[]
+  totalSlots?: number // Total de slots disponíveis
+  allSlotsStatus?: AvailabilitySlot[] // Todos os slots (para debug)
+  recurringBreaks?: Array<{
+    startTime: string
+    endTime: string
+  }>
   message?: string // Mensagem opcional (ex: "Profissional de folga")
 }
 
