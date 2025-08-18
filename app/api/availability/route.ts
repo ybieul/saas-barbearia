@@ -13,8 +13,16 @@ export async function GET(request: NextRequest) {
     const dateParam = searchParams.get('date')
     const serviceDurationParam = searchParams.get('service_duration') // NOVO: duração do serviço
 
+    console.log('🚀 API - Recebendo requisição de disponibilidade:', {
+      professionalId: professionalIdParam,
+      date: dateParam,
+      serviceDuration: serviceDurationParam,
+      url: request.url
+    })
+
     // Validar parâmetros obrigatórios
     if (!professionalIdParam || !dateParam) {
+      console.log('❌ API - Parâmetros obrigatórios faltando')
       return NextResponse.json(
         { error: 'Parâmetros professional_id e date são obrigatórios (formato: YYYY-MM-DD)' },
         { status: 400 }
@@ -28,6 +36,7 @@ export async function GET(request: NextRequest) {
     try {
       queryDate = parseISO(dateParam)
     } catch (error) {
+      console.log('❌ API - Formato de data inválido:', dateParam)
       return NextResponse.json(
         { error: 'Formato de data inválido. Use YYYY-MM-DD' },
         { status: 400 }
@@ -43,6 +52,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!professional) {
+      console.log('❌ API - Profissional não encontrado:', professionalIdParam)
       return NextResponse.json(
         { error: 'Profissional não encontrado' },
         { status: 404 }
@@ -53,15 +63,13 @@ export async function GET(request: NextRequest) {
     const startOfDate = startOfDay(queryDate)
     const endOfDate = endOfDay(queryDate)
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Buscando disponibilidade:', {
-        professional: professional.name,
-        date: dateParam,
-        dayOfWeek,
-        serviceDurationMinutes,
-        tenantId: user.tenantId
-      })
-    }
+    console.log('🔍 API - Buscando disponibilidade:', {
+      professional: professional.name,
+      date: dateParam,
+      dayOfWeek,
+      serviceDurationMinutes,
+      tenantId: user.tenantId
+    })
 
     // 1. VERIFICAR HORÁRIO DE FUNCIONAMENTO DO PROFISSIONAL
     const professionalSchedule = await prisma.professionalSchedule.findFirst({
@@ -76,6 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Se não tem horário definido para este dia, não está disponível
     if (!professionalSchedule) {
+      console.log('🚫 API - Profissional não trabalha neste dia:', dayOfWeek)
       return NextResponse.json({
         professional_id: professionalIdParam,
         professional_name: professional.name,
@@ -90,6 +99,12 @@ export async function GET(request: NextRequest) {
         exceptions: []
       })
     }
+
+    console.log('✅ API - Horário de funcionamento encontrado:', {
+      startTime: professionalSchedule.startTime,
+      endTime: professionalSchedule.endTime,
+      breaksCount: professionalSchedule.recurringBreaks.length
+    })
 
     // 2. OBTER INTERVALOS RECORRENTES DO SCHEDULE (já incluído)
     const recurringBreaks = professionalSchedule.recurringBreaks
@@ -141,42 +156,40 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Query de agendamentos:', {
-        professionalId: professionalIdParam,
-        dateRange: {
-          gte: startOfDate.toISOString(),
-          lte: endOfDate.toISOString()
-        },
-        queryDate: queryDate.toISOString(),
-        startOfDate_local: `${startOfDate.getFullYear()}-${(startOfDate.getMonth()+1).toString().padStart(2,'0')}-${startOfDate.getDate().toString().padStart(2,'0')} ${startOfDate.getHours()}:${startOfDate.getMinutes()}:${startOfDate.getSeconds()}`,
-        endOfDate_local: `${endOfDate.getFullYear()}-${(endOfDate.getMonth()+1).toString().padStart(2,'0')}-${endOfDate.getDate().toString().padStart(2,'0')} ${endOfDate.getHours()}:${endOfDate.getMinutes()}:${endOfDate.getSeconds()}`
-      })
-      
-      // 🔍 LOG: Mostrar agendamentos encontrados
-      console.log('📅 Agendamentos existentes encontrados:', {
-        count: existingAppointments.length,
-        appointments: existingAppointments.map(apt => ({
-          id: apt.id,
-          dateTime: apt.dateTime.toISOString(),
-          duration: apt.duration,
-          status: apt.status,
-          localTime: `${apt.dateTime.getHours()}:${apt.dateTime.getMinutes().toString().padStart(2, '0')}`
-        }))
-      })
-      
-      // 🔍 LOG: Mostrar exceções encontradas  
-      console.log('🚫 Exceções/Bloqueios encontrados:', {
-        count: exceptions.length,
-        exceptions: exceptions.map(ex => ({
-          id: ex.id,
-          start: ex.startDatetime.toISOString(),
-          end: ex.endDatetime.toISOString(),
-          reason: ex.reason,
-          type: ex.type
-        }))
-      })
-    }
+    console.log('🔍 API - Query de agendamentos:', {
+      professionalId: professionalIdParam,
+      dateRange: {
+        gte: startOfDate.toISOString(),
+        lte: endOfDate.toISOString()
+      },
+      queryDate: queryDate.toISOString(),
+      startOfDate_local: `${startOfDate.getFullYear()}-${(startOfDate.getMonth()+1).toString().padStart(2,'0')}-${startOfDate.getDate().toString().padStart(2,'0')} ${startOfDate.getHours()}:${startOfDate.getMinutes()}:${startOfDate.getSeconds()}`,
+      endOfDate_local: `${endOfDate.getFullYear()}-${(endOfDate.getMonth()+1).toString().padStart(2,'0')}-${endOfDate.getDate().toString().padStart(2,'0')} ${endOfDate.getHours()}:${endOfDate.getMinutes()}:${endOfDate.getSeconds()}`
+    })
+    
+    // 🔍 LOG: Mostrar agendamentos encontrados
+    console.log('📅 API - Agendamentos existentes encontrados:', {
+      count: existingAppointments.length,
+      appointments: existingAppointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toISOString(),
+        duration: apt.duration,
+        status: apt.status,
+        localTime: `${apt.dateTime.getHours()}:${apt.dateTime.getMinutes().toString().padStart(2, '0')}`
+      }))
+    })
+    
+    // 🔍 LOG: Mostrar exceções encontradas  
+    console.log('🚫 API - Exceções/Bloqueios encontrados:', {
+      count: exceptions.length,
+      exceptions: exceptions.map(ex => ({
+        id: ex.id,
+        start: ex.startDatetime.toISOString(),
+        end: ex.endDatetime.toISOString(),
+        reason: ex.reason,
+        type: ex.type
+      }))
+    })
 
     // 5. GERAR SLOTS DE TEMPO DISPONÍVEIS
     const availableTimes: string[] = []
@@ -188,6 +201,13 @@ export async function GET(request: NextRequest) {
     
     const startTotalMinutes = startHour * 60 + startMinute
     const endTotalMinutes = endHour * 60 + endMinute
+
+    console.log('🔄 API - Iniciando geração de slots:', {
+      startTotalMinutes,
+      endTotalMinutes,
+      intervalMinutes,
+      serviceDurationMinutes
+    })
 
     // Gerar todos os slots possíveis
     for (let currentMinutes = startTotalMinutes; currentMinutes < endTotalMinutes; currentMinutes += intervalMinutes) {
@@ -214,6 +234,11 @@ export async function GET(request: NextRequest) {
           const breakEndMinutes = breakEndHour * 60 + breakEndMinute
           
           if (checkMinutes >= breakStartMinutes && checkMinutes < breakEndMinutes) {
+            console.log(`🚫 API - Slot ${timeSlot} conflita com intervalo:`, {
+              breakStart: recurringBreak.startTime,
+              breakEnd: recurringBreak.endTime,
+              checkMinutes
+            })
             isSlotAvailable = false
             break
           }
@@ -233,6 +258,12 @@ export async function GET(request: NextRequest) {
           
           // Verificar se há sobreposição entre o período do serviço e a exceção
           if (slotStartDateTime < exceptionEnd && slotEndDateTime > exceptionStart) {
+            console.log(`🚫 API - Slot ${timeSlot} conflita com exceção:`, {
+              exceptionStart: exceptionStart.toISOString(),
+              exceptionEnd: exceptionEnd.toISOString(),
+              slotStart: slotStartDateTime.toISOString(),
+              slotEnd: slotEndDateTime.toISOString()
+            })
             isSlotAvailable = false
             break
           }
@@ -254,16 +285,14 @@ export async function GET(request: NextRequest) {
           const hasOverlap = slotStartDateTime < appointmentEnd && slotEndDateTime > appointmentStart
           
           if (hasOverlap) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`⚠️ Conflito detectado no slot ${timeSlot}:`, {
-                slotStart: slotStartDateTime.toISOString(),
-                slotEnd: slotEndDateTime.toISOString(),
-                appointmentStart: appointmentStart.toISOString(),
-                appointmentEnd: appointmentEnd.toISOString(),
-                appointmentId: appointment.id,
-                hasOverlap
-              })
-            }
+            console.log(`⚠️ API - Conflito detectado no slot ${timeSlot}:`, {
+              slotStart: slotStartDateTime.toISOString(),
+              slotEnd: slotEndDateTime.toISOString(),
+              appointmentStart: appointmentStart.toISOString(),
+              appointmentEnd: appointmentEnd.toISOString(),
+              appointmentId: appointment.id,
+              hasOverlap
+            })
             isSlotAvailable = false
             break
           }
@@ -276,19 +305,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Disponibilidade calculada:', {
-        professional: professional.name,
-        date: dateParam,
-        total_slots: availableTimes.length,
-        working_hours: `${professionalSchedule.startTime} - ${professionalSchedule.endTime}`,
-        breaks_count: recurringBreaks.length,
-        exceptions_count: exceptions.length,
-        appointments_count: existingAppointments.length,
-        available_times_sample: availableTimes.slice(0, 10), // Primeiros 10 horários
-        service_duration_minutes: serviceDurationMinutes
-      })
-    }
+    console.log('✅ API - Disponibilidade calculada:', {
+      professional: professional.name,
+      date: dateParam,
+      total_slots: availableTimes.length,
+      working_hours: `${professionalSchedule.startTime} - ${professionalSchedule.endTime}`,
+      breaks_count: recurringBreaks.length,
+      exceptions_count: exceptions.length,
+      appointments_count: existingAppointments.length,
+      available_times_sample: availableTimes.slice(0, 10), // Primeiros 10 horários
+      service_duration_minutes: serviceDurationMinutes
+    })
 
     return NextResponse.json({
       professional_id: professionalIdParam,

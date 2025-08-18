@@ -213,9 +213,19 @@ export default function AgendaPage() {
   // 🚀 NOVA FUNCIONALIDADE: Buscar horários disponíveis quando profissional ou data mudarem
   useEffect(() => {
     const loadAvailability = async () => {
+      // Log para debug
+      console.log('🔍 Frontend - Verificando disponibilidade:', {
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        serviceId: newAppointment.serviceId,
+        editingAppointment: !!editingAppointment,
+        servicesLength: services?.length
+      })
+
       // Verificar se os campos necessários estão preenchidos
       if (!newAppointment.professionalId || !newAppointment.date) {
         // Se não há profissional ou data, limpar horários disponíveis
+        console.log('⚠️ Frontend - Campos faltando, limpando disponibilidade')
         clearAvailability()
         return
       }
@@ -228,6 +238,13 @@ export default function AgendaPage() {
           serviceDuration = selectedService.duration || 30
         }
       }
+
+      console.log('🚀 Frontend - Buscando disponibilidade:', {
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        serviceDuration,
+        selectedServiceId: newAppointment.serviceId
+      })
 
       // Buscar horários disponíveis via API incluindo duração do serviço
       await fetchAvailability(newAppointment.professionalId, newAppointment.date, serviceDuration)

@@ -40,8 +40,12 @@ export function useAvailability(): UseAvailabilityReturn {
   const { token } = useAuth()
 
   const fetchAvailability = useCallback(async (professionalId: string, date: string, serviceDuration?: number) => {
+    // Debug log
+    console.log('🎣 Hook - fetchAvailability chamado:', { professionalId, date, serviceDuration })
+
     // Validar parâmetros
     if (!professionalId || !date) {
+      console.log('❌ Hook - Parâmetros inválidos:', { professionalId, date })
       setAvailableTimes([])
       setError('Profissional e data são obrigatórios')
       return
@@ -49,6 +53,7 @@ export function useAvailability(): UseAvailabilityReturn {
 
     // Verificar se está autenticado
     if (!token) {
+      console.log('❌ Hook - Usuário não autenticado')
       setAvailableTimes([])
       setError('Usuário não autenticado')
       return
@@ -69,6 +74,8 @@ export function useAvailability(): UseAvailabilityReturn {
         params.append('service_duration', serviceDuration.toString())
       }
 
+      console.log('📡 Hook - Fazendo requisição para:', `/api/availability?${params.toString()}`)
+
       const response = await fetch(
         `/api/availability?${params.toString()}`,
         {
@@ -80,22 +87,27 @@ export function useAvailability(): UseAvailabilityReturn {
         }
       )
 
+      console.log('📥 Hook - Resposta da API:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      })
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.log('❌ Hook - Erro na resposta:', errorData)
         throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`)
       }
 
       const data: AvailabilityData = await response.json()
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Horários disponíveis carregados:', {
-          professional: data.professional_name,
-          date: data.date,
-          available_times: data.available_times,
-          total_slots: data.available_times.length,
-          service_duration: serviceDuration || 30
-        })
-      }
+      console.log('✅ Hook - Horários disponíveis carregados:', {
+        professional: data.professional_name,
+        date: data.date,
+        available_times: data.available_times,
+        total_slots: data.available_times?.length || 0,
+        service_duration: serviceDuration || 30
+      })
 
       setAvailableTimes(data.available_times || [])
     } catch (error: any) {
@@ -108,6 +120,7 @@ export function useAvailability(): UseAvailabilityReturn {
   }, [token])
 
   const clearAvailability = useCallback(() => {
+    console.log('🧹 Hook - Limpando disponibilidade')
     setAvailableTimes([])
     setError(null)
     setIsLoadingTimes(false)
