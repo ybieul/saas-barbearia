@@ -1,7 +1,11 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 
-interface AvailabilityMetadata {
+interface AvailabilityData {
+  professional_id: string
+  professional_name: string
+  date: string
+  available_times: string[]
   working_hours: {
     start_time: string
     end_time: string
@@ -19,23 +23,12 @@ interface AvailabilityMetadata {
     reason: string
     type: string
   }>
-  appointments: number
-  service_duration: number
-}
-
-interface AvailabilityResponse {
-  professional_id: string
-  professional_name: string
-  date: string
-  available_times: string[]
-  metadata: AvailabilityMetadata
 }
 
 interface UseAvailabilityReturn {
   availableTimes: string[]
   isLoadingTimes: boolean
   error: string | null
-  metadata: AvailabilityMetadata | null
   fetchAvailability: (professionalId: string, date: string, serviceDuration?: number) => Promise<void>
   clearAvailability: () => void
 }
@@ -44,7 +37,6 @@ export function useAvailability(): UseAvailabilityReturn {
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [isLoadingTimes, setIsLoadingTimes] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [metadata, setMetadata] = useState<AvailabilityMetadata | null>(null)
   const { token } = useAuth()
 
   const fetchAvailability = useCallback(async (professionalId: string, date: string, serviceDuration?: number) => {
@@ -107,23 +99,21 @@ export function useAvailability(): UseAvailabilityReturn {
         throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`)
       }
 
-      const data: AvailabilityResponse = await response.json()
+      const data: AvailabilityData = await response.json()
 
       console.log('✅ Hook - Horários disponíveis carregados:', {
         professional: data.professional_name,
         date: data.date,
         available_times: data.available_times,
         total_slots: data.available_times?.length || 0,
-        metadata: data.metadata
+        service_duration: serviceDuration || 30
       })
 
       setAvailableTimes(data.available_times || [])
-      setMetadata(data.metadata || null)
     } catch (error: any) {
       console.error('❌ Erro ao buscar disponibilidade:', error)
       setError(error.message || 'Erro ao buscar horários disponíveis')
       setAvailableTimes([])
-      setMetadata(null)
     } finally {
       setIsLoadingTimes(false)
     }
@@ -133,7 +123,6 @@ export function useAvailability(): UseAvailabilityReturn {
     console.log('🧹 Hook - Limpando disponibilidade')
     setAvailableTimes([])
     setError(null)
-    setMetadata(null)
     setIsLoadingTimes(false)
   }, [])
 
@@ -141,7 +130,6 @@ export function useAvailability(): UseAvailabilityReturn {
     availableTimes,
     isLoadingTimes,
     error,
-    metadata,
     fetchAvailability,
     clearAvailability
   }
