@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
     const brazilNow = getBrazilNow()
     if (process.env.NODE_ENV === 'development') {
       console.log('🕐 Brazil now (API):', brazilNow.toISOString())
+      if (process.env.NODE_ENV === 'development') {
       console.log('🕐 Brazil now local:', brazilNow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+      }
     }
 
     let startDate: Date
@@ -58,9 +60,15 @@ export async function GET(request: NextRequest) {
     // Debug das datas calculadas
     if (process.env.NODE_ENV === 'development') {
       console.log('📅 Start date:', startDate.toISOString())
+      if (process.env.NODE_ENV === 'development') {
       console.log('📅 End date:', endDate.toISOString())
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('📅 Start local:', startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('📅 End local:', endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+      }
     }
 
     // Métricas do tenant
@@ -400,9 +408,15 @@ export async function GET(request: NextRequest) {
     }
     if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Sparkline data calculado:', sparklineData)
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Revenue array:', sparklineData.map(d => d.revenue))
+    }
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Appointments array:', sparklineData.map(d => d.appointments))
+    }
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Clients array:', sparklineData.map(d => d.clients))
+    }
     }
 
     // Calcular taxa de ocupação por profissional (usando horário real de funcionamento)
@@ -460,16 +474,22 @@ export async function GET(request: NextRequest) {
           
           totalAvailableMinutes = endTotalMinutes - startTotalMinutes
           
+          if (process.env.NODE_ENV === 'development') {
           console.log(`🕐 Horário ${dayName}: ${workingHour.startTime} - ${workingHour.endTime} = ${totalAvailableMinutes} minutos`)
+          }
         } else {
+          if (process.env.NODE_ENV === 'development') {
           console.log(`⚠️  Horário não configurado para ${dayName}, usando padrão: ${totalAvailableMinutes} minutos`)
+          }
         }
         
         const occupancyRate = totalAvailableMinutes > 0 
           ? Math.round((totalOccupiedMinutes / totalAvailableMinutes) * 100) 
           : 0
         
+        if (process.env.NODE_ENV === 'development') {
         console.log(`🔍 Professional ${prof.name}: ${totalOccupiedMinutes}min/${totalAvailableMinutes}min = ${occupancyRate}%`)
+        }
         
         return {
           id: prof.id,
@@ -485,8 +505,12 @@ export async function GET(request: NextRequest) {
       ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
       : 0
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Profissionais com ocupação calculada:', professionalsWithOccupancy)
+    }
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Taxa de ocupação média:', averageOccupancyRate)
+    }
 
     // TODO: Reativar depois se necessário
     // Dados para gráficos - receita por dia (últimos 7 dias)
@@ -517,7 +541,9 @@ export async function GET(request: NextRequest) {
     //   })
     // }
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Resultados das queries (DETALHADO):', {
+    }
       totalClients,
       activeClients,
       totalAppointments,
@@ -535,19 +561,33 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Today appointments raw:', todayAppointments.slice(0, 2)) // Primeiros 2 para debug
+    }
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Professionals raw:', professionals.slice(0, 2)) // Primeiros 2 para debug
+    }
     
     // Debug específico para timezone
+    if (process.env.NODE_ENV === 'development') {
     console.log('⏰ === DEBUG TIMEZONE APPOINTMENTS ===')
+    }
     todayAppointments.forEach((apt, index) => {
       if (index < 3) { // Apenas 3 primeiros para não poluir log
+        if (process.env.NODE_ENV === 'development') {
         console.log(`📅 Apt ${index + 1}: ${apt.dateTime.toISOString()} (UTC)`)
+        }
+        if (process.env.NODE_ENV === 'development') {
         console.log(`📅 Apt ${index + 1}: ${apt.dateTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (BR)`)
+        }
+        if (process.env.NODE_ENV === 'development') {
         console.log(`👤 Apt ${index + 1}: ${apt.endUser?.name} - ${apt.services?.[0]?.name}`)
+        }
       }
     })
+    if (process.env.NODE_ENV === 'development') {
     console.log('⏰ === FIM DEBUG TIMEZONE ===')
+    }
 
     return NextResponse.json({
       data: {

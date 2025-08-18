@@ -147,7 +147,9 @@ export function getBrazilDayNameEn(date: Date): string {
   
   try {
     if (!date || !isValid(date)) {
+      if (process.env.NODE_ENV === 'development') {
       console.warn('⚠️ Data inválida fornecida para dia da semana em inglês')
+      }
       return 'invalid'
     }
     
@@ -167,7 +169,9 @@ export function getBrazilDayNameEn(date: Date): string {
 export function getBrazilDayNumber(date: Date): number {
   try {
     if (!date || !isValid(date)) {
+      if (process.env.NODE_ENV === 'development') {
       console.warn('⚠️ Data inválida fornecida para número do dia da semana')
+      }
       return 0
     }
     
@@ -218,8 +222,12 @@ export function getBrazilNow(): Date {
   // Debug para monitoramento
   if (process.env.NODE_ENV === 'development') {
     console.log('🕐 getBrazilNow() - System time:', now.toISOString())
+    if (process.env.NODE_ENV === 'development') {
     console.log('🕐 getBrazilNow() - Brazil time:', brazilTime.toISOString())
+    }
+    if (process.env.NODE_ENV === 'development') {
     console.log('🕐 getBrazilNow() - Local string:', brazilTime.toLocaleString('pt-BR', { 
+    }
       timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit', 
@@ -251,7 +259,9 @@ export function formatBrazilDate(date: Date): string {
 export function toBrazilDateString(date: Date): string {
   try {
     if (!date || !isValid(date)) {
+      if (process.env.NODE_ENV === 'development') {
       console.warn('⚠️ Data inválida fornecida para conversão')
+      }
       return ''
     }
     
@@ -281,7 +291,9 @@ export function parseDate(dateStr: string): Date {
 export function toLocalISOString(date: Date): string {
   try {
     if (!date || !isValid(date)) {
+      if (process.env.NODE_ENV === 'development') {
       console.warn('⚠️ Data inválida fornecida para conversão ISO local')
+      }
       return new Date().toISOString() // Fallback válido
     }
     
@@ -312,7 +324,9 @@ export function toLocalISOString(date: Date): string {
  */
 export function toLocalDateString(date: Date): string {
   if (!date || !isValid(date)) {
+    if (process.env.NODE_ENV === 'development') {
     console.warn('⚠️ Data inválida fornecida para toLocalDateString')
+    }
     const fallback = new Date()
     return `${fallback.getFullYear()}-${String(fallback.getMonth() + 1).padStart(2, '0')}-${String(fallback.getDate()).padStart(2, '0')}`
   }
@@ -516,7 +530,9 @@ Migração concluída com sucesso! 🎉
  */
 export function extractTimeFromDateObject(date: Date): string {
   if (!date || !isValid(date)) {
+    if (process.env.NODE_ENV === 'development') {
     console.warn('⚠️ Data inválida fornecida para extractTimeFromDateObject')
+    }
     return '00:00'
   }
   

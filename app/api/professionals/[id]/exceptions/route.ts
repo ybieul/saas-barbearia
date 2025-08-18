@@ -134,16 +134,28 @@ export async function POST(
 
     if (process.env.NODE_ENV === 'development') {
       console.log('=== AUDITORIA TIMEZONE ===')
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO B - Backend recebeu:', body.startDatetime)
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO B - Tipo:', typeof body.startDatetime)
+      }
 
       // 🔍 DEBUG - Verificar timezone do MySQL e configurações
+      if (process.env.NODE_ENV === 'development') {
       console.log('=== CONFIG DO SISTEMA ===')
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('Data atual do servidor:', new Date().toString())
+      }
       
       const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
+      if (process.env.NODE_ENV === 'development') {
       console.log('MySQL session timezone:', timezoneResult)
+      }
     }
 
     // Verificar se o profissional pertence ao tenant do usuário
@@ -204,7 +216,9 @@ export async function POST(
         startDateTime = new Date(year, month - 1, day, hour, minute, second)
         if (process.env.NODE_ENV === 'development') {
           console.log('Date criado startDateTime:', startDateTime.toString())
+          if (process.env.NODE_ENV === 'development') {
           console.log('startDateTime.getHours():', startDateTime.getHours())
+          }
         }
       } else {
         startDateTime = startDatetime
@@ -287,9 +301,15 @@ export async function POST(
     
     if (process.env.NODE_ENV === 'development') {
       console.log('PONTO C - startDateTime objeto original:', startDateTime.toString())
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO C - startDateTime.getHours():', startDateTime.getHours())
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO C - startDatetimeForSave (STRING ISO):', startDatetimeForSave)
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO C - EXECUTANDO PRISMA COM STRING...')
+      }
     }
     
     const exception = await prisma.scheduleException.create({
@@ -298,9 +318,13 @@ export async function POST(
     
     if (process.env.NODE_ENV === 'development') {
       console.log('PONTO C - PRISMA EXECUTADO COM SUCESSO!')
+      if (process.env.NODE_ENV === 'development') {
       console.log('PONTO D - Retorno do banco:', exception.startDatetime)
+      }
       if (exception.startDatetime instanceof Date) {
+        if (process.env.NODE_ENV === 'development') {
         console.log('PONTO D - exception.getHours():', exception.startDatetime.getHours())
+        }
       }
     }
 

@@ -39,7 +39,9 @@ export async function PATCH(
       return total + Number(service.price || 0)
     }, 0)
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('💰 Calculando preço total na conclusão:', {
+    }
       appointmentId,
       servicesCount: existingAppointment.services.length,
       servicesPrices: existingAppointment.services.map(s => ({ name: s.name, price: s.price })),
@@ -98,7 +100,9 @@ export async function PATCH(
       return appointment
     })
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ Transação concluída com sucesso:', {
+    }
       appointmentId,
       totalPrice,
       clientUpdated: existingAppointment.endUserId,

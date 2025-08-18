@@ -81,7 +81,9 @@ export async function GET(request: NextRequest) {
       })
       return NextResponse.json({ templates })
     } catch (dbError) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Database not ready, using memory fallback:', dbError)
+      }
     }
     */
     
@@ -137,7 +139,9 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json({ template: newTemplate }, { status: 201 })
     } catch (dbError) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Database not ready, using memory fallback:', dbError)
+      }
     }
     */
 
@@ -199,7 +203,9 @@ export async function PUT(request: NextRequest) {
       })
       return NextResponse.json({ template: updatedTemplate })
     } catch (dbError) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Database not ready, using memory fallback:', dbError)
+      }
     }
     */
 
@@ -266,7 +272,9 @@ export async function DELETE(request: NextRequest) {
       })
       return NextResponse.json({ message: 'Template removido com sucesso' })
     } catch (dbError) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Database not ready, using memory fallback:', dbError)
+      }
     }
     */
 

@@ -7,7 +7,9 @@ export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('GET templates - TenantID:', user.tenantId)
+    }
     
     const templates = await prisma.promotionTemplate.findMany({
       where: {
@@ -18,7 +20,9 @@ export async function GET(request: NextRequest) {
       }
     })
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('Templates encontrados:', templates.length)
+    }
     
     return NextResponse.json({ 
       templates,
@@ -39,7 +43,9 @@ export async function POST(request: NextRequest) {
     const user = verifyToken(request)
     const { name, title, message } = await request.json()
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('POST template - Dados:', { name, title, message, tenantId: user.tenantId })
+    }
     
     if (!name || !message) {
       return NextResponse.json(
@@ -57,7 +63,9 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('Template criado:', template.id)
+    }
     
     return NextResponse.json({ 
       template,
@@ -78,7 +86,9 @@ export async function PUT(request: NextRequest) {
     const user = verifyToken(request)
     const { id, name, title, message } = await request.json()
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('PUT template - Dados:', { id, name, title, message, tenantId: user.tenantId })
+    }
     
     if (!id || !name || !message) {
       return NextResponse.json(
@@ -112,7 +122,9 @@ export async function PUT(request: NextRequest) {
       }
     })
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('Template atualizado:', template.id)
+    }
     
     return NextResponse.json({ 
       template,
@@ -134,7 +146,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('DELETE template - ID:', id, 'TenantID:', user.tenantId)
+    }
     
     if (!id) {
       return NextResponse.json(
@@ -162,7 +176,9 @@ export async function DELETE(request: NextRequest) {
       where: { id }
     })
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('Template deletado:', id)
+    }
     
     return NextResponse.json({ 
       message: 'Template deletado com sucesso',

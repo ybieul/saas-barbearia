@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       where.isActive = status === 'active'
     }
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('GET profissionais - Filtros:', { 
+    }
       tenantId: user.tenantId, 
       status, 
       isActiveFilter: where.isActive,
@@ -69,7 +71,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ GET profissionais - Resultado:', {
+    }
       total: professionals.length,
       ids: professionals.map(p => ({ id: p.id, name: p.name, isActive: p.isActive }))
     })
@@ -345,7 +349,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('DELETE profissional - ID:', id, 'TenantID:', user.tenantId)
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -362,7 +368,9 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('Profissional encontrado:', existingProfessional ? 'SIM' : 'NÃO')
+    }
 
     if (!existingProfessional) {
       return NextResponse.json(
@@ -376,7 +384,9 @@ export async function DELETE(request: NextRequest) {
       where: { id }
     })
 
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ Profissional EXCLUÍDO PERMANENTEMENTE do banco:', {
+    }
       id: existingProfessional.id,
       name: existingProfessional.name
     })

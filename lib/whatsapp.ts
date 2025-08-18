@@ -131,7 +131,9 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
   try {
     // In a real implementation, this would call the WhatsApp Business API
     // For now, we'll simulate the API call
+    if (process.env.NODE_ENV === 'development') {
     console.log("Sending WhatsApp message:", message)
+    }
 
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -140,7 +142,9 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
     const success = Math.random() > 0.1
 
     if (success) {
+      if (process.env.NODE_ENV === 'development') {
       console.log("WhatsApp message sent successfully")
+      }
       return true
     } else {
       throw new Error("Failed to send WhatsApp message")
