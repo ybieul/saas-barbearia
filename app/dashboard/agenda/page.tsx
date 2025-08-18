@@ -194,11 +194,15 @@ export default function AgendaPage() {
           appointments: appointments?.length || 0,
           clients: clients?.length || 0,
           services: services?.length || 0,
-          professionals: professionalsData?.length || 0
+          professionals: professionalsData?.length || 0,
+          agendaAvailabilityReady,
+          businessSlug,
+          agendaAvailabilityLoading,
+          agendaAvailabilityError
         })
       }
     }
-  }, [appointments?.length, clients?.length, services?.length, professionalsData?.length])
+  }, [appointments?.length, clients?.length, services?.length, professionalsData?.length, agendaAvailabilityReady, businessSlug])
 
   // Limpar horário quando serviço, data ou profissional mudam (mas NÃO quando estamos editando)
   useEffect(() => {

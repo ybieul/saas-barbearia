@@ -11,7 +11,16 @@ export function useAgendaAvailability() {
     try {
       // Buscar configuração do tenant atual
       const token = localStorage.getItem('auth_token')
-      if (!token) return
+      if (!token) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Token não encontrado para inicializar business slug')
+        }
+        return
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Buscando business slug via API...')
+      }
 
       const response = await fetch('/api/business', {
         headers: {
@@ -22,17 +31,31 @@ export function useAgendaAvailability() {
 
       if (response.ok) {
         const data = await response.json()
-        const customLink = data.businessConfig?.customLink
+        const customLink = data.businessData?.customLink || data.businessConfig?.customLink
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📡 Resposta da API /api/business:', data)
+          console.log('🔗 Custom link encontrado:', customLink)
+        }
+        
         if (customLink) {
           setBusinessSlug(customLink)
           if (process.env.NODE_ENV === 'development') {
             console.log('✅ Business slug inicializado:', customLink)
           }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ customLink não encontrado nos dados do business')
+          }
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Erro na resposta da API /api/business:', response.status, response.statusText)
         }
       }
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('⚠️ Não foi possível obter business slug:', err)
+        console.error('❌ Erro ao obter business slug:', err)
       }
     }
   }, [])
@@ -106,8 +129,18 @@ export function useAgendaAvailability() {
     }
   }, [businessSlug, checkProfessionalWorksOnDate])
 
-  // Estado consolidado
-  const isReady = useMemo(() => Boolean(businessSlug), [businessSlug])
+  // Estado consolidado com debug
+  const isReady = useMemo(() => {
+    const ready = Boolean(businessSlug)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 useAgendaAvailability isReady check:', {
+        businessSlug,
+        isReady: ready,
+        timestamp: new Date().toLocaleTimeString()
+      })
+    }
+    return ready
+  }, [businessSlug])
 
   return {
     // Funções principais
