@@ -35,11 +35,14 @@ export interface AvailabilitySlot {
 export interface DayAvailability {
   date: string
   dayOfWeek: number
+  professionalId?: string
+  professionalName?: string
   workingHours: {
     startTime: string
     endTime: string
   } | null
   slots: AvailabilitySlot[]
+  message?: string // Mensagem opcional (ex: "Profissional de folga")
 }
 
 export interface ConflictingAppointment {

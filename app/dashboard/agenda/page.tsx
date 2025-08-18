@@ -41,6 +41,11 @@ import { useToast } from "@/hooks/use-toast"
 import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString, parseDatabaseDateTime, extractTimeFromDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
+import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
+import { ProfessionalScheduleStatus } from "@/components/professional-schedule-status"
+
+// 🚀 FEATURE FLAG: Habilitar regras de professional schedules
+const ENABLE_PROFESSIONAL_SCHEDULES = process.env.NEXT_PUBLIC_ENABLE_PROFESSIONAL_SCHEDULES === 'true'
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -79,6 +84,10 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
   
+  // 🚀 NOVO: Estado para slots disponíveis (para evitar chamadas assíncronas na UI)
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false)
+  
   // Estados para pesquisa de clientes
   const [clientSearchTerm, setClientSearchTerm] = useState("")
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
@@ -99,6 +108,17 @@ export default function AgendaPage() {
     isTimeWithinWorkingHours 
   } = useWorkingHours()
   const { toast } = useToast()
+  
+  // 🚀 NOVO: Hook para disponibilidade com regras de profissional
+  const {
+    getProfessionalAvailableSlots,
+    checkProfessionalSchedule,
+    initializeBusinessSlug,
+    isReady: agendaAvailabilityReady,
+    isLoading: agendaAvailabilityLoading,
+    error: agendaAvailabilityError,
+    businessSlug
+  } = useAgendaAvailability()
 
   // Função para refresh manual de dados
   const handleRefreshData = async () => {
@@ -149,7 +169,9 @@ export default function AgendaPage() {
           fetchServices(),
           fetchProfessionals(),
           fetchEstablishment(),
-          fetchWorkingHours()
+          fetchWorkingHours(),
+          // 🚀 NOVO: Inicializar business slug para regras de profissional
+          ENABLE_PROFESSIONAL_SCHEDULES ? initializeBusinessSlug() : Promise.resolve()
         ])
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -263,6 +285,31 @@ export default function AgendaPage() {
       document.body.style.paddingRight = '0px'
     }
   }, [isNewAppointmentOpen])
+
+  // 🚀 NOVO: useEffect para atualizar slots disponíveis automaticamente
+  useEffect(() => {
+    const updateAvailableSlots = async () => {
+      if (!newAppointment.serviceId || !newAppointment.date) {
+        setAvailableTimeSlots([])
+        return
+      }
+
+      setLoadingTimeSlots(true)
+      try {
+        const slots = await getAvailableTimeSlots(editingAppointment?.id)
+        setAvailableTimeSlots(slots)
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao atualizar slots:', error)
+        }
+        setAvailableTimeSlots([])
+      } finally {
+        setLoadingTimeSlots(false)
+      }
+    }
+
+    updateAvailableSlots()
+  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId, editingAppointment?.id])
 
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
@@ -732,7 +779,7 @@ export default function AgendaPage() {
       // Verificar se o horário ainda está disponível (dupla verificação)
       const selectedService = services.find(s => s.id === newAppointment.serviceId)
       if (selectedService) {
-        const availableSlots = getAvailableTimeSlots()
+        const availableSlots = await getAvailableTimeSlots()
         if (!availableSlots.includes(newAppointment.time)) {
           toast({
             title: "🚫 Horário Indisponível",
@@ -1318,9 +1365,182 @@ export default function AgendaPage() {
     }
   }
 
-  // Função melhorada para obter horários disponíveis para o modal
-  const getAvailableTimeSlots = (excludeAppointmentId?: string) => {
+  // 🚀 NOVA: Função de disponibilidade usando regras de profissional
+  const getAvailableTimeSlotsWithProfessionalRules = async (
+    excludeAppointmentId?: string
+  ): Promise<{ slots: string[]; usedProfessionalRules: boolean; fallbackReason?: string }> => {
     try {
+      // Validações básicas
+      if (!newAppointment.serviceId || !newAppointment.date || !newAppointment.professionalId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 Professional rules: Dados insuficientes', {
+            serviceId: !!newAppointment.serviceId,
+            date: !!newAppointment.date,
+            professionalId: !!newAppointment.professionalId
+          })
+        }
+        return { slots: [], usedProfessionalRules: false, fallbackReason: 'Profissional, serviço ou data não selecionados' }
+      }
+
+      const selectedService = services.find(s => s.id === newAppointment.serviceId)
+      if (!selectedService) {
+        return { slots: [], usedProfessionalRules: false, fallbackReason: 'Serviço não encontrado' }
+      }
+
+      // Verificar se sistema está pronto
+      if (!agendaAvailabilityReady) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 Professional rules: Sistema não inicializado')
+        }
+        return { slots: [], usedProfessionalRules: false, fallbackReason: 'Sistema de disponibilidade não inicializado' }
+      }
+
+      // Buscar slots usando regras do profissional
+      const result = await getProfessionalAvailableSlots(
+        newAppointment.professionalId,
+        newAppointment.date,
+        selectedService.duration || 30
+      )
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Professional schedules result:', {
+          professionalId: newAppointment.professionalId,
+          date: newAppointment.date,
+          serviceDuration: selectedService.duration,
+          slotsFound: result.slots.length,
+          usedProfessionalRules: result.usedProfessionalRules,
+          fallbackReason: result.fallbackReason,
+          firstSlots: result.slots.slice(0, 3),
+          lastSlots: result.slots.slice(-3)
+        })
+      }
+
+      return result
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro em getAvailableTimeSlotsWithProfessionalRules:', error)
+      }
+      
+      return { 
+        slots: [], 
+        usedProfessionalRules: false, 
+        fallbackReason: error instanceof Error ? error.message : 'Erro desconhecido'
+      }
+    }
+  }
+
+  // 🔍 FUNÇÃO DE TESTE: Comparar lógica atual vs nova (apenas para desenvolvimento)
+  const compareAvailabilityLogics = async (excludeAppointmentId?: string) => {
+    if (process.env.NODE_ENV !== 'development' || !ENABLE_PROFESSIONAL_SCHEDULES) {
+      return
+    }
+
+    try {
+      // Nova lógica
+      const newResult = await getAvailableTimeSlotsWithProfessionalRules(excludeAppointmentId)
+
+      // Lógica atual - executar manualmente aqui para comparar
+      let currentSlots: string[] = []
+      if (newAppointment.serviceId && newAppointment.date) {
+        const selectedService = services.find(s => s.id === newAppointment.serviceId)
+        if (selectedService) {
+          const [year, month, day] = newAppointment.date.split('-').map(Number)
+          const selectedDate = new Date(year, month - 1, day)
+          
+          if (isEstablishmentOpen(selectedDate)) {
+            const allSlots = generateTimeSlotsForDate(selectedDate)
+            currentSlots = allSlots.filter((time: string) => {
+              const testAppointment = {
+                date: newAppointment.date,
+                time: time,
+                serviceId: newAppointment.serviceId,
+                professionalId: newAppointment.professionalId || undefined
+              }
+              
+              const hasConflictResult = hasConflict(testAppointment)
+              const serviceDuration = selectedService.duration || 30
+              const canSchedule = canScheduleService(time, serviceDuration, newAppointment.professionalId || undefined, excludeAppointmentId)
+              
+              return !hasConflictResult && canSchedule
+            })
+          }
+        }
+      }
+
+      const professionalSlots = newResult.slots
+
+      // Comparar resultados
+      const slotsOnlyInCurrent = currentSlots.filter(slot => !professionalSlots.includes(slot))
+      const slotsOnlyInProfessional = professionalSlots.filter(slot => !currentSlots.includes(slot))
+      const commonSlots = currentSlots.filter(slot => professionalSlots.includes(slot))
+
+      console.log('🔍 COMPARAÇÃO DE LÓGICAS:', {
+        profissional: newAppointment.professionalId,
+        data: newAppointment.date,
+        servico: services.find(s => s.id === newAppointment.serviceId)?.name,
+        duracao: services.find(s => s.id === newAppointment.serviceId)?.duration,
+        resultados: {
+          logicaAtual: {
+            total: currentSlots.length,
+            slots: currentSlots.slice(0, 5)
+          },
+          logicaProfissional: {
+            total: professionalSlots.length,
+            slots: professionalSlots.slice(0, 5),
+            usou: newResult.usedProfessionalRules
+          },
+          diferenças: {
+            comuns: commonSlots.length,
+            apenasAtual: slotsOnlyInCurrent.length > 0 ? slotsOnlyInCurrent : 'nenhum',
+            apenasProfissional: slotsOnlyInProfessional.length > 0 ? slotsOnlyInProfessional : 'nenhum'
+          }
+        }
+      })
+
+      if (slotsOnlyInCurrent.length > 0 || slotsOnlyInProfessional.length > 0) {
+        console.warn('⚠️ DIFERENÇAS DETECTADAS entre lógicas de disponibilidade!')
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na comparação de lógicas:', error)
+    }
+  }
+
+  // Função melhorada para obter horários disponíveis para o modal
+  const getAvailableTimeSlots = async (excludeAppointmentId?: string): Promise<string[]> => {
+    try {
+      // � MONITORAMENTO: Comparar lógicas em desenvolvimento
+      if (process.env.NODE_ENV === 'development' && ENABLE_PROFESSIONAL_SCHEDULES && newAppointment.professionalId) {
+        // Executar comparação em background (não bloquear)
+        compareAvailabilityLogics(excludeAppointmentId).catch(err => 
+          console.warn('Erro na comparação de lógicas:', err)
+        )
+      }
+
+      // �🚀 NOVA LÓGICA: Tentar usar regras de profissional primeiro
+      if (ENABLE_PROFESSIONAL_SCHEDULES && newAppointment.professionalId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 Tentando usar regras de profissional...')
+        }
+
+        const professionalResult = await getAvailableTimeSlotsWithProfessionalRules(excludeAppointmentId)
+        
+        if (professionalResult.usedProfessionalRules) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Usando regras de profissional:', {
+              slots: professionalResult.slots.length,
+              firstSlots: professionalResult.slots.slice(0, 3)
+            })
+          }
+          return professionalResult.slots
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ Fallback para lógica atual. Motivo:', professionalResult.fallbackReason)
+          }
+        }
+      }
+
+      // 🔄 LÓGICA ATUAL: Fallback seguro (mantida inalterada)
       if (!newAppointment.serviceId || !newAppointment.date) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
@@ -1498,6 +1718,22 @@ export default function AgendaPage() {
 
   return (
     <div className="space-y-6">
+      {/* 🔍 COMPONENTE DE STATUS DO SISTEMA (apenas em desenvolvimento) */}
+      {process.env.NODE_ENV === 'development' && ENABLE_PROFESSIONAL_SCHEDULES && (
+        <ProfessionalScheduleStatus
+          professionalId={selectedProfessional !== "todos" ? selectedProfessional : undefined}
+          businessSlug={businessSlug}
+          isReady={agendaAvailabilityReady}
+          isLoading={agendaAvailabilityLoading}
+          error={agendaAvailabilityError}
+          enabledFeatures={{
+            professionalSchedules: ENABLE_PROFESSIONAL_SCHEDULES,
+            debugging: process.env.NODE_ENV === 'development',
+            metrics: false
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -2228,8 +2464,12 @@ export default function AgendaPage() {
                         } />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
-                        {getAvailableTimeSlots(editingAppointment?.id).length > 0 ? (
-                          getAvailableTimeSlots(editingAppointment?.id).map((time: string) => {
+                        {loadingTimeSlots ? (
+                          <SelectItem value="" disabled className="text-[#a1a1aa]">
+                            Carregando horários...
+                          </SelectItem>
+                        ) : availableTimeSlots.length > 0 ? (
+                          availableTimeSlots.map((time: string) => {
                             const isPast = isTimeInPast(newAppointment.date, time)
                             return (
                               <SelectItem key={time} value={time} className="text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
@@ -2253,12 +2493,14 @@ export default function AgendaPage() {
                     </Select>
                     {newAppointment.date && newAppointment.serviceId && (
                       <div className="mt-1 space-y-1">
-                        <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
-                            `${getAvailableTimeSlots(editingAppointment?.id).length} horários disponíveis` : 
+                        <p className="text-xs text-[#a1a1aa] break-words leading-tight">
+                          {loadingTimeSlots ? 'Carregando horários...' : 
+                           getDateStatus().isOpen ? 
+                            `${availableTimeSlots.length} horários disponíveis` : 
                             'Estabelecimento fechado neste dia'
                           }
                         </p>
-                        {getAvailableTimeSlots(editingAppointment?.id).some((time: string) => isTimeInPast(newAppointment.date, time)) && (
+                        {!loadingTimeSlots && availableTimeSlots.some((time: string) => isTimeInPast(newAppointment.date, time)) && (
                           <p className="text-xs text-[#d97706] flex items-start gap-1">
                             <span className="flex-shrink-0">⏱️</span>
                             <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>

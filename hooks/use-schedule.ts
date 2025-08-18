@@ -216,3 +216,133 @@ export function useAvailability() {
     error
   }
 }
+
+// Hook especializado para integração com a agenda
+export function useProfessionalAvailability() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Buscar slots disponíveis usando a API availability-v2
+  const getAvailableSlots = useCallback(async (
+    businessSlug: string,
+    professionalId: string,
+    date: string,
+    serviceDuration: number = 30
+  ): Promise<string[]> => {
+    if (!businessSlug || !professionalId || !date) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('useProfessionalAvailability: Parâmetros inválidos', { businessSlug, professionalId, date })
+      }
+      return []
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams({
+        professionalId,
+        date,
+        serviceDuration: serviceDuration.toString()
+      })
+
+      const response = await fetch(`/api/public/business/${businessSlug}/availability-v2?${params}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao buscar disponibilidade')
+      }
+
+      const data = await response.json() as DayAvailability
+
+      // Extrair apenas os horários disponíveis
+      const availableSlots = data.slots
+        .filter(slot => slot.available)
+        .map(slot => slot.time)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Slots obtidos via availability-v2:', {
+          professionalId,
+          date,
+          totalSlots: data.slots.length,
+          availableSlots: availableSlots.length,
+          workingHours: data.workingHours,
+          firstAvailable: availableSlots[0],
+          lastAvailable: availableSlots[availableSlots.length - 1]
+        })
+      }
+
+      setIsLoading(false)
+      return availableSlots
+    } catch (err: any) {
+      setError(err.message || 'Erro ao buscar slots disponíveis')
+      setIsLoading(false)
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro em useProfessionalAvailability:', err)
+      }
+      
+      return []
+    }
+  }, [])
+
+  // Verificar se um profissional trabalha em determinado dia
+  const checkProfessionalWorksOnDate = useCallback(async (
+    businessSlug: string,
+    professionalId: string,
+    date: string
+  ): Promise<{ works: boolean; reason?: string; workingHours?: { startTime: string; endTime: string } }> => {
+    if (!businessSlug || !professionalId || !date) {
+      return { works: false, reason: 'Parâmetros inválidos' }
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams({
+        professionalId,
+        date,
+        serviceDuration: '30' // Valor padrão para verificar disponibilidade
+      })
+
+      const response = await fetch(`/api/public/business/${businessSlug}/availability-v2?${params}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao verificar disponibilidade')
+      }
+
+      const data = await response.json() as DayAvailability
+
+      setIsLoading(false)
+
+      if (!data.workingHours) {
+        return { 
+          works: false, 
+          reason: data.message || 'Profissional não trabalha neste dia'
+        }
+      }
+
+      return {
+        works: true,
+        workingHours: data.workingHours
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao verificar disponibilidade')
+      setIsLoading(false)
+      
+      return { 
+        works: false, 
+        reason: err.message || 'Erro ao verificar disponibilidade' 
+      }
+    }
+  }, [])
+
+  return {
+    getAvailableSlots,
+    checkProfessionalWorksOnDate,
+    isLoading,
+    error
+  }
+}
