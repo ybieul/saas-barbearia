@@ -220,15 +220,24 @@ export default function AgendaPage() {
         return
       }
 
-      // Buscar horários disponíveis via API
-      await fetchAvailability(newAppointment.professionalId, newAppointment.date)
+      // 🔧 CORREÇÃO: Obter duração do serviço selecionado
+      let serviceDuration = 30 // Padrão
+      if (newAppointment.serviceId) {
+        const selectedService = services.find(s => s.id === newAppointment.serviceId)
+        if (selectedService) {
+          serviceDuration = selectedService.duration || 30
+        }
+      }
+
+      // Buscar horários disponíveis via API incluindo duração do serviço
+      await fetchAvailability(newAppointment.professionalId, newAppointment.date, serviceDuration)
     }
 
     // Só executar se não estamos editando (para evitar conflitos)
     if (!editingAppointment) {
       loadAvailability()
     }
-  }, [newAppointment.professionalId, newAppointment.date, fetchAvailability, clearAvailability, editingAppointment])
+  }, [newAppointment.professionalId, newAppointment.date, newAppointment.serviceId, fetchAvailability, clearAvailability, editingAppointment, services])
 
   // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
   useEffect(() => {

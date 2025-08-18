@@ -29,7 +29,7 @@ interface UseAvailabilityReturn {
   availableTimes: string[]
   isLoadingTimes: boolean
   error: string | null
-  fetchAvailability: (professionalId: string, date: string, serviceDuration?: number) => Promise<void>
+  fetchAvailability: (professionalId: string, date: string) => Promise<void>
   clearAvailability: () => void
 }
 
@@ -39,7 +39,7 @@ export function useAvailability(): UseAvailabilityReturn {
   const [error, setError] = useState<string | null>(null)
   const { token } = useAuth()
 
-  const fetchAvailability = useCallback(async (professionalId: string, date: string, serviceDuration?: number) => {
+  const fetchAvailability = useCallback(async (professionalId: string, date: string) => {
     // Validar parâmetros
     if (!professionalId || !date) {
       setAvailableTimes([])
@@ -58,19 +58,8 @@ export function useAvailability(): UseAvailabilityReturn {
     setError(null)
 
     try {
-      // Construir URL com parâmetros opcionais
-      const params = new URLSearchParams({
-        professional_id: professionalId,
-        date: date
-      })
-      
-      // Adicionar duração do serviço se fornecida
-      if (serviceDuration && serviceDuration > 0) {
-        params.append('service_duration', serviceDuration.toString())
-      }
-
       const response = await fetch(
-        `/api/availability?${params.toString()}`,
+        `/api/availability?professional_id=${encodeURIComponent(professionalId)}&date=${encodeURIComponent(date)}`,
         {
           method: 'GET',
           headers: {
@@ -92,8 +81,7 @@ export function useAvailability(): UseAvailabilityReturn {
           professional: data.professional_name,
           date: data.date,
           available_times: data.available_times,
-          total_slots: data.available_times.length,
-          service_duration: serviceDuration || 30
+          total_slots: data.available_times.length
         })
       }
 

@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     
     const professionalIdParam = searchParams.get('professional_id')
     const dateParam = searchParams.get('date')
+    const serviceDurationParam = searchParams.get('service_duration') // NOVO: duração do serviço
 
     // Validar parâmetros obrigatórios
     if (!professionalIdParam || !dateParam) {
@@ -19,6 +20,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Duração padrão de 30 minutos se não informada
+    const serviceDurationMinutes = serviceDurationParam ? parseInt(serviceDurationParam) : 30
 
     let queryDate: Date
     try {
@@ -54,6 +58,7 @@ export async function GET(request: NextRequest) {
         professional: professional.name,
         date: dateParam,
         dayOfWeek,
+        serviceDurationMinutes,
         tenantId: user.tenantId
       })
     }
@@ -153,52 +158,63 @@ export async function GET(request: NextRequest) {
       const minutes = currentMinutes % 60
       const timeSlot = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
       
-      // Verificar se o slot está livre de todos os conflitos
+      // 🔧 CORREÇÃO: Verificar se TODOS os slots necessários para a duração do serviço estão livres
       let isSlotAvailable = true
-
-      // A. Verificar conflito com intervalos recorrentes
-      for (const recurringBreak of recurringBreaks) {
-        const [breakStartHour, breakStartMinute] = recurringBreak.startTime.split(':').map(Number)
-        const [breakEndHour, breakEndMinute] = recurringBreak.endTime.split(':').map(Number)
-        
-        const breakStartMinutes = breakStartHour * 60 + breakStartMinute
-        const breakEndMinutes = breakEndHour * 60 + breakEndMinute
-        
-        if (currentMinutes >= breakStartMinutes && currentMinutes < breakEndMinutes) {
-          isSlotAvailable = false
-          break
-        }
+      const slotsNeeded = Math.ceil(serviceDurationMinutes / intervalMinutes) // Quantidade de slots de 5min necessários
+      
+      // Verificar se há slots suficientes até o fim do expediente
+      if (currentMinutes + serviceDurationMinutes > endTotalMinutes) {
+        continue // Pular este slot se o serviço não caber no expediente
       }
 
-      // B. Verificar conflito com exceções/bloqueios
+      // A. Verificar conflito com intervalos recorrentes para TODOS os slots necessários
+      for (let checkMinutes = currentMinutes; checkMinutes < currentMinutes + serviceDurationMinutes; checkMinutes += intervalMinutes) {
+        for (const recurringBreak of recurringBreaks) {
+          const [breakStartHour, breakStartMinute] = recurringBreak.startTime.split(':').map(Number)
+          const [breakEndHour, breakEndMinute] = recurringBreak.endTime.split(':').map(Number)
+          
+          const breakStartMinutes = breakStartHour * 60 + breakStartMinute
+          const breakEndMinutes = breakEndHour * 60 + breakEndMinute
+          
+          if (checkMinutes >= breakStartMinutes && checkMinutes < breakEndMinutes) {
+            isSlotAvailable = false
+            break
+          }
+        }
+        if (!isSlotAvailable) break
+      }
+
+      // B. Verificar conflito com exceções/bloqueios para TODOS os slots necessários
       if (isSlotAvailable) {
+        const slotStartDateTime = new Date(queryDate)
+        slotStartDateTime.setHours(hours, minutes, 0, 0)
+        const slotEndDateTime = addMinutes(slotStartDateTime, serviceDurationMinutes)
+        
         for (const exception of exceptions) {
           const exceptionStart = new Date(exception.startDatetime)
           const exceptionEnd = new Date(exception.endDatetime)
           
-          // Criar datetime do slot para comparação
-          const slotDateTime = new Date(queryDate)
-          slotDateTime.setHours(hours, minutes, 0, 0)
-          
-          if (slotDateTime >= exceptionStart && slotDateTime < exceptionEnd) {
+          // Verificar se há sobreposição entre o período do serviço e a exceção
+          if (slotStartDateTime < exceptionEnd && slotEndDateTime > exceptionStart) {
             isSlotAvailable = false
             break
           }
         }
       }
 
-      // C. Verificar conflito com agendamentos existentes
+      // C. Verificar conflito com agendamentos existentes para TODOS os slots necessários
       if (isSlotAvailable) {
+        const slotStartDateTime = new Date(queryDate)
+        slotStartDateTime.setHours(hours, minutes, 0, 0)
+        const slotEndDateTime = addMinutes(slotStartDateTime, serviceDurationMinutes)
+        
         for (const appointment of existingAppointments) {
           const appointmentStart = new Date(appointment.dateTime)
           const appointmentDurationMinutes = appointment.duration || 30
           const appointmentEnd = addMinutes(appointmentStart, appointmentDurationMinutes)
           
-          // Criar datetime do slot para comparação
-          const slotDateTime = new Date(queryDate)
-          slotDateTime.setHours(hours, minutes, 0, 0)
-          
-          if (slotDateTime >= appointmentStart && slotDateTime < appointmentEnd) {
+          // Verificar se há sobreposição entre o período do novo serviço e o agendamento existente
+          if (slotStartDateTime < appointmentEnd && slotEndDateTime > appointmentStart) {
             isSlotAvailable = false
             break
           }
