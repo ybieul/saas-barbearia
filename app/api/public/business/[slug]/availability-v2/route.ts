@@ -179,6 +179,49 @@ export async function GET(
       statusFilter: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
     })
 
+    // 🔧 DIAGNÓSTICO: Primeiro, buscar TODOS os agendamentos do dia SEM filtros
+    const allAppointmentsForDay = await prisma.appointment.findMany({
+      where: {
+        dateTime: {
+          gte: startOfTargetDay,
+          lte: endOfTargetDay
+        }
+      },
+      select: {
+        id: true,
+        dateTime: true,
+        duration: true,
+        status: true,
+        professionalId: true,
+        tenantId: true,
+        endUser: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
+
+    console.log('🔍 [AVAILABILITY-V2] TODOS os agendamentos do dia (sem filtros):', {
+      count: allAppointmentsForDay.length,
+      appointments: allAppointmentsForDay.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toISOString(),
+        timeString: apt.dateTime.toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        duration: apt.duration,
+        status: apt.status,
+        professionalId: apt.professionalId,
+        tenantId: apt.tenantId,
+        clientName: apt.endUser?.name,
+        matchesProfessional: apt.professionalId === professionalId,
+        matchesTenant: apt.tenantId === business.id,
+        statusMatches: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'].includes(apt.status as string)
+      }))
+    })
+
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         professionalId,
@@ -199,8 +242,8 @@ export async function GET(
       }
     })
 
-    // 🔍 DEBUG: Log dos agendamentos encontrados
-    console.log('🔍 [AVAILABILITY-V2] Agendamentos encontrados:', {
+    // 🔍 DEBUG: Log dos agendamentos encontrados com filtros
+    console.log('🔍 [AVAILABILITY-V2] Agendamentos COM filtros:', {
       count: existingAppointments.length,
       appointments: existingAppointments.map(apt => ({
         id: apt.id,
