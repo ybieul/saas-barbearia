@@ -37,6 +37,7 @@ import {
 import { useProfessionals } from "@/hooks/use-api"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
+import { useAvailability } from "@/hooks/use-availability"
 import { useToast } from "@/hooks/use-toast"
 import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString, parseDatabaseDateTime, extractTimeFromDateTime } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
@@ -98,6 +99,7 @@ export default function AgendaPage() {
     isEstablishmentOpen,
     isTimeWithinWorkingHours 
   } = useWorkingHours()
+  const { availableTimes, isLoadingTimes, error: availabilityError, fetchAvailability, clearAvailability } = useAvailability()
   const { toast } = useToast()
 
   // Função para refresh manual de dados
@@ -193,12 +195,40 @@ export default function AgendaPage() {
     }
   }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId, editingAppointment])
 
+  // 🚀 NOVA FUNCIONALIDADE: Limpar horário selecionado quando a disponibilidade muda
+  useEffect(() => {
+    // Se o horário selecionado não está mais na lista de disponíveis, limpar
+    if (newAppointment.time && availableTimes.length > 0 && !availableTimes.includes(newAppointment.time)) {
+      setNewAppointment(prev => ({...prev, time: ""}))
+    }
+  }, [availableTimes, newAppointment.time])
+
   // Limpar erro do backend quando modal é aberto
   useEffect(() => {
     if (isNewAppointmentOpen) {
       setBackendError(null)
     }
   }, [isNewAppointmentOpen])
+
+  // 🚀 NOVA FUNCIONALIDADE: Buscar horários disponíveis quando profissional ou data mudarem
+  useEffect(() => {
+    const loadAvailability = async () => {
+      // Verificar se os campos necessários estão preenchidos
+      if (!newAppointment.professionalId || !newAppointment.date) {
+        // Se não há profissional ou data, limpar horários disponíveis
+        clearAvailability()
+        return
+      }
+
+      // Buscar horários disponíveis via API
+      await fetchAvailability(newAppointment.professionalId, newAppointment.date)
+    }
+
+    // Só executar se não estamos editando (para evitar conflitos)
+    if (!editingAppointment) {
+      loadAvailability()
+    }
+  }, [newAppointment.professionalId, newAppointment.date, fetchAvailability, clearAvailability, editingAppointment])
 
   // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
   useEffect(() => {
@@ -2217,53 +2247,54 @@ export default function AgendaPage() {
                       onValueChange={(value) => {
                         setNewAppointment(prev => ({...prev, time: value}))
                       }}
-                      disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
+                      disabled={!newAppointment.date || !newAppointment.professionalId || isLoadingTimes}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 w-full min-w-0">
                         <SelectValue placeholder={
                           !newAppointment.date ? "Data primeiro" :
-                          !newAppointment.serviceId ? "Serviço primeiro" :
-                          !getDateStatus().isOpen ? "Fechado" :
+                          !newAppointment.professionalId ? "Profissional primeiro" :
+                          isLoadingTimes ? "Carregando horários..." :
                           "Selecione horário"
                         } />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
-                        {getAvailableTimeSlots(editingAppointment?.id).length > 0 ? (
-                          getAvailableTimeSlots(editingAppointment?.id).map((time: string) => {
-                            const isPast = isTimeInPast(newAppointment.date, time)
-                            return (
-                              <SelectItem key={time} value={time} className="text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
-                                <div className="flex items-center justify-between w-full">
-                                  <span>{isPast ? '⏱️ ' : ''}{time}</span>
-                                  {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
-                                </div>
-                              </SelectItem>
-                            )
-                          })
+                        {isLoadingTimes ? (
+                          <div className="p-3 text-center text-[#a1a1aa] text-sm">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#10b981]"></div>
+                              Carregando horários...
+                            </div>
+                          </div>
+                        ) : availableTimes.length > 0 ? (
+                          availableTimes.map((time: string) => (
+                            <SelectItem key={time} value={time} className="text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                              <div className="flex items-center justify-between w-full">
+                                <span>{time}</span>
+                              </div>
+                            </SelectItem>
+                          ))
                         ) : (
                           <div className="p-3 text-center text-[#a1a1aa] text-sm">
                             {!newAppointment.date ? "Selecione uma data" :
-                             !newAppointment.serviceId ? "Selecione um serviço" :
-                             !getDateStatus().isOpen ? "Estabelecimento fechado" :
+                             !newAppointment.professionalId ? "Selecione um profissional" :
+                             availabilityError ? "Erro ao carregar horários" :
                              "Nenhum horário disponível"
                             }
                           </div>
                         )}
                       </SelectContent>
                     </Select>
-                    {newAppointment.date && newAppointment.serviceId && (
+                    {availabilityError && (
+                      <p className="text-xs text-red-400 mt-1">{availabilityError}</p>
+                    )}
+                    {newAppointment.date && newAppointment.professionalId && !isLoadingTimes && (
                       <div className="mt-1 space-y-1">
-                        <p className="text-xs text-[#a1a1aa] break-words leading-tight">{getDateStatus().isOpen ? 
-                            `${getAvailableTimeSlots(editingAppointment?.id).length} horários disponíveis` : 
-                            'Estabelecimento fechado neste dia'
+                        <p className="text-xs text-[#a1a1aa] break-words leading-tight">
+                          {availableTimes.length > 0 ? 
+                            `${availableTimes.length} horários disponíveis` : 
+                            'Nenhum horário disponível para este profissional'
                           }
                         </p>
-                        {getAvailableTimeSlots(editingAppointment?.id).some((time: string) => isTimeInPast(newAppointment.date, time)) && (
-                          <p className="text-xs text-[#d97706] flex items-start gap-1">
-                            <span className="flex-shrink-0">⏱️</span>
-                            <span className="break-words leading-tight">Horários com ⏱️ são retroativos</span>
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
