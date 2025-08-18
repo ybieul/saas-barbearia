@@ -255,22 +255,36 @@ export function useProfessionalAvailability() {
 
       const data = await response.json() as DayAvailability
 
+      // 🔍 DEBUG: Log das informações de debug retornadas pela API
+      console.log('🔍 [USE-SCHEDULE] Resposta da API availability-v2:', {
+        professionalId,
+        date,
+        totalSlots: data.totalSlots,
+        availableSlots: data.slots.length,
+        debug: data.debug,
+        allSlotsStatus: data.allSlotsStatus ? {
+          total: data.allSlotsStatus.length,
+          available: data.allSlotsStatus.filter(s => s.available).length,
+          unavailable: data.allSlotsStatus.filter(s => !s.available).length,
+          unavailableReasons: data.allSlotsStatus
+            .filter(s => !s.available)
+            .map(s => ({ time: s.time, reason: s.reason }))
+        } : 'não fornecido'
+      })
+
       // Extrair apenas os horários disponíveis
       const availableSlots = data.slots
         .filter(slot => slot.available)
         .map(slot => slot.time)
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Slots obtidos via availability-v2:', {
-          professionalId,
-          date,
-          totalSlots: data.slots.length,
-          availableSlots: availableSlots.length,
-          workingHours: data.workingHours,
-          firstAvailable: availableSlots[0],
-          lastAvailable: availableSlots[availableSlots.length - 1]
-        })
-      }
+      console.log('✅ [USE-SCHEDULE] Slots processados:', {
+        totalSlotsFromAPI: data.slots.length,
+        availableSlotsFiltered: availableSlots.length,
+        workingHours: data.workingHours,
+        firstAvailable: availableSlots[0],
+        lastAvailable: availableSlots[availableSlots.length - 1],
+        message: data.message
+      })
 
       setIsLoading(false)
       return availableSlots

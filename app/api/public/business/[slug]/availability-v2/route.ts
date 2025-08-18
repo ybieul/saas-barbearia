@@ -49,6 +49,14 @@ export async function GET(
       }
     })
 
+    // 🔍 DEBUG: Log do tenant encontrado
+    console.log('🔍 [AVAILABILITY-V2] Tenant encontrado:', {
+      slug,
+      businessId: business?.id,
+      businessName: business?.name,
+      businessConfig: business?.businessConfig
+    })
+
     if (!business) {
       return NextResponse.json(
         { error: 'Estabelecimento não encontrado' },
@@ -63,6 +71,17 @@ export async function GET(
         tenantId: business.id,
         isActive: true
       }
+    })
+
+    // 🔍 DEBUG: Log do profissional encontrado
+    console.log('🔍 [AVAILABILITY-V2] Profissional encontrado:', {
+      professionalId,
+      professional: professional ? {
+        id: professional.id,
+        name: professional.name,
+        tenantId: professional.tenantId,
+        isActive: professional.isActive
+      } : null
     })
 
     if (!professional) {
@@ -149,6 +168,17 @@ export async function GET(
     const startOfTargetDay = startOfDay(targetDate)
     const endOfTargetDay = endOfDay(targetDate)
 
+    // 🔍 DEBUG: Log da query de agendamentos
+    console.log('🔍 [AVAILABILITY-V2] Buscando agendamentos existentes:', {
+      professionalId,
+      tenantId: business.id,
+      businessSlug: slug,
+      targetDate: targetDate.toISOString(),
+      startOfTargetDay: startOfTargetDay.toISOString(),
+      endOfTargetDay: endOfTargetDay.toISOString(),
+      statusFilter: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+    })
+
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         professionalId,
@@ -162,9 +192,26 @@ export async function GET(
         }
       },
       select: {
+        id: true,
         dateTime: true,
-        duration: true
+        duration: true,
+        status: true
       }
+    })
+
+    // 🔍 DEBUG: Log dos agendamentos encontrados
+    console.log('🔍 [AVAILABILITY-V2] Agendamentos encontrados:', {
+      count: existingAppointments.length,
+      appointments: existingAppointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toISOString(),
+        duration: apt.duration,
+        status: apt.status,
+        timeString: apt.dateTime.toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      }))
     })
 
     // PASSO 4: Buscar bloqueios/exceções para o dia
@@ -207,6 +254,16 @@ export async function GET(
       let available = true
       let reason: string | undefined
 
+      // 🔍 DEBUG: Log para slot específico (apenas slots críticos)
+      const isDebugSlot = ['11:00', '11:05', '11:10', '11:15'].includes(slotTime)
+      if (isDebugSlot) {
+        console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime}:`, {
+          slotStart: slotStart.toISOString(),
+          slotEnd: slotEnd.toISOString(),
+          appointmentsToCheck: existingAppointments.length
+        })
+      }
+
       // Verificar se este slot de 5min está ocupado por algum agendamento
       for (const appointment of existingAppointments) {
         const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
@@ -214,7 +271,31 @@ export async function GET(
         if (timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)) {
           available = false
           reason = 'Agendado'
+          
+          // 🔍 DEBUG: Log de conflito encontrado
+          if (isDebugSlot) {
+            console.log(`❌ [AVAILABILITY-V2] Conflito encontrado no slot ${slotTime}:`, {
+              appointmentId: appointment.id,
+              appointmentStart: appointment.dateTime.toISOString(),
+              appointmentEnd: appointmentEnd.toISOString(),
+              appointmentDuration: appointment.duration,
+              slotStart: slotStart.toISOString(),
+              slotEnd: slotEnd.toISOString(),
+              overlapResult: timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)
+            })
+          }
           break
+        } else if (isDebugSlot) {
+          // 🔍 DEBUG: Log quando não há conflito
+          console.log(`✅ [AVAILABILITY-V2] Sem conflito no slot ${slotTime} com agendamento:`, {
+            appointmentId: appointment.id,
+            appointmentStart: appointment.dateTime.toISOString(),
+            appointmentEnd: appointmentEnd.toISOString(),
+            appointmentDuration: appointment.duration,
+            slotStart: slotStart.toISOString(),
+            slotEnd: slotEnd.toISOString(),
+            overlapResult: timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)
+          })
         }
       }
 
@@ -291,14 +372,26 @@ export async function GET(
       serviceDuration,
       slots: availableSlots,
       totalSlots: availableSlots.length,
-      allSlotsStatus: process.env.NODE_ENV === 'development' ? allSlotsStatus : undefined, // Debug info apenas em dev
+      allSlotsStatus: allSlotsStatus, // Sempre incluir para debug em produção
       recurringBreaks: recurringBreaks.map(b => ({
         startTime: b.startTime,
         endTime: b.endTime
       })),
       message: availableSlots.length > 0 
         ? `${availableSlots.length} horários disponíveis para serviço de ${serviceDuration} minutos`
-        : `Nenhum horário disponível para serviço de ${serviceDuration} minutos`
+        : `Nenhum horário disponível para serviço de ${serviceDuration} minutos`,
+      // 🔍 DEBUG: Informações extras para diagnóstico
+      debug: {
+        existingAppointmentsCount: existingAppointments.length,
+        totalGeneratedSlots: allSlots.length,
+        slotsAfterBreaks: availableSlotsAfterBreaks.length,
+        allSlotsProcessed: allSlotsStatus.length,
+        targetDateParsed: targetDate.toISOString(),
+        businessInfo: {
+          tenantId: business.id,
+          slug: slug
+        }
+      }
     } as DayAvailability)
 
   } catch (error) {

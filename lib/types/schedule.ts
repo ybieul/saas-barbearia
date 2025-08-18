@@ -50,6 +50,18 @@ export interface DayAvailability {
     endTime: string
   }>
   message?: string // Mensagem opcional (ex: "Profissional de folga")
+  // 🔍 DEBUG: Informações extras para diagnóstico em produção
+  debug?: {
+    existingAppointmentsCount: number
+    totalGeneratedSlots: number
+    slotsAfterBreaks: number
+    allSlotsProcessed: number
+    targetDateParsed: string
+    businessInfo: {
+      tenantId: string
+      slug: string
+    }
+  }
 }
 
 export interface ConflictingAppointment {
