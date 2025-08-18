@@ -107,9 +107,7 @@ export async function POST(request: NextRequest) {
       // Serviço principal é o primeiro do array
       mainService = allServices.find(s => s.id === serviceId) || allServices[0]
       
-      if (process.env.NODE_ENV === 'development') {
       console.log('🎯 Agendamento com upsells:', {
-      }
         totalServices: allServices.length,
         serviceNames: allServices.map(s => s.name),
         totalDuration: `${totalDuration} min`,
@@ -175,9 +173,7 @@ export async function POST(request: NextRequest) {
     const dayOfWeek = getBrazilDayOfWeek(appointmentDate)
     const dayName = getBrazilDayNameEn(appointmentDate)
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('🇧🇷 Validação de dia:', {
-    }
       appointmentDate: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
       dayOfWeek,
       dayName
@@ -276,9 +272,7 @@ export async function POST(request: NextRequest) {
       
       // Alocar o profissional encontrado
       finalProfessionalId = availableProfessional.id
-      if (process.env.NODE_ENV === 'development') {
       console.log(`✅ "Qualquer profissional" alocado para: ${availableProfessional.name} (${availableProfessional.id})`)
-      }
     } else {
       // Profissional específico: verificar conflitos apenas com este profissional
       for (const existingApt of conflictingAppointments) {
@@ -337,9 +331,7 @@ export async function POST(request: NextRequest) {
       })
     ])
 
-    if (process.env.NODE_ENV === 'development') {
     console.log('✅ Agendamento público criado com many-to-many:', {
-    }
       id: appointment.id,
       clientName: appointmentClient?.name || 'Nome não encontrado',
       serviceNames: appointmentServices.map(s => s.name).join(', '),

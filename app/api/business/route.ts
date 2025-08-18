@@ -7,9 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('GET business data - TenantID:', user.tenantId)
-    }
     
     const result = await prisma.$queryRaw`
       SELECT 
@@ -45,9 +43,7 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
       console.warn('Erro ao parsear businessConfig:', error)
-      }
       businessConfig = {}
     }
     
@@ -64,9 +60,7 @@ export async function GET(request: NextRequest) {
       instagram: tenant.businessInstagram || ''
     }
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('Business data encontrado:', businessData)
-    }
     
     return NextResponse.json({ 
       businessData,
@@ -87,9 +81,7 @@ export async function PUT(request: NextRequest) {
     const user = verifyToken(request)
     const { name, email, phone, address, customLink, logo, instagram } = await request.json()
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('PUT business data - Dados:', { name, email, phone, address, customLink, logo: logo ? 'Logo incluída' : 'Sem logo', tenantId: user.tenantId })
-    }
     
     if (!name) {
       return NextResponse.json(
@@ -124,9 +116,7 @@ export async function PUT(request: NextRequest) {
       } as any
     })
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('Dados do estabelecimento atualizados:', tenant.id)
-    }
     
     return NextResponse.json({ 
       message: 'Dados do estabelecimento atualizados com sucesso',
