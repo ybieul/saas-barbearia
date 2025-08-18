@@ -261,16 +261,15 @@ export function useProfessionalAvailability() {
         date,
         totalSlots: data.totalSlots,
         availableSlots: data.slots.length,
-        debug: data.debug,
-        allSlotsStatus: data.allSlotsStatus ? {
-          total: data.allSlotsStatus.length,
-          available: data.allSlotsStatus.filter(s => s.available).length,
-          unavailable: data.allSlotsStatus.filter(s => !s.available).length,
-          unavailableReasons: data.allSlotsStatus
-            .filter(s => !s.available)
-            .map(s => ({ time: s.time, reason: s.reason }))
-        } : 'não fornecido'
+        debug: data.debug
       })
+
+      // 🚨 LOGS CRÍTICOS: Mostrar todos os agendamentos encontrados
+      if (data.debug?.queryResults) {
+        console.log('🚨 [CRITICAL] Todos os agendamentos do dia:', data.debug.queryResults.allAppointmentsForDay)
+        console.log('🚨 [CRITICAL] Agendamentos após filtros:', data.debug.queryResults.filteredAppointments)
+        console.log('🚨 [CRITICAL] Status dos slots críticos:', data.debug.queryResults.criticalSlots)
+      }
 
       // Extrair apenas os horários disponíveis
       const availableSlots = data.slots

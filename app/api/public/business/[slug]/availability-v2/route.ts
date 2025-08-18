@@ -433,6 +433,42 @@ export async function GET(
         businessInfo: {
           tenantId: business.id,
           slug: slug
+        },
+        // 🚨 LOGS DETALHADOS para aparecer no Network tab
+        queryResults: {
+          allAppointmentsForDay: allAppointmentsForDay.map(apt => ({
+            id: apt.id,
+            dateTime: apt.dateTime.toISOString(),
+            timeString: apt.dateTime.toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            duration: apt.duration,
+            status: apt.status,
+            professionalId: apt.professionalId,
+            tenantId: apt.tenantId,
+            clientName: apt.endUser?.name,
+            matchesProfessional: apt.professionalId === professionalId,
+            matchesTenant: apt.tenantId === business.id,
+            statusMatches: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'].includes(apt.status as string)
+          })),
+          filteredAppointments: existingAppointments.map(apt => ({
+            id: apt.id,
+            dateTime: apt.dateTime.toISOString(),
+            duration: apt.duration,
+            status: apt.status,
+            timeString: apt.dateTime.toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })
+          })),
+          criticalSlots: allSlotsStatus
+            .filter(slot => ['11:00', '11:05', '11:10', '11:15'].includes(slot.time))
+            .map(slot => ({
+              time: slot.time,
+              available: slot.available,
+              reason: slot.reason
+            }))
         }
       }
     } as DayAvailability)

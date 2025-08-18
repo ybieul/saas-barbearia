@@ -61,6 +61,33 @@ export interface DayAvailability {
       tenantId: string
       slug: string
     }
+    queryResults?: {
+      allAppointmentsForDay: Array<{
+        id: string
+        dateTime: string
+        timeString: string
+        duration: number
+        status: string
+        professionalId: string
+        tenantId: string
+        clientName?: string
+        matchesProfessional: boolean
+        matchesTenant: boolean
+        statusMatches: boolean
+      }>
+      filteredAppointments: Array<{
+        id: string
+        dateTime: string
+        duration: number
+        status: string
+        timeString: string
+      }>
+      criticalSlots: Array<{
+        time: string
+        available: boolean
+        reason?: string
+      }>
+    }
   }
 }
 
