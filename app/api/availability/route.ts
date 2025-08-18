@@ -141,6 +141,43 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Query de agendamentos:', {
+        professionalId: professionalIdParam,
+        dateRange: {
+          gte: startOfDate.toISOString(),
+          lte: endOfDate.toISOString()
+        },
+        queryDate: queryDate.toISOString(),
+        startOfDate_local: `${startOfDate.getFullYear()}-${(startOfDate.getMonth()+1).toString().padStart(2,'0')}-${startOfDate.getDate().toString().padStart(2,'0')} ${startOfDate.getHours()}:${startOfDate.getMinutes()}:${startOfDate.getSeconds()}`,
+        endOfDate_local: `${endOfDate.getFullYear()}-${(endOfDate.getMonth()+1).toString().padStart(2,'0')}-${endOfDate.getDate().toString().padStart(2,'0')} ${endOfDate.getHours()}:${endOfDate.getMinutes()}:${endOfDate.getSeconds()}`
+      })
+      
+      // 🔍 LOG: Mostrar agendamentos encontrados
+      console.log('📅 Agendamentos existentes encontrados:', {
+        count: existingAppointments.length,
+        appointments: existingAppointments.map(apt => ({
+          id: apt.id,
+          dateTime: apt.dateTime.toISOString(),
+          duration: apt.duration,
+          status: apt.status,
+          localTime: `${apt.dateTime.getHours()}:${apt.dateTime.getMinutes().toString().padStart(2, '0')}`
+        }))
+      })
+      
+      // 🔍 LOG: Mostrar exceções encontradas  
+      console.log('🚫 Exceções/Bloqueios encontrados:', {
+        count: exceptions.length,
+        exceptions: exceptions.map(ex => ({
+          id: ex.id,
+          start: ex.startDatetime.toISOString(),
+          end: ex.endDatetime.toISOString(),
+          reason: ex.reason,
+          type: ex.type
+        }))
+      })
+    }
+
     // 5. GERAR SLOTS DE TEMPO DISPONÍVEIS
     const availableTimes: string[] = []
     const intervalMinutes = 5 // Slots de 5 minutos
@@ -213,8 +250,20 @@ export async function GET(request: NextRequest) {
           const appointmentDurationMinutes = appointment.duration || 30
           const appointmentEnd = addMinutes(appointmentStart, appointmentDurationMinutes)
           
-          // Verificar se há sobreposição entre o período do novo serviço e o agendamento existente
-          if (slotStartDateTime < appointmentEnd && slotEndDateTime > appointmentStart) {
+          // 🔧 CORREÇÃO: Verificação mais robusta de sobreposição
+          const hasOverlap = slotStartDateTime < appointmentEnd && slotEndDateTime > appointmentStart
+          
+          if (hasOverlap) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`⚠️ Conflito detectado no slot ${timeSlot}:`, {
+                slotStart: slotStartDateTime.toISOString(),
+                slotEnd: slotEndDateTime.toISOString(),
+                appointmentStart: appointmentStart.toISOString(),
+                appointmentEnd: appointmentEnd.toISOString(),
+                appointmentId: appointment.id,
+                hasOverlap
+              })
+            }
             isSlotAvailable = false
             break
           }
@@ -235,7 +284,9 @@ export async function GET(request: NextRequest) {
         working_hours: `${professionalSchedule.startTime} - ${professionalSchedule.endTime}`,
         breaks_count: recurringBreaks.length,
         exceptions_count: exceptions.length,
-        appointments_count: existingAppointments.length
+        appointments_count: existingAppointments.length,
+        available_times_sample: availableTimes.slice(0, 10), // Primeiros 10 horários
+        service_duration_minutes: serviceDurationMinutes
       })
     }
 
