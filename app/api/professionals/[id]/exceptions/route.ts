@@ -132,32 +132,6 @@ export async function POST(
     const professionalId = params.id
     const body: CreateScheduleExceptionData = await request.json()
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=== AUDITORIA TIMEZONE ===')
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO B - Backend recebeu:', body.startDatetime)
-      }
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO B - Tipo:', typeof body.startDatetime)
-      }
-
-      // 🔍 DEBUG - Verificar timezone do MySQL e configurações
-      if (process.env.NODE_ENV === 'development') {
-      console.log('=== CONFIG DO SISTEMA ===')
-      }
-      if (process.env.NODE_ENV === 'development') {
-      console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
-      }
-      if (process.env.NODE_ENV === 'development') {
-      console.log('Data atual do servidor:', new Date().toString())
-      }
-      
-      const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
-      if (process.env.NODE_ENV === 'development') {
-      console.log('MySQL session timezone:', timezoneResult)
-      }
-    }
-
     // Verificar se o profissional pertence ao tenant do usuário
     const professional = await prisma.professional.findFirst({
       where: {
@@ -194,41 +168,19 @@ export async function POST(
     let endDateTime: Date
 
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('=== PONTO DE PARSING ===')
-      }
-      
       // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
       if (typeof startDatetime === 'string') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Processando startDatetime string:', startDatetime)
-        }
-        
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = startDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hour, minute, second = 0] = timePart.split(':').map(Number)
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Componentes - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Min:', minute)
-        }
-        
         startDateTime = new Date(year, month - 1, day, hour, minute, second)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Date criado startDateTime:', startDateTime.toString())
-          if (process.env.NODE_ENV === 'development') {
-          console.log('startDateTime.getHours():', startDateTime.getHours())
-          }
-        }
       } else {
         startDateTime = startDatetime
       }
 
       if (typeof endDatetime === 'string') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Processando endDatetime string:', endDatetime)
-        }
-        
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = endDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
@@ -282,51 +234,25 @@ export async function POST(
       )
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=== PONTO C - ANTES DO PRISMA ===')
-    }
-    
-    // 🇧🇷 CORREÇÃO CRÍTICA: Usar toLocalISOString (mesma função da agenda funcional)
     // Converte Date objects para strings ISO brasileiras, evitando conversão UTC automática do Prisma
     const startDatetimeForSave = toLocalISOString(startDateTime)
     const endDatetimeForSave = toLocalISOString(endDateTime)
     
     const dataToSave = {
       professionalId,
-      startDatetime: startDatetimeForSave,  // ✅ String ISO em vez de Date object
-      endDatetime: endDatetimeForSave,      // ✅ String ISO em vez de Date object  
+      startDatetime: startDatetimeForSave,
+      endDatetime: endDatetimeForSave,
       reason: reason?.trim() || null,
       type
     }
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO C - startDateTime objeto original:', startDateTime.toString())
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO C - startDateTime.getHours():', startDateTime.getHours())
-      }
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO C - startDatetimeForSave (STRING ISO):', startDatetimeForSave)
-      }
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO C - EXECUTANDO PRISMA COM STRING...')
-      }
+      console.log('Creating exception with data:', dataToSave)
     }
     
     const exception = await prisma.scheduleException.create({
       data: dataToSave
     })
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO C - PRISMA EXECUTADO COM SUCESSO!')
-      if (process.env.NODE_ENV === 'development') {
-      console.log('PONTO D - Retorno do banco:', exception.startDatetime)
-      }
-      if (exception.startDatetime instanceof Date) {
-        if (process.env.NODE_ENV === 'development') {
-        console.log('PONTO D - exception.getHours():', exception.startDatetime.getHours())
-        }
-      }
-    }
 
     return NextResponse.json({
       message: 'Bloqueio criado com sucesso',

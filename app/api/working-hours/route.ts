@@ -16,9 +16,7 @@ const DEFAULT_WORKING_HOURS = [
 // Função para criar horários padrão para novos usuários
 async function createDefaultWorkingHours(tenantId: string) {
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Criando horários padrão para tenant:', tenantId)
-    }
+    console.log('Criando horários padrão para tenant:', tenantId)
     
     const createdHours = await Promise.all(
       DEFAULT_WORKING_HOURS.map(hours =>
@@ -34,9 +32,7 @@ async function createDefaultWorkingHours(tenantId: string) {
       )
     )
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Horários padrão criados:', createdHours.length)
-    }
+    console.log('Horários padrão criados:', createdHours.length)
     return createdHours
   } catch (error) {
     console.error('Erro ao criar horários padrão:', error)
@@ -49,9 +45,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('GET working hours - TenantID:', user.tenantId)
-    }
+    console.log('GET working hours - TenantID:', user.tenantId)
     
     let workingHours = await prisma.workingHours.findMany({
       where: {
@@ -66,16 +60,12 @@ export async function GET(request: NextRequest) {
     
     // Se o usuário não tem horários, criar os padrão
     if (workingHours.length === 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Nenhum horário encontrado, criando horários padrão...')
-      }
+      console.log('Nenhum horário encontrado, criando horários padrão...')
       const defaultHours = await createDefaultWorkingHours(user.tenantId)
       workingHours = defaultHours
     }
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Horários encontrados:', workingHours.length)
-    }
+    console.log('Horários encontrados:', workingHours.length)
     
     return NextResponse.json({ 
       workingHours,
@@ -96,9 +86,7 @@ export async function PUT(request: NextRequest) {
     const user = verifyToken(request)
     const { workingHours } = await request.json()
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('PUT working hours - Dados:', { workingHours, tenantId: user.tenantId })
-    }
+    console.log('PUT working hours - Dados:', { workingHours, tenantId: user.tenantId })
     
     if (!workingHours || !Array.isArray(workingHours)) {
       return NextResponse.json(
@@ -134,9 +122,7 @@ export async function PUT(request: NextRequest) {
       })
     )
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Horários atualizados:', updatedHours.length)
-    }
+    console.log('Horários atualizados:', updatedHours.length)
     
     return NextResponse.json({ 
       workingHours: updatedHours,

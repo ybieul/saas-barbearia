@@ -182,9 +182,7 @@ export async function POST(request: NextRequest) {
     const dayOfWeek = getBrazilDayOfWeek(appointmentDate)
     const dayName = getBrazilDayNameEn(appointmentDate)
     
-    if (process.env.NODE_ENV === 'development') {
     console.log('🇧🇷 Validação de dia:', {
-    }
       appointmentDate: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
       dayOfWeek,
       dayName
@@ -213,9 +211,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    if (process.env.NODE_ENV === 'development') {
     console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
-    }
 
     // Calcular duração e preço totais
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
@@ -419,9 +415,7 @@ export async function PUT(request: NextRequest) {
       const dayOfWeek = getBrazilDayOfWeek(appointmentDate)
       const dayName = getBrazilDayNameEn(appointmentDate)
       
-      if (process.env.NODE_ENV === 'development') {
       console.log('🇧🇷 Validação de dia (UPDATE):', {
-      }
         appointmentDate: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO: Usar função brasileira
         appointmentBrazil: appointmentDate.toString(),
         dayOfWeek,
@@ -451,9 +445,7 @@ export async function PUT(request: NextRequest) {
         )
       }
       
-      if (process.env.NODE_ENV === 'development') {
       console.log(`✅ Validação de horário (UPDATE) aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
-      }
       
       // Verificar conflitos de horário (apenas se professionalId está sendo alterado ou mantido)
       const finalProfessionalId = professionalId !== undefined ? professionalId : existingAppointment.professionalId
@@ -692,9 +684,7 @@ export async function DELETE(request: NextRequest) {
       if (existingAppointment.status === 'COMPLETED') {
         const totalPrice = existingAppointment.totalPrice || 0
 
-        if (process.env.NODE_ENV === 'development') {
         console.log('🔄 Revertendo dados do cliente:', {
-        }
           appointmentId: id,
           clientId: existingAppointment.endUserId,
           clientName: existingAppointment.endUser.name,
@@ -741,9 +731,7 @@ export async function DELETE(request: NextRequest) {
           },
         })
 
-        if (process.env.NODE_ENV === 'development') {
         console.log('✅ Dados do cliente revertidos com sucesso')
-        }
       }
 
       // Deletar o agendamento
