@@ -44,8 +44,9 @@ import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
 import { ProfessionalScheduleStatus } from "@/components/professional-schedule-status"
 
-// 🚀 FEATURE FLAG: Habilitar regras de professional schedules
-const ENABLE_PROFESSIONAL_SCHEDULES = process.env.NEXT_PUBLIC_ENABLE_PROFESSIONAL_SCHEDULES === 'true'
+// ✅ SISTEMA PROFISSIONAL ATIVADO PERMANENTEMENTE
+// Sistema de horários profissionais, intervalos e exceções sempre ativo
+const ENABLE_PROFESSIONAL_SCHEDULES = true
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -1718,8 +1719,8 @@ export default function AgendaPage() {
 
   return (
     <div className="space-y-6">
-      {/* 🔍 COMPONENTE DE STATUS DO SISTEMA (apenas em desenvolvimento) */}
-      {process.env.NODE_ENV === 'development' && ENABLE_PROFESSIONAL_SCHEDULES && (
+      {/* 🔍 COMPONENTE DE STATUS DO SISTEMA (sempre ativo para monitoramento) */}
+      {ENABLE_PROFESSIONAL_SCHEDULES && (
         <ProfessionalScheduleStatus
           professionalId={selectedProfessional !== "todos" ? selectedProfessional : undefined}
           businessSlug={businessSlug}
