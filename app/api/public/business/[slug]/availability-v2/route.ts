@@ -113,7 +113,7 @@ export async function GET(
     const initialSlots = generateTimeSlots(
       schedule.startTime.substring(0, 5), // Remover segundos se houver (HH:MM)
       schedule.endTime.substring(0, 5),
-      30, // Intervalo padrão de 30min
+      5, // ✅ CORRIGIDO: Slots de 5 em 5 minutos
       serviceDuration
     )
 

@@ -29,7 +29,7 @@ export function minutesToTime(minutes: number): string {
 export function generateTimeSlots(
   startTime: string,
   endTime: string,
-  slotDuration: number = 30, // duração padrão em minutos
+  slotDuration: number = 5, // ✅ CORRIGIDO: Slots de 5 em 5 minutos
   serviceDuration: number = 30 // duração do serviço em minutos
 ): string[] {
   const startMinutes = timeToMinutes(startTime)
