@@ -2465,9 +2465,9 @@ export default function AgendaPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
                         {loadingTimeSlots ? (
-                          <SelectItem value="" disabled className="text-[#a1a1aa]">
+                          <div className="p-3 text-center text-[#a1a1aa] text-sm">
                             Carregando horários...
-                          </SelectItem>
+                          </div>
                         ) : availableTimeSlots.length > 0 ? (
                           availableTimeSlots.map((time: string) => {
                             const isPast = isTimeInPast(newAppointment.date, time)
