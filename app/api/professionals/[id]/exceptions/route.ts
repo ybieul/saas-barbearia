@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { checkConflictingAppointments, toSystemTimezone } from '@/lib/schedule-utils'
 import { parseISO, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns'
+import { toLocalISOString } from '@/lib/timezone'
 import type { CreateScheduleExceptionData } from '@/lib/types/schedule'
 
 // GET - Buscar exceções do profissional por período
@@ -260,23 +261,29 @@ export async function POST(
     // 🔍 PONTO C - DADOS ANTES DE SALVAR NO BANCO (MAIS IMPORTANTE!)
     console.error('=== PONTO C - ANTES DO PRISMA ===')
     
+    // 🇧🇷 CORREÇÃO CRÍTICA: Usar toLocalISOString (mesma função da agenda funcional)
+    // Converte Date objects para strings ISO brasileiras, evitando conversão UTC automática do Prisma
+    const startDatetimeForSave = toLocalISOString(startDateTime)
+    const endDatetimeForSave = toLocalISOString(endDateTime)
+    
     const dataToSave = {
       professionalId,
-      startDatetime: startDateTime,
-      endDatetime: endDateTime,
+      startDatetime: startDatetimeForSave,  // ✅ String ISO em vez de Date object
+      endDatetime: endDatetimeForSave,      // ✅ String ISO em vez de Date object  
       reason: reason?.trim() || null,
       type
     }
     
-    console.error('PONTO C - startDateTime objeto:', startDateTime.toString())
+    console.error('PONTO C - startDateTime objeto original:', startDateTime.toString())
     console.error('PONTO C - startDateTime.getHours():', startDateTime.getHours())
-    console.error('PONTO C - EXECUTANDO PRISMA...')
+    console.error('PONTO C - startDatetimeForSave (STRING ISO):', startDatetimeForSave)
+    console.error('PONTO C - EXECUTANDO PRISMA COM STRING...')
     
     const exception = await prisma.scheduleException.create({
       data: dataToSave
     })
     
-    console.error('PONTO C - PRISMA EXECUTADO!')
+    console.error('PONTO C - PRISMA EXECUTADO COM SUCESSO!')
     console.error('PONTO D - Retorno do banco:', exception.startDatetime)
     if (exception.startDatetime instanceof Date) {
       console.error('PONTO D - exception.getHours():', exception.startDatetime.getHours())
