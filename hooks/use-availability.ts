@@ -63,15 +63,15 @@ export function useAvailability(): UseAvailabilityReturn {
     setError(null)
 
     try {
-      // Construir URL com parâmetros opcionais
+      // Construir URL com parâmetros corretos
       const params = new URLSearchParams({
-        professional_id: professionalId,
+        professionalId: professionalId,  // 🔧 CORREÇÃO: Usar camelCase
         date: date
       })
       
       // Adicionar duração do serviço se fornecida
       if (serviceDuration && serviceDuration > 0) {
-        params.append('service_duration', serviceDuration.toString())
+        params.append('serviceDuration', serviceDuration.toString())  // 🔧 CORREÇÃO: Usar camelCase
       }
 
       console.log('📡 Hook - Fazendo requisição para:', `/api/availability?${params.toString()}`)

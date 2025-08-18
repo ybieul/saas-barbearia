@@ -9,15 +9,17 @@ export async function GET(request: NextRequest) {
     const user = verifyToken(request)
     const { searchParams } = new URL(request.url)
     
-    const professionalIdParam = searchParams.get('professional_id')
+    // 🔧 CORREÇÃO: Aceitar ambos os formatos de parâmetro (compatibilidade)
+    const professionalIdParam = searchParams.get('professionalId') || searchParams.get('professional_id')
     const dateParam = searchParams.get('date')
-    const serviceDurationParam = searchParams.get('service_duration') // NOVO: duração do serviço
+    const serviceDurationParam = searchParams.get('serviceDuration') || searchParams.get('service_duration')
 
     console.log('🚀 API - Recebendo requisição de disponibilidade:', {
       professionalId: professionalIdParam,
       date: dateParam,
       serviceDuration: serviceDurationParam,
-      url: request.url
+      url: request.url,
+      allParams: Object.fromEntries(searchParams.entries())
     })
 
     // Validar parâmetros obrigatórios
@@ -68,7 +70,15 @@ export async function GET(request: NextRequest) {
       date: dateParam,
       dayOfWeek,
       serviceDurationMinutes,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      timezoneInfo: {
+        queryDate: queryDate.toISOString(),
+        queryDateLocal: queryDate.toString(),
+        startOfDate: startOfDate.toISOString(),
+        endOfDate: endOfDate.toISOString(),
+        timezoneOffset: queryDate.getTimezoneOffset(),
+        currentTime: new Date().toISOString()
+      }
     })
 
     // 1. VERIFICAR HORÁRIO DE FUNCIONAMENTO DO PROFISSIONAL
@@ -156,15 +166,25 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('🔍 API - Query de agendamentos:', {
+    console.log('🔍 API - Query de agendamentos DETALHADA:', {
       professionalId: professionalIdParam,
+      professionalIdType: typeof professionalIdParam,
+      professionalIdLength: professionalIdParam?.length,
       dateRange: {
         gte: startOfDate.toISOString(),
         lte: endOfDate.toISOString()
       },
       queryDate: queryDate.toISOString(),
-      startOfDate_local: `${startOfDate.getFullYear()}-${(startOfDate.getMonth()+1).toString().padStart(2,'0')}-${startOfDate.getDate().toString().padStart(2,'0')} ${startOfDate.getHours()}:${startOfDate.getMinutes()}:${startOfDate.getSeconds()}`,
-      endOfDate_local: `${endOfDate.getFullYear()}-${(endOfDate.getMonth()+1).toString().padStart(2,'0')}-${endOfDate.getDate().toString().padStart(2,'0')} ${endOfDate.getHours()}:${endOfDate.getMinutes()}:${endOfDate.getSeconds()}`
+      whereClause: {
+        professionalId: professionalIdParam,
+        dateTime: {
+          gte: startOfDate,
+          lte: endOfDate
+        },
+        status: {
+          not: 'CANCELLED'
+        }
+      }
     })
     
     // 🔍 LOG: Mostrar agendamentos encontrados
@@ -172,6 +192,7 @@ export async function GET(request: NextRequest) {
       count: existingAppointments.length,
       appointments: existingAppointments.map(apt => ({
         id: apt.id,
+        professionalId: apt.professionalId,
         dateTime: apt.dateTime.toISOString(),
         duration: apt.duration,
         status: apt.status,
