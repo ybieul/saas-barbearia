@@ -132,18 +132,19 @@ export async function POST(
     const professionalId = params.id
     const body: CreateScheduleExceptionData = await request.json()
 
-    // 🔍 LOGS CRÍTICOS - USANDO console.error PARA GARANTIR VISIBILIDADE
-    console.error('=== AUDITORIA TIMEZONE ===')
-    console.error('PONTO B - Backend recebeu:', body.startDatetime)
-    console.error('PONTO B - Tipo:', typeof body.startDatetime)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== AUDITORIA TIMEZONE ===')
+      console.log('PONTO B - Backend recebeu:', body.startDatetime)
+      console.log('PONTO B - Tipo:', typeof body.startDatetime)
 
-    // 🔍 DEBUG - Verificar timezone do MySQL e configurações
-    console.error('=== CONFIG DO SISTEMA ===')
-    console.error('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
-    console.error('Data atual do servidor:', new Date().toString())
-    
-    const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
-    console.error('MySQL session timezone:', timezoneResult)
+      // 🔍 DEBUG - Verificar timezone do MySQL e configurações
+      console.log('=== CONFIG DO SISTEMA ===')
+      console.log('DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@') : 'INDEFINIDA')
+      console.log('Data atual do servidor:', new Date().toString())
+      
+      const timezoneResult = await prisma.$queryRaw<{timezone: string}[]>`SELECT @@session.time_zone as timezone`
+      console.log('MySQL session timezone:', timezoneResult)
+    }
 
     // Verificar se o profissional pertence ao tenant do usuário
     const professional = await prisma.professional.findFirst({
@@ -181,29 +182,38 @@ export async function POST(
     let endDateTime: Date
 
     try {
-      // 🔍 DEBUG - Verificar parsing de datas
-      console.error('=== PONTO DE PARSING ===')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=== PONTO DE PARSING ===')
+      }
       
       // Receber strings no formato "YYYY-MM-DD HH:MM:SS" e criar Date local do Brasil
       if (typeof startDatetime === 'string') {
-        console.error('Processando startDatetime string:', startDatetime)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Processando startDatetime string:', startDatetime)
+        }
         
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = startDatetime.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hour, minute, second = 0] = timePart.split(':').map(Number)
         
-        console.error('Componentes - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Min:', minute)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Componentes - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Min:', minute)
+        }
         
         startDateTime = new Date(year, month - 1, day, hour, minute, second)
-        console.error('Date criado startDateTime:', startDateTime.toString())
-        console.error('startDateTime.getHours():', startDateTime.getHours())
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Date criado startDateTime:', startDateTime.toString())
+          console.log('startDateTime.getHours():', startDateTime.getHours())
+        }
       } else {
         startDateTime = startDatetime
       }
 
       if (typeof endDatetime === 'string') {
-        console.error('Processando endDatetime string:', endDatetime)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Processando endDatetime string:', endDatetime)
+        }
         
         // Parse manual para garantir interpretação como horário local
         const [datePart, timePart] = endDatetime.split(' ')
@@ -258,8 +268,9 @@ export async function POST(
       )
     }
 
-    // 🔍 PONTO C - DADOS ANTES DE SALVAR NO BANCO (MAIS IMPORTANTE!)
-    console.error('=== PONTO C - ANTES DO PRISMA ===')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== PONTO C - ANTES DO PRISMA ===')
+    }
     
     // 🇧🇷 CORREÇÃO CRÍTICA: Usar toLocalISOString (mesma função da agenda funcional)
     // Converte Date objects para strings ISO brasileiras, evitando conversão UTC automática do Prisma
@@ -274,19 +285,23 @@ export async function POST(
       type
     }
     
-    console.error('PONTO C - startDateTime objeto original:', startDateTime.toString())
-    console.error('PONTO C - startDateTime.getHours():', startDateTime.getHours())
-    console.error('PONTO C - startDatetimeForSave (STRING ISO):', startDatetimeForSave)
-    console.error('PONTO C - EXECUTANDO PRISMA COM STRING...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PONTO C - startDateTime objeto original:', startDateTime.toString())
+      console.log('PONTO C - startDateTime.getHours():', startDateTime.getHours())
+      console.log('PONTO C - startDatetimeForSave (STRING ISO):', startDatetimeForSave)
+      console.log('PONTO C - EXECUTANDO PRISMA COM STRING...')
+    }
     
     const exception = await prisma.scheduleException.create({
       data: dataToSave
     })
     
-    console.error('PONTO C - PRISMA EXECUTADO COM SUCESSO!')
-    console.error('PONTO D - Retorno do banco:', exception.startDatetime)
-    if (exception.startDatetime instanceof Date) {
-      console.error('PONTO D - exception.getHours():', exception.startDatetime.getHours())
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PONTO C - PRISMA EXECUTADO COM SUCESSO!')
+      console.log('PONTO D - Retorno do banco:', exception.startDatetime)
+      if (exception.startDatetime instanceof Date) {
+        console.log('PONTO D - exception.getHours():', exception.startDatetime.getHours())
+      }
     }
 
     return NextResponse.json({

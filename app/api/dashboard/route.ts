@@ -6,18 +6,26 @@ import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toLocalDateString
 // GET - Buscar dados do dashboard do tenant
 export async function GET(request: NextRequest) {
   try {
-    console.log('� === API DASHBOARD CHAMADA ===')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🛠️ === API DASHBOARD CHAMADA ===')
+    }
     const user = verifyToken(request)
-    console.log('🔍 User tenant:', user.tenantId)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 User tenant:', user.tenantId)
+    }
     
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'today'
-    console.log('🔍 Period solicitado:', period)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Period solicitado:', period)
+    }
 
     // Obter horário brasileiro atual com debug
     const brazilNow = getBrazilNow()
-    console.log('🕐 Brazil now (API):', brazilNow.toISOString())
-    console.log('🕐 Brazil now local:', brazilNow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🕐 Brazil now (API):', brazilNow.toISOString())
+      console.log('🕐 Brazil now local:', brazilNow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    }
 
     let startDate: Date
     let endDate: Date
@@ -48,10 +56,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Debug das datas calculadas
-    console.log('📅 Start date:', startDate.toISOString())
-    console.log('📅 End date:', endDate.toISOString())
-    console.log('📅 Start local:', startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
-    console.log('📅 End local:', endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📅 Start date:', startDate.toISOString())
+      console.log('📅 End date:', endDate.toISOString())
+      console.log('📅 Start local:', startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+      console.log('📅 End local:', endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+    }
 
     // Métricas do tenant
     const [
