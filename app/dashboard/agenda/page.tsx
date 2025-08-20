@@ -43,6 +43,7 @@ import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
 import { ProfessionalScheduleStatus } from "@/components/professional-schedule-status"
+import { useProfessionalAvailability } from "@/hooks/use-schedule"
 
 // ✅ SISTEMA PROFISSIONAL ATIVADO PERMANENTEMENTE
 // Sistema de horários profissionais, intervalos e exceções sempre ativo
@@ -120,6 +121,9 @@ export default function AgendaPage() {
     error: agendaAvailabilityError,
     businessSlug
   } = useAgendaAvailability()
+
+  // 🎯 NOVO: Hook para availability-v2 API
+  const { getAvailableSlots: getAvailableSlotsFromAPI, isLoading: scheduleLoading } = useProfessionalAvailability()
 
   // Função para refresh manual de dados
   const handleRefreshData = async () => {
@@ -1514,6 +1518,76 @@ export default function AgendaPage() {
   // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = async (excludeAppointmentId?: string): Promise<string[]> => {
     try {
+      if (!newAppointment.serviceId || !newAppointment.date) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
+        }
+        return []
+      }
+
+      const selectedService = services.find(s => s.id === newAppointment.serviceId)
+      if (!selectedService) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 getAvailableTimeSlots: Serviço não encontrado')
+        }
+        return []
+      }
+
+      // Obter businessSlug do estabelecimento
+      if (!businessSlug) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 getAvailableTimeSlots: businessSlug não disponível')
+        }
+        return []
+      }
+
+      // Usar profissional selecionado ou primeiro profissional disponível
+      const professionalId = newAppointment.professionalId || professionalsData?.[0]?.id
+      if (!professionalId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 getAvailableTimeSlots: Nenhum profissional disponível')
+        }
+        return []
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚀 Chamando API availability-v2 com:', {
+          businessSlug,
+          professionalId,
+          date: newAppointment.date,
+          serviceDuration: selectedService.duration || 30
+        })
+      }
+
+      // Chamar API availability-v2 através do hook use-schedule
+      const availableSlots = await getAvailableSlotsFromAPI(
+        businessSlug,
+        professionalId,
+        newAppointment.date,
+        selectedService.duration || 30
+      )
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ API availability-v2 retornou:', {
+          totalSlots: availableSlots.length,
+          firstSlots: availableSlots.slice(0, 5),
+          containsSelectedTime: newAppointment.time ? availableSlots.includes(newAppointment.time) : 'N/A'
+        })
+      }
+
+      return availableSlots
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚫 Erro ao obter horários da API availability-v2:', error)
+      }
+      // Fallback para lógica local em caso de erro
+      return await getAvailableTimeSlotsLocalFallback(excludeAppointmentId)
+    }
+  }
+
+  // 🔄 Função fallback usando lógica local (mantida para casos de erro)
+  const getAvailableTimeSlotsLocalFallback = async (excludeAppointmentId?: string): Promise<string[]> => {
+    try {
       // � MONITORAMENTO: Comparar lógicas em desenvolvimento
       if (process.env.NODE_ENV === 'development' && ENABLE_PROFESSIONAL_SCHEDULES && newAppointment.professionalId) {
         // Executar comparação em background (não bloquear)
@@ -1643,13 +1717,13 @@ export default function AgendaPage() {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ getAvailableTimeSlots: ${availableSlots.length} slots disponíveis finais`)
+        console.log(`✅ getAvailableTimeSlotsLocalFallback: ${availableSlots.length} slots disponíveis finais`)
       }
       
       return availableSlots
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro ao obter horários disponíveis:', error)
+        console.error('🚫 Erro ao obter horários disponíveis (fallback):', error)
       }
       return []
     }
