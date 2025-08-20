@@ -76,13 +76,6 @@ interface Service {
   image?: string
 }
 
-interface WorkingHours {
-  dayOfWeek: string
-  startTime: string
-  endTime: string
-  isActive: boolean
-}
-
 interface CustomerData {
   name: string
   phone: string
@@ -104,7 +97,6 @@ export default function AgendamentoPage() {
   const [businessData, setBusinessData] = useState<BusinessData | null>(null)
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [services, setServices] = useState<Service[]>([])
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
   
   // Estados do formulário
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
@@ -120,7 +112,7 @@ export default function AgendamentoPage() {
     notes: ""
   })
   
-  // Estados de UI
+  // Estados para UI
   const [expandedPeriods, setExpandedPeriods] = useState<{
     morning: boolean | undefined,
     afternoon: boolean | undefined,
@@ -132,18 +124,13 @@ export default function AgendamentoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // Estados para verificação de disponibilidade
-  const [occupiedSlots, setOccupiedSlots] = useState<any[]>([])
-  const [loadingAvailability, setLoadingAvailability] = useState(false)
-
   // Estados para formulário inteligente de cliente
   const [searchingClient, setSearchingClient] = useState(false)
   const [clientFound, setClientFound] = useState<boolean | null>(null)
   const [showClientForm, setShowClientForm] = useState(false)
   const [phoneDebounceTimer, setPhoneDebounceTimer] = useState<NodeJS.Timeout | null>(null)
 
-  // AbortControllers para cancelar requisições
-  const [availabilityAbortController, setAvailabilityAbortController] = useState<AbortController | null>(null)
+  // AbortControllers para cancelar requisições (simplificado)
   const [clientSearchAbortController, setClientSearchAbortController] = useState<AbortController | null>(null)
 
   // Estado para controlar visibilidade dos detalhes do estabelecimento
@@ -170,11 +157,10 @@ export default function AgendamentoPage() {
       const business = await businessResponse.json()
       setBusinessData(business)
 
-      // Carregar dados em paralelo
-      const [servicesRes, professionalsRes, workingHoursRes] = await Promise.all([
+      // Carregar dados em paralelo (removido working-hours - não é mais necessário)
+      const [servicesRes, professionalsRes] = await Promise.all([
         fetch(`/api/public/business/${params.slug}/services`),
-        fetch(`/api/public/business/${params.slug}/professionals`),
-        fetch(`/api/public/business/${params.slug}/working-hours`)
+        fetch(`/api/public/business/${params.slug}/professionals`)
       ])
 
       if (servicesRes.ok) {
@@ -190,11 +176,6 @@ export default function AgendamentoPage() {
         if (professionalsData.length === 1) {
           setSelectedProfessional(professionalsData[0])
         }
-      }
-
-      if (workingHoursRes.ok) {
-        const workingHoursData = await workingHoursRes.json()
-        setWorkingHours(workingHoursData)
       }
 
     } catch (err: any) {
@@ -263,187 +244,27 @@ export default function AgendamentoPage() {
     setAddedUpsells(prev => (prev || []).filter(service => service.id !== serviceId))
   }
 
-  // Função para buscar disponibilidade usando a nova API availability-v2
-  const loadAvailability = async (date: string, professionalId?: string) => {
-    if (!date) return
-    
-    // Cancelar requisição anterior se ainda estiver em andamento
-    if (availabilityAbortController) {
-      availabilityAbortController.abort()
-    }
-    
-    // Criar novo AbortController para esta requisição
-    const abortController = new AbortController()
-    setAvailabilityAbortController(abortController)
-    
-    try {
-      setLoadingAvailability(true)
-      
-      // Para "qualquer profissional", precisamos buscar disponibilidade de todos
-      if (!professionalId || professionalId === 'any') {
-        // Buscar disponibilidade de todos os profissionais e agregar
-        const allOccupiedSlots: any[] = []
-        
-        for (const professional of professionals) {
-          try {
-            const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
-            url.searchParams.set('date', date)
-            url.searchParams.set('professionalId', professional.id)
-            url.searchParams.set('serviceDuration', calculateTotals().totalDuration.toString())
-            
-            const response = await fetch(url.toString(), {
-              signal: abortController.signal
-            })
-            
-            if (abortController.signal.aborted) return
-            
-            if (response.ok) {
-              const data = await response.json()
-              
-              // Converter slots indisponíveis para formato compatível
-              const professionalOccupiedSlots = data.slots
-                ?.filter((slot: any) => !slot.available)
-                .map((slot: any) => ({
-                  id: `unavailable-${professional.id}-${slot.time}`,
-                  professionalId: professional.id,
-                  startTime: slot.time,
-                  duration: 30, // Duração padrão para slots bloqueados
-                  dateTime: new Date(`${date}T${slot.time}:00`)
-                })) || []
-              
-              allOccupiedSlots.push(...professionalOccupiedSlots)
-            }
-          } catch (error: any) {
-            if (error.name !== 'AbortError') {
-              console.warn(`Erro ao buscar disponibilidade do profissional ${professional.id}:`, error)
-            }
-          }
-        }
-        
-        setOccupiedSlots(allOccupiedSlots)
-      } else {
-        // Profissional específico
-        const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
-        url.searchParams.set('date', date)
-        url.searchParams.set('professionalId', professionalId)
-        url.searchParams.set('serviceDuration', calculateTotals().totalDuration.toString())
-        
-        const response = await fetch(url.toString(), {
-          signal: abortController.signal
-        })
-        
-        if (abortController.signal.aborted) return
-        
-        if (response.ok) {
-          const data = await response.json()
-          
-          // Converter slots indisponíveis para formato compatível com a interface atual
-          const occupiedSlots = data.slots
-            ?.filter((slot: any) => !slot.available)
-            .map((slot: any) => ({
-              id: `unavailable-${professionalId}-${slot.time}`,
-              professionalId: professionalId,
-              startTime: slot.time,
-              duration: 30, // Duração padrão para slots bloqueados
-              dateTime: new Date(`${date}T${slot.time}:00`)
-            })) || []
-          
-          setOccupiedSlots(occupiedSlots)
-        } else {
-          console.error('Erro ao buscar disponibilidade:', response.statusText)
-          setOccupiedSlots([])
-        }
-      }
-    } catch (error: any) {
-      // Ignorar erros de cancelamento
-      if (error.name === 'AbortError') {
-        return
-      }
-      console.error('Erro ao buscar disponibilidade:', error)
-      setOccupiedSlots([])
-    } finally {
-      // Só atualizar loading se não foi cancelado
-      if (!abortController.signal.aborted) {
-        setLoadingAvailability(false)
-        setAvailabilityAbortController(null)
-      }
-    }
-  }
-
-  // Função para verificar se um horário está disponível (considerando duração do serviço)
+  // Função simplificada - não precisa mais verificar conflitos pois a API availability-v2 já faz isso
   const isTimeSlotAvailable = (time: string) => {
-    if (!selectedServiceId) return false
-    
-    const timeToMinutes = (timeStr: string) => {
-      const [hours, minutes] = timeStr.split(':').map(Number)
-      return hours * 60 + minutes
-    }
-    
-    const slotStartMinutes = timeToMinutes(time)
-    const { totalDuration } = calculateTotals()
-    const slotEndMinutes = slotStartMinutes + totalDuration
-    
-    // 🕒 Verificar se o horário já passou (apenas para hoje)
-    if (selectedDate) {
-      const selectedDateParsed = parseDate(selectedDate)
-      const now = getBrazilNow()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const selectedDateOnly = new Date(selectedDateParsed.getFullYear(), selectedDateParsed.getMonth(), selectedDateParsed.getDate())
-      
-      // Se é hoje, verificar se o horário já passou
-      if (selectedDateOnly.getTime() === today.getTime()) {
-        const nowMinutes = now.getHours() * 60 + now.getMinutes()
-        if (slotStartMinutes <= nowMinutes) {
-          return false // Horário já passou
-        }
+    // A API availability-v2 já retorna slots com disponibilidade calculada
+    // Esta função é mantida apenas para compatibilidade, mas agora consulta os availableSlots
+    const slot = availableSlots.find(s => s.time === time)
+    return slot?.available ?? false
+  }
+
+  // Carregar slots disponíveis quando data, profissional ou serviço mudarem
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (selectedDate && selectedServiceId && selectedProfessional) {
+        const slots = await generateAvailableSlots(selectedDate)
+        setAvailableSlots(slots)
+      } else {
+        setAvailableSlots([])
       }
     }
     
-    // Verificar se há conflito com algum agendamento existente
-    if (selectedProfessional === null) {
-      // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
-      // Se pelo menos um profissional estiver livre, o horário está disponível
-      const allProfessionalsOccupied = professionals.every(prof => 
-        occupiedSlots.some(slot => {
-          if (slot.professionalId !== prof.id) return false
-          
-          const aptStartMinutes = timeToMinutes(slot.startTime)
-          const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
-          
-          return (
-            (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
-            (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
-            (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
-          )
-        })
-      )
-      return !allProfessionalsOccupied
-    } else if (selectedProfessional) {
-      // Profissional específico: verificar apenas conflitos com este profissional
-      return !occupiedSlots.some(slot => {
-        if (slot.professionalId !== selectedProfessional.id) return false
-        
-        const aptStartMinutes = timeToMinutes(slot.startTime)
-        const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
-        
-        return (
-          (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
-          (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
-          (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
-        )
-      })
-    } else {
-      // selectedProfessional === undefined (não selecionado): não mostrar disponibilidade
-      return false
-    }
-  }
-
-  // Carregar disponibilidade quando data ou profissional mudarem
-  useEffect(() => {
-    if (selectedDate) {
-      loadAvailability(selectedDate, selectedProfessional?.id)
-    }
-  }, [selectedDate, selectedProfessional?.id, params.slug])
+    loadSlots()
+  }, [selectedDate, selectedProfessional?.id, selectedServiceId, params.slug])
 
   // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
@@ -456,54 +277,55 @@ export default function AgendamentoPage() {
     }
   }, [selectedDate])
 
-  // Gerar horários disponíveis baseados nos horários de funcionamento
-  const generateAvailableSlots = (date: string) => {
-    if (!selectedServiceId || workingHours.length === 0) return []
+  // Estados para slots disponíveis vindos diretamente da API availability-v2
+  const [availableSlots, setAvailableSlots] = useState<{
+    time: string,
+    available: boolean,
+    occupied: boolean,
+    period: 'morning' | 'afternoon' | 'night'
+  }[]>([])
 
-    // Converter data para timezone brasileiro
-    const selectedDateBrazil = parseDate(date)
-    const dayOfWeek = getBrazilDayNumber(selectedDateBrazil)
-    
-    // Mapear dias da semana
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = dayNames[dayOfWeek]
-    
-    // Encontrar horário de funcionamento para o dia
-    const daySchedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isActive)
-    
-    if (!daySchedule) return []
+  // Gerar horários disponíveis DIRETAMENTE da API availability-v2
+  const generateAvailableSlots = async (date: string) => {
+    if (!selectedServiceId || !selectedProfessional) return []
 
-    const slots = []
-    const [startHour, startMinute] = daySchedule.startTime.split(':').map(Number)
-    const [endHour, endMinute] = daySchedule.endTime.split(':').map(Number)
-    
-    // Gerar slots de 5 em 5 minutos
-    let currentTime = startHour * 60 + startMinute // em minutos
-    const endTime = endHour * 60 + endMinute
-    const { totalDuration } = calculateTotals()
-    
-    while (currentTime + totalDuration <= endTime) {
-      const hour = Math.floor(currentTime / 60)
-      const minute = currentTime % 60
-      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    try {
+      const professionalId = selectedProfessional.id === 'any' ? 
+        (professionals[0]?.id || '') : selectedProfessional.id
+
+      if (!professionalId) return []
+
+      const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
+      url.searchParams.set('date', date)
+      url.searchParams.set('professionalId', professionalId)
+      url.searchParams.set('serviceDuration', calculateTotals().totalDuration.toString())
       
-      // Verificar se o horário está disponível (considerando duração do serviço)
-      const isAvailable = isTimeSlotAvailable(timeString)
+      const response = await fetch(url.toString())
       
-      slots.push({
-        time: timeString,
-        available: isAvailable,
-        occupied: !isAvailable,
-        period: hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
-      })
+      if (!response.ok) {
+        console.error('Erro ao buscar disponibilidade:', response.statusText)
+        return []
+      }
+
+      const data = await response.json()
       
-      currentTime += 5 // incrementar 5 minutos
+      // Usar DIRETAMENTE os slots da API availability-v2
+      const slots = data.slots?.map((slot: any) => ({
+        time: slot.time,
+        available: slot.available,
+        occupied: !slot.available,
+        period: (() => {
+          const hour = parseInt(slot.time.split(':')[0])
+          return hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
+        })() as 'morning' | 'afternoon' | 'night'
+      })) || []
+
+      return slots
+    } catch (error) {
+      console.error('Erro ao buscar slots disponíveis:', error)
+      return []
     }
-    
-    return slots
-  }
-
-  // Agrupar horários por período
+  }  // Agrupar horários por período
   const groupSlotsByPeriod = (slots: any[]) => {
     const groups = {
       morning: slots.filter(slot => slot.period === 'morning'),
@@ -698,15 +520,11 @@ export default function AgendamentoPage() {
       }
       
       // Cancelar requisições em andamento
-      if (availabilityAbortController) {
-        availabilityAbortController.abort()
-      }
-      
       if (clientSearchAbortController) {
         clientSearchAbortController.abort()
       }
     }
-  }, [phoneDebounceTimer, availabilityAbortController, clientSearchAbortController])
+  }, [phoneDebounceTimer, clientSearchAbortController])
 
   // Validar formulário
   const validateAppointmentData = () => {
@@ -1516,10 +1334,8 @@ export default function AgendamentoPage() {
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                       const dayName = dayNames[dayOfWeek]
                       
-                      // Verificar se o dia está disponível
-                      const dayNamesEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-                      const dayNameEn = dayNamesEn[dayOfWeek]
-                      const isAvailable = workingHours.some(wh => wh.dayOfWeek === dayNameEn && wh.isActive)
+                      // Sempre permitir seleção - a validação de disponibilidade será feita pela API availability-v2
+                      const isAvailable = true // Removido workingHours - API availability-v2 fará a validação
                       
                       return (
                         <div key={dateString}>
@@ -1590,14 +1406,14 @@ export default function AgendamentoPage() {
                   
                   <h3 className="text-lg font-semibold mb-4 text-[#ededed]">
                     Escolha o horário
-                    {loadingAvailability && (
+                    {availableSlots.length === 0 && selectedDate && selectedServiceId && selectedProfessional && (
                       <Loader2 className="inline h-4 w-4 animate-spin ml-2" />
                     )}
                   </h3>
                   
                   {selectedDate ? (
                     (() => {
-                      const availableSlots = generateAvailableSlots(selectedDate)
+                      // Usar o estado availableSlots ao invés de chamar a função
                       const groupedSlots = groupSlotsByPeriod(availableSlots)
                       
                       if (availableSlots.length === 0) {
@@ -1605,6 +1421,11 @@ export default function AgendamentoPage() {
                           <div className="text-center py-8">
                             <Clock className="h-12 w-12 mx-auto mb-4 text-[#71717a]" />
                             <p className="text-[#71717a]">Nenhum horário disponível para esta data</p>
+                            {(!selectedProfessional || selectedServiceId === null) && (
+                              <p className="text-[#71717a] text-sm mt-2">
+                                Selecione um serviço e profissional primeiro
+                              </p>
+                            )}
                           </div>
                         )
                       }
