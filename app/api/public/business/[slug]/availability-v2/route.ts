@@ -664,7 +664,7 @@ export async function GET(
             }))
         }
       }
-    } as DayAvailability)
+    })
 
   } catch (error) {
     console.error('Erro ao calcular disponibilidade:', error)
