@@ -423,12 +423,36 @@ export async function GET(
         }
       }
 
-      // Verificar conflito com exceções/bloqueios
+      // 🔧 CORREÇÃO: Verificar conflito com exceções considerando duração do serviço
       if (available) {
         for (const exception of exceptions) {
-          if (timePeriodsOverlap(slotStart, slotEnd, exception.startDatetime, exception.endDatetime)) {
+          // Calcular quando o serviço terminaria se começasse neste slot
+          const [slotHours, slotMinutes] = slotTime.split(':').map(Number)
+          const serviceStartMinutes = slotHours * 60 + slotMinutes
+          const serviceEndMinutes = serviceStartMinutes + serviceDuration
+          
+          // Converter exceção para minutos (assumindo timezone já correto no banco)
+          const exceptionStartMinutes = exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()
+          const exceptionEndMinutes = exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()
+          
+          // Verificar se o SERVIÇO (não apenas o slot) conflitaria com a exceção
+          const serviceConflicts = serviceStartMinutes < exceptionEndMinutes && serviceEndMinutes > exceptionStartMinutes
+          
+          if (serviceConflicts) {
             available = false
             reason = exception.reason || (exception.type === 'DAY_OFF' ? 'Folga' : 'Bloqueado')
+            
+            // 🔍 DEBUG: Log da correção para slots críticos
+            const isCriticalSlot = ['14:10', '14:15', '14:20', '14:25'].includes(slotTime)
+            if (isCriticalSlot) {
+              console.log(`🔧 [AVAILABILITY-V2] CORREÇÃO CRÍTICA - Slot ${slotTime}:`, {
+                serviceDuration,
+                serviceWouldEndAt: `${Math.floor(serviceEndMinutes / 60)}:${String(serviceEndMinutes % 60).padStart(2, '0')}`,
+                exceptionStartsAt: `${Math.floor(exceptionStartMinutes / 60)}:${String(exceptionStartMinutes % 60).padStart(2, '0')}`,
+                wouldConflict: serviceConflicts,
+                reason: serviceConflicts ? 'BLOQUEADO' : 'LIBERADO'
+              })
+            }
             break
           }
         }
