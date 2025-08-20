@@ -287,6 +287,63 @@ export async function GET(
       }
     })
 
+    // 🔍 DEBUG: Log detalhado das exceções encontradas
+    console.log('🔍 [AVAILABILITY-V2] Exceções encontradas:', {
+      count: exceptions.length,
+      targetDate: targetDate.toISOString(),
+      startOfTargetDay: startOfTargetDay.toISOString(),
+      endOfTargetDay: endOfTargetDay.toISOString(),
+      exceptions: exceptions.map(exc => ({
+        id: exc.id,
+        startDatetime: exc.startDatetime.toISOString(),
+        endDatetime: exc.endDatetime.toISOString(),
+        reason: exc.reason,
+        type: exc.type,
+        // 🔍 DIAGNÓSTICO DE TIMEZONE
+        timezoneAnalysis: {
+          startLocal: exc.startDatetime.toLocaleString('pt-BR'),
+          endLocal: exc.endDatetime.toLocaleString('pt-BR'),
+          startUTC: exc.startDatetime.getUTCHours() + ':' + exc.startDatetime.getUTCMinutes().toString().padStart(2, '0'),
+          endUTC: exc.endDatetime.getUTCHours() + ':' + exc.endDatetime.getUTCMinutes().toString().padStart(2, '0'),
+          startLocal24: exc.startDatetime.getHours() + ':' + exc.startDatetime.getMinutes().toString().padStart(2, '0'),
+          endLocal24: exc.endDatetime.getHours() + ':' + exc.endDatetime.getMinutes().toString().padStart(2, '0')
+        }
+      }))
+    })
+
+    // 🔧 FUNÇÃO DE CORREÇÃO: Ajustar timezone das exceções para compatibilidade
+    const adjustExceptionTimezone = (exceptionDate: Date): Date => {
+      // Detectar "falso UTC": se (hora local + offset BRT) == hora UTC, então foi salvo incorretamente
+      // Exemplo: 14:30 BRT salvo como 14:30Z aparece como:
+      // - Local: 11h (14h - 3h offset BRT)  
+      // - UTC: 14h
+      // - Test: 11 + 3 = 14 ✓ (é falso UTC)
+      
+      const localHour = exceptionDate.getHours() // Em BRT devido ao timezone do sistema
+      const utcHour = exceptionDate.getUTCHours() // Em UTC real
+      const brtOffset = 3 // BRT é UTC-3
+      
+      if ((localHour + brtOffset) === utcHour) {
+        // Converter "falso UTC" para UTC real subtraindo o offset BRT
+        const correctedDate = new Date(exceptionDate.getTime() - (brtOffset * 60 * 60 * 1000))
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔧 [TIMEZONE-FIX] Exceção detectada como "falso UTC" - aplicando correção:', {
+            original: exceptionDate.toISOString(),
+            originalBRT: exceptionDate.toLocaleString('pt-BR'),
+            corrected: correctedDate.toISOString(),
+            correctedBRT: correctedDate.toLocaleString('pt-BR'),
+            explanation: `Converteu "${localHour}:xx BRT salvo como ${utcHour}:xx UTC" para "${correctedDate.getUTCHours()}:xx UTC real"`
+          })
+        }
+        
+        return correctedDate
+      }
+      
+      // Se já está em UTC real, retornar sem modificar
+      return exceptionDate
+    }
+
     // PASSO 5: Processar cada slot de 5min individualmente
     const allSlotsStatus: AvailabilitySlot[] = availableSlotsAfterBreaks.map(slotTime => {
       const [hours, minutes] = slotTime.split(':').map(Number)
@@ -437,9 +494,34 @@ export async function GET(
 
       // Verificar conflito com exceções/bloqueios pontuais
       for (const exception of exceptions) {
-        // 🔧 CORREÇÃO: Exceções usam Date objects, não strings
-        const exceptionStartMinutes = exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()
-        const exceptionEndMinutes = exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()
+        // 🔧 CORREÇÃO: Aplicar correção de timezone nas exceções antes da comparação
+        const correctedStartException = adjustExceptionTimezone(exception.startDatetime)
+        const correctedEndException = adjustExceptionTimezone(exception.endDatetime)
+        
+        // 🔧 CORREÇÃO: Exceções usam Date objects, não strings - usar versão corrigida
+        const exceptionStartMinutes = correctedStartException.getHours() * 60 + correctedStartException.getMinutes()
+        const exceptionEndMinutes = correctedEndException.getHours() * 60 + correctedEndException.getMinutes()
+
+        if (isDebugSlot) {
+          console.log('🔧 [EXCEPTION-TIMEZONE-CORRECTION]', {
+            originalException: {
+              start: exception.startDatetime.toISOString(),
+              end: exception.endDatetime.toISOString(),
+              startLocal: exception.startDatetime.toLocaleString('pt-BR'),
+              endLocal: exception.endDatetime.toLocaleString('pt-BR')
+            },
+            correctedVersion: {
+              start: correctedStartException.toISOString(),
+              end: correctedEndException.toISOString(),
+              startLocal: correctedStartException.toLocaleString('pt-BR'),
+              endLocal: correctedEndException.toLocaleString('pt-BR')
+            },
+            timeInMinutes: {
+              original: `${exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()}-${exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()}`,
+              corrected: `${exceptionStartMinutes}-${exceptionEndMinutes}`
+            }
+          })
+        }
 
         // Verificar se há sobreposição entre serviço e exceção
         const hasOverlap = serviceStartMinutes < exceptionEndMinutes && serviceEndMinutes > exceptionStartMinutes
