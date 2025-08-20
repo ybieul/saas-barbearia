@@ -290,8 +290,9 @@ export async function GET(
     // PASSO 5: Processar cada slot de 5min individualmente
     const allSlotsStatus: AvailabilitySlot[] = availableSlotsAfterBreaks.map(slotTime => {
       const [hours, minutes] = slotTime.split(':').map(Number)
-      const slotStart = new Date(targetDate)
-      slotStart.setHours(hours, minutes, 0, 0)
+      
+      // 🔧 CORREÇÃO: Criar data do slot usando o mesmo timezone/base da targetDate
+      const slotStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), hours, minutes, 0, 0)
       const slotEnd = addMinutes(slotStart, 5) // ✅ CORRETO: Cada slot é de 5 minutos
 
       let available = true
@@ -303,7 +304,15 @@ export async function GET(
         console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime}:`, {
           slotStart: slotStart.toISOString(),
           slotEnd: slotEnd.toISOString(),
-          appointmentsToCheck: existingAppointments.length
+          slotStartTime: slotStart.getTime(),
+          slotEndTime: slotEnd.getTime(),
+          appointmentsToCheck: existingAppointments.length,
+          targetDateInfo: {
+            original: targetDate.toISOString(),
+            year: targetDate.getFullYear(),
+            month: targetDate.getMonth(),
+            date: targetDate.getDate()
+          }
         })
       }
 
@@ -311,34 +320,41 @@ export async function GET(
       for (const appointment of existingAppointments) {
         const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
         
-        if (timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)) {
-          available = false
-          reason = 'Agendado'
-          
-          // 🔍 DEBUG: Log de conflito encontrado
-          if (isDebugSlot) {
-            console.log(`❌ [AVAILABILITY-V2] Conflito encontrado no slot ${slotTime}:`, {
-              appointmentId: appointment.id,
-              appointmentStart: appointment.dateTime.toISOString(),
-              appointmentEnd: appointmentEnd.toISOString(),
-              appointmentDuration: appointment.duration,
-              slotStart: slotStart.toISOString(),
-              slotEnd: slotEnd.toISOString(),
-              overlapResult: timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)
-            })
-          }
-          break
-        } else if (isDebugSlot) {
-          // 🔍 DEBUG: Log quando não há conflito
-          console.log(`✅ [AVAILABILITY-V2] Sem conflito no slot ${slotTime} com agendamento:`, {
+        // 🔍 DEBUG: Log detalhado da verificação de sobreposição
+        if (isDebugSlot) {
+          console.log(`🔍 [AVAILABILITY-V2] Verificando sobreposição slot ${slotTime}:`, {
             appointmentId: appointment.id,
             appointmentStart: appointment.dateTime.toISOString(),
             appointmentEnd: appointmentEnd.toISOString(),
             appointmentDuration: appointment.duration,
             slotStart: slotStart.toISOString(),
             slotEnd: slotEnd.toISOString(),
-            overlapResult: timePeriodsOverlap(slotStart, slotEnd, appointment.dateTime, appointmentEnd)
+            // Verificação manual de sobreposição
+            slotStartTime: slotStart.getTime(),
+            slotEndTime: slotEnd.getTime(),
+            appointmentStartTime: appointment.dateTime.getTime(),
+            appointmentEndTime: appointmentEnd.getTime(),
+            overlaps: {
+              condition1: slotStart < appointmentEnd,
+              condition2: slotEnd > appointment.dateTime,
+              result: slotStart < appointmentEnd && slotEnd > appointment.dateTime
+            }
           })
+        }
+        
+        // 🔧 CORREÇÃO: Verificação manual de sobreposição mais precisa
+        const hasOverlap = slotStart < appointmentEnd && slotEnd > appointment.dateTime
+        
+        if (hasOverlap) {
+          available = false
+          reason = 'Agendado'
+          
+          if (isDebugSlot) {
+            console.log(`❌ [AVAILABILITY-V2] CONFLITO CONFIRMADO no slot ${slotTime}`)
+          }
+          break
+        } else if (isDebugSlot) {
+          console.log(`✅ [AVAILABILITY-V2] Sem conflito no slot ${slotTime} com agendamento`)
         }
       }
 
