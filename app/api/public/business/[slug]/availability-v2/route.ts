@@ -291,8 +291,9 @@ export async function GET(
     const allSlotsStatus: AvailabilitySlot[] = availableSlotsAfterBreaks.map(slotTime => {
       const [hours, minutes] = slotTime.split(':').map(Number)
       
-      // 🔧 CORREÇÃO: Criar data do slot usando o mesmo timezone/base da targetDate
-      const slotStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), hours, minutes, 0, 0)
+      // 🔧 CORREÇÃO CRÍTICA: Criar data do slot em UTC para coincidir com banco de dados
+      // Banco salva agendamentos em UTC, então slots devem ser criados em UTC também
+      const slotStart = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate(), hours, minutes, 0, 0))
       const slotEnd = addMinutes(slotStart, 5) // ✅ CORRETO: Cada slot é de 5 minutos
 
       let available = true
@@ -301,7 +302,7 @@ export async function GET(
       // 🔍 DEBUG: Log para slot específico (apenas slots críticos)
       const isDebugSlot = ['11:00', '11:05', '11:10', '11:15'].includes(slotTime)
       if (isDebugSlot) {
-        console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime}:`, {
+        console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime} (CORREÇÃO UTC):`, {
           slotStart: slotStart.toISOString(),
           slotEnd: slotEnd.toISOString(),
           slotStartTime: slotStart.getTime(),
@@ -309,9 +310,10 @@ export async function GET(
           appointmentsToCheck: existingAppointments.length,
           targetDateInfo: {
             original: targetDate.toISOString(),
-            year: targetDate.getFullYear(),
-            month: targetDate.getMonth(),
-            date: targetDate.getDate()
+            utcYear: targetDate.getUTCFullYear(),
+            utcMonth: targetDate.getUTCMonth(),
+            utcDate: targetDate.getUTCDate(),
+            timezone: 'Forçado para UTC'
           }
         })
       }
@@ -322,7 +324,7 @@ export async function GET(
         
         // 🔍 DEBUG: Log detalhado da verificação de sobreposição
         if (isDebugSlot) {
-          console.log(`🔍 [AVAILABILITY-V2] Verificando sobreposição slot ${slotTime}:`, {
+          console.log(`🔍 [AVAILABILITY-V2] Verificando sobreposição slot ${slotTime} (UTC CORRIGIDO):`, {
             appointmentId: appointment.id,
             appointmentStart: appointment.dateTime.toISOString(),
             appointmentEnd: appointmentEnd.toISOString(),
@@ -330,10 +332,15 @@ export async function GET(
             slotStart: slotStart.toISOString(),
             slotEnd: slotEnd.toISOString(),
             // Verificação manual de sobreposição
-            slotStartTime: slotStart.getTime(),
-            slotEndTime: slotEnd.getTime(),
-            appointmentStartTime: appointment.dateTime.getTime(),
-            appointmentEndTime: appointmentEnd.getTime(),
+            timezoneCheck: {
+              slotTimezone: 'UTC (corrigido)',
+              appointmentTimezone: 'UTC (banco)',
+              slotStartUTC: slotStart.getTime(),
+              slotEndUTC: slotEnd.getTime(),
+              appointmentStartUTC: appointment.dateTime.getTime(),
+              appointmentEndUTC: appointmentEnd.getTime(),
+              timeDifference: Math.abs(slotStart.getTime() - appointment.dateTime.getTime()) / 1000 / 60 // em minutos
+            },
             overlaps: {
               condition1: slotStart < appointmentEnd,
               condition2: slotEnd > appointment.dateTime,
@@ -350,11 +357,12 @@ export async function GET(
           reason = 'Agendado'
           
           if (isDebugSlot) {
-            console.log(`❌ [AVAILABILITY-V2] CONFLITO CONFIRMADO no slot ${slotTime}`)
+            console.log(`🎯 [AVAILABILITY-V2] ✅ CONFLITO DETECTADO CORRETAMENTE no slot ${slotTime}!`)
+            console.log(`🎯 [AVAILABILITY-V2] Slot ${slotTime} marcado como INDISPONÍVEL devido ao agendamento ${appointment.id}`)
           }
           break
         } else if (isDebugSlot) {
-          console.log(`✅ [AVAILABILITY-V2] Sem conflito no slot ${slotTime} com agendamento`)
+          console.log(`⚠️ [AVAILABILITY-V2] Sem conflito no slot ${slotTime} com agendamento ${appointment.id}`)
         }
       }
 
