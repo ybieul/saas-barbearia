@@ -263,7 +263,7 @@ export default function AgendamentoPage() {
     setAddedUpsells(prev => (prev || []).filter(service => service.id !== serviceId))
   }
 
-  // Função para buscar horários ocupados
+  // Função para buscar disponibilidade usando a nova API availability-v2
   const loadAvailability = async (date: string, professionalId?: string) => {
     if (!date) return
     
@@ -278,27 +278,81 @@ export default function AgendamentoPage() {
     
     try {
       setLoadingAvailability(true)
-      const url = new URL(`/api/public/business/${params.slug}/availability`, window.location.origin)
-      url.searchParams.set('date', date)
-      if (professionalId) {
-        url.searchParams.set('professionalId', professionalId)
-      }
       
-      const response = await fetch(url.toString(), {
-        signal: abortController.signal
-      })
-      
-      // Verificar se a requisição foi cancelada
-      if (abortController.signal.aborted) {
-        return
-      }
-      
-      if (response.ok) {
-        const data = await response.json()
-        setOccupiedSlots(data.occupiedSlots || [])
+      // Para "qualquer profissional", precisamos buscar disponibilidade de todos
+      if (!professionalId || professionalId === 'any') {
+        // Buscar disponibilidade de todos os profissionais e agregar
+        const allOccupiedSlots: any[] = []
+        
+        for (const professional of professionals) {
+          try {
+            const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
+            url.searchParams.set('date', date)
+            url.searchParams.set('professionalId', professional.id)
+            url.searchParams.set('serviceDuration', calculateTotals().totalDuration.toString())
+            
+            const response = await fetch(url.toString(), {
+              signal: abortController.signal
+            })
+            
+            if (abortController.signal.aborted) return
+            
+            if (response.ok) {
+              const data = await response.json()
+              
+              // Converter slots indisponíveis para formato compatível
+              const professionalOccupiedSlots = data.slots
+                ?.filter((slot: any) => !slot.available)
+                .map((slot: any) => ({
+                  id: `unavailable-${professional.id}-${slot.time}`,
+                  professionalId: professional.id,
+                  startTime: slot.time,
+                  duration: 30, // Duração padrão para slots bloqueados
+                  dateTime: new Date(`${date}T${slot.time}:00`)
+                })) || []
+              
+              allOccupiedSlots.push(...professionalOccupiedSlots)
+            }
+          } catch (error: any) {
+            if (error.name !== 'AbortError') {
+              console.warn(`Erro ao buscar disponibilidade do profissional ${professional.id}:`, error)
+            }
+          }
+        }
+        
+        setOccupiedSlots(allOccupiedSlots)
       } else {
-        console.error('Erro ao buscar disponibilidade:', response.statusText)
-        setOccupiedSlots([])
+        // Profissional específico
+        const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
+        url.searchParams.set('date', date)
+        url.searchParams.set('professionalId', professionalId)
+        url.searchParams.set('serviceDuration', calculateTotals().totalDuration.toString())
+        
+        const response = await fetch(url.toString(), {
+          signal: abortController.signal
+        })
+        
+        if (abortController.signal.aborted) return
+        
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Converter slots indisponíveis para formato compatível com a interface atual
+          const occupiedSlots = data.slots
+            ?.filter((slot: any) => !slot.available)
+            .map((slot: any) => ({
+              id: `unavailable-${professionalId}-${slot.time}`,
+              professionalId: professionalId,
+              startTime: slot.time,
+              duration: 30, // Duração padrão para slots bloqueados
+              dateTime: new Date(`${date}T${slot.time}:00`)
+            })) || []
+          
+          setOccupiedSlots(occupiedSlots)
+        } else {
+          console.error('Erro ao buscar disponibilidade:', response.statusText)
+          setOccupiedSlots([])
+        }
       }
     } catch (error: any) {
       // Ignorar erros de cancelamento
