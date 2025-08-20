@@ -384,13 +384,100 @@ export async function GET(
       }
     })
 
+    // 🔧 FUNÇÃO AUXILIAR: Verificar se um serviço com duração específica conflita com intervalos/exceções
+    const serviceConflictsWithBreaksOrExceptions = (
+      startTime: string,
+      durationMinutes: number,
+      recurringBreaks: any[],
+      exceptions: any[]
+    ): boolean => {
+      const [startHours, startMinutes] = startTime.split(':').map(Number)
+      const serviceStartMinutes = startHours * 60 + startMinutes
+      const serviceEndMinutes = serviceStartMinutes + durationMinutes
+
+      // 🔍 DEBUG: Log para slots específicos problemáticos
+      const isDebugSlot = ['11:50', '11:55', '12:55'].includes(startTime)
+      if (isDebugSlot) {
+        console.log(`🔍 [AVAILABILITY-V2] Verificando conflito de duração para slot ${startTime}:`, {
+          serviceStart: startTime,
+          serviceDuration: durationMinutes,
+          serviceEnd: `${Math.floor(serviceEndMinutes / 60)}:${String(serviceEndMinutes % 60).padStart(2, '0')}`,
+          recurringBreaksCount: recurringBreaks.length,
+          exceptionsCount: exceptions.length
+        })
+      }
+
+      // Verificar conflito com intervalos recorrentes (almoço, etc.)
+      for (const breakItem of recurringBreaks) {
+        const [breakStartHours, breakStartMins] = breakItem.startTime.split(':').map(Number)
+        const [breakEndHours, breakEndMins] = breakItem.endTime.split(':').map(Number)
+        
+        const breakStartInMinutes = breakStartHours * 60 + breakStartMins
+        const breakEndInMinutes = breakEndHours * 60 + breakEndMins
+
+        // Verificar se há sobreposição entre serviço e intervalo
+        // Serviço: [serviceStartMinutes, serviceEndMinutes]
+        // Intervalo: [breakStartInMinutes, breakEndInMinutes]
+        const hasOverlap = serviceStartMinutes < breakEndInMinutes && serviceEndMinutes > breakStartInMinutes
+        
+        if (isDebugSlot) {
+          console.log(`🔍 [AVAILABILITY-V2] Verificando intervalo ${breakItem.startTime}-${breakItem.endTime}:`, {
+            breakStart: `${breakItem.startTime} (${breakStartInMinutes}min)`,
+            breakEnd: `${breakItem.endTime} (${breakEndInMinutes}min)`,
+            serviceRange: `${serviceStartMinutes}-${serviceEndMinutes}min`,
+            hasOverlap
+          })
+        }
+        
+        if (hasOverlap) {
+          console.log(`🚨 [AVAILABILITY-V2] CONFLITO DETECTADO - Serviço ${startTime} (${durationMinutes}min) conflita com intervalo ${breakItem.startTime}-${breakItem.endTime}`)
+          return true // Há conflito
+        }
+      }
+
+      // Verificar conflito com exceções/bloqueios pontuais
+      for (const exception of exceptions) {
+        // 🔧 CORREÇÃO: Exceções usam Date objects, não strings
+        const exceptionStartMinutes = exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()
+        const exceptionEndMinutes = exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()
+
+        // Verificar se há sobreposição entre serviço e exceção
+        const hasOverlap = serviceStartMinutes < exceptionEndMinutes && serviceEndMinutes > exceptionStartMinutes
+        
+        if (isDebugSlot && hasOverlap) {
+          console.log(`🔍 [AVAILABILITY-V2] Verificando exceção:`, {
+            exceptionReason: exception.reason,
+            exceptionStart: exception.startDatetime.toISOString(),
+            exceptionEnd: exception.endDatetime.toISOString(),
+            serviceRange: `${serviceStartMinutes}-${serviceEndMinutes}min`,
+            hasOverlap
+          })
+        }
+        
+        if (hasOverlap) {
+          console.log(`🚨 [AVAILABILITY-V2] CONFLITO DETECTADO - Serviço ${startTime} (${durationMinutes}min) conflita com exceção: ${exception.reason}`)
+          return true // Há conflito
+        }
+      }
+
+      return false // Sem conflitos
+    }
+
     // PASSO 5.5: Filtrar slots que podem iniciar um serviço da duração solicitada
     const availableSlots: AvailabilitySlot[] = allSlotsStatus.filter(slot => {
       if (!slot.available) {
         return false // Slot já está ocupado
       }
 
-      // Verificar se há slots consecutivos suficientes para o serviço
+      // 🔧 CORREÇÃO CRÍTICA: Verificar se duração do serviço conflita com intervalos/exceções
+      if (serviceConflictsWithBreaksOrExceptions(slot.time, serviceDuration, recurringBreaks, exceptions)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`❌ [AVAILABILITY-V2] Slot ${slot.time} removido - serviço de ${serviceDuration}min conflitaria com intervalo/exceção`)
+        }
+        return false // Remove slot que causaria conflito
+      }
+
+      // ✅ VERIFICAÇÃO ORIGINAL: Verificar se há slots consecutivos suficientes para o serviço
       const slotIndex = allSlotsStatus.findIndex(s => s.time === slot.time)
       const slotsNeeded = Math.ceil(serviceDuration / 5) // Quantos slots de 5min são necessários
       
