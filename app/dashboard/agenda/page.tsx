@@ -1518,18 +1518,6 @@ export default function AgendaPage() {
   // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = async (excludeAppointmentId?: string): Promise<string[]> => {
     try {
-      // 🔍 DEBUG CRÍTICO: Log detalhado das condições
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 [MODAL DEBUG] getAvailableTimeSlots iniciada:', {
-          serviceId: newAppointment.serviceId,
-          date: newAppointment.date,
-          professionalId: newAppointment.professionalId,
-          ENABLE_PROFESSIONAL_SCHEDULES,
-          businessSlug: businessSlug || 'NÃO DEFINIDO',
-          agendaAvailabilityReady: agendaAvailabilityReady || 'NÃO DEFINIDO'
-        })
-      }
-
       if (!newAppointment.serviceId || !newAppointment.date) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
@@ -1563,12 +1551,11 @@ export default function AgendaPage() {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('� [MODAL DEBUG] Chamando API availability-v2 com:', {
+        console.log('🚀 Chamando API availability-v2 com:', {
           businessSlug,
           professionalId,
           date: newAppointment.date,
-          serviceDuration: selectedService.duration || 30,
-          serviceName: selectedService.name
+          serviceDuration: selectedService.duration || 30
         })
       }
 
@@ -1581,14 +1568,10 @@ export default function AgendaPage() {
       )
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('🎯 [MODAL DEBUG] API availability-v2 retornou:', {
+        console.log('✅ API availability-v2 retornou:', {
           totalSlots: availableSlots.length,
-          allSlots: availableSlots,
           firstSlots: availableSlots.slice(0, 5),
-          lastSlots: availableSlots.slice(-5),
-          containsSelectedTime: newAppointment.time ? availableSlots.includes(newAppointment.time) : 'N/A',
-          serviceName: selectedService.name,
-          serviceDuration: selectedService.duration
+          containsSelectedTime: newAppointment.time ? availableSlots.includes(newAppointment.time) : 'N/A'
         })
       }
 
