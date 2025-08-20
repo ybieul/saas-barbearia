@@ -51,6 +51,25 @@ import {
 import { formatCurrency } from "@/lib/currency"
 
 // Types
+interface OccupiedSlot {
+  id: string
+  professionalId: string
+  startTime: string
+  duration: number
+  dateTime: Date
+  type?: 'appointment' | 'exception'
+  reason?: string
+}
+
+interface AvailabilityResponse {
+  date: string
+  professionalId?: string
+  occupiedSlots: OccupiedSlot[]
+  appointmentsCount?: number
+  exceptionsCount?: number
+  totalBlockedSlots?: number
+}
+
 interface BusinessData {
   id: string
   businessName: string
@@ -294,8 +313,36 @@ export default function AgendamentoPage() {
       }
       
       if (response.ok) {
-        const data = await response.json()
+        const data: AvailabilityResponse = await response.json()
         setOccupiedSlots(data.occupiedSlots || [])
+        
+        // 🔍 DEBUG: Log dos dados recebidos da API
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 [AGENDAMENTO] Dados recebidos da API availability:', {
+            date,
+            professionalId,
+            appointmentsCount: data.appointmentsCount || 0,
+            exceptionsCount: data.exceptionsCount || 0,
+            totalBlockedSlots: data.totalBlockedSlots || 0,
+            occupiedSlots: data.occupiedSlots?.length || 0,
+            sampleSlots: data.occupiedSlots?.slice(0, 3) // Primeiros 3 slots para debug
+          })
+          
+          // Log específico de exceções
+          const exceptions = data.occupiedSlots?.filter((slot: OccupiedSlot) => slot.type === 'exception') || []
+          if (exceptions.length > 0) {
+            console.log('🔧 [AGENDAMENTO] Exceções encontradas:', {
+              count: exceptions.length,
+              exceptions: exceptions.map((exc: OccupiedSlot) => ({
+                id: exc.id,
+                startTime: exc.startTime,
+                duration: exc.duration,
+                professionalId: exc.professionalId,
+                reason: exc.reason
+              }))
+            })
+          }
+        }
       } else {
         console.error('Erro ao buscar disponibilidade:', response.statusText)
         setOccupiedSlots([])
@@ -345,12 +392,29 @@ export default function AgendamentoPage() {
       }
     }
     
-    // Verificar se há conflito com algum agendamento existente
+    // Verificar se há conflito com algum agendamento existente ou exceções
     if (selectedProfessional === null) {
       // "Qualquer profissional": verificar se TODOS os profissionais estão ocupados
       // Se pelo menos um profissional estiver livre, o horário está disponível
       const allProfessionalsOccupied = professionals.every(prof => 
         occupiedSlots.some(slot => {
+          // 🔧 MELHORIA: Tratamento especial para exceções 
+          // Exceções bloqueiam para TODOS os profissionais do tipo 'exception'
+          if (slot.type === 'exception') {
+            // Se não tem profissionalId na exceção OU se é para este profissional
+            if (!slot.professionalId || slot.professionalId === prof.id) {
+              const aptStartMinutes = timeToMinutes(slot.startTime)
+              const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+              
+              return (
+                (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+                (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+                (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+              )
+            }
+          }
+          
+          // Lógica normal para agendamentos
           if (slot.professionalId !== prof.id) return false
           
           const aptStartMinutes = timeToMinutes(slot.startTime)
@@ -365,8 +429,25 @@ export default function AgendamentoPage() {
       )
       return !allProfessionalsOccupied
     } else if (selectedProfessional) {
-      // Profissional específico: verificar apenas conflitos com este profissional
+      // Profissional específico: verificar conflitos com este profissional + exceções globais
       return !occupiedSlots.some(slot => {
+        // 🔧 MELHORIA: Tratamento especial para exceções
+        if (slot.type === 'exception') {
+          // Exceção bloqueia se: não tem profissionalId OU é para este profissional
+          if (!slot.professionalId || slot.professionalId === selectedProfessional.id) {
+            const aptStartMinutes = timeToMinutes(slot.startTime)
+            const aptEndMinutes = aptStartMinutes + (slot.duration || 30)
+            
+            return (
+              (slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes) || // Início conflita
+              (slotEndMinutes > aptStartMinutes && slotEndMinutes <= aptEndMinutes) ||     // Fim conflita
+              (slotStartMinutes <= aptStartMinutes && slotEndMinutes >= aptEndMinutes)     // Engloba
+            )
+          }
+          return false // Exceção não se aplica a este profissional
+        }
+        
+        // Lógica normal para agendamentos
         if (slot.professionalId !== selectedProfessional.id) return false
         
         const aptStartMinutes = timeToMinutes(slot.startTime)
