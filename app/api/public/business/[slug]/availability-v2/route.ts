@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { format, parseISO, getDay, startOfDay, endOfDay, addMinutes, isSameDay } from 'date-fns'
-import { generateTimeSlots, timePeriodsOverlap, toSystemTimezone, canSlotAccommodateService } from '@/lib/schedule-utils'
+import { generateTimeSlots, timePeriodsOverlap, toSystemTimezone, canSlotAccommodateService, timeToMinutes } from '@/lib/schedule-utils'
 import type { AvailabilitySlot, DayAvailability } from '@/lib/types/schedule'
 
 // GET - Buscar disponibilidade completa de um profissional
@@ -135,6 +135,33 @@ export async function GET(
       5 // Sempre slots de 5 em 5 minutos
     )
 
+    // PASSO 2.1: Filtrar horários passados (apenas para o dia atual)
+    const now = new Date()
+    const isToday = isSameDay(targetDate, now)
+    
+    let slotsAfterTimeFilter = allSlots
+    
+    if (isToday) {
+      const currentTime = format(now, 'HH:mm')
+      const currentMinutes = timeToMinutes(currentTime)
+      
+      slotsAfterTimeFilter = allSlots.filter(slotTime => {
+        const slotMinutes = timeToMinutes(slotTime)
+        return slotMinutes > currentMinutes
+      })
+      
+      // 🔍 DEBUG: Log do filtro de horário atual
+      console.log('🔍 [AVAILABILITY-V2] Filtro de horário atual aplicado:', {
+        isToday,
+        currentTime,
+        currentMinutes,
+        originalSlotsCount: allSlots.length,
+        filteredSlotsCount: slotsAfterTimeFilter.length,
+        removedSlots: allSlots.filter(slot => timeToMinutes(slot) <= currentMinutes).slice(0, 10), // Primeiros 10 para debug
+        remainingSlots: slotsAfterTimeFilter.slice(0, 5) // Primeiros 5 para debug
+      })
+    }
+
     // PASSO 2.5: Remover slots que estão dentro dos intervalos recorrentes (como almoço)
     const recurringBreaks = await prisma.recurringBreak.findMany({
       where: {
@@ -142,7 +169,7 @@ export async function GET(
       }
     })
 
-    let availableSlotsAfterBreaks = allSlots.filter(slotTime => {
+    let availableSlotsAfterBreaks = slotsAfterTimeFilter.filter(slotTime => {
       // Converter slot time para minutos para comparação
       const [slotHours, slotMinutes] = slotTime.split(':').map(Number)
       const slotTimeInMinutes = slotHours * 60 + slotMinutes
