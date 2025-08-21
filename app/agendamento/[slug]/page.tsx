@@ -255,7 +255,7 @@ export default function AgendamentoPage() {
   // Carregar slots disponíveis quando data, profissional ou serviço mudarem
   useEffect(() => {
     const loadSlots = async () => {
-      if (selectedDate && selectedServiceId && selectedProfessional) {
+      if (selectedDate && selectedServiceId && selectedProfessional !== undefined) {
         const slots = await generateAvailableSlots(selectedDate)
         setAvailableSlots(slots)
       } else {
@@ -264,16 +264,17 @@ export default function AgendamentoPage() {
     }
     
     loadSlots()
-  }, [selectedDate, selectedProfessional?.id, selectedServiceId, params.slug])
+  }, [selectedDate, selectedProfessional, selectedServiceId, params.slug])
 
   // Verificar disponibilidade de dias quando profissional é selecionado
   useEffect(() => {
     const checkDays = async () => {
-      if (selectedProfessional && (selectedProfessional.id !== 'any' || selectedProfessional.id === 'any')) {
+      // Verificar se tem profissional selecionado (incluindo null para "Qualquer profissional")
+      if (selectedProfessional !== undefined) {
         // Limpar cache anterior
         setDayAvailability({})
         
-        const professionalIdForCheck = selectedProfessional.id === 'any' ? 'any' : selectedProfessional.id
+        const professionalIdForCheck = selectedProfessional === null ? 'any' : selectedProfessional.id
         
         // Verificar TODOS os 30 dias que são exibidos ao usuário
         const promises = []
@@ -294,14 +295,11 @@ export default function AgendamentoPage() {
             await new Promise(resolve => setTimeout(resolve, 100))
           }
         }
-      } else if (selectedProfessional === null) {
-        // Para "Qualquer profissional", limpar cache
-        setDayAvailability({})
       }
     }
     
     checkDays()
-  }, [selectedProfessional?.id, params.slug])
+  }, [selectedProfessional, params.slug])
 
   // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
@@ -329,10 +327,14 @@ export default function AgendamentoPage() {
     loading?: boolean
   }>>({})
   const generateAvailableSlots = async (date: string) => {
-    if (!selectedServiceId || !selectedProfessional) return []
+    if (!selectedServiceId) return []
+    
+    // Para "Qualquer profissional", selectedProfessional será null
+    // Mas ainda precisamos gerar slots
+    if (!selectedProfessional && selectedProfessional !== null) return []
 
     try {
-      const professionalId = selectedProfessional.id === 'any' ? 
+      const professionalId = selectedProfessional === null ? 
         'any' : selectedProfessional.id
 
       if (!professionalId) return []
@@ -1495,8 +1497,8 @@ export default function AgendamentoPage() {
                       let isAvailable = true
                       let statusText = 'Disponível'
                       
-                      if (selectedProfessional) {
-                        const professionalIdForCheck = selectedProfessional.id === 'any' ? 'any' : selectedProfessional.id
+                      if (selectedProfessional !== undefined) {
+                        const professionalIdForCheck = selectedProfessional === null ? 'any' : selectedProfessional.id
                         
                         if (dayStatus) {
                           // Tem dados no cache
@@ -1505,7 +1507,7 @@ export default function AgendamentoPage() {
                             ? 'Verificando...' 
                             : dayStatus.available 
                               ? 'Disponível' 
-                              : (dayStatus.reason || (selectedProfessional.id === 'any' ? 'Nenhum profissional disponível' : 'Profissional não trabalha neste dia'))
+                              : (dayStatus.reason || (selectedProfessional === null ? 'Nenhum profissional disponível' : 'Profissional não trabalha neste dia'))
                         } else {
                           // Não tem cache ainda - verificar sob demanda
                           isAvailable = true // Assumir disponível até verificar
