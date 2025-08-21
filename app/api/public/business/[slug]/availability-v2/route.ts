@@ -64,6 +64,11 @@ export async function GET(
       )
     }
 
+    // LÓGICA ESPECIAL: "Qualquer profissional" (any)
+    if (professionalId === 'any') {
+      return await handleAnyProfessionalAvailability(business, date, serviceDuration, slug)
+    }
+
     // Validar profissional
     const professional = await prisma.professional.findFirst({
       where: {
@@ -700,4 +705,255 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+// Função para lidar com "Qualquer profissional" (any)
+async function handleAnyProfessionalAvailability(
+  business: any,
+  date: string,
+  serviceDuration: number,
+  slug: string
+) {
+  try {
+    let targetDate: Date
+    try {
+      targetDate = parseISO(date)
+    } catch {
+      return NextResponse.json(
+        { error: 'Formato de data inválido. Use YYYY-MM-DD' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar TODOS os profissionais ativos
+    const professionals = await prisma.professional.findMany({
+      where: {
+        tenantId: business.id,
+        isActive: true
+      }
+    })
+
+    if (professionals.length === 0) {
+      return NextResponse.json({
+        date,
+        professionalId: 'any',
+        professionalName: 'Qualquer profissional',
+        workingHours: null,
+        slots: [],
+        message: 'Nenhum profissional disponível',
+        totalSlots: 0
+      })
+    }
+
+    // Gerar TODOS os slots possíveis de 5min (das 6h às 23h)
+    const allPossibleSlots = generateTimeSlots('06:00', '23:00', 5)
+    
+    // Filtrar horários passados se for hoje
+    const now = new Date()
+    const isToday = isSameDay(targetDate, now)
+    
+    let slotsAfterTimeFilter = allPossibleSlots
+    
+    if (isToday) {
+      const currentTime = format(now, 'HH:mm')
+      const currentMinutes = timeToMinutes(currentTime)
+      
+      slotsAfterTimeFilter = allPossibleSlots.filter(slotTime => {
+        const slotMinutes = timeToMinutes(slotTime)
+        return slotMinutes > currentMinutes
+      })
+    }
+
+    // Para cada slot, verificar se PELO MENOS UM profissional está disponível
+    const aggregatedSlots = []
+    
+    for (const slotTime of slotsAfterTimeFilter) {
+      let slotAvailable = false
+      let availableProfessionals = []
+      let slotReasons = []
+      
+      // Verificar cada profissional para este slot específico
+      for (const professional of professionals) {
+        try {
+          // Fazer uma mini-consulta de disponibilidade para este profissional neste slot
+          const professionalAvailability = await checkSingleProfessionalSlot(
+            business,
+            professional,
+            targetDate,
+            slotTime,
+            serviceDuration
+          )
+          
+          if (professionalAvailability.available) {
+            slotAvailable = true
+            availableProfessionals.push(professional.name)
+          } else {
+            slotReasons.push(`${professional.name}: ${professionalAvailability.reason}`)
+          }
+        } catch (error) {
+          console.error(`Erro ao verificar profissional ${professional.name} no slot ${slotTime}:`, error)
+          slotReasons.push(`${professional.name}: Erro na verificação`)
+        }
+      }
+      
+      aggregatedSlots.push({
+        time: slotTime,
+        available: slotAvailable,
+        availableProfessionals: availableProfessionals,
+        reason: slotAvailable 
+          ? `Disponível com: ${availableProfessionals.join(', ')}` 
+          : slotReasons.join(' | ')
+      })
+    }
+
+    // Filtrar apenas slots disponíveis para retornar
+    const availableSlots = aggregatedSlots.filter(slot => slot.available)
+
+    return NextResponse.json({
+      date,
+      professionalId: 'any',
+      professionalName: 'Qualquer profissional',
+      workingHours: {
+        startTime: '06:00',
+        endTime: '23:00'
+      },
+      serviceDuration,
+      slots: availableSlots,
+      totalSlots: availableSlots.length,
+      message: availableSlots.length > 0 
+        ? `${availableSlots.length} horários disponíveis com qualquer profissional`
+        : 'Nenhum profissional disponível neste dia',
+      // Debug info
+      debug: {
+        totalProfessionals: professionals.length,
+        professionalNames: professionals.map(p => p.name),
+        totalSlotsChecked: aggregatedSlots.length,
+        availableSlotsCount: availableSlots.length
+      }
+    })
+
+  } catch (error) {
+    console.error('Erro ao calcular disponibilidade para qualquer profissional:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// Função auxiliar para verificar um slot específico de um profissional
+async function checkSingleProfessionalSlot(
+  business: any,
+  professional: any,
+  targetDate: Date,
+  slotTime: string,
+  serviceDuration: number
+) {
+  const dayOfWeek = getDay(targetDate)
+  
+  // 1. Verificar horário de trabalho
+  const schedule = await prisma.professionalSchedule.findFirst({
+    where: {
+      professionalId: professional.id,
+      dayOfWeek
+    }
+  })
+  
+  if (!schedule) {
+    return { available: false, reason: 'Não trabalha neste dia' }
+  }
+  
+  // 2. Verificar se slot está dentro do horário de trabalho
+  const slotMinutes = timeToMinutes(slotTime)
+  const startMinutes = timeToMinutes(schedule.startTime.substring(0, 5))
+  const endMinutes = timeToMinutes(schedule.endTime.substring(0, 5))
+  
+  if (slotMinutes < startMinutes || slotMinutes >= endMinutes) {
+    return { available: false, reason: 'Fora do horário de trabalho' }
+  }
+  
+  // 3. Verificar intervalos recorrentes
+  const recurringBreaks = await prisma.recurringBreak.findMany({
+    where: { scheduleId: schedule.id }
+  })
+  
+  for (const breakItem of recurringBreaks) {
+    const breakStartMinutes = timeToMinutes(breakItem.startTime)
+    const breakEndMinutes = timeToMinutes(breakItem.endTime)
+    
+    if (slotMinutes >= breakStartMinutes && slotMinutes < breakEndMinutes) {
+      return { available: false, reason: 'Intervalo' }
+    }
+  }
+  
+  // 4. Verificar agendamentos existentes
+  const [hours, minutes] = slotTime.split(':').map(Number)
+  const slotDateTime = new Date(targetDate)
+  slotDateTime.setHours(hours, minutes, 0, 0)
+  const slotEndDateTime = addMinutes(slotDateTime, serviceDuration)
+  
+  const conflictingAppointments = await prisma.appointment.findMany({
+    where: {
+      professionalId: professional.id,
+      tenantId: business.id,
+      status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] },
+      OR: [
+        {
+          AND: [
+            { dateTime: { lte: slotDateTime } },
+            { 
+              dateTime: { 
+                gte: new Date(slotEndDateTime.getTime() - 24 * 60 * 60 * 1000) 
+              } 
+            }
+          ]
+        }
+      ]
+    }
+  })
+  
+  for (const appointment of conflictingAppointments) {
+    const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
+    if (timePeriodsOverlap(slotDateTime, slotEndDateTime, appointment.dateTime, appointmentEnd)) {
+      return { available: false, reason: 'Agendado' }
+    }
+  }
+  
+  // 5. Verificar exceções
+  const startOfTargetDay = startOfDay(targetDate)
+  const endOfTargetDay = endOfDay(targetDate)
+  
+  const exceptions = await prisma.scheduleException.findMany({
+    where: {
+      professionalId: professional.id,
+      OR: [
+        {
+          startDatetime: {
+            gte: startOfTargetDay,
+            lte: endOfTargetDay
+          }
+        },
+        {
+          endDatetime: {
+            gte: startOfTargetDay,
+            lte: endOfTargetDay
+          }
+        },
+        {
+          AND: [
+            { startDatetime: { lte: startOfTargetDay } },
+            { endDatetime: { gte: endOfTargetDay } }
+          ]
+        }
+      ]
+    }
+  })
+  
+  for (const exception of exceptions) {
+    if (timePeriodsOverlap(slotDateTime, slotEndDateTime, exception.startDatetime, exception.endDatetime)) {
+      return { available: false, reason: 'Exceção/Bloqueio' }
+    }
+  }
+  
+  return { available: true, reason: 'Disponível' }
 }
