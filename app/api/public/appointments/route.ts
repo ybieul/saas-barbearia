@@ -247,6 +247,7 @@ export async function POST(request: NextRequest) {
       const availableProfessionals = []
       
       for (const prof of allProfessionals) {
+        // ✅ VERIFICAR CONFLITOS COM OUTROS AGENDAMENTOS
         const hasConflict = conflictingAppointments.some(existingApt => {
           if (existingApt.professionalId !== prof.id) return false
           
@@ -257,7 +258,54 @@ export async function POST(request: NextRequest) {
           return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
         })
         
+        // 🚨 NOVA VERIFICAÇÃO: FOLGAS E EXCEÇÕES DE AGENDA
+        let hasScheduleException = false
+        
         if (!hasConflict) {
+          // Buscar exceções de agenda (folgas, bloqueios) para este profissional na data
+          const exceptions = await prisma.scheduleException.findMany({
+            where: {
+              professionalId: prof.id,
+              OR: [
+                {
+                  startDatetime: {
+                    lte: appointmentDate
+                  },
+                  endDatetime: {
+                    gt: appointmentDate
+                  }
+                },
+                {
+                  startDatetime: {
+                    lt: appointmentEndTime
+                  },
+                  endDatetime: {
+                    gte: appointmentEndTime
+                  }
+                },
+                {
+                  startDatetime: {
+                    gte: appointmentDate
+                  },
+                  endDatetime: {
+                    lte: appointmentEndTime
+                  }
+                }
+              ]
+            }
+          })
+          
+          // Verificar se há conflito com exceções
+          hasScheduleException = exceptions.some(exception => {
+            return (appointmentDate < exception.endDatetime) && (appointmentEndTime > exception.startDatetime)
+          })
+          
+          if (hasScheduleException) {
+            console.log(`⚠️ Profissional ${prof.name} tem folga/exceção na data ${appointmentDate.toISOString()}`)
+          }
+        }
+        
+        if (!hasConflict && !hasScheduleException) {
           availableProfessionals.push(prof)
           // 🎯 REMOVED: break para coletar TODOS os disponíveis
         }
