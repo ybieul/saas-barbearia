@@ -266,6 +266,29 @@ export default function AgendamentoPage() {
     loadSlots()
   }, [selectedDate, selectedProfessional?.id, selectedServiceId, params.slug])
 
+  // Verificar disponibilidade de dias quando profissional é selecionado
+  useEffect(() => {
+    const checkDays = async () => {
+      if (selectedProfessional && selectedProfessional.id !== 'any') {
+        // Limpar cache anterior
+        setDayAvailability({})
+        
+        // Verificar próximos 7 dias inicialmente (otimização)
+        const promises = []
+        for (let i = 0; i < 7; i++) {
+          const date = new Date()
+          date.setDate(date.getDate() + i)
+          const dateString = toBrazilDateString(date)
+          promises.push(checkDayAvailability(dateString, selectedProfessional.id))
+        }
+        
+        await Promise.all(promises)
+      }
+    }
+    
+    checkDays()
+  }, [selectedProfessional?.id, params.slug])
+
   // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
     if (selectedDate) {
@@ -285,7 +308,12 @@ export default function AgendamentoPage() {
     period: 'morning' | 'afternoon' | 'night'
   }[]>([])
 
-  // Gerar horários disponíveis DIRETAMENTE da API availability-v2
+  // Estado para controlar dias disponíveis/folga por data
+  const [dayAvailability, setDayAvailability] = useState<Record<string, {
+    available: boolean,
+    reason?: string,
+    loading?: boolean
+  }>>({})
   const generateAvailableSlots = async (date: string) => {
     if (!selectedServiceId || !selectedProfessional) return []
 
@@ -325,7 +353,61 @@ export default function AgendamentoPage() {
       console.error('Erro ao buscar slots disponíveis:', error)
       return []
     }
-  }  // Agrupar horários por período
+  }
+
+  // Função para verificar se um dia específico está disponível para o profissional
+  const checkDayAvailability = async (dateString: string, professionalId: string) => {
+    if (!professionalId || professionalId === 'any') return true
+    
+    // Verificar cache primeiro
+    if (dayAvailability[dateString] && !dayAvailability[dateString].loading) {
+      return dayAvailability[dateString].available
+    }
+    
+    // Marcar como loading
+    setDayAvailability(prev => ({
+      ...prev,
+      [dateString]: { available: false, loading: true }
+    }))
+    
+    try {
+      const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
+      url.searchParams.set('date', dateString)
+      url.searchParams.set('professionalId', professionalId)
+      url.searchParams.set('serviceDuration', '30') // Duração mínima para teste
+      
+      const response = await fetch(url.toString())
+      
+      if (!response.ok) {
+        setDayAvailability(prev => ({
+          ...prev,
+          [dateString]: { available: false, reason: 'Erro na consulta', loading: false }
+        }))
+        return false
+      }
+
+      const data = await response.json()
+      
+      // Se não há workingHours, significa que é folga
+      const isAvailable = data.workingHours !== null
+      const reason = isAvailable ? undefined : (data.message || 'Folga')
+      
+      setDayAvailability(prev => ({
+        ...prev,
+        [dateString]: { available: isAvailable, reason, loading: false }
+      }))
+      
+      return isAvailable
+    } catch (error) {
+      setDayAvailability(prev => ({
+        ...prev,
+        [dateString]: { available: false, reason: 'Erro na consulta', loading: false }
+      }))
+      return false
+    }
+  }
+
+  // Agrupar horários por período
   const groupSlotsByPeriod = (slots: any[]) => {
     const groups = {
       morning: slots.filter(slot => slot.period === 'morning'),
@@ -1334,36 +1416,56 @@ export default function AgendamentoPage() {
                       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                       const dayName = dayNames[dayOfWeek]
                       
-                      // Sempre permitir seleção - a validação de disponibilidade será feita pela API availability-v2
-                      const isAvailable = true // Removido workingHours - API availability-v2 fará a validação
+                      // Verificar disponibilidade baseada no profissional selecionado
+                      const dayStatus = dayAvailability[dateString]
+                      const isLoading = dayStatus?.loading ?? false
+                      const isAvailable = selectedProfessional && selectedProfessional.id !== 'any' 
+                        ? (dayStatus?.available ?? true) // Se não tem cache ainda, assumir disponível
+                        : true // "Qualquer profissional" sempre permite seleção
+                      
+                      const statusText = isLoading 
+                        ? 'Verificando...' 
+                        : isAvailable 
+                          ? 'Disponível' 
+                          : (dayStatus?.reason || 'Indisponível')
                       
                       return (
                         <div key={dateString}>
                           <Button
                             variant="outline"
                             onClick={() => {
-                              if (isAvailable) {
+                              if (isAvailable && !isLoading) {
                                 setSelectedDate(dateString)
+                                // Se ainda não verificou este dia, verificar agora
+                                if (selectedProfessional && selectedProfessional.id !== 'any' && !dayStatus) {
+                                  checkDayAvailability(dateString, selectedProfessional.id)
+                                }
                               }
                             }}
-                            disabled={!isAvailable}
-                            className={`w-full p-4 h-auto flex items-center justify-between
+                            disabled={!isAvailable || isLoading}
+                            className={`w-full p-4 h-auto flex items-center justify-between transition-all duration-200
                               ${selectedDate === dateString 
                                 ? 'border-emerald-600 bg-emerald-600/10' 
                                 : isAvailable 
                                   ? 'border-[#27272a] bg-[#27272a]/50 hover:border-emerald-600 hover:bg-emerald-600/10' 
-                                  : 'bg-red-600 opacity-60 cursor-not-allowed border-red-600'
-                              }`}
+                                  : 'bg-red-600/20 border-red-600/50 cursor-not-allowed text-red-300'
+                              } ${isLoading ? 'opacity-60' : ''}`}
                           >
                             <div className="text-left">
-                              <div className={`font-medium ${isAvailable ? 'text-[#ededed]' : 'text-white'}`}>
+                              <div className={`font-medium ${
+                                isAvailable && !isLoading ? 'text-[#ededed]' : 'text-red-200'
+                              }`}>
                                 {dayName}, {formatBrazilDate(date)}
                               </div>
-                              <div className={`text-sm ${isAvailable ? 'text-[#a1a1aa]' : 'text-red-200'}`}>
-                                {isAvailable ? 'Disponível' : 'Fechado'}
+                              <div className={`text-sm ${
+                                isAvailable && !isLoading ? 'text-[#a1a1aa]' : 'text-red-300'
+                              }`}>
+                                {statusText}
                               </div>
                             </div>
-                            <Calendar className={`h-5 w-5 ${isAvailable ? 'text-[#71717a]' : 'text-red-200'}`} />
+                            <Calendar className={`h-5 w-5 ${
+                              isAvailable && !isLoading ? 'text-[#71717a]' : 'text-red-300'
+                            } ${isLoading ? 'animate-pulse' : ''}`} />
                           </Button>
                           
                           {/* Botão contextual aparece logo após a data selecionada */}
