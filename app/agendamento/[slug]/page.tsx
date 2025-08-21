@@ -273,16 +273,28 @@ export default function AgendamentoPage() {
         // Limpar cache anterior
         setDayAvailability({})
         
-        // Verificar próximos 7 dias inicialmente (otimização)
+        // Verificar TODOS os 30 dias que são exibidos ao usuário
         const promises = []
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 30; i++) {
           const date = new Date()
           date.setDate(date.getDate() + i)
           const dateString = toBrazilDateString(date)
           promises.push(checkDayAvailability(dateString, selectedProfessional.id))
         }
         
-        await Promise.all(promises)
+        // Executar verificações em lotes para não sobrecarregar
+        const batchSize = 10
+        for (let i = 0; i < promises.length; i += batchSize) {
+          const batch = promises.slice(i, i + batchSize)
+          await Promise.all(batch)
+          // Pequena pausa entre lotes para não sobrecarregar
+          if (i + batchSize < promises.length) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+        }
+      } else if (selectedProfessional === null) {
+        // Para "Qualquer profissional", limpar cache
+        setDayAvailability({})
       }
     }
     
@@ -379,9 +391,10 @@ export default function AgendamentoPage() {
       const response = await fetch(url.toString())
       
       if (!response.ok) {
+        console.error(`Erro ao verificar disponibilidade para ${dateString}:`, response.statusText)
         setDayAvailability(prev => ({
           ...prev,
-          [dateString]: { available: false, reason: 'Erro na consulta', loading: false }
+          [dateString]: { available: false, reason: 'Indisponível', loading: false }
         }))
         return false
       }
@@ -390,7 +403,7 @@ export default function AgendamentoPage() {
       
       // Se não há workingHours, significa que é folga
       const isAvailable = data.workingHours !== null
-      const reason = isAvailable ? undefined : (data.message || 'Folga')
+      const reason = isAvailable ? 'Disponível' : 'Profissional não trabalha neste dia'
       
       setDayAvailability(prev => ({
         ...prev,
@@ -398,10 +411,12 @@ export default function AgendamentoPage() {
       }))
       
       return isAvailable
+      
     } catch (error) {
+      console.error(`Erro ao verificar disponibilidade para ${dateString}:`, error)
       setDayAvailability(prev => ({
         ...prev,
-        [dateString]: { available: false, reason: 'Erro na consulta', loading: false }
+        [dateString]: { available: false, reason: 'Erro na verificação', loading: false }
       }))
       return false
     }
@@ -1419,27 +1434,37 @@ export default function AgendamentoPage() {
                       // Verificar disponibilidade baseada no profissional selecionado
                       const dayStatus = dayAvailability[dateString]
                       const isLoading = dayStatus?.loading ?? false
-                      const isAvailable = selectedProfessional && selectedProfessional.id !== 'any' 
-                        ? (dayStatus?.available ?? true) // Se não tem cache ainda, assumir disponível
-                        : true // "Qualquer profissional" sempre permite seleção
                       
-                      const statusText = isLoading 
-                        ? 'Verificando...' 
-                        : isAvailable 
-                          ? 'Disponível' 
-                          : (dayStatus?.reason || 'Indisponível')
+                      // Lógica melhorada de disponibilidade
+                      let isAvailable = true
+                      let statusText = 'Disponível'
+                      
+                      if (selectedProfessional && selectedProfessional.id !== 'any') {
+                        if (dayStatus) {
+                          // Tem dados no cache
+                          isAvailable = dayStatus.available
+                          statusText = isLoading 
+                            ? 'Verificando...' 
+                            : dayStatus.available 
+                              ? 'Disponível' 
+                              : (dayStatus.reason || 'Profissional não trabalha neste dia')
+                        } else {
+                          // Não tem cache ainda - verificar sob demanda
+                          isAvailable = true // Assumir disponível até verificar
+                          statusText = 'Verificando...'
+                          // Disparar verificação imediatamente
+                          checkDayAvailability(dateString, selectedProfessional.id)
+                        }
+                      }
                       
                       return (
                         <div key={dateString}>
                           <Button
                             variant="outline"
                             onClick={() => {
-                              if (isAvailable && !isLoading) {
+                              // Só permitir seleção se não estiver loading e estiver disponível
+                              if (!isLoading && isAvailable) {
                                 setSelectedDate(dateString)
-                                // Se ainda não verificou este dia, verificar agora
-                                if (selectedProfessional && selectedProfessional.id !== 'any' && !dayStatus) {
-                                  checkDayAvailability(dateString, selectedProfessional.id)
-                                }
                               }
                             }}
                             disabled={!isAvailable || isLoading}
