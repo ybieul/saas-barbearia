@@ -232,8 +232,8 @@ export async function POST(request: NextRequest) {
       // "Qualquer profissional": encontrar e alocar um profissional disponível
       const allProfessionals = await prisma.professional.findMany({
         where: { tenantId: business.id, isActive: true },
-        select: { id: true, name: true },
-        orderBy: { name: 'asc' } // Ordenar por nome para consistência
+        select: { id: true, name: true }
+        // 🎯 REMOVED: orderBy para evitar seleção sempre do mesmo profissional
       })
       
       if (allProfessionals.length === 0) {
@@ -243,8 +243,8 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // Encontrar o primeiro profissional disponível
-      let availableProfessional = null
+      // 🎯 NOVO: Coletar TODOS os profissionais disponíveis (não apenas o primeiro)
+      const availableProfessionals = []
       
       for (const prof of allProfessionals) {
         const hasConflict = conflictingAppointments.some(existingApt => {
@@ -258,21 +258,24 @@ export async function POST(request: NextRequest) {
         })
         
         if (!hasConflict) {
-          availableProfessional = prof
-          break // Primeiro disponível encontrado
+          availableProfessionals.push(prof)
+          // 🎯 REMOVED: break para coletar TODOS os disponíveis
         }
       }
       
-      if (!availableProfessional) {
+      if (availableProfessionals.length === 0) {
         return NextResponse.json(
           { message: 'Horário já ocupado - todos os profissionais estão indisponíveis' },
           { status: 400 }
         )
       }
       
-      // Alocar o profissional encontrado
-      finalProfessionalId = availableProfessional.id
-      console.log(`✅ "Qualquer profissional" alocado para: ${availableProfessional.name} (${availableProfessional.id})`)
+      // 🎯 NOVO: Seleção aleatória entre os profissionais disponíveis
+      const randomIndex = Math.floor(Math.random() * availableProfessionals.length)
+      const selectedProfessional = availableProfessionals[randomIndex]
+      
+      finalProfessionalId = selectedProfessional.id
+      console.log(`✅ "Qualquer profissional" - ${availableProfessionals.length} disponíveis, selecionado aleatoriamente: ${selectedProfessional.name} (${selectedProfessional.id})`)
     } else {
       // Profissional específico: verificar conflitos apenas com este profissional
       for (const existingApt of conflictingAppointments) {
