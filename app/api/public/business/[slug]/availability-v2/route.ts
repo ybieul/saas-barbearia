@@ -772,6 +772,11 @@ async function handleAnyProfessionalAvailability(
       let availableProfessionals = []
       let slotReasons = []
       
+      // 🔍 DEBUG específico para slot 09:00
+      if (slotTime === '09:00') {
+        console.log(`🔍 [ANY-PROFESSIONAL] Verificando slot 09:00 - total profissionais: ${professionals.length}`)
+      }
+      
       // Verificar cada profissional para este slot específico
       for (const professional of professionals) {
         try {
@@ -784,6 +789,14 @@ async function handleAnyProfessionalAvailability(
             serviceDuration
           )
           
+          // 🔍 DEBUG específico para slot 09:00
+          if (slotTime === '09:00') {
+            console.log(`🔍 [ANY-PROFESSIONAL] Profissional ${professional.name} no slot 09:00:`, {
+              available: professionalAvailability.available,
+              reason: professionalAvailability.reason
+            })
+          }
+          
           if (professionalAvailability.available) {
             slotAvailable = true
             availableProfessionals.push(professional.name)
@@ -794,6 +807,15 @@ async function handleAnyProfessionalAvailability(
           console.error(`Erro ao verificar profissional ${professional.name} no slot ${slotTime}:`, error)
           slotReasons.push(`${professional.name}: Erro na verificação`)
         }
+      }
+      
+      // 🔍 DEBUG específico para slot 09:00
+      if (slotTime === '09:00') {
+        console.log(`🔍 [ANY-PROFESSIONAL] Resultado final do slot 09:00:`, {
+          slotAvailable,
+          availableProfessionals,
+          slotReasons
+        })
       }
       
       aggregatedSlots.push({
@@ -892,36 +914,73 @@ async function checkSingleProfessionalSlot(
   slotDateTime.setHours(hours, minutes, 0, 0)
   const slotEndDateTime = addMinutes(slotDateTime, serviceDuration)
   
+  // 🔧 CORREÇÃO CRÍTICA: Usar query simples e eficaz como na API principal
+  const startDay = startOfDay(targetDate)
+  const endDay = endOfDay(targetDate)
+  
   const conflictingAppointments = await prisma.appointment.findMany({
     where: {
       professionalId: professional.id,
       tenantId: business.id,
-      status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] },
-      OR: [
-        {
-          AND: [
-            { dateTime: { lte: slotDateTime } },
-            { 
-              dateTime: { 
-                gte: new Date(slotEndDateTime.getTime() - 24 * 60 * 60 * 1000) 
-              } 
-            }
-          ]
-        }
-      ]
+      dateTime: {
+        gte: startDay,
+        lte: endDay
+      },
+      status: {
+        in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+      }
+    },
+    select: {
+      id: true,
+      dateTime: true,
+      duration: true,
+      status: true
     }
   })
   
+  // 🔍 DEBUG específico para slot 09:00
+  if (slotTime === '09:00') {
+    console.log(`🔍 [CHECKSLOT] Verificando slot 09:00 para ${professional.name}:`, {
+      slotDateTime: slotDateTime.toISOString(),
+      slotEndDateTime: slotEndDateTime.toISOString(),
+      conflictingAppointments: conflictingAppointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toISOString(),
+        duration: apt.duration,
+        status: apt.status,
+        timeString: apt.dateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      }))
+    })
+  }
+  
   for (const appointment of conflictingAppointments) {
     const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
+    
+    // 🔍 DEBUG detalhado para slot 09:00
+    if (slotTime === '09:00') {
+      const hasOverlap = timePeriodsOverlap(slotDateTime, slotEndDateTime, appointment.dateTime, appointmentEnd)
+      console.log(`🔍 [CHECKSLOT] Verificando conflito 09:00 vs agendamento:`, {
+        professionalName: professional.name,
+        appointmentId: appointment.id,
+        appointmentStart: appointment.dateTime.toISOString(),
+        appointmentEnd: appointmentEnd.toISOString(),
+        slotStart: slotDateTime.toISOString(),
+        slotEnd: slotEndDateTime.toISOString(),
+        hasOverlap
+      })
+    }
+    
     if (timePeriodsOverlap(slotDateTime, slotEndDateTime, appointment.dateTime, appointmentEnd)) {
+      if (slotTime === '09:00') {
+        console.log(`🎯 [CHECKSLOT] ✅ CONFLITO DETECTADO no slot 09:00 para ${professional.name}!`)
+      }
       return { available: false, reason: 'Agendado' }
     }
   }
   
   // 5. Verificar exceções
-  const startOfTargetDay = startOfDay(targetDate)
-  const endOfTargetDay = endOfDay(targetDate)
+  const startDayExceptions = startOfDay(targetDate)
+  const endDayExceptions = endOfDay(targetDate)
   
   const exceptions = await prisma.scheduleException.findMany({
     where: {
@@ -929,20 +988,20 @@ async function checkSingleProfessionalSlot(
       OR: [
         {
           startDatetime: {
-            gte: startOfTargetDay,
-            lte: endOfTargetDay
+            gte: startDayExceptions,
+            lte: endDayExceptions
           }
         },
         {
           endDatetime: {
-            gte: startOfTargetDay,
-            lte: endOfTargetDay
+            gte: startDayExceptions,
+            lte: endDayExceptions
           }
         },
         {
           AND: [
-            { startDatetime: { lte: startOfTargetDay } },
-            { endDatetime: { gte: endOfTargetDay } }
+            { startDatetime: { lte: startDayExceptions } },
+            { endDatetime: { gte: endDayExceptions } }
           ]
         }
       ]
