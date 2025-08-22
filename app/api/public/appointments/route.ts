@@ -247,67 +247,99 @@ export async function POST(request: NextRequest) {
       const availableProfessionals = []
       
       for (const prof of allProfessionals) {
-        // ✅ VERIFICAR CONFLITOS COM OUTROS AGENDAMENTOS
-        const hasConflict = conflictingAppointments.some(existingApt => {
-          if (existingApt.professionalId !== prof.id) return false
+        // 🔧 VALIDAÇÃO CRÍTICA: Usar a mesma API que o frontend usa para verificar disponibilidade
+        try {
+          // Fazer uma requisição interna para a API de availability-v2
+          const availabilityUrl = new URL(`/api/public/business/${businessSlug}/availability-v2`, request.url)
+          availabilityUrl.searchParams.set('professionalId', prof.id)
+          availabilityUrl.searchParams.set('date', appointmentDate.toISOString().split('T')[0]) // YYYY-MM-DD
+          availabilityUrl.searchParams.set('serviceDuration', totalDuration.toString())
           
-          const existingStart = existingApt.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
-          const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
-          const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
+          const availabilityResponse = await fetch(availabilityUrl.toString())
           
-          return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
-        })
-        
-        // 🚨 NOVA VERIFICAÇÃO: FOLGAS E EXCEÇÕES DE AGENDA
-        let hasScheduleException = false
-        
-        if (!hasConflict) {
-          // Buscar exceções de agenda (folgas, bloqueios) para este profissional na data
-          const exceptions = await prisma.scheduleException.findMany({
-            where: {
-              professionalId: prof.id,
-              OR: [
-                {
-                  startDatetime: {
-                    lte: appointmentDate
-                  },
-                  endDatetime: {
-                    gt: appointmentDate
-                  }
-                },
-                {
-                  startDatetime: {
-                    lt: appointmentEndTime
-                  },
-                  endDatetime: {
-                    gte: appointmentEndTime
-                  }
-                },
-                {
-                  startDatetime: {
-                    gte: appointmentDate
-                  },
-                  endDatetime: {
-                    lte: appointmentEndTime
-                  }
-                }
-              ]
+          if (availabilityResponse.ok) {
+            const availabilityData = await availabilityResponse.json()
+            
+            // Verificar se o horário específico está disponível
+            const appointmentTimeString = appointmentDate.toTimeString().substring(0, 5) // HH:MM
+            const hasAvailableSlot = availabilityData.slots?.some((slot: any) => 
+              slot.time === appointmentTimeString && slot.available === true
+            )
+            
+            if (hasAvailableSlot) {
+              availableProfessionals.push(prof)
+              console.log(`✅ Profissional ${prof.name} disponível confirmado pela API availability-v2`)
+            } else {
+              console.log(`⚠️ Profissional ${prof.name} NÃO disponível segundo API availability-v2`)
+              console.log('Slots disponíveis:', availabilityData.slots?.filter((s: any) => s.available).map((s: any) => s.time))
             }
-          })
-          
-          // Verificar se há conflito com exceções
-          hasScheduleException = exceptions.some(exception => {
-            return (appointmentDate < exception.endDatetime) && (appointmentEndTime > exception.startDatetime)
-          })
-          
-          if (hasScheduleException) {
-            console.log(`⚠️ Profissional ${prof.name} tem folga/exceção na data ${appointmentDate.toISOString()}`)
+          } else {
+            console.log(`❌ Erro ao verificar disponibilidade do profissional ${prof.name}:`, availabilityResponse.status)
+            
+            // FALLBACK: usar verificação manual apenas se API falhar
+            const hasConflict = conflictingAppointments.some(existingApt => {
+              if (existingApt.professionalId !== prof.id) return false
+              
+              const existingStart = existingApt.dateTime
+              const existingDuration = existingApt.duration || 30
+              const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
+              
+              return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
+            })
+            
+            // Verificar folgas/exceções manualmente
+            let hasScheduleException = false
+            
+            if (!hasConflict) {
+              const exceptions = await prisma.scheduleException.findMany({
+                where: {
+                  professionalId: prof.id,
+                  OR: [
+                    {
+                      startDatetime: {
+                        lte: appointmentDate
+                      },
+                      endDatetime: {
+                        gt: appointmentDate
+                      }
+                    },
+                    {
+                      startDatetime: {
+                        lt: appointmentEndTime
+                      },
+                      endDatetime: {
+                        gte: appointmentEndTime
+                      }
+                    },
+                    {
+                      startDatetime: {
+                        gte: appointmentDate
+                      },
+                      endDatetime: {
+                        lte: appointmentEndTime
+                      }
+                    }
+                  ]
+                }
+              })
+              
+              hasScheduleException = exceptions.some(exception => {
+                return (appointmentDate < exception.endDatetime) && (appointmentEndTime > exception.startDatetime)
+              })
+              
+              if (hasScheduleException) {
+                console.log(`⚠️ FALLBACK: Profissional ${prof.name} tem folga/exceção na data ${appointmentDate.toISOString()}`)
+              }
+            }
+            
+            if (!hasConflict && !hasScheduleException) {
+              availableProfessionals.push(prof)
+              console.log(`✅ FALLBACK: Profissional ${prof.name} disponível por verificação manual`)
+            }
           }
-        }
-        
-        if (!hasConflict && !hasScheduleException) {
-          availableProfessionals.push(prof)
-          // 🎯 REMOVED: break para coletar TODOS os disponíveis
+        } catch (error) {
+          console.error(`❌ Erro ao verificar profissional ${prof.name}:`, error)
+          // Não adicionar profissional se houve erro na verificação
         }
       }
       
