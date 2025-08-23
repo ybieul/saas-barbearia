@@ -1901,7 +1901,7 @@ export default function AgendaPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#2b48ec] border-[#27272a]">
+        <Card className="bg-[#18181b] border-[#27272a]">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-500/20 rounded-lg">
