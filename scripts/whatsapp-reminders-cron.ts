@@ -25,7 +25,8 @@ const REMINDER_CONFIGS: ReminderConfig[] = [
   { type: 'reminder_2h', hoursBefore: 2, minutesBefore: 0 },
 ]
 
-async function processReminders() {
+export async function sendWhatsappReminders() {
+  console.log('Iniciando a lógica de verificação e envio de lembretes...')
   console.log(`[${new Date().toISOString()}] Iniciando processamento de lembretes...`)
   
   const now = getBrazilNow()
@@ -148,6 +149,7 @@ async function processReminders() {
   }
 
   console.log(`[${new Date().toISOString()}] Processamento concluído. Total de lembretes enviados: ${totalSent}`)
+  console.log('Lógica de lembretes finalizada.')
   return totalSent
 }
 
@@ -200,9 +202,9 @@ async function sendReminderMessage(appointment: any, reminderType: string) {
   return success
 }
 
-// Executar se chamado diretamente
+// Este bloco permite que o script seja executado diretamente com "node" ou "ts-node"
 if (require.main === module) {
-  processReminders()
+  sendWhatsappReminders()
     .then((totalSent) => {
       console.log(`✅ Cron job concluído. ${totalSent} lembretes enviados.`)
       process.exit(0)
@@ -215,5 +217,3 @@ if (require.main === module) {
       await prisma.$disconnect()
     })
 }
-
-export { processReminders }
