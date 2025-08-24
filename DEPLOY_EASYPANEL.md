@@ -20,32 +20,22 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 
 ### 2. Configurações da Aplicação
 
-**Configuração Recomendada (Simples):**
+**Configuração Simples e Funcional:**
 ```json
 {
   "name": "saas-barbearia",
   "port": 3000,
-  "buildCommand": "npm ci --legacy-peer-deps && npx prisma generate && npm run build",
+  "buildCommand": "npm install --legacy-peer-deps && npx prisma generate && npm run build",
   "startCommand": "npm start",
   "healthCheck": "/api/health"
 }
 ```
 
-**⚠️ Importante:** O projeto usa `--legacy-peer-deps` para resolver conflitos entre `date-fns` v4 e `react-day-picker`. O arquivo `.npmrc` já está configurado para isso.
+**✅ Dockerfile Simplificado:** Single-stage, sem otimizações complexas, mas funcional e confiável.
 
-**Se der erro no build, tente estas opções:**
-
-**Opção 1 - Dockerfile Simples:**
-- Renomeie `Dockerfile.simple` para `Dockerfile`
-- Use: `buildCommand: "npm install --legacy-peer-deps && npm run build"`
-
-**Opção 2 - Dockerfile de Teste:**
-- Renomeie `Dockerfile.test` para `Dockerfile`
-- Mais simples, sem otimizações
-
-**Opção 3 - Sem Dockerfile:**
-- Delete o Dockerfile
-- Use apenas: `buildCommand: "npm ci --legacy-peer-deps && npx prisma generate && npm run build"`
+**Se ainda der erro, tente sem Dockerfile:**
+- Delete o arquivo `Dockerfile`
+- Use apenas os comandos de build/start acima
 
 ### 3. Variáveis de Ambiente Obrigatórias
 
@@ -213,10 +203,12 @@ cat /var/log/whatsapp-reminders.log
 
 ### Problema: Build falha
 ```bash
-# Limpar cache e reinstalar
-rm -rf node_modules .next
-pnpm install
-pnpm run build
+# Opção 1: Delete o Dockerfile e use build direto
+rm Dockerfile
+
+# Opção 2: Use npm install em vez de npm ci
+npm install --legacy-peer-deps
+npm run build
 ```
 
 ## 📞 Suporte

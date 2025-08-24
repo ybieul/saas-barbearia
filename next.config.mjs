@@ -10,15 +10,12 @@ const nextConfig = {
     unoptimized: true,
     domains: ['localhost', 'seudominio.com'], // Adicione seu domínio aqui
   },
-  // Configuração para produção em containers (EasyPanel)
-  output: 'standalone',
+  // Configuração para produção em containers (EasyPanel) - DESABILITADO para simplificar
+  // output: 'standalone',
   trailingSlash: false,
   poweredByHeader: false,
   generateEtags: false,
   compress: true,
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
 }
 
 export default nextConfig
