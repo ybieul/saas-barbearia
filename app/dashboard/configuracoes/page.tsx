@@ -547,7 +547,9 @@ export default function ConfiguracoesPage() {
       handleCloseAvatarUpload()
       return Promise.resolve()
     } catch (error) {
-      console.error('Erro ao atualizar avatar:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar avatar:', error)
+      }
       toast({
         title: "Erro no upload",
         description: "Ocorreu um erro ao atualizar a foto. Tente novamente.",
@@ -585,7 +587,9 @@ export default function ConfiguracoesPage() {
       handleCloseServiceImageUpload()
       return Promise.resolve()
     } catch (error) {
-      console.error('Erro ao atualizar imagem do serviço:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar imagem do serviço:', error)
+      }
       toast({
         title: "Erro no upload",
         description: "Ocorreu um erro ao atualizar a imagem. Tente novamente.",
@@ -610,7 +614,9 @@ export default function ConfiguracoesPage() {
   const handleRemoveProfessional = async (id: string, name: string) => {
     const executeRemoval = async () => {
       try {
-        console.log('🚀 Removendo profissional:', { id, name })
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 Removendo profissional:', { id, name })
+        }
         
         // Chamar a API de exclusão
         await deleteProfessional(id)
@@ -625,9 +631,13 @@ export default function ConfiguracoesPage() {
           variant: "default",
         })
         
-        console.log('✅ Profissional removido com sucesso')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Profissional removido com sucesso')
+        }
       } catch (error) {
-        console.error('❌ Erro ao remover profissional:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Erro ao remover profissional:', error)
+        }
         toast({
           title: "Erro ao remover profissional",
           description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
@@ -750,7 +760,9 @@ export default function ConfiguracoesPage() {
     const executeRemoval = async () => {
       try {
         const result = await deleteService(id)
-        console.log('Resultado da exclusão do serviço:', result)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Resultado da exclusão do serviço:', result)
+        }
         
         // A função deleteService retorna os dados ou null
         // Consideramos sucesso se não houve erro (não lançou exceção)
@@ -762,7 +774,9 @@ export default function ConfiguracoesPage() {
         // Recarrega os dados dos serviços
         await fetchServices()
       } catch (error) {
-        console.error('Erro ao remover serviço:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao remover serviço:', error)
+        }
         toast({
           title: "Erro ao remover serviço",
           description: servicesError || "Ocorreu um erro inesperado.",
@@ -862,7 +876,9 @@ export default function ConfiguracoesPage() {
     const executeRemoval = async () => {
       try {
         const success = await deleteTemplate(id)
-        console.log('Resultado da exclusão do template:', success)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Resultado da exclusão do template:', success)
+        }
         
         // A função deleteTemplate retorna um boolean
         if (success) {
@@ -879,7 +895,9 @@ export default function ConfiguracoesPage() {
           })
         }
       } catch (error) {
-        console.error('Erro ao excluir template:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao excluir template:', error)
+        }
         toast({
           title: "Erro ao excluir template",
           description: "Ocorreu um erro inesperado.",

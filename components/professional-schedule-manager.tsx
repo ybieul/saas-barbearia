@@ -77,7 +77,9 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
           setSchedules(updatedSchedules)
         }
       } catch (err) {
-        console.error('Erro ao carregar horários:', err)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao carregar horários:', err)
+        }
         toast({
           title: "Erro",
           description: "Não foi possível carregar os horários do profissional.",

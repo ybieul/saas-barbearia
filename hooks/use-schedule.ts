@@ -256,19 +256,21 @@ export function useProfessionalAvailability() {
       const data = await response.json() as DayAvailability
 
       // 🔍 DEBUG: Log das informações de debug retornadas pela API
-      console.log('🔍 [USE-SCHEDULE] Resposta da API availability-v2:', {
-        professionalId,
-        date,
-        totalSlots: data.totalSlots,
-        availableSlots: data.slots.length,
-        debug: data.debug
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [USE-SCHEDULE] Resposta da API availability-v2:', {
+          professionalId,
+          date,
+          totalSlots: data.totalSlots,
+          availableSlots: data.slots.length,
+          debug: data.debug
+        })
 
-      // 🚨 LOGS CRÍTICOS: Mostrar todos os agendamentos encontrados
-      if (data.debug?.queryResults) {
-        console.log('🚨 [CRITICAL] Todos os agendamentos do dia:', data.debug.queryResults.allAppointmentsForDay)
-        console.log('🚨 [CRITICAL] Agendamentos após filtros:', data.debug.queryResults.filteredAppointments)
-        console.log('🚨 [CRITICAL] Status dos slots críticos:', data.debug.queryResults.criticalSlots)
+        // 🚨 LOGS CRÍTICOS: Mostrar todos os agendamentos encontrados
+        if (data.debug?.queryResults) {
+          console.log('🚨 [CRITICAL] Todos os agendamentos do dia:', data.debug.queryResults.allAppointmentsForDay)
+          console.log('🚨 [CRITICAL] Agendamentos após filtros:', data.debug.queryResults.filteredAppointments)
+          console.log('🚨 [CRITICAL] Status dos slots críticos:', data.debug.queryResults.criticalSlots)
+        }
       }
 
       // Extrair apenas os horários disponíveis
@@ -276,14 +278,16 @@ export function useProfessionalAvailability() {
         .filter(slot => slot.available)
         .map(slot => slot.time)
 
-      console.log('✅ [USE-SCHEDULE] Slots processados:', {
-        totalSlotsFromAPI: data.slots.length,
-        availableSlotsFiltered: availableSlots.length,
-        workingHours: data.workingHours,
-        firstAvailable: availableSlots[0],
-        lastAvailable: availableSlots[availableSlots.length - 1],
-        message: data.message
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ [USE-SCHEDULE] Slots processados:', {
+          totalSlotsFromAPI: data.slots.length,
+          availableSlotsFiltered: availableSlots.length,
+          workingHours: data.workingHours,
+          firstAvailable: availableSlots[0],
+          lastAvailable: availableSlots[availableSlots.length - 1],
+          message: data.message
+        })
+      }
 
       setIsLoading(false)
       return availableSlots

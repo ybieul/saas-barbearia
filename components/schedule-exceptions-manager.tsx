@@ -70,7 +70,9 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
         const data = await getExceptions(startDate, endDate, professionalId)
         setExceptions(data)
       } catch (err) {
-        console.error('Erro ao carregar exceções:', err)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao carregar exceções:', err)
+        }
         toast({
           title: "Erro",
           description: "Não foi possível carregar os bloqueios do profissional.",
@@ -132,11 +134,13 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
       }
 
       // 🔍 PONTO A - DADOS ENVIADOS PELO FRONTEND
-      console.log("=== PONTO A - DADOS ENVIADOS PELO FRONTEND ===")
-      console.log("Frontend payload completo:", JSON.stringify(exceptionData, null, 2))
-      console.log("Frontend startDatetime:", startDatetime)
-      console.log("Frontend endDatetime:", endDatetime)
-      console.log("Frontend tipo de startDatetime:", typeof startDatetime)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== PONTO A - DADOS ENVIADOS PELO FRONTEND ===")
+        console.log("Frontend payload completo:", JSON.stringify(exceptionData, null, 2))
+        console.log("Frontend startDatetime:", startDatetime)
+        console.log("Frontend endDatetime:", endDatetime)
+        console.log("Frontend tipo de startDatetime:", typeof startDatetime)
+      }
 
       const result = await createException(exceptionData, professionalId)
       
