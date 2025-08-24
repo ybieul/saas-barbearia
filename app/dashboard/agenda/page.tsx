@@ -2484,21 +2484,17 @@ export default function AgendaPage() {
                           const dateStatus = getDateStatus()
                           if (dateStatus.isOpen === false) {
                             return (
-                              <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                                <p className="text-sm md:text-xs text-red-400 flex items-start gap-2">
-                                  <span className="flex-shrink-0 text-base md:text-sm">❌</span>
-                                  <span className="break-words leading-relaxed">{dateStatus.message}</span>
-                                </p>
-                              </div>
+                              <p className="text-xs text-red-400 flex items-start gap-1">
+                                <span className="flex-shrink-0">❌</span>
+                                <span className="break-words leading-tight">{dateStatus.message}</span>
+                              </p>
                             )
                           } else if (dateStatus.isOpen === true) {
                             return (
-                              <div className="p-2 bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg">
-                                <p className="text-sm md:text-xs text-[#10b981] flex items-start gap-2">
-                                  <span className="flex-shrink-0 text-base md:text-sm">✅</span>
-                                  <span className="break-words leading-relaxed">{dateStatus.message}</span>
-                                </p>
-                              </div>
+                              <p className="text-xs text-[#10b981] flex items-start gap-1">
+                                <span className="flex-shrink-0">✅</span>
+                                <span className="break-words leading-tight">{dateStatus.message}</span>
+                              </p>
                             )
                           }
                           return null
