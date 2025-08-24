@@ -329,60 +329,90 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                           {schedule.breaks.map((breakItem, breakIndex) => (
                             <div 
                               key={breakIndex}
-                              className="flex items-center justify-between bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]"
+                              className="bg-[#18181b] rounded-lg p-3 border border-[#3f3f46]"
                             >
-                              <div className="flex items-center gap-3">
-                                <span className="text-[#a1a1aa] text-xs font-medium min-w-[50px]">
-                                  Intervalo
-                                </span>
+                              {/* Layout Mobile-First Responsivo */}
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                {/* Cabeçalho do Intervalo */}
+                                <div className="flex items-center justify-between sm:justify-start">
+                                  <span className="text-[#a1a1aa] text-xs font-medium">
+                                    Intervalo
+                                  </span>
+                                  {/* Botão Remover - Mobile (no topo à direita) */}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0 sm:hidden"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                                 
-                                {/* Horário de Início do Intervalo */}
-                                <Select
-                                  value={breakItem.startTime}
-                                  onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'startTime', value)}
-                                >
-                                  <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 h-7 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                                    {generateTimeOptions().map((time) => (
-                                      <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {/* Container de Horários */}
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                  {/* Horário de Início */}
+                                  <div className="flex items-center justify-between sm:flex-col sm:items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 min-w-[50px] sm:min-w-0">
+                                      Início
+                                    </label>
+                                    <Select
+                                      value={breakItem.startTime}
+                                      onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'startTime', value)}
+                                    >
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-9 sm:h-8 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-sm sm:text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                        {generateTimeOptions().map((time) => (
+                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
 
-                                <span className="text-[#71717a] text-xs">até</span>
+                                  {/* Separador "até" */}
+                                  <div className="hidden sm:flex items-center justify-center">
+                                    <span className="text-[#71717a] text-xs font-medium">até</span>
+                                  </div>
 
-                                {/* Horário de Fim do Intervalo */}
-                                <Select
-                                  value={breakItem.endTime}
-                                  onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'endTime', value)}
-                                >
-                                  <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 h-7 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                                    {generateTimeOptions().map((time) => (
-                                      <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  {/* Horário de Fim */}
+                                  <div className="flex items-center justify-between sm:flex-col sm:items-center">
+                                    <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 min-w-[50px] sm:min-w-0">
+                                      Fim
+                                    </label>
+                                    <Select
+                                      value={breakItem.endTime}
+                                      onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'endTime', value)}
+                                    >
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-9 sm:h-8 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-sm sm:text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                                        {generateTimeOptions().map((time) => (
+                                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] focus:text-[#ededed]">
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {/* Botão Remover - Desktop */}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0 hidden sm:flex"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
-
-                              {/* Botão Remover Intervalo */}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
                             </div>
                           ))}
                         </div>
