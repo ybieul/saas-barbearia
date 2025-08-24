@@ -42,12 +42,7 @@ import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone
 import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
-import { ProfessionalScheduleStatus } from "@/components/professional-schedule-status"
 import { useProfessionalAvailability } from "@/hooks/use-schedule"
-
-// ✅ SISTEMA PROFISSIONAL ATIVADO PERMANENTEMENTE
-// Sistema de horários profissionais, intervalos e exceções sempre ativo
-const ENABLE_PROFESSIONAL_SCHEDULES = true
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -175,8 +170,8 @@ export default function AgendaPage() {
           fetchProfessionals(),
           fetchEstablishment(),
           fetchWorkingHours(),
-          // 🚀 NOVO: Inicializar business slug para regras de profissional
-          ENABLE_PROFESSIONAL_SCHEDULES ? initializeBusinessSlug() : Promise.resolve()
+          // Inicializar business slug para regras de profissional
+          initializeBusinessSlug()
         ])
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -1440,7 +1435,7 @@ export default function AgendaPage() {
 
   // 🔍 FUNÇÃO DE TESTE: Comparar lógica atual vs nova (apenas para desenvolvimento)
   const compareAvailabilityLogics = async (excludeAppointmentId?: string) => {
-    if (process.env.NODE_ENV !== 'development' || !ENABLE_PROFESSIONAL_SCHEDULES) {
+    if (process.env.NODE_ENV !== 'development') {
       return
     }
 
@@ -1589,7 +1584,7 @@ export default function AgendaPage() {
   const getAvailableTimeSlotsLocalFallback = async (excludeAppointmentId?: string): Promise<string[]> => {
     try {
       // � MONITORAMENTO: Comparar lógicas em desenvolvimento
-      if (process.env.NODE_ENV === 'development' && ENABLE_PROFESSIONAL_SCHEDULES && newAppointment.professionalId) {
+      if (process.env.NODE_ENV === 'development' && newAppointment.professionalId) {
         // Executar comparação em background (não bloquear)
         compareAvailabilityLogics(excludeAppointmentId).catch(err => 
           console.warn('Erro na comparação de lógicas:', err)
@@ -1597,7 +1592,7 @@ export default function AgendaPage() {
       }
 
       // �🚀 NOVA LÓGICA: Tentar usar regras de profissional primeiro
-      if (ENABLE_PROFESSIONAL_SCHEDULES && newAppointment.professionalId) {
+      if (newAppointment.professionalId) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚀 Tentando usar regras de profissional...')
         }
@@ -1797,22 +1792,6 @@ export default function AgendaPage() {
 
   return (
     <div className="space-y-6">
-      {/* 🔍 COMPONENTE DE STATUS DO SISTEMA (sempre ativo para monitoramento) */}
-      {ENABLE_PROFESSIONAL_SCHEDULES && (
-        <ProfessionalScheduleStatus
-          professionalId={selectedProfessional !== "todos" ? selectedProfessional : undefined}
-          businessSlug={businessSlug}
-          isReady={agendaAvailabilityReady}
-          isLoading={agendaAvailabilityLoading}
-          error={agendaAvailabilityError}
-          enabledFeatures={{
-            professionalSchedules: ENABLE_PROFESSIONAL_SCHEDULES,
-            debugging: process.env.NODE_ENV === 'development',
-            metrics: false
-          }}
-        />
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
