@@ -20,6 +20,7 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 
 ### 2. Configurações da Aplicação
 
+**Configuração Recomendada (Simples):**
 ```json
 {
   "name": "saas-barbearia",
@@ -30,9 +31,19 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 }
 ```
 
-**Ou se der erro, use o Dockerfile alternativo:**
+**Se der erro no build, tente estas opções:**
+
+**Opção 1 - Dockerfile Simples:**
 - Renomeie `Dockerfile.simple` para `Dockerfile`
-- Use build command: `chmod +x ./build-easypanel.sh && ./build-easypanel.sh`
+- Use: `buildCommand: "npm install && npm run build"`
+
+**Opção 2 - Dockerfile de Teste:**
+- Renomeie `Dockerfile.test` para `Dockerfile`
+- Mais simples, sem otimizações
+
+**Opção 3 - Sem Dockerfile:**
+- Delete o Dockerfile
+- Use apenas: `buildCommand: "npm ci && npx prisma generate && npm run build"`
 
 ### 3. Variáveis de Ambiente Obrigatórias
 

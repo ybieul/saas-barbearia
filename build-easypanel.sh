@@ -1,19 +1,14 @@
 #!/bin/bash
 
-echo "🚀 Iniciando build para EasyPanel..."
+echo "🚀 Iniciando build para EasyPanel (npm only)..."
 
 # Limpar cache
 echo "🧹 Limpando cache..."
 rm -rf node_modules .next
 
 # Instalar dependências
-echo "📦 Instalando dependências..."
-if [ -f "pnpm-lock.yaml" ]; then
-    npm install -g pnpm
-    pnpm install
-else
-    npm ci
-fi
+echo "📦 Instalando dependências com npm..."
+npm ci
 
 # Gerar cliente Prisma
 echo "🗄️ Gerando cliente Prisma..."
@@ -22,10 +17,6 @@ npx prisma generate
 # Build do Next.js
 echo "🏗️ Fazendo build do Next.js..."
 export NEXT_TELEMETRY_DISABLED=1
-if [ -f "pnpm-lock.yaml" ]; then
-    pnpm run build
-else
-    npm run build
-fi
+npm run build
 
 echo "✅ Build concluído com sucesso!"

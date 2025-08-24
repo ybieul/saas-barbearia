@@ -1,0 +1,22 @@
+# Dockerfile ultra-simples para testes
+FROM node:20
+
+WORKDIR /app
+
+# Copia tudo
+COPY . .
+
+# Instala dependências
+RUN npm install
+
+# Gera Prisma
+RUN npx prisma generate
+
+# Build
+RUN npm run build
+
+# Expõe porta
+EXPOSE 3000
+
+# Start
+CMD ["npm", "start"]

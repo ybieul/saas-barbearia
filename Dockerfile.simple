@@ -1,24 +1,24 @@
-# Dockerfile alternativo mais simples para EasyPanel
+# Dockerfile simples - uma única etapa
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Instala dependências básicas
-RUN apk add --no-cache openssl
+# Instala dependências do sistema
+RUN apk add --no-cache openssl libc6-compat
 
-# Copia package.json
+# Copia package.json e package-lock.json
 COPY package*.json ./
 
 # Instala dependências
-RUN npm ci --only=production
+RUN npm ci
 
-# Copia o código fonte
+# Copia todo o código
 COPY . .
 
 # Gera cliente Prisma
 RUN npx prisma generate
 
-# Build do Next.js
+# Build da aplicação
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -36,6 +36,7 @@ EXPOSE 3000
 # Variáveis de ambiente
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Comando de inicialização
+# Start da aplicação
 CMD ["npm", "start"]
