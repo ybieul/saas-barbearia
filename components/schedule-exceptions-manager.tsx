@@ -284,7 +284,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                 Adicionar Bloqueio
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[80vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
               {/* Header fixo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                 <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
@@ -316,14 +316,14 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                           value={newException.type} 
                           onValueChange={(value: 'BLOCK' | 'DAY_OFF') => handleFormChange('type', value)}
                         >
-                          <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                          <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-12 md:h-11 text-base md:text-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-[#27272a] border-[#52525b]">
-                            <SelectItem value="BLOCK" className="text-[#ededed] focus:bg-[#3f3f46]">
+                          <SelectContent className="bg-[#27272a] border-[#52525b]" position="popper" sideOffset={4}>
+                            <SelectItem value="BLOCK" className="text-[#ededed] focus:bg-[#3f3f46] h-12 md:h-10 text-base md:text-sm">
                               Bloqueio pontual (saída rápida, consulta)
                             </SelectItem>
-                            <SelectItem value="DAY_OFF" className="text-[#ededed] focus:bg-[#3f3f46]">
+                            <SelectItem value="DAY_OFF" className="text-[#ededed] focus:bg-[#3f3f46] h-12 md:h-10 text-base md:text-sm">
                               Folga/Férias (dia inteiro)
                             </SelectItem>
                           </SelectContent>
@@ -339,27 +339,28 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                       <h3 className="text-[#ededed] font-medium text-sm">Data e Horário</h3>
                     </div>
                     
-                    <div className="space-y-3 md:space-y-4">
-                      {/* Data e hora de início */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                    <div className="space-y-4 md:space-y-4">
+                      {/* Data e hora de início - Mobile first, então Desktop */}
+                      <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
                           <Label className="text-[#ededed] text-sm font-medium">Data início *</Label>
                           <Input
                             type="date"
                             value={newException.startDate}
                             onChange={(e) => handleFormChange('startDate', e.target.value)}
-                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-12 md:h-11 text-base md:text-sm"
+                            style={{ colorScheme: 'dark' }}
                           />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-[#ededed] text-sm font-medium">Hora início *</Label>
                           <Select value={newException.startTime} onValueChange={(value) => handleFormChange('startTime', value)}>
-                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-12 md:h-11 text-base md:text-sm">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60" position="popper" sideOffset={4}>
                               {generateTimeOptions().map((time) => (
-                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
+                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] h-10 md:h-8">
                                   {time}
                                 </SelectItem>
                               ))}
@@ -368,26 +369,27 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                         </div>
                       </div>
 
-                      {/* Data e hora de fim */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                      {/* Data e hora de fim - Mobile first, então Desktop */}
+                      <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
                           <Label className="text-[#ededed] text-sm font-medium">Data fim *</Label>
                           <Input
                             type="date"
                             value={newException.endDate}
                             onChange={(e) => handleFormChange('endDate', e.target.value)}
-                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-12 md:h-11 text-base md:text-sm"
+                            style={{ colorScheme: 'dark' }}
                           />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-[#ededed] text-sm font-medium">Hora fim *</Label>
                           <Select value={newException.endTime} onValueChange={(value) => handleFormChange('endTime', value)}>
-                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-12 md:h-11 text-base md:text-sm">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60" position="popper" sideOffset={4}>
                               {generateTimeOptions().map((time) => (
-                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
+                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46] h-10 md:h-8">
                                   {time}
                                 </SelectItem>
                               ))}
@@ -403,7 +405,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                           value={newException.reason}
                           onChange={(e) => handleFormChange('reason', e.target.value)}
                           placeholder="Ex: Almoço, Consulta médica, Férias..."
-                          className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none resize-none"
+                          className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-20 md:min-h-20 max-h-24 md:max-h-none resize-none text-base md:text-sm"
                           rows={3}
                         />
                       </div>
@@ -413,19 +415,19 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
               </div>
               
               {/* Footer fixo */}
-              <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+              <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a] sm:border-t-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-12 md:h-10 text-base md:text-sm font-medium"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-12 md:h-10 text-base md:text-sm font-medium"
                 >
                   {isSubmitting ? (
                     <>
