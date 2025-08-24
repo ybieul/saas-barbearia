@@ -330,8 +330,7 @@ export default function AgendamentoPage() {
     if (!selectedServiceId || !selectedProfessional) return []
 
     try {
-      const professionalId = selectedProfessional.id === 'any' ? 
-        (professionals[0]?.id || '') : selectedProfessional.id
+      const professionalId = selectedProfessional.id
 
       if (!professionalId) return []
 
@@ -1288,51 +1287,6 @@ export default function AgendamentoPage() {
                   <h3 className="text-lg font-semibold mb-4 text-[#ededed]">
                     Escolha o profissional
                   </h3>
-                  
-                  {/* Mostrar "Qualquer profissional" apenas se houver mais de um profissional */}
-                  {professionals.length > 1 && (
-                    <div>
-                      <div
-                        onClick={() => setSelectedProfessional(null)}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all mb-3 hover:border-emerald-600
-                          ${selectedProfessional === null 
-                            ? 'border-emerald-600 bg-emerald-600/10' 
-                            : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-16 h-16 rounded-lg bg-[#27272a] flex items-center justify-center">
-                            <Users className="h-8 w-8 text-[#71717a]" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-[#ededed]">
-                              Qualquer profissional
-                            </h4>
-                            <p className="text-sm text-[#a1a1aa]">
-                              Próximo disponível
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Botão contextual para "Qualquer profissional" */}
-                      {selectedProfessional === null && (
-                        <div className="mt-3 mb-6">
-                          <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                            <p className="text-emerald-400 text-sm text-center">
-                              ✅ Profissional selecionado: <span className="font-semibold">Qualquer profissional</span>
-                            </p>
-                          </div>
-                          <Button
-                            onClick={() => setStep(3)}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            Avançar
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                   
                   {professionals.length === 0 ? (
                     <div className="text-center py-8">
