@@ -31,7 +31,10 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 }
 ```
 
-**✅ Dockerfile Simplificado:** Single-stage, sem otimizações complexas, mas funcional e confiável.
+**✅ Dockerfile Simplificado:** 
+- Single-stage, sem otimizações complexas, mas funcional e confiável
+- Script `postinstall` removido do package.json para evitar conflitos
+- Ordem correta: install → copy → prisma generate → build
 
 **Se ainda der erro, tente sem Dockerfile:**
 - Delete o arquivo `Dockerfile`
