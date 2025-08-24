@@ -2625,14 +2625,21 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium"
+                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium flex items-center justify-center"
               >
-                {isCreating ? 
-                  (editingAppointment ? "Atualizando..." : "Criando...") : 
-                  isValidating ? "Validando..." :
-                  !getDateStatus().isOpen ? "Estabelecimento Fechado" :
-                  (editingAppointment ? "Atualizar" : "Criar Agendamento")
-                }
+                <span className="text-center truncate">
+                  {isCreating ? 
+                    (editingAppointment ? "Atualizando..." : "Criando...") : 
+                    isValidating ? "Validando..." :
+                    !getDateStatus().isOpen ? (
+                      <span className="block">
+                        <span className="hidden sm:inline">Estabelecimento Fechado</span>
+                        <span className="sm:hidden">Fechado</span>
+                      </span>
+                    ) :
+                    (editingAppointment ? "Atualizar" : "Criar Agendamento")
+                  }
+                </span>
               </Button>
             </div>
           </Card>
