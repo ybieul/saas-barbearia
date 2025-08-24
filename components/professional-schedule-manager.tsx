@@ -361,7 +361,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                                       value={breakItem.startTime}
                                       onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'startTime', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-9 sm:h-8 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-sm sm:text-xs">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -388,7 +388,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                                       value={breakItem.endTime}
                                       onValueChange={(value) => updateBreak(schedule.dayOfWeek, breakIndex, 'endTime', value)}
                                     >
-                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-9 sm:h-8 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-sm sm:text-xs">
+                                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
