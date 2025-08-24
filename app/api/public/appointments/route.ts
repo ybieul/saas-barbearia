@@ -211,20 +211,6 @@ export async function POST(request: NextRequest) {
     const serviceDuration = totalDuration // Usar duração total calculada
     const appointmentEndTime = new Date(appointmentDate.getTime() + (serviceDuration * 60000))
     
-    // Buscar agendamentos conflitantes (sem include para evitar problemas de schema)
-    const conflictingAppointments = await prisma.appointment.findMany({
-      where: {
-        tenantId: business.id,
-        dateTime: {
-          gte: new Date(appointmentDate.getTime() - (2 * 60 * 60 * 1000)), // 2h antes
-          lte: new Date(appointmentDate.getTime() + (2 * 60 * 60 * 1000))  // 2h depois
-        },
-        status: {
-          not: 'CANCELLED'
-        }
-      }
-    })
-    
     // 🎯 ALOCAR PROFISSIONAL AUTOMATICAMENTE para "qualquer profissional"
     let finalProfessionalId = professionalId
     
@@ -273,19 +259,60 @@ export async function POST(request: NextRequest) {
             continue // Pula profissional fora do horário
           }
 
-          // 🎯 STEP 3: Verificar conflitos com agendamentos existentes
+          // 🎯 STEP 3: BUSCAR CONFLITOS EM TEMPO REAL - QUERY ESPECÍFICA POR PROFISSIONAL
+          const conflictingAppointments = await prisma.appointment.findMany({
+            where: {
+              professionalId: prof.id,
+              tenantId: business.id,
+              dateTime: {
+                gte: new Date(appointmentDate.getTime() - (4 * 60 * 60 * 1000)), // 4h antes
+                lte: new Date(appointmentDate.getTime() + (4 * 60 * 60 * 1000))  // 4h depois
+              },
+              status: {
+                in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] // Apenas status ativos
+              }
+            },
+            select: {
+              id: true,
+              dateTime: true,
+              duration: true,
+              status: true,
+              endUser: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          })
+
+          console.log(`🔍 [DEBUG] Profissional ${prof.name} - Agendamentos encontrados:`, {
+            total: conflictingAppointments.length,
+            appointments: conflictingAppointments.map(apt => ({
+              id: apt.id,
+              cliente: apt.endUser?.name || 'N/A',
+              horario: apt.dateTime.toLocaleTimeString('pt-BR'),
+              duracao: apt.duration,
+              status: apt.status
+            }))
+          })
+
+          // Verificar conflito detalhado
           const hasConflict = conflictingAppointments.some(existingApt => {
-            if (existingApt.professionalId !== prof.id) return false
-            
             const existingStart = existingApt.dateTime
             const existingDuration = existingApt.duration || 30
             const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
             
-            return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
+            const overlap = (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
+            
+            if (overlap) {
+              console.log(`❌ [CONFLITO] ${prof.name}: Novo agendamento ${appointmentDate.toLocaleTimeString('pt-BR')}-${appointmentEndTime.toLocaleTimeString('pt-BR')} conflita com agendamento ${existingApt.id} (${existingStart.toLocaleTimeString('pt-BR')}-${existingEnd.toLocaleTimeString('pt-BR')})`)
+            }
+            
+            return overlap
           })
 
           if (hasConflict) {
-            console.log(`⚠️ Profissional ${prof.name} tem conflito com agendamento existente`)
+            console.log(`⚠️ Profissional ${prof.name} tem conflito com agendamento existente no horário ${appointmentTimeString}`)
             continue // Pula profissional com conflitos
           }
 
@@ -378,18 +405,57 @@ export async function POST(request: NextRequest) {
       finalProfessionalId = selectedProfessional.id
       console.log(`✅ "Qualquer profissional" - ${availableProfessionals.length} disponíveis, selecionado aleatoriamente: ${selectedProfessional.name} (${selectedProfessional.id})`)
     } else {
-      // Profissional específico: verificar conflitos apenas com este profissional
+      // 🎯 PROFISSIONAL ESPECÍFICO: Verificar conflitos em tempo real
+      console.log(`🔍 Verificando conflitos para profissional específico: ${professionalId}`)
+      
+      const conflictingAppointments = await prisma.appointment.findMany({
+        where: {
+          professionalId: professionalId,
+          tenantId: business.id,
+          dateTime: {
+            gte: new Date(appointmentDate.getTime() - (4 * 60 * 60 * 1000)), // 4h antes
+            lte: new Date(appointmentDate.getTime() + (4 * 60 * 60 * 1000))  // 4h depois
+          },
+          status: {
+            in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] // Apenas status ativos
+          }
+        },
+        select: {
+          id: true,
+          dateTime: true,
+          duration: true,
+          status: true,
+          endUser: {
+            select: {
+              name: true
+            }
+          }
+        }
+      })
+
+      console.log(`🔍 [DEBUG] Profissional específico - Agendamentos encontrados:`, {
+        professionalId,
+        total: conflictingAppointments.length,
+        appointments: conflictingAppointments.map(apt => ({
+          id: apt.id,
+          cliente: apt.endUser?.name || 'N/A',
+          horario: apt.dateTime.toLocaleTimeString('pt-BR'),
+          duracao: apt.duration,
+          status: apt.status
+        }))
+      })
+
       for (const existingApt of conflictingAppointments) {
-        if (existingApt.professionalId !== professionalId) continue
-        
-        const existingStart = existingApt.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
-        const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
+        const existingStart = existingApt.dateTime
+        const existingDuration = existingApt.duration || 30
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         
         // Verificar sobreposição
         const hasOverlap = (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
         
         if (hasOverlap) {
+          console.log(`❌ [CONFLITO ESPECÍFICO] Novo agendamento ${appointmentDate.toLocaleTimeString('pt-BR')}-${appointmentEndTime.toLocaleTimeString('pt-BR')} conflita com agendamento ${existingApt.id} (${existingStart.toLocaleTimeString('pt-BR')}-${existingEnd.toLocaleTimeString('pt-BR')})`)
+          
           return NextResponse.json(
             { message: 'Horário já ocupado por outro agendamento' },
             { status: 400 }
