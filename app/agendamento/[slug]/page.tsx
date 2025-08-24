@@ -255,7 +255,7 @@ export default function AgendamentoPage() {
   // Carregar slots disponíveis quando data, profissional ou serviço mudarem
   useEffect(() => {
     const loadSlots = async () => {
-      if (selectedDate && selectedServiceId && selectedProfessional !== undefined) {
+      if (selectedDate && selectedServiceId && selectedProfessional) {
         const slots = await generateAvailableSlots(selectedDate)
         setAvailableSlots(slots)
       } else {
@@ -264,17 +264,14 @@ export default function AgendamentoPage() {
     }
     
     loadSlots()
-  }, [selectedDate, selectedProfessional, selectedServiceId, params.slug])
+  }, [selectedDate, selectedProfessional?.id, selectedServiceId, params.slug])
 
   // Verificar disponibilidade de dias quando profissional é selecionado
   useEffect(() => {
     const checkDays = async () => {
-      // Verificar se tem profissional selecionado (incluindo null para "Qualquer profissional")
-      if (selectedProfessional !== undefined) {
+      if (selectedProfessional && selectedProfessional.id !== 'any') {
         // Limpar cache anterior
         setDayAvailability({})
-        
-        const professionalIdForCheck = selectedProfessional === null ? 'any' : selectedProfessional.id
         
         // Verificar TODOS os 30 dias que são exibidos ao usuário
         const promises = []
@@ -282,7 +279,7 @@ export default function AgendamentoPage() {
           const date = new Date()
           date.setDate(date.getDate() + i)
           const dateString = toBrazilDateString(date)
-          promises.push(checkDayAvailability(dateString, professionalIdForCheck))
+          promises.push(checkDayAvailability(dateString, selectedProfessional.id))
         }
         
         // Executar verificações em lotes para não sobrecarregar
@@ -295,11 +292,14 @@ export default function AgendamentoPage() {
             await new Promise(resolve => setTimeout(resolve, 100))
           }
         }
+      } else if (selectedProfessional === null) {
+        // Para "Qualquer profissional", limpar cache
+        setDayAvailability({})
       }
     }
     
     checkDays()
-  }, [selectedProfessional, params.slug])
+  }, [selectedProfessional?.id, params.slug])
 
   // Resetar estado das seções quando a data mudar para usar lógica inteligente
   useEffect(() => {
@@ -327,15 +327,11 @@ export default function AgendamentoPage() {
     loading?: boolean
   }>>({})
   const generateAvailableSlots = async (date: string) => {
-    if (!selectedServiceId) return []
-    
-    // Para "Qualquer profissional", selectedProfessional será null
-    // Mas ainda precisamos gerar slots
-    if (!selectedProfessional && selectedProfessional !== null) return []
+    if (!selectedServiceId || !selectedProfessional) return []
 
     try {
-      const professionalId = selectedProfessional === null ? 
-        'any' : selectedProfessional.id
+      const professionalId = selectedProfessional.id === 'any' ? 
+        (professionals[0]?.id || '') : selectedProfessional.id
 
       if (!professionalId) return []
 
@@ -373,62 +369,8 @@ export default function AgendamentoPage() {
 
   // Função para verificar se um dia específico está disponível para o profissional
   const checkDayAvailability = async (dateString: string, professionalId: string) => {
-    if (!professionalId) return true
+    if (!professionalId || professionalId === 'any') return true
     
-    // Para "qualquer profissional", verificar se pelo menos um profissional trabalha no dia
-    if (professionalId === 'any') {
-      // Verificar cache primeiro
-      if (dayAvailability[dateString] && !dayAvailability[dateString].loading) {
-        return dayAvailability[dateString].available
-      }
-      
-      // Marcar como loading
-      setDayAvailability(prev => ({
-        ...prev,
-        [dateString]: { available: false, loading: true }
-      }))
-      
-      try {
-        const url = new URL(`/api/public/business/${params.slug}/availability-v2`, window.location.origin)
-        url.searchParams.set('date', dateString)
-        url.searchParams.set('professionalId', 'any')
-        url.searchParams.set('serviceDuration', '30') // Duração mínima para teste
-        
-        const response = await fetch(url.toString())
-        
-        if (!response.ok) {
-          console.error(`Erro ao verificar disponibilidade para ${dateString}:`, response.statusText)
-          setDayAvailability(prev => ({
-            ...prev,
-            [dateString]: { available: false, reason: 'Indisponível', loading: false }
-          }))
-          return false
-        }
-
-        const data = await response.json()
-        
-        // Para "qualquer profissional", verificar se há slots disponíveis
-        const isAvailable = data.slots && data.slots.length > 0
-        const reason = isAvailable ? 'Disponível' : 'Nenhum profissional disponível'
-        
-        setDayAvailability(prev => ({
-          ...prev,
-          [dateString]: { available: isAvailable, reason, loading: false }
-        }))
-        
-        return isAvailable
-        
-      } catch (error) {
-        console.error(`Erro ao verificar disponibilidade para ${dateString}:`, error)
-        setDayAvailability(prev => ({
-          ...prev,
-          [dateString]: { available: false, reason: 'Erro na verificação', loading: false }
-        }))
-        return false
-      }
-    }
-    
-    // Lógica original para profissional específico
     // Verificar cache primeiro
     if (dayAvailability[dateString] && !dayAvailability[dateString].loading) {
       return dayAvailability[dateString].available
@@ -1497,9 +1439,7 @@ export default function AgendamentoPage() {
                       let isAvailable = true
                       let statusText = 'Disponível'
                       
-                      if (selectedProfessional !== undefined) {
-                        const professionalIdForCheck = selectedProfessional === null ? 'any' : selectedProfessional.id
-                        
+                      if (selectedProfessional && selectedProfessional.id !== 'any') {
                         if (dayStatus) {
                           // Tem dados no cache
                           isAvailable = dayStatus.available
@@ -1507,13 +1447,13 @@ export default function AgendamentoPage() {
                             ? 'Verificando...' 
                             : dayStatus.available 
                               ? 'Disponível' 
-                              : (dayStatus.reason || (selectedProfessional === null ? 'Nenhum profissional disponível' : 'Profissional não trabalha neste dia'))
+                              : (dayStatus.reason || 'Profissional não trabalha neste dia')
                         } else {
                           // Não tem cache ainda - verificar sob demanda
                           isAvailable = true // Assumir disponível até verificar
                           statusText = 'Verificando...'
                           // Disparar verificação imediatamente
-                          checkDayAvailability(dateString, professionalIdForCheck)
+                          checkDayAvailability(dateString, selectedProfessional.id)
                         }
                       }
                       

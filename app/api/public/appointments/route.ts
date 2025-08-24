@@ -211,6 +211,20 @@ export async function POST(request: NextRequest) {
     const serviceDuration = totalDuration // Usar duração total calculada
     const appointmentEndTime = new Date(appointmentDate.getTime() + (serviceDuration * 60000))
     
+    // Buscar agendamentos conflitantes (sem include para evitar problemas de schema)
+    const conflictingAppointments = await prisma.appointment.findMany({
+      where: {
+        tenantId: business.id,
+        dateTime: {
+          gte: new Date(appointmentDate.getTime() - (2 * 60 * 60 * 1000)), // 2h antes
+          lte: new Date(appointmentDate.getTime() + (2 * 60 * 60 * 1000))  // 2h depois
+        },
+        status: {
+          not: 'CANCELLED'
+        }
+      }
+    })
+    
     // 🎯 ALOCAR PROFISSIONAL AUTOMATICAMENTE para "qualquer profissional"
     let finalProfessionalId = professionalId
     
@@ -218,8 +232,8 @@ export async function POST(request: NextRequest) {
       // "Qualquer profissional": encontrar e alocar um profissional disponível
       const allProfessionals = await prisma.professional.findMany({
         where: { tenantId: business.id, isActive: true },
-        select: { id: true, name: true }
-        // 🎯 REMOVED: orderBy para evitar seleção sempre do mesmo profissional
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' } // Ordenar por nome para consistência
       })
       
       if (allProfessionals.length === 0) {
@@ -229,233 +243,49 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // 🔧 VALIDAÇÃO CRÍTICA REFATORADA: Verificação completa e precisa
-      const availableProfessionals = []
+      // Encontrar o primeiro profissional disponível
+      let availableProfessional = null
       
       for (const prof of allProfessionals) {
-        try {
-          // 🎯 STEP 1: Verificar se profissional trabalha no dia
-          const dayOfWeek = appointmentDate.getDay() // 0=domingo, 1=segunda, etc.
-          const professionalSchedule = await prisma.professionalSchedule.findFirst({
-            where: {
-              professionalId: prof.id,
-              dayOfWeek: dayOfWeek
-            }
-          })
-
-          if (!professionalSchedule) {
-            console.log(`⚠️ Profissional ${prof.name} NÃO trabalha no dia ${dayOfWeek} (não tem schedule)`)
-            continue // Pula profissional que não trabalha neste dia
-          }
-
-          // 🎯 STEP 2: Verificar se está dentro do horário de trabalho
-          const appointmentTimeString = appointmentDate.toTimeString().substring(0, 5) // "14:00"
-          const appointmentMinutes = parseInt(appointmentTimeString.split(':')[0]) * 60 + parseInt(appointmentTimeString.split(':')[1])
-          const startMinutes = parseInt(professionalSchedule.startTime.split(':')[0]) * 60 + parseInt(professionalSchedule.startTime.split(':')[1])
-          const endMinutes = parseInt(professionalSchedule.endTime.split(':')[0]) * 60 + parseInt(professionalSchedule.endTime.split(':')[1])
+        const hasConflict = conflictingAppointments.some(existingApt => {
+          if (existingApt.professionalId !== prof.id) return false
           
-          if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
-            console.log(`⚠️ Profissional ${prof.name} fora do horário de trabalho: ${appointmentTimeString} não está entre ${professionalSchedule.startTime}-${professionalSchedule.endTime}`)
-            continue // Pula profissional fora do horário
-          }
-
-          // 🎯 STEP 3: BUSCAR CONFLITOS EM TEMPO REAL - QUERY ESPECÍFICA POR PROFISSIONAL
-          const conflictingAppointments = await prisma.appointment.findMany({
-            where: {
-              professionalId: prof.id,
-              tenantId: business.id,
-              dateTime: {
-                gte: new Date(appointmentDate.getTime() - (4 * 60 * 60 * 1000)), // 4h antes
-                lte: new Date(appointmentDate.getTime() + (4 * 60 * 60 * 1000))  // 4h depois
-              },
-              status: {
-                in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] // Apenas status ativos
-              }
-            },
-            select: {
-              id: true,
-              dateTime: true,
-              duration: true,
-              status: true,
-              endUser: {
-                select: {
-                  name: true
-                }
-              }
-            }
-          })
-
-          console.log(`🔍 [DEBUG] Profissional ${prof.name} - Agendamentos encontrados:`, {
-            total: conflictingAppointments.length,
-            appointments: conflictingAppointments.map(apt => ({
-              id: apt.id,
-              cliente: apt.endUser?.name || 'N/A',
-              horario: apt.dateTime.toLocaleTimeString('pt-BR'),
-              duracao: apt.duration,
-              status: apt.status
-            }))
-          })
-
-          // Verificar conflito detalhado
-          const hasConflict = conflictingAppointments.some(existingApt => {
-            const existingStart = existingApt.dateTime
-            const existingDuration = existingApt.duration || 30
-            const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
-            
-            const overlap = (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
-            
-            if (overlap) {
-              console.log(`❌ [CONFLITO] ${prof.name}: Novo agendamento ${appointmentDate.toLocaleTimeString('pt-BR')}-${appointmentEndTime.toLocaleTimeString('pt-BR')} conflita com agendamento ${existingApt.id} (${existingStart.toLocaleTimeString('pt-BR')}-${existingEnd.toLocaleTimeString('pt-BR')})`)
-            }
-            
-            return overlap
-          })
-
-          if (hasConflict) {
-            console.log(`⚠️ Profissional ${prof.name} tem conflito com agendamento existente no horário ${appointmentTimeString}`)
-            continue // Pula profissional com conflitos
-          }
-
-          // 🎯 STEP 4: Verificar exceções/folgas
-          const exceptions = await prisma.scheduleException.findMany({
-            where: {
-              professionalId: prof.id,
-              OR: [
-                {
-                  startDatetime: {
-                    lte: appointmentDate
-                  },
-                  endDatetime: {
-                    gt: appointmentDate
-                  }
-                },
-                {
-                  startDatetime: {
-                    lt: appointmentEndTime
-                  },
-                  endDatetime: {
-                    gte: appointmentEndTime
-                  }
-                },
-                {
-                  startDatetime: {
-                    gte: appointmentDate
-                  },
-                  endDatetime: {
-                    lte: appointmentEndTime
-                  }
-                }
-              ]
-            }
-          })
-
-          const hasScheduleException = exceptions.some(exception => {
-            return (appointmentDate < exception.endDatetime) && (appointmentEndTime > exception.startDatetime)
-          })
-
-          if (hasScheduleException) {
-            console.log(`⚠️ Profissional ${prof.name} tem folga/exceção na data ${appointmentDate.toISOString()}`)
-            continue // Pula profissional com exceções
-          }
-
-          // 🎯 STEP 5: Verificar intervalos recorrentes
-          const recurringBreaks = await prisma.recurringBreak.findMany({
-            where: { scheduleId: professionalSchedule.id }
-          })
-
-          let hasBreakConflict = false
-          for (const breakItem of recurringBreaks) {
-            const breakStartMinutes = parseInt(breakItem.startTime.split(':')[0]) * 60 + parseInt(breakItem.startTime.split(':')[1])
-            const breakEndMinutes = parseInt(breakItem.endTime.split(':')[0]) * 60 + parseInt(breakItem.endTime.split(':')[1])
-            const serviceEndMinutes = appointmentMinutes + totalDuration
-            
-            // Verificar se o serviço conflita com o intervalo
-            if (appointmentMinutes < breakEndMinutes && serviceEndMinutes > breakStartMinutes) {
-              hasBreakConflict = true
-              console.log(`⚠️ Profissional ${prof.name} tem conflito com intervalo: ${breakItem.startTime}-${breakItem.endTime}`)
-              break
-            }
-          }
-
-          if (hasBreakConflict) {
-            continue // Pula profissional com conflitos de intervalo
-          }
-
-          // ✅ PROFISSIONAL DISPONÍVEL!
-          availableProfessionals.push(prof)
-          console.log(`✅ Profissional ${prof.name} DISPONÍVEL para ${appointmentDate.toISOString()}`)
+          const existingStart = existingApt.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
+          const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
+          const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
           
-        } catch (error) {
-          console.error(`❌ Erro ao verificar profissional ${prof.name}:`, error)
-          // Não adicionar profissional se houve erro na verificação
+          return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
+        })
+        
+        if (!hasConflict) {
+          availableProfessional = prof
+          break // Primeiro disponível encontrado
         }
       }
       
-      if (availableProfessionals.length === 0) {
+      if (!availableProfessional) {
         return NextResponse.json(
           { message: 'Horário já ocupado - todos os profissionais estão indisponíveis' },
           { status: 400 }
         )
       }
       
-      // 🎯 NOVO: Seleção aleatória entre os profissionais disponíveis
-      const randomIndex = Math.floor(Math.random() * availableProfessionals.length)
-      const selectedProfessional = availableProfessionals[randomIndex]
-      
-      finalProfessionalId = selectedProfessional.id
-      console.log(`✅ "Qualquer profissional" - ${availableProfessionals.length} disponíveis, selecionado aleatoriamente: ${selectedProfessional.name} (${selectedProfessional.id})`)
+      // Alocar o profissional encontrado
+      finalProfessionalId = availableProfessional.id
+      console.log(`✅ "Qualquer profissional" alocado para: ${availableProfessional.name} (${availableProfessional.id})`)
     } else {
-      // 🎯 PROFISSIONAL ESPECÍFICO: Verificar conflitos em tempo real
-      console.log(`🔍 Verificando conflitos para profissional específico: ${professionalId}`)
-      
-      const conflictingAppointments = await prisma.appointment.findMany({
-        where: {
-          professionalId: professionalId,
-          tenantId: business.id,
-          dateTime: {
-            gte: new Date(appointmentDate.getTime() - (4 * 60 * 60 * 1000)), // 4h antes
-            lte: new Date(appointmentDate.getTime() + (4 * 60 * 60 * 1000))  // 4h depois
-          },
-          status: {
-            in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] // Apenas status ativos
-          }
-        },
-        select: {
-          id: true,
-          dateTime: true,
-          duration: true,
-          status: true,
-          endUser: {
-            select: {
-              name: true
-            }
-          }
-        }
-      })
-
-      console.log(`🔍 [DEBUG] Profissional específico - Agendamentos encontrados:`, {
-        professionalId,
-        total: conflictingAppointments.length,
-        appointments: conflictingAppointments.map(apt => ({
-          id: apt.id,
-          cliente: apt.endUser?.name || 'N/A',
-          horario: apt.dateTime.toLocaleTimeString('pt-BR'),
-          duracao: apt.duration,
-          status: apt.status
-        }))
-      })
-
+      // Profissional específico: verificar conflitos apenas com este profissional
       for (const existingApt of conflictingAppointments) {
-        const existingStart = existingApt.dateTime
-        const existingDuration = existingApt.duration || 30
+        if (existingApt.professionalId !== professionalId) continue
+        
+        const existingStart = existingApt.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
+        const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
         const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
         
         // Verificar sobreposição
         const hasOverlap = (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
         
         if (hasOverlap) {
-          console.log(`❌ [CONFLITO ESPECÍFICO] Novo agendamento ${appointmentDate.toLocaleTimeString('pt-BR')}-${appointmentEndTime.toLocaleTimeString('pt-BR')} conflita com agendamento ${existingApt.id} (${existingStart.toLocaleTimeString('pt-BR')}-${existingEnd.toLocaleTimeString('pt-BR')})`)
-          
           return NextResponse.json(
             { message: 'Horário já ocupado por outro agendamento' },
             { status: 400 }
