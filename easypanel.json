@@ -1,0 +1,78 @@
+{
+  "name": "saas-barbearia",
+  "description": "Sistema SaaS para Barbearias - Agendamentos e Automações WhatsApp",
+  "version": "1.0.0",
+  "type": "application",
+  "framework": "nextjs",
+  "buildCommand": "pnpm run build",
+  "startCommand": "pnpm start",
+  "port": 3000,
+  "healthCheck": {
+    "path": "/api/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "PORT": "3000",
+    "HOSTNAME": "0.0.0.0"
+  },
+  "requiredEnvVars": [
+    "DATABASE_URL",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL"
+  ],
+  "optionalEnvVars": [
+    "WHATSAPP_API_URL",
+    "WHATSAPP_API_KEY",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS"
+  ],
+  "volumes": [
+    {
+      "source": "./uploads",
+      "target": "/app/uploads",
+      "description": "Uploads de avatares e imagens"
+    }
+  ],
+  "services": [
+    {
+      "name": "mysql",
+      "type": "mysql",
+      "version": "8.0",
+      "required": true,
+      "description": "Banco de dados principal"
+    }
+  ],
+  "scripts": {
+    "postDeploy": [
+      "npx prisma db push",
+      "npx prisma generate",
+      "chmod +x ./setup-easypanel.sh",
+      "./setup-easypanel.sh"
+    ]
+  },
+  "cronJobs": [
+    {
+      "name": "whatsapp-reminders",
+      "schedule": "*/5 * * * *",
+      "command": "cd /app && npx ts-node scripts/whatsapp-reminders-cron.ts",
+      "description": "Envio automático de lembretes WhatsApp"
+    }
+  ],
+  "monitoring": {
+    "logs": [
+      "/var/log/whatsapp-reminders.log"
+    ],
+    "metrics": {
+      "cpu": true,
+      "memory": true,
+      "disk": true,
+      "network": true
+    }
+  }
+}

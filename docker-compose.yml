@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  saas-barbearia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      # Adicione outras variáveis de ambiente necessárias aqui
+    restart: unless-stopped
+    volumes:
+      # Manter uploads persistentes se necessário
+      - ./uploads:/app/uploads
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
