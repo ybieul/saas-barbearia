@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "application",
   "framework": "nextjs",
-  "buildCommand": "pnpm run build",
-  "startCommand": "pnpm start",
+  "buildCommand": "chmod +x ./build-easypanel.sh && ./build-easypanel.sh",
+  "startCommand": "npm start",
   "port": 3000,
   "healthCheck": {
     "path": "/api/health",
