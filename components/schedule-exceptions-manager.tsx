@@ -321,7 +321,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                           </SelectTrigger>
                           <SelectContent className="bg-[#27272a] border-[#52525b]">
                             <SelectItem value="BLOCK" className="text-[#ededed] focus:bg-[#3f3f46]">
-                              Bloqueio pontual (almoço, intervalo)
+                              Bloqueio pontual (saída rápida, intervalo, consulta)
                             </SelectItem>
                             <SelectItem value="DAY_OFF" className="text-[#ededed] focus:bg-[#3f3f46]">
                               Folga/Férias (dia inteiro)
