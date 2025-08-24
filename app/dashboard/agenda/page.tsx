@@ -2328,7 +2328,7 @@ export default function AgendaPage() {
                           setIsClientDropdownOpen(true)
                         }}
                         onFocus={() => setIsClientDropdownOpen(true)}
-                        className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] pl-10 pr-10 h-10 md:h-11"
+                        className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm pl-10 pr-10"
                       />
                       <ChevronDown 
                         className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a] cursor-pointer" 
@@ -2409,12 +2409,12 @@ export default function AgendaPage() {
                         setNewAppointment(prev => ({...prev, serviceId: value}))
                       }}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 mt-2">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm mt-2">
                         <SelectValue placeholder="Selecione um serviço" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#18181b] md:bg-[#18181b] border-[#27272a]">
+                      <SelectContent className="bg-[#18181b] md:bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
                         {services.map((service) => (
-                          <SelectItem key={service.id} value={service.id} className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                          <SelectItem key={service.id} value={service.id} className="text-base md:text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a] h-12 md:h-10">
                             <div className="flex flex-col items-start">
                               <span className="font-medium">{service.name}</span>
                               <span className="text-xs text-emerald-400 md:text-[#71717a]">
@@ -2437,12 +2437,12 @@ export default function AgendaPage() {
                         setNewAppointment(prev => ({...prev, professionalId: value}))
                       }}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 mt-2">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm mt-2">
                         <SelectValue placeholder="Selecione um profissional (opcional)" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#18181b] border-[#27272a]">
+                      <SelectContent className="bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
                         {professionalsData?.map((professional) => (
-                          <SelectItem key={professional.id} value={professional.id} className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                          <SelectItem key={professional.id} value={professional.id} className="text-base md:text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a] h-12 md:h-10">
                             <div className="flex flex-col items-start">
                               <span className="font-medium">{professional.name}</span>
                               <span className="text-xs text-emerald-400 md:text-[#71717a]">{professional.specialty}</span>
@@ -2463,7 +2463,7 @@ export default function AgendaPage() {
                 </div>
                 
                 {/* Layout otimizado para mobile */}
-                <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+                <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date" className="text-[#ededed] text-sm font-medium">
                       Data *
@@ -2475,7 +2475,8 @@ export default function AgendaPage() {
                       onChange={(e) => {
                         setNewAppointment(prev => ({...prev, date: e.target.value, time: ""}))
                       }}
-                      className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 w-full min-w-0 block"
+                      className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm w-full min-w-0 block"
+                      style={{ colorScheme: 'dark' }}
                     />
                     {newAppointment.date && (
                       <div className="mt-2">
@@ -2513,7 +2514,7 @@ export default function AgendaPage() {
                       }}
                       disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-10 md:h-11 w-full min-w-0">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm w-full min-w-0">
                         <SelectValue placeholder={
                           !newAppointment.date ? "Data primeiro" :
                           !newAppointment.serviceId ? "Serviço primeiro" :
@@ -2521,7 +2522,7 @@ export default function AgendaPage() {
                           "Selecione horário"
                         } />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#18181b] border-[#27272a] max-h-48 z-[60]">
+                      <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60 z-[60]" position="popper" sideOffset={4}>
                         {loadingTimeSlots ? (
                           <div className="p-3 text-center text-[#a1a1aa] text-sm">
                             Carregando horários...
@@ -2530,7 +2531,7 @@ export default function AgendaPage() {
                           availableTimeSlots.map((time: string) => {
                             const isPast = isTimeInPast(newAppointment.date, time)
                             return (
-                              <SelectItem key={time} value={time} className="text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]">
+                              <SelectItem key={time} value={time} className="text-base md:text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a] h-10 md:h-8">
                                 <div className="flex items-center justify-between w-full">
                                   <span>{isPast ? '⏱️ ' : ''}{time}</span>
                                   {isPast && <span className="text-xs text-[#a1a1aa] ml-2">(retroativo)</span>}
@@ -2580,13 +2581,13 @@ export default function AgendaPage() {
                   placeholder="Observações sobre o agendamento..."
                   value={newAppointment.notes}
                   onChange={(e) => setNewAppointment(prev => ({...prev, notes: e.target.value}))}
-                  className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none overflow-y-auto md:overflow-y-visible text-sm resize-none mt-2"
+                  className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] min-h-20 md:min-h-20 max-h-24 md:max-h-none overflow-y-auto md:overflow-y-visible text-base md:text-sm resize-none mt-2"
                 />
               </div>
             </CardContent>
             
             {/* Botões responsivos */}
-            <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+            <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a] sm:border-t-0">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2594,7 +2595,7 @@ export default function AgendaPage() {
                   setEditingAppointment(null)
                   resetForm()
                 }}
-                className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-12 md:h-10 text-base md:text-sm font-medium"
               >
                 Cancelar
               </Button>
@@ -2624,7 +2625,7 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px]"
+                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium"
               >
                 {isCreating ? 
                   (editingAppointment ? "Atualizando..." : "Criando...") : 
