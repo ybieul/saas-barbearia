@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useScheduleExceptions } from "@/hooks/use-schedule"
-import { Calendar, Plus, Trash2, AlertCircle, Clock, X } from "lucide-react"
+import { Calendar, Plus, Trash2, AlertCircle, Clock, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { CreateScheduleExceptionData, ScheduleExceptionData } from "@/lib/types/schedule"
@@ -46,6 +46,17 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
   const [newException, setNewException] = useState<NewExceptionForm>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  
+  // Estado para modal de confirmação de exclusão
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    isOpen: boolean
+    exceptionId: string
+    exceptionData: ScheduleExceptionData | null
+  }>({
+    isOpen: false,
+    exceptionId: '',
+    exceptionData: null
+  })
 
   // Carregar exceções do mês atual
   useEffect(() => {
@@ -157,9 +168,19 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
     }
   }
 
-  // Deletar exceção
-  const handleDelete = async (exceptionId: string) => {
-    if (!confirm('Tem certeza que deseja remover este bloqueio?')) return
+  // Abrir modal de confirmação de exclusão
+  const handleDeleteClick = (exception: ScheduleExceptionData) => {
+    setDeleteConfirmDialog({
+      isOpen: true,
+      exceptionId: exception.id,
+      exceptionData: exception
+    })
+  }
+
+  // Deletar exceção com confirmação
+  const handleConfirmDelete = async () => {
+    const exceptionId = deleteConfirmDialog.exceptionId
+    if (!exceptionId) return
 
     setDeletingId(exceptionId)
     try {
@@ -174,6 +195,13 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
 
         // Remover da lista local
         setExceptions(prev => prev.filter(exc => exc.id !== exceptionId))
+        
+        // Fechar modal de confirmação
+        setDeleteConfirmDialog({
+          isOpen: false,
+          exceptionId: '',
+          exceptionData: null
+        })
       }
     } catch (err: any) {
       toast({
@@ -256,126 +284,159 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                 Adicionar Bloqueio
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-[#ededed]">Novo Bloqueio</DialogTitle>
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+              {/* Header fixo */}
+              <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+                <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+                  <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
+                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                  </div>
+                  Novo Bloqueio
+                </DialogTitle>
+                <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                  Crie um bloqueio ou folga na agenda do profissional
+                </DialogDescription>
               </DialogHeader>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Tipo de bloqueio */}
-                <div className="space-y-2">
-                  <Label className="text-[#a1a1aa]">Tipo de bloqueio</Label>
-                  <Select 
-                    value={newException.type} 
-                    onValueChange={(value: 'BLOCK' | 'DAY_OFF') => handleFormChange('type', value)}
-                  >
-                    <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#27272a] border-[#52525b]">
-                      <SelectItem value="BLOCK" className="text-[#ededed] focus:bg-[#3f3f46]">
-                        Bloqueio pontual (almoço, intervalo)
-                      </SelectItem>
-                      <SelectItem value="DAY_OFF" className="text-[#ededed] focus:bg-[#3f3f46]">
-                        Folga/Férias (dia inteiro)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Data e hora de início */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[#a1a1aa]">Data início</Label>
-                    <Input
-                      type="date"
-                      value={newException.startDate}
-                      onChange={(e) => handleFormChange('startDate', e.target.value)}
-                      className="bg-[#27272a] border-[#52525b] text-[#ededed] focus:ring-[#10b981] focus:border-[#10b981]"
-                    />
+              {/* Conteúdo com scroll */}
+              <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+                <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+                  {/* Seção de Configuração do Bloqueio */}
+                  <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                    <div className="flex items-center gap-2 mb-2 md:mb-3">
+                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                      <h3 className="text-[#ededed] font-medium text-sm md:text-base">Configuração do Bloqueio</h3>
+                    </div>
+                    
+                    <div className="space-y-3 md:space-y-4">
+                      {/* Tipo de bloqueio */}
+                      <div className="space-y-2">
+                        <Label className="text-[#ededed] text-sm font-medium">Tipo de bloqueio *</Label>
+                        <Select 
+                          value={newException.type} 
+                          onValueChange={(value: 'BLOCK' | 'DAY_OFF') => handleFormChange('type', value)}
+                        >
+                          <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#27272a] border-[#52525b]">
+                            <SelectItem value="BLOCK" className="text-[#ededed] focus:bg-[#3f3f46]">
+                              Bloqueio pontual (almoço, intervalo)
+                            </SelectItem>
+                            <SelectItem value="DAY_OFF" className="text-[#ededed] focus:bg-[#3f3f46]">
+                              Folga/Férias (dia inteiro)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[#a1a1aa]">Hora início</Label>
-                    <Select value={newException.startTime} onValueChange={(value) => handleFormChange('startTime', value)}>
-                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                        {generateTimeOptions().map((time) => (
-                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-                {/* Data e hora de fim */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[#a1a1aa]">Data fim</Label>
-                    <Input
-                      type="date"
-                      value={newException.endDate}
-                      onChange={(e) => handleFormChange('endDate', e.target.value)}
-                      className="bg-[#27272a] border-[#52525b] text-[#ededed] focus:ring-[#10b981] focus:border-[#10b981]"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[#a1a1aa]">Hora fim</Label>
-                    <Select value={newException.endTime} onValueChange={(value) => handleFormChange('endTime', value)}>
-                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
-                        {generateTimeOptions().map((time) => (
-                          <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                  {/* Seção de Data e Horário */}
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex items-center gap-2 md:hidden">
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                      <h3 className="text-[#ededed] font-medium text-sm">Data e Horário</h3>
+                    </div>
+                    
+                    <div className="space-y-3 md:space-y-4">
+                      {/* Data e hora de início */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[#ededed] text-sm font-medium">Data início *</Label>
+                          <Input
+                            type="date"
+                            value={newException.startDate}
+                            onChange={(e) => handleFormChange('startDate', e.target.value)}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[#ededed] text-sm font-medium">Hora início *</Label>
+                          <Select value={newException.startTime} onValueChange={(value) => handleFormChange('startTime', value)}>
+                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                              {generateTimeOptions().map((time) => (
+                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                {/* Motivo */}
-                <div className="space-y-2">
-                  <Label className="text-[#a1a1aa]">Motivo (opcional)</Label>
-                  <Textarea
-                    value={newException.reason}
-                    onChange={(e) => handleFormChange('reason', e.target.value)}
-                    placeholder="Ex: Almoço, Consulta médica, Férias..."
-                    className="bg-[#27272a] border-[#52525b] text-[#ededed] focus:ring-[#10b981] focus:border-[#10b981]"
-                    rows={3}
-                  />
-                </div>
+                      {/* Data e hora de fim */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[#ededed] text-sm font-medium">Data fim *</Label>
+                          <Input
+                            type="date"
+                            value={newException.endDate}
+                            onChange={(e) => handleFormChange('endDate', e.target.value)}
+                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[#ededed] text-sm font-medium">Hora fim *</Label>
+                          <Select value={newException.endTime} onValueChange={(value) => handleFormChange('endTime', value)}>
+                            <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
+                              {generateTimeOptions().map((time) => (
+                                <SelectItem key={time} value={time} className="text-[#ededed] focus:bg-[#3f3f46]">
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                    className="bg-transparent border-[#52525b] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed]"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-[#10b981] hover:bg-[#059669] text-white border-0"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Criando...
-                      </>
-                    ) : (
-                      'Criar Bloqueio'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
+                      {/* Motivo */}
+                      <div className="space-y-2">
+                        <Label className="text-[#ededed] text-sm font-medium">Motivo (opcional)</Label>
+                        <Textarea
+                          value={newException.reason}
+                          onChange={(e) => handleFormChange('reason', e.target.value)}
+                          placeholder="Ex: Almoço, Consulta médica, Férias..."
+                          className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] min-h-16 md:min-h-20 max-h-20 md:max-h-none resize-none"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              
+              {/* Footer fixo */}
+              <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-1 md:pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 border-[#3f3f46] text-[#ededed] md:text-[#71717a] hover:bg-[#27272a] hover:border-[#52525b] md:hover:text-[#ededed] transition-all duration-200 h-10 md:min-h-[44px]"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Criando...
+                    </>
+                  ) : (
+                    'Criar Bloqueio'
+                  )}
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -388,12 +449,13 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
             variant="outline"
             size="sm"
             onClick={() => navigateMonth('prev')}
-            className="bg-transparent border-[#52525b] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed]"
+            className="bg-transparent border-[#52525b] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed] flex items-center gap-2 px-3 py-2"
           >
-            ← Anterior
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Anterior</span>
           </Button>
           
-          <h3 className="text-[#ededed] font-semibold text-lg">
+          <h3 className="text-[#ededed] font-semibold text-lg text-center flex-1 mx-4">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h3>
           
@@ -401,9 +463,10 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
             variant="outline"
             size="sm"
             onClick={() => navigateMonth('next')}
-            className="bg-transparent border-[#52525b] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed]"
+            className="bg-transparent border-[#52525b] text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#ededed] flex items-center gap-2 px-3 py-2"
           >
-            Próximo →
+            <span className="hidden sm:inline">Próximo</span>
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
@@ -451,9 +514,9 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(exception.id)}
+                    onClick={() => handleDeleteClick(exception)}
                     disabled={deletingId === exception.id}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors"
                   >
                     {deletingId === exception.id ? (
                       <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
@@ -467,6 +530,117 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
           )}
         </div>
       </CardContent>
+      
+      {/* Modal de Confirmação para Excluir Bloqueio */}
+      <Dialog open={deleteConfirmDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteConfirmDialog({
+            isOpen: false,
+            exceptionId: '',
+            exceptionData: null
+          })
+        }
+      }}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          {/* Header Fixo */}
+          <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600">
+                <Trash2 className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-[#ededed] text-lg md:text-xl font-semibold">
+                  Excluir Bloqueio
+                </DialogTitle>
+                <DialogDescription className="text-[#a1a1aa] text-sm md:text-base">
+                  Tem certeza que deseja remover este bloqueio permanentemente?
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {/* Conteúdo com informações do bloqueio */}
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4">
+            {deleteConfirmDialog.exceptionData && (
+              <div className="bg-gradient-to-br from-red-500/10 to-red-600/5 p-3 md:p-4 rounded-lg border border-red-500/20 space-y-3 md:space-y-4">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-400 rounded-full"></div>
+                  <h3 className="text-[#ededed] font-medium text-sm md:text-base">Detalhes do Bloqueio</h3>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-[#71717a] text-xs md:text-sm">Tipo</label>
+                    <div className="bg-[#27272a]/70 border border-red-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm md:text-base font-medium">
+                      {deleteConfirmDialog.exceptionData.type === 'DAY_OFF' ? 'Folga/Férias (dia inteiro)' : 'Bloqueio pontual'}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[#71717a] text-xs md:text-sm">Período</label>
+                    <div className="bg-[#27272a]/70 border border-red-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm md:text-base">
+                      {formatExceptionDate(deleteConfirmDialog.exceptionData.startDatetime, deleteConfirmDialog.exceptionData.endDatetime)}
+                    </div>
+                  </div>
+                  
+                  {deleteConfirmDialog.exceptionData.reason && (
+                    <div className="space-y-2">
+                      <label className="text-[#71717a] text-xs md:text-sm">Motivo</label>
+                      <div className="bg-[#27272a]/70 border border-red-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm md:text-base">
+                        "{deleteConfirmDialog.exceptionData.reason}"
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 mt-3">
+                    <p className="text-red-400 text-xs md:text-sm">
+                      ⚠️ Este bloqueio será removido permanentemente da agenda.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3">
+                    <p className="text-amber-400 text-xs md:text-sm">
+                      💡 Esta ação não pode ser desfeita.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer com botões */}
+          <div className="border-t border-[#27272a] pt-3 md:pt-4 px-4 sm:px-6 pb-4 sm:pb-6 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmDialog({
+                  isOpen: false,
+                  exceptionId: '',
+                  exceptionData: null
+                })}
+                className="border-[#27272a] hover:bg-[#27272a] w-full sm:w-auto"
+                disabled={deletingId !== null}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                disabled={deletingId !== null}
+              >
+                {deletingId === deleteConfirmDialog.exceptionId ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir Permanentemente'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
