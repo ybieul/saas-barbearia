@@ -9,8 +9,8 @@ WORKDIR /app
 # Copia arquivos de dependência
 COPY package*.json ./
 
-# Instala todas as dependências
-RUN npm ci
+# Instala todas as dependências (com legacy peer deps para resolver conflitos)
+RUN npm ci --legacy-peer-deps
 
 # Copia todo o código fonte
 COPY . .
@@ -37,8 +37,8 @@ RUN adduser --system --uid 1001 nextjs
 # Copia package.json para instalar deps de produção
 COPY package*.json ./
 
-# Instala apenas dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Instala apenas dependências de produção (com legacy peer deps)
+RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 
 # Copia arquivos buildados do estágio anterior
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

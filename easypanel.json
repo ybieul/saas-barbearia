@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "application",
   "framework": "nextjs",
-  "buildCommand": "npm ci && npx prisma generate && npm run build",
+  "buildCommand": "npm ci --legacy-peer-deps && npx prisma generate && npm run build",
   "startCommand": "npm start",
   "port": 3000,
   "healthCheck": {

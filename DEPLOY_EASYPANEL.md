@@ -25,17 +25,19 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 {
   "name": "saas-barbearia",
   "port": 3000,
-  "buildCommand": "npm ci && npx prisma generate && npm run build",
+  "buildCommand": "npm ci --legacy-peer-deps && npx prisma generate && npm run build",
   "startCommand": "npm start",
   "healthCheck": "/api/health"
 }
 ```
 
+**⚠️ Importante:** O projeto usa `--legacy-peer-deps` para resolver conflitos entre `date-fns` v4 e `react-day-picker`. O arquivo `.npmrc` já está configurado para isso.
+
 **Se der erro no build, tente estas opções:**
 
 **Opção 1 - Dockerfile Simples:**
 - Renomeie `Dockerfile.simple` para `Dockerfile`
-- Use: `buildCommand: "npm install && npm run build"`
+- Use: `buildCommand: "npm install --legacy-peer-deps && npm run build"`
 
 **Opção 2 - Dockerfile de Teste:**
 - Renomeie `Dockerfile.test` para `Dockerfile`
@@ -43,7 +45,7 @@ Este guia explica como fazer deploy do sistema SaaS para Barbearias no EasyPanel
 
 **Opção 3 - Sem Dockerfile:**
 - Delete o Dockerfile
-- Use apenas: `buildCommand: "npm ci && npx prisma generate && npm run build"`
+- Use apenas: `buildCommand: "npm ci --legacy-peer-deps && npx prisma generate && npm run build"`
 
 ### 3. Variáveis de Ambiente Obrigatórias
 
@@ -180,6 +182,16 @@ npx ts-node scripts/whatsapp-reminders-cron.ts
 ```
 
 ## 🆘 Solução de Problemas
+
+### Problema: Erro de dependências (ERESOLVE)
+```bash
+# Conflito entre date-fns v4 e react-day-picker
+# SOLUÇÃO: Use --legacy-peer-deps em todos os comandos npm
+
+npm ci --legacy-peer-deps
+# ou 
+npm install --legacy-peer-deps
+```
 
 ### Problema: Banco de dados não conecta
 ```bash

@@ -8,7 +8,7 @@ rm -rf node_modules .next
 
 # Instalar dependências
 echo "📦 Instalando dependências com npm..."
-npm ci
+npm ci --legacy-peer-deps
 
 # Gerar cliente Prisma
 echo "🗄️ Gerando cliente Prisma..."

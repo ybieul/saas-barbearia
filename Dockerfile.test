@@ -6,8 +6,8 @@ WORKDIR /app
 # Copia tudo
 COPY . .
 
-# Instala dependências
-RUN npm install
+# Instala dependências (com legacy peer deps)
+RUN npm install --legacy-peer-deps
 
 # Gera Prisma
 RUN npx prisma generate
