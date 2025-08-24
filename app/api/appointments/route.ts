@@ -1,7 +1,92 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
+import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp'
+import { randomBytes } from 'crypto'
+
+// Função para gerar ID único (similar ao cuid do Prisma)
+function generateId(): string {
+  return randomBytes(12).toString('base64url')
+}
+
+// Função para enviar mensagem de confirmação
+async function sendConfirmationMessage(appointment: any) {
+  // Verificar se a automação de confirmação está ativa
+  const automationSetting = await prisma.$queryRaw`
+    SELECT * FROM automation_settings 
+    WHERE establishment_id = ${appointment.tenantId} 
+    AND automation_type = 'confirmation' 
+    AND is_enabled = true
+    LIMIT 1
+  ` as any[]
+  
+  if (automationSetting.length === 0) {
+    console.log('🔕 Automação de confirmação desabilitada ou não configurada')
+    return
+  }
+
+  // Verificar se já foi enviada uma confirmação para este agendamento
+  const existingConfirmation = await prisma.$queryRaw`
+    SELECT * FROM appointment_reminders 
+    WHERE appointment_id = ${appointment.id} 
+    AND reminder_type = 'confirmation'
+    LIMIT 1
+  ` as any[]
+  
+  if (existingConfirmation.length > 0) {
+    console.log('✅ Confirmação já foi enviada para este agendamento')
+    return
+  }
+
+  // Verificar se o cliente tem telefone
+  if (!appointment.endUser.phone) {
+    console.log('❌ Cliente não possui telefone cadastrado')
+    return
+  }
+
+  // Buscar dados do tenant para o template
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: appointment.tenantId },
+    select: {
+      businessName: true,
+      businessPhone: true,
+    }
+  })
+
+  // Preparar dados para o template
+  const appointmentDate = new Date(appointment.dateTime)
+  const templateData = {
+    clientName: appointment.endUser.name,
+    businessName: tenant?.businessName || 'Nossa Barbearia',
+    service: appointment.services.map((s: any) => s.name).join(', '),
+    professional: appointment.professional?.name || 'Profissional',
+    date: formatBrazilDate(appointmentDate),
+    time: formatBrazilTime(appointmentDate),
+    totalTime: appointment.services.reduce((total: number, s: any) => total + s.duration, 0),
+    price: appointment.totalPrice,
+  }
+
+  // Gerar e enviar mensagem
+  const message = whatsappTemplates.confirmation(templateData)
+  
+  const success = await sendWhatsAppMessage({
+    to: appointment.endUser.phone,
+    message,
+    type: 'confirmation',
+  })
+
+  if (success) {
+    // Registrar o envio
+    await prisma.$executeRaw`
+      INSERT INTO appointment_reminders (id, appointment_id, reminder_type, sent_at, created_at)
+      VALUES (${generateId()}, ${appointment.id}, 'confirmation', ${getBrazilNow()}, ${getBrazilNow()})
+    `
+    console.log('✅ Confirmação enviada com sucesso para:', appointment.endUser.name)
+  } else {
+    console.error('❌ Falha ao enviar confirmação WhatsApp')
+  }
+}
 
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
@@ -333,6 +418,14 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // ✅ NOVO: GATILHO DE CONFIRMAÇÃO AUTOMÁTICA VIA WHATSAPP
+    try {
+      await sendConfirmationMessage(newAppointment)
+    } catch (whatsappError) {
+      console.error('❌ Erro ao enviar confirmação WhatsApp:', whatsappError)
+      // Não falhar a criação do agendamento por erro do WhatsApp
+    }
 
     return NextResponse.json({ appointment: newAppointment, message: 'Agendamento criado com sucesso' })
   } catch (error) {

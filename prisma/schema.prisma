@@ -48,6 +48,7 @@ model Tenant {
   professionals       Professional[]
   reports             Report[]
   whatsappLogs        WhatsAppLog[]
+  automationSettings  AutomationSetting[]
   promotionTemplates  PromotionTemplate[]
   servicePackages     ServicePackage[]
   financialRecords    FinancialRecord[]
@@ -209,6 +210,7 @@ model Appointment {
   
   // ✅ NOVO: Relacionamento many-to-many com serviços
   services     Service[]
+  reminders    AppointmentReminder[]
 
   @@index([tenantId])
   @@index([tenantId, dateTime])
@@ -450,4 +452,40 @@ enum WhatsAppStatus {
   DELIVERED // Entregue
   READ      // Lida
   FAILED    // Falhou
+}
+
+// ============================================
+// WHATSAPP AUTOMATION MODELS
+// ============================================
+
+model AutomationSetting {
+  id              String   @id @default(cuid())
+  establishmentId String   // FK para Tenant (establishment)
+  automationType  String   // 'confirmation', 'reminder_24h', 'reminder_2h', 'reactivation'
+  isEnabled       Boolean  @default(true)
+  messageTemplate String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@unique([establishmentId, automationType])
+  @@index([establishmentId])
+  @@map("automation_settings")
+}
+
+model AppointmentReminder {
+  id            String   @id @default(cuid())
+  appointmentId String   // FK para Appointment
+  reminderType  String   // 'confirmation', 'reminder_24h', 'reminder_2h', etc.
+  sentAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@index([reminderType])
+  @@map("appointment_reminders")
 }

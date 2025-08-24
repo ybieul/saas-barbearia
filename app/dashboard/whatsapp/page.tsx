@@ -22,12 +22,16 @@ export default function WhatsAppPage() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const [automationSettings, setAutomationSettings] = useState({
-    confirmationEnabled: true,
-    reminder24hEnabled: true,
-    reminder2hEnabled: true,
-    reactivationEnabled: true,
+    confirmationEnabled: false,
+    reminder24hEnabled: false,
+    reminder12hEnabled: false,
+    reminder2hEnabled: false,
+    reactivationEnabled: false,
     reactivationDays: 45,
   })
+
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
 
   // Buscar dados reais da API
   const { appointments, loading, fetchAppointments } = useAppointments()
@@ -36,7 +40,57 @@ export default function WhatsAppPage() {
   useEffect(() => {
     fetchAppointments()
     fetchClients()
+    loadAutomationSettings()
   }, [fetchAppointments, fetchClients])
+
+  // Carregar configurações de automação
+  const loadAutomationSettings = async () => {
+    try {
+      setIsLoadingSettings(true)
+      const response = await fetch('/api/automation-settings')
+      if (response.ok) {
+        const settings = await response.json()
+        setAutomationSettings({
+          confirmationEnabled: settings.confirmation?.isEnabled ?? false,
+          reminder24hEnabled: settings.reminder_24h?.isEnabled ?? false,
+          reminder12hEnabled: settings.reminder_12h?.isEnabled ?? false,
+          reminder2hEnabled: settings.reminder_2h?.isEnabled ?? false,
+          reactivationEnabled: settings.reactivation?.isEnabled ?? false,
+          reactivationDays: 45, // Pode ser configurado no futuro
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error)
+    } finally {
+      setIsLoadingSettings(false)
+    }
+  }
+
+  // Salvar configuração individual
+  const saveAutomationSetting = async (automationType: string, isEnabled: boolean) => {
+    try {
+      const response = await fetch('/api/automation-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          automationType,
+          isEnabled,
+        }),
+      })
+
+      if (response.ok) {
+        console.log(`✅ ${automationType} ${isEnabled ? 'ativado' : 'desativado'}`)
+      } else {
+        throw new Error('Falha ao salvar configuração')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configuração:', error)
+      // Reverter o estado em caso de erro
+      loadAutomationSettings()
+    }
+  }
 
   // Calcular estatísticas reais
   const today = toBrazilDateString(getBrazilNow())
@@ -328,9 +382,11 @@ export default function WhatsAppPage() {
               </div>
               <Switch
                 checked={automationSettings.confirmationEnabled}
-                onCheckedChange={(checked) =>
-                  setAutomationSettings({ ...automationSettings, confirmationEnabled: checked })
-                }
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  setAutomationSettings(prev => ({ ...prev, confirmationEnabled: checked }))
+                  await saveAutomationSetting('confirmation', checked)
+                }}
               />
             </div>
 
@@ -341,9 +397,26 @@ export default function WhatsAppPage() {
               </div>
               <Switch
                 checked={automationSettings.reminder24hEnabled}
-                onCheckedChange={(checked) =>
-                  setAutomationSettings({ ...automationSettings, reminder24hEnabled: checked })
-                }
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  setAutomationSettings(prev => ({ ...prev, reminder24hEnabled: checked }))
+                  await saveAutomationSetting('reminder_24h', checked)
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Lembrete 12 horas</p>
+                <p className="text-sm text-[#71717a]">Lembrete 12 horas antes do agendamento</p>
+              </div>
+              <Switch
+                checked={automationSettings.reminder12hEnabled}
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  setAutomationSettings(prev => ({ ...prev, reminder12hEnabled: checked }))
+                  await saveAutomationSetting('reminder_12h', checked)
+                }}
               />
             </div>
 
@@ -354,9 +427,11 @@ export default function WhatsAppPage() {
               </div>
               <Switch
                 checked={automationSettings.reminder2hEnabled}
-                onCheckedChange={(checked) =>
-                  setAutomationSettings({ ...automationSettings, reminder2hEnabled: checked })
-                }
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  setAutomationSettings(prev => ({ ...prev, reminder2hEnabled: checked }))
+                  await saveAutomationSetting('reminder_2h', checked)
+                }}
               />
             </div>
 
@@ -367,9 +442,11 @@ export default function WhatsAppPage() {
               </div>
               <Switch
                 checked={automationSettings.reactivationEnabled}
-                onCheckedChange={(checked) =>
-                  setAutomationSettings({ ...automationSettings, reactivationEnabled: checked })
-                }
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  setAutomationSettings(prev => ({ ...prev, reactivationEnabled: checked }))
+                  await saveAutomationSetting('reactivation', checked)
+                }}
               />
             </div>
 
@@ -388,9 +465,12 @@ export default function WhatsAppPage() {
               />
             </div>
 
-            <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">
+            <Button 
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={isLoadingSettings}
+            >
               <Settings className="w-4 h-4 mr-2" />
-              Salvar Configurações
+              {isLoadingSettings ? 'Carregando...' : 'Configurações Ativas'}
             </Button>
           </CardContent>
         </Card>
