@@ -892,29 +892,50 @@ async function checkSingleProfessionalSlot(
   slotDateTime.setHours(hours, minutes, 0, 0)
   const slotEndDateTime = addMinutes(slotDateTime, serviceDuration)
   
+  // 🔧 CORREÇÃO CRÍTICA: Query simples e eficaz
+  const startDay = startOfDay(targetDate)
+  const endDay = endOfDay(targetDate)
+  
   const conflictingAppointments = await prisma.appointment.findMany({
     where: {
       professionalId: professional.id,
       tenantId: business.id,
       status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] },
-      OR: [
-        {
-          AND: [
-            { dateTime: { lte: slotDateTime } },
-            { 
-              dateTime: { 
-                gte: new Date(slotEndDateTime.getTime() - 24 * 60 * 60 * 1000) 
-              } 
-            }
-          ]
-        }
-      ]
+      dateTime: {
+        gte: startDay,
+        lte: endDay
+      }
+    },
+    select: {
+      id: true,
+      dateTime: true,
+      duration: true,
+      status: true
     }
   })
   
+  // 🔍 DEBUG para slots críticos
+  if (['09:00', '14:00'].includes(slotTime)) {
+    console.log(`🔍 [CHECKSLOT] Verificando slot ${slotTime} para ${professional.name}:`, {
+      targetDate: targetDate.toISOString().split('T')[0],
+      slotDateTime: slotDateTime.toISOString(),
+      slotEndDateTime: slotEndDateTime.toISOString(),
+      conflictingAppointments: conflictingAppointments.map(apt => ({
+        id: apt.id,
+        dateTime: apt.dateTime.toISOString(),
+        duration: apt.duration,
+        timeString: apt.dateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      }))
+    })
+  }
+  
   for (const appointment of conflictingAppointments) {
     const appointmentEnd = addMinutes(appointment.dateTime, appointment.duration)
+    
     if (timePeriodsOverlap(slotDateTime, slotEndDateTime, appointment.dateTime, appointmentEnd)) {
+      if (['09:00', '14:00'].includes(slotTime)) {
+        console.log(`🎯 [CHECKSLOT] ✅ CONFLITO DETECTADO para ${professional.name} slot ${slotTime}!`)
+      }
       return { available: false, reason: 'Agendado' }
     }
   }

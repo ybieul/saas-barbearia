@@ -243,26 +243,53 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // 🎯 NOVO: Coletar TODOS os profissionais disponíveis (não apenas o primeiro)
+      // 🔧 VALIDAÇÃO CRÍTICA REFATORADA: Verificação completa e precisa
       const availableProfessionals = []
       
       for (const prof of allProfessionals) {
-        // ✅ VERIFICAR CONFLITOS COM OUTROS AGENDAMENTOS
-        const hasConflict = conflictingAppointments.some(existingApt => {
-          if (existingApt.professionalId !== prof.id) return false
+        try {
+          // 🎯 STEP 1: Verificar se profissional trabalha no dia
+          const dayOfWeek = appointmentDate.getDay() // 0=domingo, 1=segunda, etc.
+          const professionalSchedule = await prisma.professionalSchedule.findFirst({
+            where: {
+              professionalId: prof.id,
+              dayOfWeek: dayOfWeek
+            }
+          })
+
+          if (!professionalSchedule) {
+            console.log(`⚠️ Profissional ${prof.name} NÃO trabalha no dia ${dayOfWeek} (não tem schedule)`)
+            continue // Pula profissional que não trabalha neste dia
+          }
+
+          // 🎯 STEP 2: Verificar se está dentro do horário de trabalho
+          const appointmentTimeString = appointmentDate.toTimeString().substring(0, 5) // "14:00"
+          const appointmentMinutes = parseInt(appointmentTimeString.split(':')[0]) * 60 + parseInt(appointmentTimeString.split(':')[1])
+          const startMinutes = parseInt(professionalSchedule.startTime.split(':')[0]) * 60 + parseInt(professionalSchedule.startTime.split(':')[1])
+          const endMinutes = parseInt(professionalSchedule.endTime.split(':')[0]) * 60 + parseInt(professionalSchedule.endTime.split(':')[1])
           
-          const existingStart = existingApt.dateTime // 🇧🇷 CORREÇÃO FINAL: Usar Date object direto do Prisma
-          const existingDuration = existingApt.duration || 30  // ✅ Usar duração do próprio agendamento
-          const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
-          
-          return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
-        })
-        
-        // 🚨 NOVA VERIFICAÇÃO: FOLGAS E EXCEÇÕES DE AGENDA
-        let hasScheduleException = false
-        
-        if (!hasConflict) {
-          // Buscar exceções de agenda (folgas, bloqueios) para este profissional na data
+          if (appointmentMinutes < startMinutes || appointmentMinutes >= endMinutes) {
+            console.log(`⚠️ Profissional ${prof.name} fora do horário de trabalho: ${appointmentTimeString} não está entre ${professionalSchedule.startTime}-${professionalSchedule.endTime}`)
+            continue // Pula profissional fora do horário
+          }
+
+          // 🎯 STEP 3: Verificar conflitos com agendamentos existentes
+          const hasConflict = conflictingAppointments.some(existingApt => {
+            if (existingApt.professionalId !== prof.id) return false
+            
+            const existingStart = existingApt.dateTime
+            const existingDuration = existingApt.duration || 30
+            const existingEnd = new Date(existingStart.getTime() + (existingDuration * 60000))
+            
+            return (appointmentDate < existingEnd) && (appointmentEndTime > existingStart)
+          })
+
+          if (hasConflict) {
+            console.log(`⚠️ Profissional ${prof.name} tem conflito com agendamento existente`)
+            continue // Pula profissional com conflitos
+          }
+
+          // 🎯 STEP 4: Verificar exceções/folgas
           const exceptions = await prisma.scheduleException.findMany({
             where: {
               professionalId: prof.id,
@@ -294,20 +321,46 @@ export async function POST(request: NextRequest) {
               ]
             }
           })
-          
-          // Verificar se há conflito com exceções
-          hasScheduleException = exceptions.some(exception => {
+
+          const hasScheduleException = exceptions.some(exception => {
             return (appointmentDate < exception.endDatetime) && (appointmentEndTime > exception.startDatetime)
           })
-          
+
           if (hasScheduleException) {
             console.log(`⚠️ Profissional ${prof.name} tem folga/exceção na data ${appointmentDate.toISOString()}`)
+            continue // Pula profissional com exceções
           }
-        }
-        
-        if (!hasConflict && !hasScheduleException) {
+
+          // 🎯 STEP 5: Verificar intervalos recorrentes
+          const recurringBreaks = await prisma.recurringBreak.findMany({
+            where: { scheduleId: professionalSchedule.id }
+          })
+
+          let hasBreakConflict = false
+          for (const breakItem of recurringBreaks) {
+            const breakStartMinutes = parseInt(breakItem.startTime.split(':')[0]) * 60 + parseInt(breakItem.startTime.split(':')[1])
+            const breakEndMinutes = parseInt(breakItem.endTime.split(':')[0]) * 60 + parseInt(breakItem.endTime.split(':')[1])
+            const serviceEndMinutes = appointmentMinutes + totalDuration
+            
+            // Verificar se o serviço conflita com o intervalo
+            if (appointmentMinutes < breakEndMinutes && serviceEndMinutes > breakStartMinutes) {
+              hasBreakConflict = true
+              console.log(`⚠️ Profissional ${prof.name} tem conflito com intervalo: ${breakItem.startTime}-${breakItem.endTime}`)
+              break
+            }
+          }
+
+          if (hasBreakConflict) {
+            continue // Pula profissional com conflitos de intervalo
+          }
+
+          // ✅ PROFISSIONAL DISPONÍVEL!
           availableProfessionals.push(prof)
-          // 🎯 REMOVED: break para coletar TODOS os disponíveis
+          console.log(`✅ Profissional ${prof.name} DISPONÍVEL para ${appointmentDate.toISOString()}`)
+          
+        } catch (error) {
+          console.error(`❌ Erro ao verificar profissional ${prof.name}:`, error)
+          // Não adicionar profissional se houve erro na verificação
         }
       }
       
