@@ -21,6 +21,15 @@ interface WhatsAppMessage {
 
 export function WhatsAppStatus() {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([])
+  const [apiStatus, setApiStatus] = useState<{
+    isConnected: boolean
+    instanceStatus?: string
+    error?: string
+    isLoading: boolean
+  }>({
+    isConnected: false,
+    isLoading: true
+  })
   
   // Buscar dados reais da API
   const { appointments, loading, fetchAppointments } = useAppointments()
@@ -29,7 +38,37 @@ export function WhatsAppStatus() {
   useEffect(() => {
     fetchAppointments()
     fetchClients()
+    checkApiStatus()
   }, [fetchAppointments, fetchClients])
+
+  // Verificar status da Evolution API
+  const checkApiStatus = async () => {
+    try {
+      setApiStatus(prev => ({ ...prev, isLoading: true }))
+      const response = await fetch('/api/whatsapp/status')
+      if (response.ok) {
+        const status = await response.json()
+        setApiStatus({
+          isConnected: status.isConnected,
+          instanceStatus: status.instanceStatus,
+          error: status.error,
+          isLoading: false
+        })
+      } else {
+        setApiStatus({
+          isConnected: false,
+          error: 'Falha ao verificar status da API',
+          isLoading: false
+        })
+      }
+    } catch (error) {
+      setApiStatus({
+        isConnected: false,
+        error: 'Erro de conexão',
+        isLoading: false
+      })
+    }
+  }
 
   useEffect(() => {
     if (appointments.length > 0 && clients.length > 0) {
@@ -183,6 +222,56 @@ export function WhatsAppStatus() {
 
   return (
     <div className="space-y-6">
+      {/* Evolution API Status */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-blue-400" />
+            Status da Evolution API
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={checkApiStatus}
+              disabled={apiStatus.isLoading}
+              className="ml-auto text-gray-400 hover:text-white"
+            >
+              <RefreshCw className={`w-4 h-4 ${apiStatus.isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {apiStatus.isLoading ? (
+                <Clock className="w-5 h-5 text-yellow-400 animate-pulse" />
+              ) : apiStatus.isConnected ? (
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-400" />
+              )}
+              <span className="font-medium text-white">
+                {apiStatus.isLoading 
+                  ? 'Verificando...' 
+                  : apiStatus.isConnected 
+                    ? 'Conectado' 
+                    : 'Desconectado'
+                }
+              </span>
+            </div>
+            {apiStatus.instanceStatus && (
+              <Badge variant="outline" className="text-gray-300 border-gray-600">
+                {apiStatus.instanceStatus}
+              </Badge>
+            )}
+            {apiStatus.error && (
+              <span className="text-sm text-red-400 ml-auto">
+                {apiStatus.error}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">

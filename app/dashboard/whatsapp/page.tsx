@@ -129,6 +129,8 @@ export default function WhatsAppPage() {
     setTestResult(null)
 
     try {
+      console.log('🧪 Enviando mensagem de teste via Evolution API...')
+      
       const success = await sendWhatsAppMessage({
         to: formatPhoneNumber(testMessage.phone),
         message: testMessage.message,
@@ -136,13 +138,23 @@ export default function WhatsAppPage() {
       })
 
       if (success) {
-        setTestResult({ success: true, message: "Mensagem enviada com sucesso!" })
+        setTestResult({ 
+          success: true, 
+          message: "✅ Mensagem enviada com sucesso via Evolution API!" 
+        })
         setTestMessage({ phone: "", message: "" })
       } else {
-        setTestResult({ success: false, message: "Falha ao enviar mensagem" })
+        setTestResult({ 
+          success: false, 
+          message: "❌ Falha ao enviar mensagem. Verifique as configurações da Evolution API." 
+        })
       }
     } catch (error) {
-      setTestResult({ success: false, message: "Erro ao enviar mensagem" })
+      console.error('Erro no teste de mensagem:', error)
+      setTestResult({ 
+        success: false, 
+        message: "❌ Erro ao conectar com Evolution API. Verifique se a API está funcionando." 
+      })
     } finally {
       setIsSending(false)
     }
