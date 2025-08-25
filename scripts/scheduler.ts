@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { sendWhatsappReminders } from './whatsapp-reminders-cron';
+import { sendWhatsappReminders } from './whatsapp-reminders-cron.js';
 
 console.log('✅ Agendador (Scheduler) de tarefas foi iniciado com sucesso.');
 console.log('🕐 Executando a cada 5 minutos para verificação de lembretes...');
