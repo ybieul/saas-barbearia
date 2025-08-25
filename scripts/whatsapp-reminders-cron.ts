@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { PrismaClient } from '@prisma/client'
-import { sendWhatsAppMessage, whatsappTemplates } from '../lib/whatsapp'
+import { sendWhatsAppMessage, whatsappTemplates } from '../lib/whatsapp-server'
 import { getBrazilNow, formatBrazilDate, formatBrazilTime } from '../lib/timezone'
 import { randomBytes } from 'crypto'
 

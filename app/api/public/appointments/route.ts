@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
-import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp'
+import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp-server'
 import { randomBytes } from 'crypto'
 
 // Função para gerar ID único (similar ao cuid do Prisma)
