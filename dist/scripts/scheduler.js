@@ -113,7 +113,7 @@ async function sendWhatsAppMessage(message) {
 
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
     const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE
+    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
       console.error('❌ [CRON] Configuração Evolution API incompleta')

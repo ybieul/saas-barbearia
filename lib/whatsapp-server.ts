@@ -171,18 +171,20 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
     console.log(`📤 [Server] Enviando mensagem WhatsApp diretamente para Evolution API...`)
     console.log(`📱 Para: ${message.to}`)
     console.log(`📝 Tipo: ${message.type}`)
+    console.log(`🔍 [Server] Usando instância: ${process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE}`)
 
     // Evolution API configuration from environment
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
     const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE
+    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
       console.error('❌ [Server] Configuração Evolution API incompleta')
-      console.error('Missing:', {
-        url: !EVOLUTION_API_URL,
-        key: !EVOLUTION_API_KEY,
-        instance: !EVOLUTION_INSTANCE
+      console.error('🔍 [Server] Debug Environment Variables:', {
+        EVOLUTION_API_URL: EVOLUTION_API_URL ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_API_KEY: EVOLUTION_API_KEY ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_INSTANCE: EVOLUTION_INSTANCE ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME ? '✅ Definida' : '❌ Não definida'
       })
       return false
     }
@@ -235,9 +237,16 @@ export async function checkWhatsAppStatus(): Promise<{
     
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
     const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE
+    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+      console.error('❌ [Server] Configuração Evolution API incompleta para status check')
+      console.error('🔍 [Server] Debug Environment Variables:', {
+        EVOLUTION_API_URL: EVOLUTION_API_URL ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_API_KEY: EVOLUTION_API_KEY ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_INSTANCE: EVOLUTION_INSTANCE ? '✅ Definida' : '❌ Não definida',
+        EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME ? '✅ Definida' : '❌ Não definida'
+      })
       return {
         connected: false,
         instanceName: null,

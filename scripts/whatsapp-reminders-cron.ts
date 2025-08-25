@@ -2,7 +2,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { sendWhatsAppMessage, whatsappTemplates } from '../lib/whatsapp-server.js'
-import { getBrazilNow, formatBrazilDate, formatBrazilTime } from '../lib/timezone'
+import { getBrazilNow, formatBrazilDate, formatBrazilTime } from '../lib/timezone.js'
 import { randomBytes } from 'crypto'
 
 const prisma = new PrismaClient()
