@@ -22,9 +22,9 @@ async function sendPublicConfirmationMessage(
   // Verificar se a automação de confirmação está ativa
   const automationSetting = await prisma.$queryRaw`
     SELECT * FROM automation_settings 
-    WHERE establishment_id = ${business.id} 
-    AND automation_type = 'confirmation' 
-    AND is_enabled = true
+    WHERE establishmentId = ${business.id} 
+    AND automationType = 'confirmation' 
+    AND isEnabled = true
     LIMIT 1
   ` as any[]
   
