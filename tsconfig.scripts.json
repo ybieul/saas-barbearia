@@ -1,10 +1,15 @@
 {
-  "extends": "./tsconfig.json", // Herda as configurações principais
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "noEmit": false, // <-- A MUDANÇA MAIS IMPORTANTE: permite a criação de arquivos .js
-    "outDir": "dist" // <-- Define a pasta de saída para "dist"
+    "module": "CommonJS", // <-- MUDANÇA CRÍTICA
+    "moduleResolution": "Node", // <-- MUDANÇA CRÍTICA
+    "noEmit": false,
+    "outDir": "dist"
   },
   "include": [
-    "scripts" // Diz ao compilador para olhar apenas a pasta "scripts"
+    "scripts"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }
