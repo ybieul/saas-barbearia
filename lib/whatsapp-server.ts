@@ -1,5 +1,5 @@
 // WhatsApp API integration utilities - SERVER SIDE VERSION
-import { formatCurrency } from './currency'
+import { formatCurrency } from './currency.js'
 
 export interface WhatsAppMessage {
   to: string
