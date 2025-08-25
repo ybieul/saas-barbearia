@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json", // Herda as configurações principais
+  "compilerOptions": {
+    "noEmit": false, // <-- A MUDANÇA MAIS IMPORTANTE: permite a criação de arquivos .js
+    "outDir": "dist" // <-- Define a pasta de saída para "dist"
+  },
+  "include": [
+    "scripts" // Diz ao compilador para olhar apenas a pasta "scripts"
+  ]
+}
