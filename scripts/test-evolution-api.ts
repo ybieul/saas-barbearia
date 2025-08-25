@@ -9,7 +9,8 @@ import { sendWhatsAppMessage, checkEvolutionApiStatus, formatPhoneNumber } from 
 import { config } from 'dotenv'
 
 // Carregar variáveis de ambiente
-config()
+config({ path: '.env.local' })
+config() // Fallback para .env
 
 async function testEvolutionApi() {
   console.log('🧪 === TESTE DA INTEGRAÇÃO EVOLUTION API ===\n')

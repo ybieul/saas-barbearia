@@ -45,7 +45,25 @@ export function WhatsAppStatus() {
   const checkApiStatus = async () => {
     try {
       setApiStatus(prev => ({ ...prev, isLoading: true }))
-      const response = await fetch('/api/whatsapp/status')
+      
+      // Buscar token de autenticação
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setApiStatus({
+          isConnected: false,
+          error: 'Usuário não autenticado',
+          isLoading: false
+        })
+        return
+      }
+
+      const response = await fetch('/api/whatsapp/status', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
       if (response.ok) {
         const status = await response.json()
         setApiStatus({
@@ -55,13 +73,15 @@ export function WhatsAppStatus() {
           isLoading: false
         })
       } else {
+        const errorData = await response.json().catch(() => ({}))
         setApiStatus({
           isConnected: false,
-          error: 'Falha ao verificar status da API',
+          error: errorData.error || 'Falha ao verificar status da API',
           isLoading: false
         })
       }
     } catch (error) {
+      console.error('Erro ao verificar status da Evolution API:', error)
       setApiStatus({
         isConnected: false,
         error: 'Erro de conexão',

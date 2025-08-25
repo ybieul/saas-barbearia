@@ -47,7 +47,21 @@ export default function WhatsAppPage() {
   const loadAutomationSettings = async () => {
     try {
       setIsLoadingSettings(true)
-      const response = await fetch('/api/automation-settings')
+      
+      // Buscar token de autenticação
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        console.error('Token de autenticação não encontrado')
+        return
+      }
+
+      const response = await fetch('/api/automation-settings', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
       if (response.ok) {
         const settings = await response.json()
         setAutomationSettings({
@@ -58,6 +72,9 @@ export default function WhatsAppPage() {
           reactivationEnabled: settings.reactivation?.isEnabled ?? false,
           reactivationDays: 45, // Pode ser configurado no futuro
         })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Erro ao carregar configurações:', errorData.error || response.statusText)
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
@@ -69,10 +86,20 @@ export default function WhatsAppPage() {
   // Salvar configuração individual
   const saveAutomationSetting = async (automationType: string, isEnabled: boolean) => {
     try {
+      // Buscar token de autenticação
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        console.error('Token de autenticação não encontrado')
+        // Reverter o estado em caso de erro
+        loadAutomationSettings()
+        return
+      }
+
       const response = await fetch('/api/automation-settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           automationType,
@@ -83,6 +110,8 @@ export default function WhatsAppPage() {
       if (response.ok) {
         console.log(`✅ ${automationType} ${isEnabled ? 'ativado' : 'desativado'}`)
       } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Erro ao salvar configuração:', errorData.error || response.statusText)
         throw new Error('Falha ao salvar configuração')
       }
     } catch (error) {
