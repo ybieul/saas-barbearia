@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { WhatsAppStatus } from "@/components/whatsapp-status"
-import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber } from "@/lib/whatsapp"
-import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle } from "lucide-react"
+import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber, checkWhatsAppStatus } from "@/lib/whatsapp"
+import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
+import { useAutomationSettings } from "@/hooks/use-automation-settings"
 import { getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
 
 export default function WhatsAppPage() {
@@ -21,17 +22,21 @@ export default function WhatsAppPage() {
   const [isSending, setIsSending] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
-  const [automationSettings, setAutomationSettings] = useState({
-    confirmationEnabled: false,
-    reminder24hEnabled: false,
-    reminder12hEnabled: false,
-    reminder2hEnabled: false,
-    reactivationEnabled: false,
-    reactivationDays: 45,
-  })
+  // Usar o hook personalizado para automações
+  const { 
+    settings: automationSettings, 
+    isLoading: isLoadingSettings, 
+    error: settingsError, 
+    loadSettings: loadAutomationSettings, 
+    updateSetting: saveAutomationSetting 
+  } = useAutomationSettings()
 
-  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
-  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [whatsappStatus, setWhatsappStatus] = useState<{
+    connected: boolean
+    instanceName: string | null
+    error?: string
+    loading: boolean
+  }>({ connected: false, instanceName: null, loading: true })
 
   // Buscar dados reais da API
   const { appointments, loading, fetchAppointments } = useAppointments()
@@ -41,54 +46,29 @@ export default function WhatsAppPage() {
     fetchAppointments()
     fetchClients()
     loadAutomationSettings()
-  }, [fetchAppointments, fetchClients])
+    checkEvolutionStatus()
+  }, [fetchAppointments, fetchClients, loadAutomationSettings])
 
-  // Carregar configurações de automação
-  const loadAutomationSettings = async () => {
+  // Verificar status da Evolution API
+  const checkEvolutionStatus = async () => {
     try {
-      setIsLoadingSettings(true)
-      const response = await fetch('/api/automation-settings')
-      if (response.ok) {
-        const settings = await response.json()
-        setAutomationSettings({
-          confirmationEnabled: settings.confirmation?.isEnabled ?? false,
-          reminder24hEnabled: settings.reminder_24h?.isEnabled ?? false,
-          reminder12hEnabled: settings.reminder_12h?.isEnabled ?? false,
-          reminder2hEnabled: settings.reminder_2h?.isEnabled ?? false,
-          reactivationEnabled: settings.reactivation?.isEnabled ?? false,
-          reactivationDays: 45, // Pode ser configurado no futuro
-        })
-      }
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error)
-    } finally {
-      setIsLoadingSettings(false)
-    }
-  }
-
-  // Salvar configuração individual
-  const saveAutomationSetting = async (automationType: string, isEnabled: boolean) => {
-    try {
-      const response = await fetch('/api/automation-settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          automationType,
-          isEnabled,
-        }),
+      setWhatsappStatus(prev => ({ ...prev, loading: true }))
+      const status = await checkWhatsAppStatus()
+      setWhatsappStatus({
+        connected: status.connected,
+        instanceName: status.instanceName,
+        error: status.error,
+        loading: false
       })
-
-      if (response.ok) {
-        console.log(`✅ ${automationType} ${isEnabled ? 'ativado' : 'desativado'}`)
-      } else {
-        throw new Error('Falha ao salvar configuração')
-      }
+      console.log('📡 Status Evolution API:', status)
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error)
-      // Reverter o estado em caso de erro
-      loadAutomationSettings()
+      console.error('❌ Erro ao verificar status:', error)
+      setWhatsappStatus({
+        connected: false,
+        instanceName: null,
+        error: 'Erro ao conectar',
+        loading: false
+      })
     }
   }
 
@@ -129,6 +109,8 @@ export default function WhatsAppPage() {
     setTestResult(null)
 
     try {
+      console.log('📤 Enviando mensagem de teste...')
+      
       const success = await sendWhatsAppMessage({
         to: formatPhoneNumber(testMessage.phone),
         message: testMessage.message,
@@ -136,13 +118,16 @@ export default function WhatsAppPage() {
       })
 
       if (success) {
-        setTestResult({ success: true, message: "Mensagem enviada com sucesso!" })
+        setTestResult({ success: true, message: "Mensagem enviada com sucesso via Evolution API!" })
         setTestMessage({ phone: "", message: "" })
+        console.log('✅ Teste de mensagem bem-sucedido')
       } else {
-        setTestResult({ success: false, message: "Falha ao enviar mensagem" })
+        setTestResult({ success: false, message: "Falha ao enviar mensagem. Verifique os logs do console." })
+        console.error('❌ Teste de mensagem falhou')
       }
     } catch (error) {
-      setTestResult({ success: false, message: "Erro ao enviar mensagem" })
+      console.error('❌ Erro no teste de mensagem:', error)
+      setTestResult({ success: false, message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}` })
     } finally {
       setIsSending(false)
     }
@@ -231,11 +216,41 @@ export default function WhatsAppPage() {
             WhatsApp Business
           </h1>
           <p className="text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
+          
+          {/* Status da Evolution API */}
+          <div className="flex items-center gap-2 mt-2">
+            {whatsappStatus.loading ? (
+              <div className="flex items-center gap-2 text-yellow-400">
+                <Clock className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Verificando conexão...</span>
+              </div>
+            ) : whatsappStatus.connected ? (
+              <div className="flex items-center gap-2 text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm">Evolution API conectada ({whatsappStatus.instanceName})</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">Evolution API desconectada</span>
+                {whatsappStatus.error && <span className="text-xs">({whatsappStatus.error})</span>}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent">
-            <Settings className="w-4 h-4 mr-2" />
-            Configurar API
+          <Button 
+            variant="outline" 
+            onClick={checkEvolutionStatus}
+            disabled={whatsappStatus.loading}
+            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
+          >
+            {whatsappStatus.loading ? (
+              <Clock className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Settings className="w-4 h-4 mr-2" />
+            )}
+            {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
           </Button>
         </div>
       </div>
@@ -384,7 +399,6 @@ export default function WhatsAppPage() {
                 checked={automationSettings.confirmationEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  setAutomationSettings(prev => ({ ...prev, confirmationEnabled: checked }))
                   await saveAutomationSetting('confirmation', checked)
                 }}
               />
@@ -399,7 +413,6 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder24hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  setAutomationSettings(prev => ({ ...prev, reminder24hEnabled: checked }))
                   await saveAutomationSetting('reminder_24h', checked)
                 }}
               />
@@ -414,7 +427,6 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder12hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  setAutomationSettings(prev => ({ ...prev, reminder12hEnabled: checked }))
                   await saveAutomationSetting('reminder_12h', checked)
                 }}
               />
@@ -429,7 +441,6 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder2hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  setAutomationSettings(prev => ({ ...prev, reminder2hEnabled: checked }))
                   await saveAutomationSetting('reminder_2h', checked)
                 }}
               />
@@ -444,7 +455,6 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reactivationEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  setAutomationSettings(prev => ({ ...prev, reactivationEnabled: checked }))
                   await saveAutomationSetting('reactivation', checked)
                 }}
               />
@@ -455,13 +465,9 @@ export default function WhatsAppPage() {
               <Input
                 type="number"
                 value={automationSettings.reactivationDays}
-                onChange={(e) =>
-                  setAutomationSettings({
-                    ...automationSettings,
-                    reactivationDays: Number.parseInt(e.target.value),
-                  })
-                }
+                disabled={isLoadingSettings}
                 className="bg-gray-700 border-[#3f3f46] text-white w-32"
+                readOnly
               />
             </div>
 

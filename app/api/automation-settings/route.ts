@@ -66,23 +66,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upsert (inserir ou atualizar) a configuração
-    await prisma.$executeRaw`
-      INSERT INTO automation_settings (id, establishment_id, automation_type, is_enabled, message_template, created_at, updated_at)
-      VALUES (
-        ${generateId()}, 
-        ${user.tenantId}, 
-        ${automationType}, 
-        ${isEnabled}, 
-        ${messageTemplate || null},
-        NOW(),
-        NOW()
-      )
-      ON DUPLICATE KEY UPDATE
-        is_enabled = ${isEnabled},
-        message_template = ${messageTemplate || null},
-        updated_at = NOW()
-    `
+    console.log(`📝 Salvando configuração: ${automationType} = ${isEnabled} para tenant ${user.tenantId}`)
+
+    // Verificar se a configuração já existe
+    const existingSetting = await prisma.$queryRaw`
+      SELECT id FROM automation_settings 
+      WHERE establishment_id = ${user.tenantId} 
+      AND automation_type = ${automationType}
+      LIMIT 1
+    ` as any[]
+
+    if (existingSetting.length > 0) {
+      // Atualizar configuração existente
+      console.log('📝 Atualizando configuração existente')
+      await prisma.$executeRaw`
+        UPDATE automation_settings 
+        SET is_enabled = ${isEnabled}, 
+            message_template = ${messageTemplate || null},
+            updated_at = NOW()
+        WHERE establishment_id = ${user.tenantId} 
+        AND automation_type = ${automationType}
+      `
+    } else {
+      // Inserir nova configuração
+      console.log('📝 Inserindo nova configuração')
+      await prisma.$executeRaw`
+        INSERT INTO automation_settings (id, establishment_id, automation_type, is_enabled, message_template, created_at, updated_at)
+        VALUES (
+          ${generateId()}, 
+          ${user.tenantId}, 
+          ${automationType}, 
+          ${isEnabled}, 
+          ${messageTemplate || null},
+          NOW(),
+          NOW()
+        )
+      `
+    }
+
+    console.log('✅ Configuração salva com sucesso')
 
     return NextResponse.json({ 
       message: 'Configuração atualizada com sucesso',
@@ -92,7 +114,17 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Erro ao atualizar configuração de automação:', error)
+    console.error('❌ Erro ao atualizar configuração de automação:', error)
+    
+    // Log mais detalhado do erro
+    if (error instanceof Error) {
+      console.error('❌ Erro detalhado:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
+    }
+    
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
       { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }
