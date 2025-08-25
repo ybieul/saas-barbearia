@@ -126,65 +126,51 @@ Que tal adicionar um *${data.additionalService}* com *${data.discount}% de desco
 Deixe seu visual ainda mais incrível! ✨`,
 }
 
-// Evolution API integration
+// Evolution API integration (Client-side version)
 export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boolean> {
   try {
-    const evolutionURL = process.env.EVOLUTION_API_URL
-    const evolutionKey = process.env.EVOLUTION_API_KEY
-    const instanceName = process.env.EVOLUTION_INSTANCE_NAME
-
-    if (!evolutionURL || !evolutionKey || !instanceName) {
-      console.error('❌ Evolution API não configurada. Verifique as variáveis de ambiente:')
-      console.error('- EVOLUTION_API_URL:', evolutionURL ? '✅' : '❌')
-      console.error('- EVOLUTION_API_KEY:', evolutionKey ? '✅' : '❌')
-      console.error('- EVOLUTION_INSTANCE_NAME:', instanceName ? '✅' : '❌')
-      return false
-    }
-
-    console.log(`📤 Enviando mensagem WhatsApp via Evolution API...`)
+    console.log(`📤 [Client] Enviando mensagem WhatsApp via API Route...`)
     console.log(`📱 Para: ${message.to}`)
     console.log(`📝 Tipo: ${message.type}`)
 
-    // Formatar número para o padrão internacional (sem + nem espaços)
-    const formattedNumber = formatPhoneNumber(message.to)
-    
-    // Endpoint da Evolution API para envio de mensagem de texto
-    const apiUrl = `${evolutionURL}/message/sendText/${instanceName}`
-    
-    const requestBody = {
-      number: formattedNumber,
-      text: message.message,
-      delay: 1000 // Delay de 1 segundo entre mensagens
+    // Obter token do localStorage
+    const token = localStorage.getItem('auth_token')
+    console.log('🔍 [Client] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     }
 
-    console.log(`🔗 URL: ${apiUrl}`)
-    console.log(`📞 Número formatado: ${formattedNumber}`)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
 
-    const response = await fetch(apiUrl, {
+    const response = await fetch('/api/whatsapp/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': evolutionKey,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
+      headers,
+      body: JSON.stringify({
+        to: message.to,
+        message: message.message,
+        type: message.type
+      })
     })
 
     const responseData = await response.json()
 
-    if (response.ok) {
-      console.log('✅ Mensagem WhatsApp enviada com sucesso!')
-      console.log('📋 Resposta:', responseData)
+    if (response.ok && responseData.success) {
+      console.log('✅ [Client] Mensagem enviada com sucesso!')
+      console.log('📋 [Client] Resposta:', responseData)
       return true
     } else {
-      console.error('❌ Falha ao enviar mensagem WhatsApp')
+      console.error('❌ [Client] Falha ao enviar mensagem')
       console.error('📋 Status:', response.status)
       console.error('📋 Resposta:', responseData)
       return false
     }
 
   } catch (error) {
-    console.error('❌ Erro ao conectar com Evolution API:', error)
+    console.error('❌ [Client] Erro ao conectar com API:', error)
     return false
   }
 }
@@ -225,61 +211,39 @@ export function formatPhoneNumber(phone: string): string {
   return cleaned
 }
 
-// Check Evolution API instance status
+// Check Evolution API instance status (Client-side version)
 export async function checkWhatsAppStatus(): Promise<{
   connected: boolean
   instanceName: string | null
   error?: string
 }> {
   try {
-    const evolutionURL = process.env.EVOLUTION_API_URL
-    const evolutionKey = process.env.EVOLUTION_API_KEY
-    const instanceName = process.env.EVOLUTION_INSTANCE_NAME
-
-    if (!evolutionURL || !evolutionKey || !instanceName) {
-      return {
-        connected: false,
-        instanceName: null,
-        error: 'Variáveis de ambiente não configuradas'
-      }
-    }
-
-    // Verificar status da instância
-    const apiUrl = `${evolutionURL}/instance/connectionState/${instanceName}`
+    console.log('🔍 [Client] Verificando status via API Route...')
     
-    console.log(`🔍 Verificando status da instância: ${instanceName}`)
-    console.log(`🔗 URL: ${apiUrl}`)
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch('/api/whatsapp/status', {
       method: 'GET',
       headers: {
-        'apikey': evolutionKey,
         'Accept': 'application/json'
       }
     })
 
     if (response.ok) {
       const data = await response.json()
-      console.log('📋 Status da instância:', data)
-      
-      return {
-        connected: data.instance?.state === 'open' || data.state === 'open',
-        instanceName: instanceName,
-        error: data.instance?.state !== 'open' ? `Status: ${data.instance?.state || data.state}` : undefined
-      }
+      console.log('📋 [Client] Status recebido:', data)
+      return data
     } else {
       const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }))
-      console.error('❌ Erro ao verificar status:', errorData)
+      console.error('❌ [Client] Erro ao verificar status:', errorData)
       
       return {
         connected: false,
-        instanceName: instanceName,
+        instanceName: null,
         error: `HTTP ${response.status}: ${errorData.message || 'Erro na API'}`
       }
     }
 
   } catch (error) {
-    console.error('❌ Erro ao conectar com Evolution API:', error)
+    console.error('❌ [Client] Erro ao conectar com API:', error)
     return {
       connected: false,
       instanceName: null,

@@ -1,11 +1,60 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import jwt from 'jsonwebtoken'
+
+interface AuthUser {
+  userId: string
+  tenantId: string
+  email: string
+  role: string
+}
+
+function verifyToken(request: NextRequest): AuthUser {
+  // Tentar obter token do header Authorization
+  let token = request.headers.get('authorization')?.replace('Bearer ', '')
+  
+  // Se não tiver no header, tentar obter do cookie
+  if (!token) {
+    token = request.cookies.get('token')?.value
+  }
+  
+  // Se ainda não tiver, tentar obter do header x-auth-token
+  if (!token) {
+    token = request.headers.get('x-auth-token') || undefined
+  }
+
+  console.log('🔍 [API] Verificando token:', token ? '✅ Token encontrado' : '❌ Token não encontrado')
+
+  if (!token) {
+    throw new Error('Token não fornecido')
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
+    
+    if (!decoded.tenantId) {
+      throw new Error('Token inválido: tenantId não encontrado')
+    }
+
+    console.log('✅ [API] Token válido para usuário:', decoded.email)
+
+    return {
+      userId: decoded.userId,
+      tenantId: decoded.tenantId,
+      email: decoded.email,
+      role: decoded.role
+    }
+  } catch (error) {
+    console.error('❌ [API] Erro ao verificar token:', error)
+    throw new Error('Token inválido')
+  }
+}
 
 // GET - Buscar configurações de automação do estabelecimento
 export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    console.log('✅ [API] Usuário autenticado para GET settings:', user.email)
     
     // Buscar todas as configurações de automação do tenant
     const automationSettings = await prisma.$queryRaw`
@@ -13,6 +62,8 @@ export async function GET(request: NextRequest) {
       FROM automation_settings 
       WHERE establishment_id = ${user.tenantId}
     ` as any[]
+
+    console.log('📋 [API] Configurações encontradas:', automationSettings.length)
 
     // Tipos de automação disponíveis
     const availableAutomations = [
@@ -36,10 +87,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
     
   } catch (error) {
-    console.error('Erro ao buscar configurações de automação:', error)
+    console.error('❌ [API] Erro ao buscar configurações de automação:', error)
+    
+    if (error instanceof Error && error.message.includes('Token')) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: 401 }
+      )
+    }
+    
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
-      { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }
+      { status: 500 }
     )
   }
 }
@@ -48,6 +107,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    console.log('✅ [API] Usuário autenticado para POST settings:', user.email)
+    
     const { automationType, isEnabled, messageTemplate } = await request.json()
 
     if (!automationType || typeof isEnabled !== 'boolean') {
@@ -66,7 +127,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`📝 Salvando configuração: ${automationType} = ${isEnabled} para tenant ${user.tenantId}`)
+    console.log(`📝 [API] Salvando configuração: ${automationType} = ${isEnabled} para tenant ${user.tenantId}`)
 
     // Verificar se a configuração já existe
     const existingSetting = await prisma.$queryRaw`
@@ -78,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     if (existingSetting.length > 0) {
       // Atualizar configuração existente
-      console.log('📝 Atualizando configuração existente')
+      console.log('📝 [API] Atualizando configuração existente')
       await prisma.$executeRaw`
         UPDATE automation_settings 
         SET is_enabled = ${isEnabled}, 
@@ -89,7 +150,7 @@ export async function POST(request: NextRequest) {
       `
     } else {
       // Inserir nova configuração
-      console.log('📝 Inserindo nova configuração')
+      console.log('📝 [API] Inserindo nova configuração')
       await prisma.$executeRaw`
         INSERT INTO automation_settings (id, establishment_id, automation_type, is_enabled, message_template, created_at, updated_at)
         VALUES (
@@ -104,7 +165,7 @@ export async function POST(request: NextRequest) {
       `
     }
 
-    console.log('✅ Configuração salva com sucesso')
+    console.log('✅ [API] Configuração salva com sucesso')
 
     return NextResponse.json({ 
       message: 'Configuração atualizada com sucesso',
@@ -114,7 +175,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('❌ Erro ao atualizar configuração de automação:', error)
+    console.error('❌ [API] Erro ao atualizar configuração de automação:', error)
     
     // Log mais detalhado do erro
     if (error instanceof Error) {
@@ -125,9 +186,16 @@ export async function POST(request: NextRequest) {
       })
     }
     
+    if (error instanceof Error && error.message.includes('Token')) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: 401 }
+      )
+    }
+    
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
-      { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }
+      { status: 500 }
     )
   }
 }

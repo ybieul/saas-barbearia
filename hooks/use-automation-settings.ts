@@ -30,7 +30,19 @@ export function useAutomationSettings() {
       setError(null)
       console.log('📋 [Hook] Carregando configurações de automação...')
       
-      const response = await fetch('/api/automation-settings')
+      // Obter token do localStorage
+      const token = localStorage.getItem('auth_token')
+      console.log('🔍 [Hook] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+
+      const headers: Record<string, string> = {
+        'Accept': 'application/json'
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      const response = await fetch('/api/automation-settings', { headers })
       console.log('📋 [Hook] Response status:', response.status)
       
       if (response.ok) {
@@ -69,11 +81,21 @@ export function useAutomationSettings() {
       setError(null)
       console.log(`💾 [Hook] Salvando: ${automationType} = ${isEnabled}`)
       
+      // Obter token do localStorage
+      const token = localStorage.getItem('auth_token')
+      console.log('🔍 [Hook] Token encontrado para save:', token ? '✅ Sim' : '❌ Não')
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
       const response = await fetch('/api/automation-settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           automationType,
           isEnabled,
