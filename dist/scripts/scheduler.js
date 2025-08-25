@@ -91,7 +91,8 @@ function formatPhoneNumber(phone) {
   
   if (cleaned.length === 13 && cleaned.startsWith('55')) {
     return cleaned
-  } else if (cleaned.length === 11 && cleaned.startsWith('11')) {
+  } else if (cleaned.length === 11) {
+    // With area code but without country: 11999999999, 24993273697, etc
     return `55${cleaned}`
   } else if (cleaned.length === 10) {
     const areaCode = cleaned.substring(0, 2)

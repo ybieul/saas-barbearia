@@ -1,5 +1,5 @@
 // WhatsApp API integration utilities - SERVER SIDE VERSION
-import { formatCurrency } from './currency.js'
+import { formatCurrency } from './currency'
 
 export interface WhatsAppMessage {
   to: string
@@ -141,10 +141,10 @@ export function formatPhoneNumber(phone: string): string {
     const formatted = cleaned
     console.log(`✅ Formato completo: ${formatted}`)
     return formatted
-  } else if (cleaned.length === 11 && cleaned.startsWith('11')) {
-    // With area code but without country: 11999999999
+  } else if (cleaned.length === 11) {
+    // With area code but without country: 11999999999, 24993273697, etc
     const formatted = `55${cleaned}`
-    console.log(`✅ Adicionado código do país: ${formatted}`)
+    console.log(`✅ Adicionado código do país (DDD ${cleaned.substring(0,2)}): ${formatted}`)
     return formatted
   } else if (cleaned.length === 10) {
     // Old format without 9th digit: 1199999999
@@ -191,10 +191,12 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
 
     // Format phone number
     const formattedPhone = formatPhoneNumber(message.to)
+    console.log(`📱 [Server] Telefone formatado: ${message.to} -> ${formattedPhone}`)
     
     const payload = {
       number: formattedPhone,
-      text: message.message
+      text: message.message,
+      delay: 1000
     }
 
     console.log('📡 [Server] Payload:', payload)
