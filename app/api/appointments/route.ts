@@ -29,8 +29,8 @@ async function sendConfirmationMessage(appointment: any) {
   // Verificar se já foi enviada uma confirmação para este agendamento
   const existingConfirmation = await prisma.$queryRaw`
     SELECT * FROM appointment_reminders 
-    WHERE appointment_id = ${appointment.id} 
-    AND reminder_type = 'confirmation'
+    WHERE appointmentId = ${appointment.id} 
+    AND reminderType = 'confirmation'
     LIMIT 1
   ` as any[]
   
@@ -79,7 +79,7 @@ async function sendConfirmationMessage(appointment: any) {
   if (success) {
     // Registrar o envio
     await prisma.$executeRaw`
-      INSERT INTO appointment_reminders (id, appointment_id, reminder_type, sent_at, created_at)
+      INSERT INTO appointment_reminders (id, appointmentId, reminderType, sentAt, createdAt)
       VALUES (${generateId()}, ${appointment.id}, 'confirmation', ${getBrazilNow()}, ${getBrazilNow()})
     `
     console.log('✅ Confirmação enviada com sucesso para:', appointment.endUser.name)

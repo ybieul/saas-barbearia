@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
     
     // Buscar todas as configurações de automação do tenant
     const automationSettings = await prisma.$queryRaw`
-      SELECT automation_type as automationType, is_enabled as isEnabled, message_template as messageTemplate
+      SELECT automationType, isEnabled, messageTemplate
       FROM automation_settings 
-      WHERE establishment_id = ${user.tenantId}
+      WHERE establishmentId = ${user.tenantId}
     ` as any[]
 
     console.log('📋 [API] Configurações encontradas:', automationSettings.length)
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
     // Verificar se a configuração já existe
     const existingSetting = await prisma.$queryRaw`
       SELECT id FROM automation_settings 
-      WHERE establishment_id = ${user.tenantId} 
-      AND automation_type = ${automationType}
+      WHERE establishmentId = ${user.tenantId} 
+      AND automationType = ${automationType}
       LIMIT 1
     ` as any[]
 
@@ -142,17 +142,17 @@ export async function POST(request: NextRequest) {
       console.log('📝 [API] Atualizando configuração existente')
       await prisma.$executeRaw`
         UPDATE automation_settings 
-        SET is_enabled = ${isEnabled}, 
-            message_template = ${messageTemplate || null},
-            updated_at = NOW()
-        WHERE establishment_id = ${user.tenantId} 
-        AND automation_type = ${automationType}
+        SET isEnabled = ${isEnabled}, 
+            messageTemplate = ${messageTemplate || null},
+            updatedAt = NOW()
+        WHERE establishmentId = ${user.tenantId} 
+        AND automationType = ${automationType}
       `
     } else {
       // Inserir nova configuração
       console.log('📝 [API] Inserindo nova configuração')
       await prisma.$executeRaw`
-        INSERT INTO automation_settings (id, establishment_id, automation_type, is_enabled, message_template, created_at, updated_at)
+        INSERT INTO automation_settings (id, establishmentId, automationType, isEnabled, messageTemplate, createdAt, updatedAt)
         VALUES (
           ${generateId()}, 
           ${user.tenantId}, 

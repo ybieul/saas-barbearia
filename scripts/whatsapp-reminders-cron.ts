@@ -98,9 +98,9 @@ export async function sendWhatsappReminders() {
         // Verificar se a automação está ativa
         const automationSetting = await prisma.$queryRaw`
           SELECT * FROM automation_settings 
-          WHERE establishment_id = ${appointment.tenantId} 
-          AND automation_type = ${config.type} 
-          AND is_enabled = true
+          WHERE establishmentId = ${appointment.tenantId} 
+          AND automationType = ${config.type} 
+          AND isEnabled = true
           LIMIT 1
         ` as any[]
         
@@ -109,8 +109,8 @@ export async function sendWhatsappReminders() {
         // Verificar se não foi enviado ainda
         const existingReminder = await prisma.$queryRaw`
           SELECT * FROM appointment_reminders 
-          WHERE appointment_id = ${appointment.id} 
-          AND reminder_type = ${config.type}
+          WHERE appointmentId = ${appointment.id} 
+          AND reminderType = ${config.type}
           LIMIT 1
         ` as any[]
         
@@ -128,7 +128,7 @@ export async function sendWhatsappReminders() {
           
           // Registrar o envio usando query raw
           await prisma.$executeRaw`
-            INSERT INTO appointment_reminders (id, appointment_id, reminder_type, sent_at, created_at)
+            INSERT INTO appointment_reminders (id, appointmentId, reminderType, sentAt, createdAt)
             VALUES (${generateId()}, ${appointment.id}, ${config.type}, ${now}, ${now})
           `
 
