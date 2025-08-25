@@ -338,46 +338,13 @@ export async function GET(
       }))
     })
 
-    // 🔧 FUNÇÃO DE CORREÇÃO: Ajustar timezone das exceções para compatibilidade
-    const adjustExceptionTimezone = (exceptionDate: Date): Date => {
-      // Detectar "falso UTC": se (hora local + offset BRT) == hora UTC, então foi salvo incorretamente
-      // Exemplo: 14:30 BRT salvo como 14:30Z aparece como:
-      // - Local: 11h (14h - 3h offset BRT)  
-      // - UTC: 14h
-      // - Test: 11 + 3 = 14 ✓ (é falso UTC)
-      
-      const localHour = exceptionDate.getHours() // Em BRT devido ao timezone do sistema
-      const utcHour = exceptionDate.getUTCHours() // Em UTC real
-      const brtOffset = 3 // BRT é UTC-3
-      
-      if ((localHour + brtOffset) === utcHour) {
-        // Converter "falso UTC" para UTC real subtraindo o offset BRT
-        const correctedDate = new Date(exceptionDate.getTime() - (brtOffset * 60 * 60 * 1000))
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔧 [TIMEZONE-FIX] Exceção detectada como "falso UTC" - aplicando correção:', {
-            original: exceptionDate.toISOString(),
-            originalBRT: exceptionDate.toLocaleString('pt-BR'),
-            corrected: correctedDate.toISOString(),
-            correctedBRT: correctedDate.toLocaleString('pt-BR'),
-            explanation: `Converteu "${localHour}:xx BRT salvo como ${utcHour}:xx UTC" para "${correctedDate.getUTCHours()}:xx UTC real"`
-          })
-        }
-        
-        return correctedDate
-      }
-      
-      // Se já está em UTC real, retornar sem modificar
-      return exceptionDate
-    }
-
     // PASSO 5: Processar cada slot de 5min individualmente
     const allSlotsStatus: AvailabilitySlot[] = availableSlotsAfterBreaks.map(slotTime => {
       const [hours, minutes] = slotTime.split(':').map(Number)
       
-      // 🔧 CORREÇÃO CRÍTICA: Criar data do slot em UTC para coincidir com banco de dados
-      // Banco salva agendamentos em UTC, então slots devem ser criados em UTC também
-      const slotStart = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate(), hours, minutes, 0, 0))
+      // 🇧🇷 CORREÇÃO CRÍTICA: Criar data do slot em horário brasileiro (igual ao frontend)
+      // Sistema agora usa APENAS timezone brasileiro - sem conversões UTC
+      const slotStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), hours, minutes, 0, 0)
       const slotEnd = addMinutes(slotStart, 5) // ✅ CORRETO: Cada slot é de 5 minutos
 
       let available = true
@@ -386,7 +353,7 @@ export async function GET(
       // 🔍 DEBUG: Log para slot específico (apenas slots críticos)
       const isDebugSlot = ['11:00', '11:05', '11:10', '11:15'].includes(slotTime)
       if (isDebugSlot) {
-        console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime} (CORREÇÃO UTC):`, {
+        console.log(`🔍 [AVAILABILITY-V2] Verificando slot ${slotTime} (BRASILEIRO):`, {
           slotStart: slotStart.toISOString(),
           slotEnd: slotEnd.toISOString(),
           slotStartTime: slotStart.getTime(),
@@ -394,10 +361,10 @@ export async function GET(
           appointmentsToCheck: existingAppointments.length,
           targetDateInfo: {
             original: targetDate.toISOString(),
-            utcYear: targetDate.getUTCFullYear(),
-            utcMonth: targetDate.getUTCMonth(),
-            utcDate: targetDate.getUTCDate(),
-            timezone: 'Forçado para UTC'
+            year: targetDate.getFullYear(),
+            month: targetDate.getMonth(),
+            date: targetDate.getDate(),
+            timezone: 'Brasileiro (BRT)'
           }
         })
       }
@@ -408,7 +375,7 @@ export async function GET(
         
         // 🔍 DEBUG: Log detalhado da verificação de sobreposição
         if (isDebugSlot) {
-          console.log(`🔍 [AVAILABILITY-V2] Verificando sobreposição slot ${slotTime} (UTC CORRIGIDO):`, {
+          console.log(`🔍 [AVAILABILITY-V2] Verificando sobreposição slot ${slotTime} (BRASILEIRO):`, {
             appointmentId: appointment.id,
             appointmentStart: appointment.dateTime.toISOString(),
             appointmentEnd: appointmentEnd.toISOString(),
@@ -417,12 +384,12 @@ export async function GET(
             slotEnd: slotEnd.toISOString(),
             // Verificação manual de sobreposição
             timezoneCheck: {
-              slotTimezone: 'UTC (corrigido)',
-              appointmentTimezone: 'UTC (banco)',
-              slotStartUTC: slotStart.getTime(),
-              slotEndUTC: slotEnd.getTime(),
-              appointmentStartUTC: appointment.dateTime.getTime(),
-              appointmentEndUTC: appointmentEnd.getTime(),
+              slotTimezone: 'Brasileiro (BRT)',
+              appointmentTimezone: 'Brasileiro (do banco)',
+              slotStartTime: slotStart.getTime(),
+              slotEndTime: slotEnd.getTime(),
+              appointmentStartTime: appointment.dateTime.getTime(),
+              appointmentEndTime: appointmentEnd.getTime(),
               timeDifference: Math.abs(slotStart.getTime() - appointment.dateTime.getTime()) / 1000 / 60 // em minutos
             },
             overlaps: {
@@ -521,32 +488,20 @@ export async function GET(
 
       // Verificar conflito com exceções/bloqueios pontuais
       for (const exception of exceptions) {
-        // 🔧 CORREÇÃO: Aplicar correção de timezone nas exceções antes da comparação
-        const correctedStartException = adjustExceptionTimezone(exception.startDatetime)
-        const correctedEndException = adjustExceptionTimezone(exception.endDatetime)
-        
-        // 🔧 CORREÇÃO: Exceções usam Date objects, não strings - usar versão corrigida
-        const exceptionStartMinutes = correctedStartException.getHours() * 60 + correctedStartException.getMinutes()
-        const exceptionEndMinutes = correctedEndException.getHours() * 60 + correctedEndException.getMinutes()
+        // 🇧🇷 SISTEMA BRASILEIRO: Usar exceções diretamente (já em timezone brasileiro)
+        const exceptionStartMinutes = exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()
+        const exceptionEndMinutes = exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()
 
         if (isDebugSlot) {
-          console.log('🔧 [EXCEPTION-TIMEZONE-CORRECTION]', {
-            originalException: {
+          console.log('🇧🇷 [EXCEPTION-BRASILEIRO]', {
+            exception: {
               start: exception.startDatetime.toISOString(),
               end: exception.endDatetime.toISOString(),
               startLocal: exception.startDatetime.toLocaleString('pt-BR'),
               endLocal: exception.endDatetime.toLocaleString('pt-BR')
             },
-            correctedVersion: {
-              start: correctedStartException.toISOString(),
-              end: correctedEndException.toISOString(),
-              startLocal: correctedStartException.toLocaleString('pt-BR'),
-              endLocal: correctedEndException.toLocaleString('pt-BR')
-            },
-            timeInMinutes: {
-              original: `${exception.startDatetime.getHours() * 60 + exception.startDatetime.getMinutes()}-${exception.endDatetime.getHours() * 60 + exception.endDatetime.getMinutes()}`,
-              corrected: `${exceptionStartMinutes}-${exceptionEndMinutes}`
-            }
+            timeInMinutes: `${exceptionStartMinutes}-${exceptionEndMinutes}`,
+            timezone: 'Sistema Brasileiro (BRT)'
           })
         }
 
