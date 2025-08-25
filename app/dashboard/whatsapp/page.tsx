@@ -47,21 +47,7 @@ export default function WhatsAppPage() {
   const loadAutomationSettings = async () => {
     try {
       setIsLoadingSettings(true)
-      
-      // Buscar token de autenticação
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        console.error('Token de autenticação não encontrado')
-        return
-      }
-
-      const response = await fetch('/api/automation-settings', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
+      const response = await fetch('/api/automation-settings')
       if (response.ok) {
         const settings = await response.json()
         setAutomationSettings({
@@ -72,9 +58,6 @@ export default function WhatsAppPage() {
           reactivationEnabled: settings.reactivation?.isEnabled ?? false,
           reactivationDays: 45, // Pode ser configurado no futuro
         })
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Erro ao carregar configurações:', errorData.error || response.statusText)
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
@@ -86,20 +69,10 @@ export default function WhatsAppPage() {
   // Salvar configuração individual
   const saveAutomationSetting = async (automationType: string, isEnabled: boolean) => {
     try {
-      // Buscar token de autenticação
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        console.error('Token de autenticação não encontrado')
-        // Reverter o estado em caso de erro
-        loadAutomationSettings()
-        return
-      }
-
       const response = await fetch('/api/automation-settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           automationType,
@@ -110,8 +83,6 @@ export default function WhatsAppPage() {
       if (response.ok) {
         console.log(`✅ ${automationType} ${isEnabled ? 'ativado' : 'desativado'}`)
       } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Erro ao salvar configuração:', errorData.error || response.statusText)
         throw new Error('Falha ao salvar configuração')
       }
     } catch (error) {
@@ -158,8 +129,6 @@ export default function WhatsAppPage() {
     setTestResult(null)
 
     try {
-      console.log('🧪 Enviando mensagem de teste via Evolution API...')
-      
       const success = await sendWhatsAppMessage({
         to: formatPhoneNumber(testMessage.phone),
         message: testMessage.message,
@@ -167,23 +136,13 @@ export default function WhatsAppPage() {
       })
 
       if (success) {
-        setTestResult({ 
-          success: true, 
-          message: "✅ Mensagem enviada com sucesso via Evolution API!" 
-        })
+        setTestResult({ success: true, message: "Mensagem enviada com sucesso!" })
         setTestMessage({ phone: "", message: "" })
       } else {
-        setTestResult({ 
-          success: false, 
-          message: "❌ Falha ao enviar mensagem. Verifique as configurações da Evolution API." 
-        })
+        setTestResult({ success: false, message: "Falha ao enviar mensagem" })
       }
     } catch (error) {
-      console.error('Erro no teste de mensagem:', error)
-      setTestResult({ 
-        success: false, 
-        message: "❌ Erro ao conectar com Evolution API. Verifique se a API está funcionando." 
-      })
+      setTestResult({ success: false, message: "Erro ao enviar mensagem" })
     } finally {
       setIsSending(false)
     }

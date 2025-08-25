@@ -19,9 +19,7 @@
     "db:studio": "prisma studio",
     "scheduler:start": "tsx scripts/scheduler.ts",
     "reminders:run": "tsx scripts/whatsapp-reminders-cron.ts",
-    "scheduler:dev": "tsx watch scripts/scheduler.ts",
-    "whatsapp:test": "tsx scripts/test-evolution-api.ts",
-    "whatsapp:test-phone": "tsx scripts/test-evolution-api.ts"
+    "scheduler:dev": "tsx watch scripts/scheduler.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

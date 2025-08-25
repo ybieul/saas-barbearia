@@ -90,18 +90,11 @@ export default function DashboardPage() {
 
     setIsCompletingAppointment(true)
     try {
-      // Buscar token de autenticação
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado')
-      }
-
       // Chamar nova API de conclusão com pagamento
       const response = await fetch(`/api/appointments/${appointmentToComplete.id}/complete`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ paymentMethod })
       })
