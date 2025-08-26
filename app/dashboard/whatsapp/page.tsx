@@ -161,14 +161,14 @@ export default function WhatsAppPage() {
       case "reminder24h":
         template = whatsappTemplates.reminder24h(sampleData)
         break
+      case "reminder12h":
+        template = whatsappTemplates.reminder12h(sampleData)
+        break
       case "reminder2h":
         template = whatsappTemplates.reminder2h(sampleData)
         break
       case "reactivation":
         template = whatsappTemplates.reactivation(sampleData)
-        break
-      case "upsell":
-        template = whatsappTemplates.upsell(sampleData)
         break
     }
 
@@ -328,6 +328,14 @@ export default function WhatsAppPage() {
                   className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
                 >
                   Lembrete 24h
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => loadTemplate("reminder12h")}
+                  className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
+                >
+                  Lembrete 12h
                 </Button>
                 <Button
                   size="sm"

@@ -26,6 +26,14 @@ export interface WhatsAppTemplate {
     date: string
     time: string
   }) => string
+  reminder12h: (data: {
+    clientName: string
+    businessName: string
+    service: string
+    professional: string
+    date: string
+    time: string
+  }) => string
   reminder2h: (data: {
     clientName: string
     businessName: string
@@ -39,64 +47,70 @@ export interface WhatsAppTemplate {
     preferredService: string
     customLink: string
   }) => string
-  upsell: (data: {
-    clientName: string
-    businessName: string
-    additionalService: string
-    discount: number
-    customLink: string
-  }) => string
 }
 
-// WhatsApp message templates
+// WhatsApp message templates (UNIFICADOS com whatsapp-server.ts)
 export const whatsappTemplates: WhatsAppTemplate = {
-  confirmation: (data) => `🌟 *Agendamento Confirmado!*
+  confirmation: (data) => `✅ *Agendamento Confirmado!*
 
 Olá *${data.clientName}*! 😊
 
 Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 
-📅 *Detalhes do Agendamento:*
-• Serviço: ${data.service}
-• Profissional: ${data.professional}
-• Data: ${data.date}
-• Horário: ${data.time}
-• Duração estimada: ${data.totalTime} minutos
-• Valor: ${formatCurrency(data.price)}
+� *Detalhes:*
+🔹 Serviço: ${data.service}
+👨‍💼 Profissional: ${data.professional}
+🗓️ Data: ${data.date}
+⏰ Horário: ${data.time}
+⏳ Duração: ${data.totalTime} min
+💰 Valor: ${formatCurrency(data.price)}
 
-✨ Estamos ansiosos para recebê-lo(a)!
+💡 *Lembre-se:*
+• Chegue 10 min antes do horário
+• Em caso de cancelamento, avise com 24h de antecedência
 
-_Você receberá lembretes automáticos antes do seu horário._
+Obrigado pela preferência! 🙏
+Nos vemos em breve! 🎉`,
 
-Obrigado pela preferência! 🙏`,
+  reminder24h: (data) => `🔔 *Lembrete: Agendamento Amanhã!*
 
-  reminder24h: (data) => `⏰ *Lembrete de Agendamento*
+Olá *${data.clientName}*! 😊
 
-Olá *${data.clientName}*! 
+Este é um lembrete do seu agendamento na *${data.businessName}*:
 
-Lembrando que você tem um agendamento amanhã na *${data.businessName}*:
+�️ *Amanhã - ${data.date}*
+⏰ Horário: ${data.time}
+🔹 Serviço: ${data.service}
+👨‍💼 Profissional: ${data.professional}
 
-📅 *Detalhes:*
-• Serviço: ${data.service}
-• Profissional: ${data.professional}
-• Data: ${data.date}
-• Horário: ${data.time}
+💡 Lembre-se de chegar 10 minutos antes!
 
-Nos vemos em breve! ✨
+Qualquer imprevisto, entre em contato conosco! 📱`,
 
-_Caso precise remarcar, entre em contato conosco._`,
-
-  reminder2h: (data) => `🔔 *Seu horário é daqui a pouco!*
+  reminder12h: (data) => `⏰ *Lembrete: Seu horário é hoje!*
 
 Olá *${data.clientName}*!
 
-Seu agendamento na *${data.businessName}* é em *2 horas*:
+Seu agendamento na *${data.businessName}* é hoje:
 
-⏰ Horário: ${data.time}
+🗓️ *Hoje - ${data.date}*
+⏰ Horário: ${data.time}  
+🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
-✂️ Serviço: ${data.service}
 
-Já estamos te esperando! 😊`,
+Estamos te esperando! 😊`,
+
+  reminder2h: (data) => `⚡ *Lembrete: Seu horário é em 2 horas!*
+
+Olá *${data.clientName}*!
+
+Não esqueça do seu agendamento:
+
+⏰ *${data.time}* (em 2 horas)
+🔹 Serviço: ${data.service}  
+👨‍💼 Profissional: ${data.professional}
+
+Já estamos nos preparando para te receber! 🎯`,
 
   reactivation: (data) => `🌟 *Sentimos sua falta!*
 
@@ -108,22 +122,10 @@ Como você é um cliente especial, preparamos uma oferta exclusiva:
 
 🎁 *20% de desconto* no seu próximo *${data.preferredService}*
 
-📅 Agende já: ${data.customLink}
+�️ Agende já: ${data.customLink}
 ⏰ Oferta válida até o final do mês!
 
 Estamos ansiosos para te receber novamente! ✨`,
-
-  upsell: (data) => `💡 *Que tal complementar seu visual?*
-
-Olá *${data.clientName}*!
-
-Vimos que você agendou conosco na *${data.businessName}*! 
-
-Que tal adicionar um *${data.additionalService}* com *${data.discount}% de desconto*?
-
-🔗 Atualize seu agendamento: ${data.customLink}
-
-Deixe seu visual ainda mais incrível! ✨`,
 }
 
 // Evolution API integration (Client-side version)

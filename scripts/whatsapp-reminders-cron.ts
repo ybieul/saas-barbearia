@@ -192,7 +192,7 @@ async function sendReminderMessage(appointment: any, reminderType: string) {
       message = whatsappTemplates.reminder24h(templateData)
       break
     case 'reminder_12h':
-      message = whatsappTemplates.reminder24h(templateData) // Usar template de 24h como fallback
+      message = whatsappTemplates.reminder12h(templateData) // ✅ CORRIGIDO: usar template correto
       break
     case 'reminder_2h':
       message = whatsappTemplates.reminder2h(templateData)
