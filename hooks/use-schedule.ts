@@ -227,7 +227,8 @@ export function useProfessionalAvailability() {
     businessSlug: string,
     professionalId: string,
     date: string,
-    serviceDuration: number = 30
+    serviceDuration: number = 30,
+    allowPastSlots: boolean = false
   ): Promise<string[]> => {
     if (!businessSlug || !professionalId || !date) {
       if (process.env.NODE_ENV === 'development') {
@@ -245,6 +246,11 @@ export function useProfessionalAvailability() {
         date,
         serviceDuration: serviceDuration.toString()
       })
+      
+      // Adicionar allowPastSlots apenas se for true (para não quebrar URLs existentes)
+      if (allowPastSlots) {
+        params.set('allowPastSlots', 'true')
+      }
 
       const response = await fetch(`/api/public/business/${businessSlug}/availability-v2?${params}`)
       

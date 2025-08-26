@@ -64,7 +64,8 @@ export function useAgendaAvailability() {
   const getProfessionalAvailableSlots = useCallback(async (
     professionalId: string,
     date: string,
-    serviceDuration: number = 30
+    serviceDuration: number = 30,
+    allowPastSlots: boolean = false
   ): Promise<{ slots: string[]; usedProfessionalRules: boolean; fallbackReason?: string }> => {
     // Se não temos business slug, não podemos usar a nova lógica
     if (!businessSlug) {
@@ -76,7 +77,7 @@ export function useAgendaAvailability() {
     }
 
     try {
-      const slots = await getAvailableSlots(businessSlug, professionalId, date, serviceDuration)
+      const slots = await getAvailableSlots(businessSlug, professionalId, date, serviceDuration, allowPastSlots)
       
       return {
         slots,

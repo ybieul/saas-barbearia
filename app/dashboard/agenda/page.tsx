@@ -1403,7 +1403,8 @@ export default function AgendaPage() {
       const result = await getProfessionalAvailableSlots(
         newAppointment.professionalId,
         newAppointment.date,
-        selectedService.duration || 30
+        selectedService.duration || 30,
+        true  // ✅ DASHBOARD: Permitir horários passados para agendamento retroativo
       )
 
       if (process.env.NODE_ENV === 'development') {
@@ -1559,7 +1560,8 @@ export default function AgendaPage() {
         businessSlug,
         professionalId,
         newAppointment.date,
-        selectedService.duration || 30
+        selectedService.duration || 30,
+        true  // ✅ DASHBOARD: Permitir horários passados para agendamento retroativo
       )
 
       if (process.env.NODE_ENV === 'development') {

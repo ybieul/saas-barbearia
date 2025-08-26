@@ -15,6 +15,7 @@ export async function GET(
     const date = searchParams.get('date') // YYYY-MM-DD
     const professionalId = searchParams.get('professionalId')
     const serviceDuration = parseInt(searchParams.get('serviceDuration') || '30') // duração em minutos
+    const allowPastSlots = searchParams.get('allowPastSlots') === 'true' // permitir horários passados para dashboard
 
     // Validações básicas
     if (!slug) {
@@ -135,14 +136,14 @@ export async function GET(
       5 // Sempre slots de 5 em 5 minutos
     )
 
-    // PASSO 2.1: Filtrar horários passados (apenas para o dia atual)
+    // PASSO 2.1: Filtrar horários passados (apenas para o dia atual, exceto se allowPastSlots=true)
     const now = new Date()
     const nowBRT = toSystemTimezone(now)  // ✅ Converter para timezone brasileiro
     const isToday = isSameDay(targetDate, nowBRT)
     
     let slotsAfterTimeFilter = allSlots
     
-    if (isToday) {
+    if (isToday && !allowPastSlots) {  // ✅ CORREÇÃO: Só filtrar se não permitir horários passados
       const currentTime = format(nowBRT, 'HH:mm')  // ✅ Usar horário BRT
       const currentMinutes = timeToMinutes(currentTime)
       
@@ -154,6 +155,7 @@ export async function GET(
       // 🔍 DEBUG: Log do filtro de horário atual
       console.log('🔍 [AVAILABILITY-V2] Filtro de horário atual aplicado:', {
         isToday,
+        allowPastSlots,
         nowUTC: now.toISOString(),
         nowBRT: nowBRT.toISOString(),
         currentTime,
@@ -162,6 +164,13 @@ export async function GET(
         filteredSlotsCount: slotsAfterTimeFilter.length,
         removedSlots: allSlots.filter(slot => timeToMinutes(slot) <= currentMinutes).slice(0, 10), // Primeiros 10 para debug
         remainingSlots: slotsAfterTimeFilter.slice(0, 5) // Primeiros 5 para debug
+      })
+    } else if (isToday && allowPastSlots) {
+      // 🔍 DEBUG: Log quando permitindo horários passados
+      console.log('🔍 [AVAILABILITY-V2] Permitindo horários passados para dashboard:', {
+        isToday,
+        allowPastSlots,
+        allSlotsCount: allSlots.length
       })
     }
 
