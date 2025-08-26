@@ -222,7 +222,7 @@ export default function ClientesInativosPage() {
                 Enviar Promoção ({selectedClients.length})
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-1rem)] max-w-[95vw] sm:w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-xl overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
               {/* Header responsivo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
                 <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
@@ -237,7 +237,7 @@ export default function ClientesInativosPage() {
               </DialogHeader>
               
               {/* Conteúdo principal do modal - fora do DialogDescription */}
-              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+              <div className="space-y-4 md:space-y-5 mt-3 md:mt-4 max-h-[70vh] overflow-y-auto px-1">{/* Scroll no container principal */}
                 {/* Seção de Clientes Selecionados - responsiva */}
                 <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -268,28 +268,28 @@ export default function ClientesInativosPage() {
                     Modelo de Mensagem
                   </label>
                   <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-10 md:h-11">
+                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-12 md:h-11 text-left">
                       <SelectValue placeholder="Selecione um template" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46]">
+                    <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-none">{/* Limitar largura em mobile */}
                       {promotionTemplates.map((template) => (
                         <SelectItem 
                           key={template.id} 
                           value={template.id}
-                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
+                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer p-3"
                         >
-                          <div className="flex flex-col items-start w-full">
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{template.name}</span>
+                          <div className="flex flex-col items-start w-full space-y-1">
+                            <div className="flex items-center justify-between w-full min-w-0">
+                              <span className="font-medium text-sm truncate pr-2 flex-1">{template.name}</span>
                               {hasPlaceholders(template.message) && (
-                                <div className="flex items-center gap-1 text-xs text-emerald-400">
+                                <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0">
                                   <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                  <span>Auto</span>
+                                  <span className="whitespace-nowrap">Auto</span>
                                 </div>
                               )}
                             </div>
                             {template.title && (
-                              <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                              <span className="text-xs text-emerald-400 md:text-[#71717a] truncate w-full">{template.title}</span>
                             )}
                             {hasPlaceholders(template.message) && (
                               <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
@@ -319,9 +319,9 @@ export default function ClientesInativosPage() {
                       <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                       Prévia da Mensagem
                     </label>
-                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-3 max-h-[40vh] md:max-h-[50vh] overflow-y-auto">
                       {getSelectedTemplateData()?.title && (
-                        <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
+                        <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2">
                           <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
                           <p className="text-emerald-400 md:text-[#10b981] text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
                             <span className="hidden md:inline">📢 </span>
@@ -339,7 +339,7 @@ export default function ClientesInativosPage() {
                           case 'simple':
                             // Mensagem sem placeholders
                             return (
-                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed p-2 md:p-3 bg-[#1a1a1a]/30 rounded-lg border-l-2 border-gray-500">
                                 {preview.message}
                               </div>
                             )
@@ -348,11 +348,11 @@ export default function ClientesInativosPage() {
                             // Um cliente - mostrar personalizada
                             return (
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                                  <span>Personalizada para: {preview.clientName}</span>
+                                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                  <span className="font-medium">Personalizada para: {preview.clientName}</span>
                                 </div>
-                                <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                                <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed p-2 md:p-3 bg-[#1a1a1a]/30 rounded-lg border-l-2 border-emerald-400">
                                   {preview.message}
                                 </div>
                               </div>
@@ -362,21 +362,21 @@ export default function ClientesInativosPage() {
                             // Múltiplos clientes - mostrar exemplos
                             return (
                               <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                                  <span>Será personalizada para cada cliente (exemplos):</span>
+                                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                  <span className="font-medium">Será personalizada para cada cliente (exemplos):</span>
                                 </div>
                                 
-                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
                                   {preview.examples.map((example, index) => (
-                                    <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 border border-[#2a2a2a]">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                                        <span className="text-xs font-medium text-blue-400">{example.name}:</span>
+                                    <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 md:p-3 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                                        <span className="text-xs md:text-sm font-medium text-blue-400 truncate">{example.name}:</span>
                                       </div>
-                                      <div className="text-xs text-[#d4d4d8] leading-relaxed pl-3">
-                                        {example.message.length > 100 
-                                          ? `${example.message.substring(0, 100)}...`
+                                      <div className="text-xs md:text-sm text-[#d4d4d8] leading-relaxed pl-4 border-l border-blue-400/30">
+                                        {example.message.length > 120 
+                                          ? `${example.message.substring(0, 120)}...`
                                           : example.message
                                         }
                                       </div>
@@ -384,8 +384,11 @@ export default function ClientesInativosPage() {
                                   ))}
                                   
                                   {preview.totalCount > 3 && (
-                                    <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a]">
-                                      + {preview.totalCount - 3} outros clientes receberão mensagens personalizadas
+                                    <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a] bg-[#1a1a1a]/30 rounded-md">
+                                      <div className="flex items-center justify-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-[#71717a] rounded-full"></div>
+                                        <span>+ {preview.totalCount - 3} outros clientes receberão mensagens personalizadas</span>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
@@ -397,12 +400,12 @@ export default function ClientesInativosPage() {
                         }
                       })()}
                       
-                      <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
-                        <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                      <div className="flex items-center gap-2 pt-2 border-t border-[#10b981]/20 bg-[#10b981]/5 rounded-md px-2 py-2">
+                        <div className="w-1.5 h-1.5 bg-[#10b981] rounded-full"></div>
                         <span className="text-xs text-[#71717a]">
                           Será enviado via WhatsApp para {selectedClients.length} cliente(s)
                           {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
-                            <span className="text-emerald-400"> • Personalização automática ativada</span>
+                            <span className="text-emerald-400 font-medium"> • Personalização automática ativada</span>
                           )}
                         </span>
                       </div>
@@ -501,7 +504,7 @@ export default function ClientesInativosPage() {
               Enviar Promoção ({selectedClients.length})
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-1rem)] max-w-[95vw] sm:w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-xl overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
             {/* Header responsivo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
               <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
@@ -516,7 +519,7 @@ export default function ClientesInativosPage() {
             </DialogHeader>
             
             {/* Conteúdo principal do modal mobile - fora do DialogDescription */}
-            <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+            <div className="space-y-4 md:space-y-5 mt-3 md:mt-4 max-h-[70vh] overflow-y-auto px-1">{/* Scroll no container principal */}
               {/* Seção de Clientes Selecionados - responsiva */}
               <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -547,28 +550,28 @@ export default function ClientesInativosPage() {
                   Modelo de Mensagem
                 </label>
                 <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-10 md:h-11">
+                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-12 md:h-11 text-left">
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46]">
+                  <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-none">{/* Limitar largura em mobile */}
                     {promotionTemplates.map((template) => (
                       <SelectItem 
                         key={template.id} 
                         value={template.id}
-                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
+                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer p-3"
                       >
-                        <div className="flex flex-col items-start w-full">
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{template.name}</span>
+                        <div className="flex flex-col items-start w-full space-y-1">
+                          <div className="flex items-center justify-between w-full min-w-0">
+                            <span className="font-medium text-sm truncate pr-2 flex-1">{template.name}</span>
                             {hasPlaceholders(template.message) && (
-                              <div className="flex items-center gap-1 text-xs text-emerald-400">
+                              <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0">
                                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                <span>Auto</span>
+                                <span className="whitespace-nowrap">Auto</span>
                               </div>
                             )}
                           </div>
                           {template.title && (
-                            <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                            <span className="text-xs text-emerald-400 md:text-[#71717a] truncate w-full">{template.title}</span>
                           )}
                           {hasPlaceholders(template.message) && (
                             <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
@@ -598,9 +601,9 @@ export default function ClientesInativosPage() {
                     <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                     Prévia da Mensagem
                   </label>
-                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-3 max-h-[40vh] md:max-h-[50vh] overflow-y-auto">
                     {getSelectedTemplateData()?.title && (
-                      <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
+                      <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2">
                         <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
                         <p className="text-emerald-400 md:text-[#10b981] text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
                           <span className="hidden md:inline">📢 </span>
@@ -618,7 +621,7 @@ export default function ClientesInativosPage() {
                         case 'simple':
                           // Mensagem sem placeholders
                           return (
-                            <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                            <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed p-2 md:p-3 bg-[#1a1a1a]/30 rounded-lg border-l-2 border-gray-500">
                               {preview.message}
                             </div>
                           )
@@ -627,11 +630,11 @@ export default function ClientesInativosPage() {
                           // Um cliente - mostrar personalizada
                           return (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                                <span>Personalizada para: {preview.clientName}</span>
+                              <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                <span className="font-medium">Personalizada para: {preview.clientName}</span>
                               </div>
-                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed p-2 md:p-3 bg-[#1a1a1a]/30 rounded-lg border-l-2 border-emerald-400">
                                 {preview.message}
                               </div>
                             </div>
@@ -641,21 +644,21 @@ export default function ClientesInativosPage() {
                           // Múltiplos clientes - mostrar exemplos
                           return (
                             <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                                <span>Será personalizada para cada cliente (exemplos):</span>
+                              <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                <span className="font-medium">Será personalizada para cada cliente (exemplos):</span>
                               </div>
                               
-                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
                                 {preview.examples.map((example, index) => (
-                                  <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 border border-[#2a2a2a]">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                                      <span className="text-xs font-medium text-blue-400">{example.name}:</span>
+                                  <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 md:p-3 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                                      <span className="text-xs md:text-sm font-medium text-blue-400 truncate">{example.name}:</span>
                                     </div>
-                                    <div className="text-xs text-[#d4d4d8] leading-relaxed pl-3">
-                                      {example.message.length > 100 
-                                        ? `${example.message.substring(0, 100)}...`
+                                    <div className="text-xs md:text-sm text-[#d4d4d8] leading-relaxed pl-4 border-l border-blue-400/30">
+                                      {example.message.length > 120 
+                                        ? `${example.message.substring(0, 120)}...`
                                         : example.message
                                       }
                                     </div>
@@ -663,8 +666,11 @@ export default function ClientesInativosPage() {
                                 ))}
                                 
                                 {preview.totalCount > 3 && (
-                                  <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a]">
-                                    + {preview.totalCount - 3} outros clientes receberão mensagens personalizadas
+                                  <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a] bg-[#1a1a1a]/30 rounded-md">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <div className="w-1.5 h-1.5 bg-[#71717a] rounded-full"></div>
+                                      <span>+ {preview.totalCount - 3} outros clientes receberão mensagens personalizadas</span>
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -676,12 +682,12 @@ export default function ClientesInativosPage() {
                       }
                     })()}
                     
-                    <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
-                      <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#10b981]/20 bg-[#10b981]/5 rounded-md px-2 py-2">
+                      <div className="w-1.5 h-1.5 bg-[#10b981] rounded-full"></div>
                       <span className="text-xs text-[#71717a]">
                         Será enviado via WhatsApp para {selectedClients.length} cliente(s)
                         {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
-                          <span className="text-emerald-400"> • Personalização automática ativada</span>
+                          <span className="text-emerald-400 font-medium"> • Personalização automática ativada</span>
                         )}
                       </span>
                     </div>
