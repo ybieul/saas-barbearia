@@ -186,7 +186,7 @@ export default function ClientesInativosPage() {
                         <SelectItem 
                           key={template.id} 
                           value={template.id}
-                          className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]"
+                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                         >
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{template.name}</span>
@@ -386,7 +386,7 @@ export default function ClientesInativosPage() {
                       <SelectItem 
                         key={template.id} 
                         value={template.id}
-                        className="text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a]"
+                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                       >
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{template.name}</span>
