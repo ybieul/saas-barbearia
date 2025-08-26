@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         const requestBody = {
           number: formattedNumber,
           text: personalizedMessage, // ✅ AGORA PERSONALIZADA
-          delay: 1000
+          delay: 300 // ⚡ REDUZIDO DE 1000ms PARA 300ms
         }
 
         console.log(`📱 [API] Enviando para ${client.name} (${formattedNumber})`)
@@ -152,9 +152,9 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Delay entre envios para não sobrecarregar
+        // Delay otimizado entre envios para não sobrecarregar
         if (clients.length > 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          await new Promise(resolve => setTimeout(resolve, 800)) // ⚡ REDUZIDO DE 2000ms PARA 800ms
         }
 
       } catch (error) {
