@@ -141,13 +141,13 @@ export default function ClientesInativosPage() {
                   </div>
                   Enviar Promoção
                 </DialogTitle>
-                <p className="text-[#71717a] text-sm hidden md:block">
-                  Envie ofertas personalizadas para reativar clientes
-                </p>
+                <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                  Envie ofertas personalizadas para reativar clientes inativos selecionados via WhatsApp
+                </DialogDescription>
               </DialogHeader>
               
-              <DialogDescription asChild>
-                <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+              {/* Conteúdo principal do modal - fora do DialogDescription */}
+              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Clientes Selecionados - responsiva */}
                 <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -259,8 +259,7 @@ export default function ClientesInativosPage() {
                     Enviar Promoção
                   </Button>
                 </div>
-                </div>
-              </DialogDescription>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -342,13 +341,13 @@ export default function ClientesInativosPage() {
                 </div>
                 Enviar Promoção
               </DialogTitle>
-              <p className="text-[#71717a] text-sm hidden md:block">
-                Envie ofertas personalizadas para reativar clientes
-              </p>
+              <DialogDescription className="text-[#71717a] text-sm hidden md:block">
+                Envie ofertas personalizadas para reativar clientes inativos selecionados via WhatsApp
+              </DialogDescription>
             </DialogHeader>
             
-            <DialogDescription asChild>
-              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+            {/* Conteúdo principal do modal mobile - fora do DialogDescription */}
+            <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
               {/* Seção de Clientes Selecionados - responsiva */}
               <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -460,8 +459,7 @@ export default function ClientesInativosPage() {
                   Enviar Promoção
                 </Button>
               </div>
-              </div>
-            </DialogDescription>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
