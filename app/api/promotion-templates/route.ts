@@ -7,7 +7,7 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Desconto de Retorno 20%",
     title: "20% OFF", 
-    message: "Olá [nome]! 😊\n\nSentimos sua falta! ❤️\n\nQue tal voltar com um desconto especial de 20% OFF em qualquer serviço?\n\n✨ Oferta válida até 31/07/2025\n📅 Agende já pelo link\n\nEstamos esperando você! 🙋‍♀️"
+    message: "Olá [nome]! 😊\n\nSentimos sua falta! ❤️\n\nQue tal voltar com um desconto especial de 20% OFF em qualquer serviço?\n\n✨ Oferta válida até 31/07/2025\n🗓️ Agende já pelo link\n\nEstamos esperando você! 🙋‍♀️"
   },
   {
     name: "Promoção Especial",
@@ -17,7 +17,7 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Volte Sempre",
     title: "15% OFF", 
-    message: "Oi [nome]! Como você está? 😊\n\nQueremos você de volta!\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n\n📅 Marque seu horário"
+    message: "Oi [nome]! Como você está? 😊\n\nQueremos você de volta!\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n\n🗓️ Marque seu horário"
   }
 ]
 
