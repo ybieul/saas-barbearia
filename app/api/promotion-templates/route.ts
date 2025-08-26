@@ -7,17 +7,17 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Desconto de Retorno 20%",
     title: "20% OFF", 
-    message: "Olá [nome]! 😊\n\nSentimos sua falta! ❤️\n\nQue tal voltar com um desconto especial de 20% OFF em qualquer serviço?\n\n✨ Oferta válida até 31/07/2025\n🗓️ Agende já pelo link\n\nEstamos esperando você! 🙋‍♀️"
+    message: "🌟 *Sentimos sua falta!*\n\nOlá *[nome]*! 😊\n\nNotamos que você não nos visita há um tempo e estamos com saudades!\n\n💰 *Oferta Especial:*\n🎁 20% OFF em qualquer serviço\n✨ Oferta válida até 31/12/2025\n\n🗓️ *Reserve já seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 Chegue 10 min antes do horário\n\nEstamos ansiosos para te receber novamente! �"
   },
   {
     name: "Promoção Especial",
     title: "30% OFF",
-    message: "🎉 Oferta Especial! 🎉\n\nOlá [nome], tudo bem?\n\nTemos uma super promoção para você:\n💸 30% de desconto em todos os serviços!\n\n⏰ Oferta por tempo limitado\n📲 Agende agora"
+    message: "🎉 *Super Promoção Especial!*\n\nOlá *[nome]*, tudo bem?\n\nTemos uma oferta imperdível para você:\n\n💸 *30% OFF em todos os serviços!*\n⏰ Oferta por tempo limitado\n🔥 Apenas para clientes especiais\n\n�️ *Agende agora:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 *Lembre-se:*\n• Chegue 10 min antes\n• Oferta válida até 31/12/2025\n\nNão perca essa oportunidade! 🚀"
   },
   {
     name: "Volte Sempre",
     title: "15% OFF", 
-    message: "Oi [nome]! Como você está? 😊\n\nQueremos você de volta!\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n\n🗓️ Marque seu horário"
+    message: "💈 *Queremos você de volta!*\n\nOi *[nome]*! Como você está? 😊\n\n🎯 *Oferta Exclusiva:*\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n⭐ Atendimento personalizado\n\n🗓️ *Marque seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n📅 Reserve quando quiser\n💡 Chegue 10 min antes do horário\n\nSera um prazer revê-lo! ✨"
   }
 ]
 

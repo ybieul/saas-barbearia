@@ -43,7 +43,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Buscar dados do business para obter customLink
+    const business = await prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { businessConfig: true, businessName: true }
+    })
+
+    // Extrair customLink do businessConfig JSON
+    const businessConfig = business?.businessConfig as any
+    const customLink = businessConfig?.customLink || 'sua-barbearia'
+
     console.log(`📤 [API] Enviando promoções para ${clients.length} clientes...`)
+    console.log(`🔗 [API] Custom Link: ${customLink}`)
     
     // Configurar Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL
@@ -78,7 +89,7 @@ export async function POST(request: NextRequest) {
         const apiUrl = `${evolutionURL}/message/sendText/${instanceName}`
         
         // 🎯 PERSONALIZAR MENSAGEM PARA CADA CLIENTE INDIVIDUAL
-        const personalizedMessage = replaceTemplatePlaceholders(message, client.name)
+        const personalizedMessage = replaceTemplatePlaceholders(message, client.name, customLink)
         
         const requestBody = {
           number: formattedNumber,

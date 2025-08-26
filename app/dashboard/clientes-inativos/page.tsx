@@ -12,6 +12,7 @@ import { UserX, MessageCircle, Calendar, AlertTriangle, Send, Clock, X, Search, 
 import { useInactiveClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useNotification } from "@/hooks/use-notification"
+import { useBusinessData } from "@/hooks/use-business-data"
 import { getBrazilNow } from "@/lib/timezone"
 import { replaceTemplatePlaceholders, hasPlaceholders } from "@/lib/template-helpers"
 
@@ -26,6 +27,7 @@ export default function ClientesInativosPage() {
   // ✅ USAR HOOK ESPECÍFICO PARA CLIENTES INATIVOS
   const { clients: inactiveClients, stats, loading, error, fetchInactiveClients } = useInactiveClients()
   const { templates: promotionTemplates, getTemplate } = usePromotionTemplates()
+  const { businessData } = useBusinessData()
   const notification = useNotification()
 
   useEffect(() => {
@@ -138,6 +140,8 @@ export default function ClientesInativosPage() {
       filteredClients.find(c => c.id === clientId)
     ).filter(Boolean) as typeof filteredClients
 
+    const customLink = businessData.customLink || 'sua-barbearia'
+
     // Se não tem placeholders, retorna mensagem original
     if (!hasPlaceholders(templateData.message)) {
       return {
@@ -151,7 +155,7 @@ export default function ClientesInativosPage() {
     if (selectedClientsData.length === 1) {
       return {
         type: 'single' as const,
-        message: replaceTemplatePlaceholders(templateData.message, selectedClientsData[0].name),
+        message: replaceTemplatePlaceholders(templateData.message, selectedClientsData[0].name, customLink),
         title: templateData.title,
         clientName: selectedClientsData[0].name
       }
@@ -165,7 +169,7 @@ export default function ClientesInativosPage() {
         title: templateData.title,
         examples: selectedClientsData.slice(0, 3).map(client => ({
           name: client.name,
-          message: replaceTemplatePlaceholders(templateData.message, client.name)
+          message: replaceTemplatePlaceholders(templateData.message, client.name, customLink)
         })),
         totalCount: selectedClientsData.length
       }
