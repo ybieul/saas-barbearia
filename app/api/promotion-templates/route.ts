@@ -12,7 +12,7 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Promoção Especial",
     title: "30% OFF",
-    message: "🎉 *Super Promoção Especial!*\n\nOlá *[nome]*, tudo bem?\n\nTemos uma oferta imperdível para você:\n\n💸 *30% OFF em todos os serviços!*\n⏰ Oferta por tempo limitado\n🔥 Apenas para clientes especiais\n\n�️ *Agende agora:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 *Lembre-se:*\n• Chegue 10 min antes\n• Oferta válida até 31/12/2025\n\nNão perca essa oportunidade! 🚀"
+    message: "🎉 *Super Promoção Especial!*\n\nOlá *[nome]*, tudo bem?\n\nTemos uma oferta imperdível para você:\n\n💸 *30% OFF em todos os serviços!*\n⏰ Oferta por tempo limitado\n🔥 Apenas para clientes especiais\n\n🗓️ *Agende agora:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 *Lembre-se:*\n• Chegue 10 min antes\n• Oferta válida até 31/12/2025\n\nNão perca essa oportunidade! 🚀"
   },
   {
     name: "Volte Sempre",
