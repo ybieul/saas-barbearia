@@ -278,21 +278,10 @@ export default function ClientesInativosPage() {
                           value={template.id}
                           className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                         >
-                          <div className="flex flex-col items-start w-full">
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{template.name}</span>
-                              {hasPlaceholders(template.message) && (
-                                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                  <span>Auto</span>
-                                </div>
-                              )}
-                            </div>
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{template.name}</span>
                             {template.title && (
                               <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
-                            )}
-                            {hasPlaceholders(template.message) && (
-                              <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                             )}
                           </div>
                         </SelectItem>
@@ -557,21 +546,10 @@ export default function ClientesInativosPage() {
                         value={template.id}
                         className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                       >
-                        <div className="flex flex-col items-start w-full">
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{template.name}</span>
-                            {hasPlaceholders(template.message) && (
-                              <div className="flex items-center gap-1 text-xs text-emerald-400">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                <span>Auto</span>
-                              </div>
-                            )}
-                          </div>
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{template.name}</span>
                           {template.title && (
                             <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
-                          )}
-                          {hasPlaceholders(template.message) && (
-                            <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                           )}
                         </div>
                       </SelectItem>
