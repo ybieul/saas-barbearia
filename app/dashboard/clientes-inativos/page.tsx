@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -132,7 +132,7 @@ export default function ClientesInativosPage() {
                 Enviar Promoção ({selectedClients.length})
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl">
+            <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl" onOpenAutoFocus={(e) => e.preventDefault()}>
               {/* Header responsivo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
                 <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
@@ -146,7 +146,8 @@ export default function ClientesInativosPage() {
                 </p>
               </DialogHeader>
               
-              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+              <DialogDescription asChild>
+                <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Clientes Selecionados - responsiva */}
                 <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -258,7 +259,8 @@ export default function ClientesInativosPage() {
                     Enviar Promoção
                   </Button>
                 </div>
-              </div>
+                </div>
+              </DialogDescription>
             </DialogContent>
           </Dialog>
         </div>
@@ -331,7 +333,7 @@ export default function ClientesInativosPage() {
               Enviar Promoção ({selectedClients.length})
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl">
+          <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl rounded-xl" onOpenAutoFocus={(e) => e.preventDefault()}>
             {/* Header responsivo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
               <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
@@ -345,7 +347,8 @@ export default function ClientesInativosPage() {
               </p>
             </DialogHeader>
             
-            <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
+            <DialogDescription asChild>
+              <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
               {/* Seção de Clientes Selecionados - responsiva */}
               <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
@@ -457,7 +460,8 @@ export default function ClientesInativosPage() {
                   Enviar Promoção
                 </Button>
               </div>
-            </div>
+              </div>
+            </DialogDescription>
           </DialogContent>
         </Dialog>
       </div>
