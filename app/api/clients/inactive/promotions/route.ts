@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
+import { replaceTemplatePlaceholders } from '@/lib/template-helpers'
 
 // POST - Enviar promoção para clientes inativos
 export async function POST(request: NextRequest) {
@@ -76,13 +77,17 @@ export async function POST(request: NextRequest) {
         const formattedNumber = formatPhoneNumber(client.phone)
         const apiUrl = `${evolutionURL}/message/sendText/${instanceName}`
         
+        // 🎯 PERSONALIZAR MENSAGEM PARA CADA CLIENTE INDIVIDUAL
+        const personalizedMessage = replaceTemplatePlaceholders(message, client.name)
+        
         const requestBody = {
           number: formattedNumber,
-          text: message,
+          text: personalizedMessage, // ✅ AGORA PERSONALIZADA
           delay: 1000
         }
 
         console.log(`📱 [API] Enviando para ${client.name} (${formattedNumber})`)
+        console.log(`💬 [API] Mensagem personalizada: "${personalizedMessage.substring(0, 50)}..."`)
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
               tenantId: user.tenantId,
               to: client.phone,
               type: 'PROMOTION',
-              message: message,
+              message: personalizedMessage, // ✅ SALVAR MENSAGEM PERSONALIZADA
               status: 'SENT',
               sentAt: new Date()
             }
@@ -118,6 +123,7 @@ export async function POST(request: NextRequest) {
             clientName: client.name,
             phone: client.phone,
             status: 'success',
+            personalizedMessage: personalizedMessage, // ✅ RETORNAR MENSAGEM PERSONALIZADA
             data: responseData
           })
         } else {
@@ -130,7 +136,7 @@ export async function POST(request: NextRequest) {
               tenantId: user.tenantId,
               to: client.phone,
               type: 'PROMOTION',
-              message: message,
+              message: personalizedMessage, // ✅ SALVAR MENSAGEM PERSONALIZADA MESMO EM ERRO
               status: 'FAILED',
               sentAt: new Date()
             }
@@ -141,6 +147,7 @@ export async function POST(request: NextRequest) {
             clientName: client.name,
             phone: client.phone,
             status: 'error',
+            personalizedMessage: personalizedMessage, // ✅ RETORNAR MENSAGEM PERSONALIZADA
             error: responseData.message || 'Erro desconhecido'
           })
         }

@@ -13,6 +13,7 @@ import { useInactiveClients } from "@/hooks/use-api"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useNotification } from "@/hooks/use-notification"
 import { getBrazilNow } from "@/lib/timezone"
+import { replaceTemplatePlaceholders, hasPlaceholders } from "@/lib/template-helpers"
 
 export default function ClientesInativosPage() {
   const [sendingMessage, setSendingMessage] = useState<number | null>(null)
@@ -128,6 +129,51 @@ export default function ClientesInativosPage() {
     return getTemplate(selectedTemplate)
   }
 
+  // 🎯 NOVA FUNÇÃO: Gerar prévia inteligente da mensagem
+  const getMessagePreview = () => {
+    const templateData = getSelectedTemplateData()
+    if (!templateData) return null
+
+    const selectedClientsData = selectedClients.map(clientId => 
+      filteredClients.find(c => c.id === clientId)
+    ).filter(Boolean) as typeof filteredClients
+
+    // Se não tem placeholders, retorna mensagem original
+    if (!hasPlaceholders(templateData.message)) {
+      return {
+        type: 'simple' as const,
+        message: templateData.message,
+        title: templateData.title
+      }
+    }
+
+    // Se tem 1 cliente, mostra personalizada
+    if (selectedClientsData.length === 1) {
+      return {
+        type: 'single' as const,
+        message: replaceTemplatePlaceholders(templateData.message, selectedClientsData[0].name),
+        title: templateData.title,
+        clientName: selectedClientsData[0].name
+      }
+    }
+
+    // Se tem múltiplos clientes, mostra exemplos
+    if (selectedClientsData.length > 1) {
+      return {
+        type: 'multiple' as const,
+        message: templateData.message,
+        title: templateData.title,
+        examples: selectedClientsData.slice(0, 3).map(client => ({
+          name: client.name,
+          message: replaceTemplatePlaceholders(templateData.message, client.name)
+        })),
+        totalCount: selectedClientsData.length
+      }
+    }
+
+    return null
+  }
+
   const handleSendMessage = async (clientId: number) => {
     setSendingMessage(clientId)
     
@@ -232,10 +278,21 @@ export default function ClientesInativosPage() {
                           value={template.id}
                           className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                         >
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">{template.name}</span>
+                          <div className="flex flex-col items-start w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium">{template.name}</span>
+                              {hasPlaceholders(template.message) && (
+                                <div className="flex items-center gap-1 text-xs text-emerald-400">
+                                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                  <span>Auto</span>
+                                </div>
+                              )}
+                            </div>
                             {template.title && (
                               <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                            )}
+                            {hasPlaceholders(template.message) && (
+                              <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                             )}
                           </div>
                         </SelectItem>
@@ -262,7 +319,7 @@ export default function ClientesInativosPage() {
                       <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                       Prévia da Mensagem
                     </label>
-                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-32 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
                       {getSelectedTemplateData()?.title && (
                         <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
                           <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
@@ -272,13 +329,81 @@ export default function ClientesInativosPage() {
                           </p>
                         </div>
                       )}
-                      <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
-                        {getSelectedTemplateData()?.message}
-                      </div>
+                      
+                      {/* 🎯 PRÉVIA INTELIGENTE BASEADA NO NÚMERO DE CLIENTES */}
+                      {(() => {
+                        const preview = getMessagePreview()
+                        if (!preview) return null
+
+                        switch (preview.type) {
+                          case 'simple':
+                            // Mensagem sem placeholders
+                            return (
+                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                                {preview.message}
+                              </div>
+                            )
+
+                          case 'single':
+                            // Um cliente - mostrar personalizada
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                  <span>Personalizada para: {preview.clientName}</span>
+                                </div>
+                                <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                                  {preview.message}
+                                </div>
+                              </div>
+                            )
+
+                          case 'multiple':
+                            // Múltiplos clientes - mostrar exemplos
+                            return (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                  <span>Será personalizada para cada cliente (exemplos):</span>
+                                </div>
+                                
+                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                  {preview.examples.map((example, index) => (
+                                    <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 border border-[#2a2a2a]">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                        <span className="text-xs font-medium text-blue-400">{example.name}:</span>
+                                      </div>
+                                      <div className="text-xs text-[#d4d4d8] leading-relaxed pl-3">
+                                        {example.message.length > 100 
+                                          ? `${example.message.substring(0, 100)}...`
+                                          : example.message
+                                        }
+                                      </div>
+                                    </div>
+                                  ))}
+                                  
+                                  {preview.totalCount > 3 && (
+                                    <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a]">
+                                      + {preview.totalCount - 3} outros clientes receberão mensagens personalizadas
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+
+                          default:
+                            return null
+                        }
+                      })()}
+                      
                       <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
                         <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
                         <span className="text-xs text-[#71717a]">
                           Será enviado via WhatsApp para {selectedClients.length} cliente(s)
+                          {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
+                            <span className="text-emerald-400"> • Personalização automática ativada</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -432,10 +557,21 @@ export default function ClientesInativosPage() {
                         value={template.id}
                         className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
                       >
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{template.name}</span>
+                        <div className="flex flex-col items-start w-full">
+                          <div className="flex items-center justify-between w-full">
+                            <span className="font-medium">{template.name}</span>
+                            {hasPlaceholders(template.message) && (
+                              <div className="flex items-center gap-1 text-xs text-emerald-400">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                                <span>Auto</span>
+                              </div>
+                            )}
+                          </div>
                           {template.title && (
                             <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                          )}
+                          {hasPlaceholders(template.message) && (
+                            <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                           )}
                         </div>
                       </SelectItem>
@@ -462,7 +598,7 @@ export default function ClientesInativosPage() {
                     <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                     Prévia da Mensagem
                   </label>
-                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-32 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
                     {getSelectedTemplateData()?.title && (
                       <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
                         <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
@@ -472,13 +608,81 @@ export default function ClientesInativosPage() {
                         </p>
                       </div>
                     )}
-                    <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
-                      {getSelectedTemplateData()?.message}
-                    </div>
+                    
+                    {/* 🎯 PRÉVIA INTELIGENTE BASEADA NO NÚMERO DE CLIENTES - MOBILE */}
+                    {(() => {
+                      const preview = getMessagePreview()
+                      if (!preview) return null
+
+                      switch (preview.type) {
+                        case 'simple':
+                          // Mensagem sem placeholders
+                          return (
+                            <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                              {preview.message}
+                            </div>
+                          )
+
+                        case 'single':
+                          // Um cliente - mostrar personalizada
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-xs text-emerald-400">
+                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                <span>Personalizada para: {preview.clientName}</span>
+                              </div>
+                              <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
+                                {preview.message}
+                              </div>
+                            </div>
+                          )
+
+                        case 'multiple':
+                          // Múltiplos clientes - mostrar exemplos
+                          return (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-xs text-emerald-400">
+                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                <span>Será personalizada para cada cliente (exemplos):</span>
+                              </div>
+                              
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {preview.examples.map((example, index) => (
+                                  <div key={index} className="bg-[#1a1a1a]/50 rounded-lg p-2 border border-[#2a2a2a]">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                      <span className="text-xs font-medium text-blue-400">{example.name}:</span>
+                                    </div>
+                                    <div className="text-xs text-[#d4d4d8] leading-relaxed pl-3">
+                                      {example.message.length > 100 
+                                        ? `${example.message.substring(0, 100)}...`
+                                        : example.message
+                                      }
+                                    </div>
+                                  </div>
+                                ))}
+                                
+                                {preview.totalCount > 3 && (
+                                  <div className="text-xs text-[#71717a] text-center py-2 border-t border-[#2a2a2a]">
+                                    + {preview.totalCount - 3} outros clientes receberão mensagens personalizadas
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+
+                        default:
+                          return null
+                      }
+                    })()}
+                    
                     <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
                       <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
                       <span className="text-xs text-[#71717a]">
                         Será enviado via WhatsApp para {selectedClients.length} cliente(s)
+                        {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
+                          <span className="text-emerald-400"> • Personalização automática ativada</span>
+                        )}
                       </span>
                     </div>
                   </div>
