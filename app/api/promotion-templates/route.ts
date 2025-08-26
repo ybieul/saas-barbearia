@@ -17,7 +17,7 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Volte Sempre",
     title: "15% OFF", 
-    message: "💈 *Queremos você de volta!*\n\nOi *[nome]*! Como você está? 😊\n\n🎯 *Oferta Exclusiva:*\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n⭐ Atendimento personalizado\n\n🗓️ *Marque seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n📅 Reserve quando quiser\n💡 Chegue 10 min antes do horário\n\nSera um prazer revê-lo! ✨"
+    message: "💈 *Queremos você de volta!*\n\nOi *[nome]*! Como você está? 😊\n\n🎯 *Oferta Exclusiva:*\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n⭐ Atendimento personalizado\n\n🗓️ *Marque seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n🗓️ Reserve quando quiser\n💡 Chegue 10 min antes do horário\n\nSera um prazer revê-lo! ✨"
   }
 ]
 
