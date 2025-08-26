@@ -39,6 +39,7 @@ import {
   parseDateTime, 
   formatBrazilTime, 
   formatBrazilDate,
+  formatBrazilDateOnly,
   getBrazilDayOfWeek,
   getBrazilDayNumber,
   getBrazilNow,
@@ -2069,7 +2070,7 @@ export default function AgendamentoPage() {
                       </p>
                       {customerData.birthDate && (
                         <p className="text-sm text-[#a1a1aa]">
-                          <strong className="text-[#ededed]">Data de nascimento:</strong> {new Date(customerData.birthDate).toLocaleDateString('pt-BR')}
+                          <strong className="text-[#ededed]">Data de nascimento:</strong> {formatBrazilDateOnly(customerData.birthDate)}
                         </p>
                       )}
                       {customerData.notes && (

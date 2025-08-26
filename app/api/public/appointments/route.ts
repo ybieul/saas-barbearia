@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
+import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime, parseBirthDate } from '@/lib/timezone'
 import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp-server'
 import { randomBytes } from 'crypto'
 
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
           name: clientName,
           phone: clientPhone,
           email: clientEmail || null,
-          birthday: clientBirthDate ? new Date(clientBirthDate) : null,
+          birthday: clientBirthDate ? parseBirthDate(clientBirthDate) : null,
           notes: notes || null
         }
       })
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           data: {
             name: clientName,
             email: clientEmail || client.email,
-            birthday: clientBirthDate ? new Date(clientBirthDate) : client.birthday,
+            birthday: clientBirthDate ? parseBirthDate(clientBirthDate) : client.birthday,
             notes: notes || client.notes
           }
         })

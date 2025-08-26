@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { parseBirthDate } from '@/lib/timezone'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         phone,
-        birthday: birthday ? new Date(birthday) : null,
+        birthday: birthday ? parseBirthDate(birthday) : null,
         notes,
         address,
         cpf,
@@ -129,7 +130,7 @@ export async function PUT(request: NextRequest) {
         name,
         email,
         phone,
-        birthday: birthday ? new Date(birthday) : null,
+        birthday: birthday ? parseBirthDate(birthday) : null,
         notes,
         isActive,
         address,

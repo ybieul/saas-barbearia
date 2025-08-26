@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
 import { useClients } from "@/hooks/use-api"
-import { getBrazilNow, formatBrazilDate } from "@/lib/timezone"
+import { getBrazilNow, formatBrazilDate, formatBrazilDateOnly } from "@/lib/timezone"
 
 interface Client {
   id: string
@@ -747,7 +747,7 @@ export default function ClientesPage() {
                         <div className="space-y-2">
                           <Label className="text-[#71717a] text-xs">Aniversário</Label>
                           <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
-                            {formatBrazilDate(new Date(selectedClient.birthday))}
+                            {formatBrazilDateOnly(selectedClient.birthday)}
                           </div>
                         </div>
                       )}
@@ -796,7 +796,7 @@ export default function ClientesPage() {
                       <div className="space-y-2">
                         <Label className="text-[#71717a] text-sm">Data de Nascimento</Label>
                         <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
-                          {formatBrazilDate(new Date(selectedClient.birthday))}
+                          {formatBrazilDateOnly(selectedClient.birthday)}
                         </div>
                       </div>
                     )}

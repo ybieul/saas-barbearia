@@ -60,7 +60,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 📋 *Detalhes:*
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
-📅 Data: ${data.date}
+🗓️ Data: ${data.date}
 ⏰ Horário: ${data.time}
 ⏳ Duração: ${data.totalTime} min
 💰 Valor: ${formatCurrency(data.price)}
@@ -69,6 +69,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 • Chegue 10 min antes do horário
 • Em caso de cancelamento, avise com 24h de antecedência
 
+Obrigado pela preferência! 🙏
 Nos vemos em breve! 🎉`,
 
   reminder24h: (data) => `🔔 *Lembrete: Agendamento Amanhã!*
@@ -77,7 +78,7 @@ Olá *${data.clientName}*! 😊
 
 Este é um lembrete do seu agendamento na *${data.businessName}*:
 
-📅 *Amanhã - ${data.date}*
+🗓️ *Amanhã - ${data.date}*
 ⏰ Horário: ${data.time}
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -92,7 +93,7 @@ Olá *${data.clientName}*!
 
 Seu agendamento na *${data.businessName}* é hoje:
 
-📅 *Hoje - ${data.date}*
+🗓️ *Hoje - ${data.date}*
 ⏰ Horário: ${data.time}  
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -121,7 +122,7 @@ Como você é um cliente especial, preparamos uma oferta exclusiva:
 
 🎁 *20% de desconto* no seu próximo *${data.preferredService}*
 
-📅 Agende já: ${data.customLink}
+🗓️ Agende já: ${data.customLink}
 ⏰ Oferta válida até o final do mês!
 
 Estamos ansiosos para te receber novamente! ✨`,

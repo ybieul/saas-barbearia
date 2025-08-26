@@ -206,6 +206,94 @@ export function debugTimezone(date: Date, context: string = 'Debug'): void {
 }
 
 /**
+ * 🇧🇷 Cria uma data brasileira apenas com dia (sem horário) - Para campos como aniversário
+ * 
+ * @param dateStr - Data no formato 'YYYY-MM-DD' 
+ * @returns Date object representando o dia no timezone brasileiro
+ */
+export function createBrazilDateOnly(dateStr: string | Date): Date {
+  try {
+    if (dateStr instanceof Date) {
+      // Se já é Date, usar como base
+      return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate(), 12, 0, 0)
+    }
+    
+    if (!dateStr) return new Date()
+    
+    // Parse manual para evitar timezone shifts em date-only fields
+    const [year, month, day] = dateStr.split('-').map(Number)
+    
+    // Criar data às 12:00 para evitar problemas de timezone
+    const brazilDate = new Date(year, month - 1, day, 12, 0, 0)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🗓️ createBrazilDateOnly():', {
+        input: dateStr,
+        output: brazilDate.toISOString(),
+        localString: brazilDate.toLocaleDateString('pt-BR')
+      })
+    }
+    
+    return brazilDate
+  } catch (error) {
+    console.error('❌ Erro ao criar data brasileira date-only:', error)
+    return new Date()
+  }
+}
+
+/**
+ * 🇧🇷 Formata data apenas com dia (para aniversários, etc) sem problemas de timezone
+ * 
+ * @param date - Data a ser formatada (Date object ou string)
+ * @returns String no formato dd/MM/yyyy
+ */
+export function formatBrazilDateOnly(date: Date | string): string {
+  try {
+    if (!date) return ''
+    
+    let dateObj: Date
+    
+    if (typeof date === 'string') {
+      // Se é string, pode ser do banco (YYYY-MM-DD) ou ISO
+      if (date.includes('T')) {
+        // ISO string do banco
+        dateObj = new Date(date)
+      } else {
+        // String YYYY-MM-DD
+        dateObj = createBrazilDateOnly(date)
+      }
+    } else {
+      dateObj = date
+    }
+    
+    if (!isValid(dateObj)) {
+      console.warn('⚠️ Data inválida para formatação date-only:', date)
+      return ''
+    }
+    
+    // Formatação manual para garantir consistência
+    const day = dateObj.getDate().toString().padStart(2, '0')
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0')
+    const year = dateObj.getFullYear()
+    
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.error('❌ Erro ao formatar data date-only:', error)
+    return ''
+  }
+}
+
+/**
+ * 🇧🇷 Parser específico para datas de nascimento vindas de inputs
+ * 
+ * @param birthDateStr - String no formato YYYY-MM-DD do input type="date"
+ * @returns Date object seguro para armazenamento
+ */
+export function parseBirthDate(birthDateStr: string): Date {
+  return createBrazilDateOnly(birthDateStr)
+}
+
+/**
  * 🇧🇷 Adiciona tempo (horas/minutos) a uma data brasileira de forma segura
  * 
  * @param brazilDate - Data base brasileira
