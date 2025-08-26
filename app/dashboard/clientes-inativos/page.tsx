@@ -268,18 +268,20 @@ export default function ClientesInativosPage() {
                     Modelo de Mensagem
                   </label>
                   <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-11 w-full">
-                      <SelectValue placeholder="Selecione um template" />
+                    <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#3f3f46] transition-colors h-12 md:h-11 w-full text-left focus:ring-2 focus:ring-emerald-500/20">
+                      <SelectValue placeholder="Selecione um template de mensagem" className="text-sm md:text-base" />
                     </SelectTrigger>
                     <SelectContent 
-                      className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-[400px]"
+                      className="bg-[#18181b] border-[#27272a] shadow-lg shadow-black/20 z-50"
                       position="popper"
-                      sideOffset={4}
+                      sideOffset={8}
+                      align="start"
                       style={{ 
+                        width: 'var(--radix-select-trigger-width)',
                         maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 
                           ? 'calc(100vw - 2rem)' 
-                          : '400px',
-                        minWidth: 'var(--radix-select-trigger-width)'
+                          : 'min(500px, calc(100vw - 2rem))',
+                        minWidth: '280px'
                       }}
                     >
                       {promotionTemplates.map((template) => (
@@ -565,46 +567,48 @@ export default function ClientesInativosPage() {
                   Modelo de Mensagem
                 </label>
                 <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-11 w-full">
-                    <SelectValue placeholder="Selecione um template" />
+                  <SelectTrigger className="bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#3f3f46] transition-colors h-12 md:h-11 w-full text-left focus:ring-2 focus:ring-emerald-500/20">
+                    <SelectValue placeholder="Selecione um template de mensagem" className="text-sm md:text-base" />
                   </SelectTrigger>
                   <SelectContent 
-                    className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-[400px]"
+                    className="bg-[#18181b] border-[#27272a] shadow-lg shadow-black/20 z-50"
                     position="popper"
-                    sideOffset={4}
+                    sideOffset={8}
+                    align="start"
                     style={{ 
+                      width: 'var(--radix-select-trigger-width)',
                       maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 
                         ? 'calc(100vw - 2rem)' 
-                        : '400px',
-                      minWidth: 'var(--radix-select-trigger-width)'
+                        : 'min(500px, calc(100vw - 2rem))',
+                      minWidth: '280px'
                     }}
                   >
                     {promotionTemplates.map((template) => (
                       <SelectItem 
                         key={template.id} 
                         value={template.id}
-                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer py-2 pl-10 pr-3"
+                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-emerald-500/10 cursor-pointer p-3 md:py-3 md:px-4 border-b border-[#27272a]/50 last:border-b-0"
                       >
-                        <div className="flex flex-col items-start w-full space-y-1">
-                          <div className="flex items-center justify-between w-full min-w-0">
-                            <span className="font-medium text-sm truncate pr-3 flex-1">{template.name}</span>
+                        <div className="flex flex-col items-start w-full space-y-1.5">
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <span className="font-medium text-sm md:text-base text-[#ededed] truncate flex-1 min-w-0">{template.name}</span>
                             {hasPlaceholders(template.message) && (
-                              <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0 bg-emerald-400/10 px-2 py-0.5 rounded">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                <span className="whitespace-nowrap font-medium">Auto</span>
+                              <div className="flex items-center gap-1.5 text-xs text-emerald-400 flex-shrink-0 bg-emerald-400/20 px-2.5 py-1 rounded-full border border-emerald-400/30">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                <span className="whitespace-nowrap font-semibold">Auto</span>
                               </div>
                             )}
                           </div>
                           {template.title && (
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="text-xs text-emerald-400 md:text-[#71717a] truncate flex-1">{template.title}</span>
+                            <div className="flex items-start gap-2 w-full">
+                              <span className="text-xs md:text-sm text-[#71717a] line-clamp-2 flex-1">{template.title}</span>
                               {hasPlaceholders(template.message) && (
-                                <span className="text-xs text-emerald-400/70 italic whitespace-nowrap">Personalização automática</span>
+                                <span className="text-xs text-emerald-400/80 italic whitespace-nowrap hidden md:inline">Personalizada</span>
                               )}
                             </div>
                           )}
                           {!template.title && hasPlaceholders(template.message) && (
-                            <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
+                            <span className="text-xs text-emerald-400/80 italic">Será personalizada automaticamente para cada cliente</span>
                           )}
                         </div>
                       </SelectItem>
@@ -612,14 +616,16 @@ export default function ClientesInativosPage() {
                   </SelectContent>
                 </Select>
                 {promotionTemplates.length === 0 && (
-                  <div className="md:bg-amber-500/10 md:border md:border-amber-500/20 md:rounded-lg md:p-3">
-                    <p className="text-xs text-[#71717a] mt-2 italic md:text-amber-400 md:text-sm md:flex md:items-center md:gap-2 md:mt-0 md:not-italic">
-                      <AlertTriangle className="w-4 h-4 hidden md:inline" />
-                      Nenhum template encontrado{". "}
-                      <span className="md:block md:text-amber-400/80 md:text-xs md:mt-1">
-                        Crie templates em Configurações → Promoções
-                      </span>
-                    </p>
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 md:p-4 mt-2">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-amber-400">Nenhum template encontrado</p>
+                        <p className="text-xs text-amber-400/80">
+                          Crie templates de mensagem em <span className="font-medium">Configurações → Promoções</span> para começar a enviar campanhas personalizadas.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
