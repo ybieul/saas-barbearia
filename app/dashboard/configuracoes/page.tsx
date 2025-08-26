@@ -1823,7 +1823,7 @@ export default function ConfiguracoesPage() {
                           <div className="space-y-1">
                             <Label className="text-xs text-[#71717a]">Preço</Label>
                             <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm font-medium">
-                              R$ {formatCurrency(service.price)}
+                              {formatCurrency(service.price)}
                             </div>
                           </div>
                           <div className="space-y-1">
