@@ -268,30 +268,45 @@ export default function ClientesInativosPage() {
                     Modelo de Mensagem
                   </label>
                   <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-12 md:h-11 text-left">
+                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-11 w-full">
                       <SelectValue placeholder="Selecione um template" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-none">{/* Limitar largura em mobile */}
+                    <SelectContent 
+                      className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-[400px]"
+                      position="popper"
+                      sideOffset={4}
+                      style={{ 
+                        maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 
+                          ? 'calc(100vw - 2rem)' 
+                          : '400px',
+                        minWidth: 'var(--radix-select-trigger-width)'
+                      }}
+                    >
                       {promotionTemplates.map((template) => (
                         <SelectItem 
                           key={template.id} 
                           value={template.id}
-                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer p-3"
+                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer py-2 pl-10 pr-3"
                         >
                           <div className="flex flex-col items-start w-full space-y-1">
                             <div className="flex items-center justify-between w-full min-w-0">
-                              <span className="font-medium text-sm truncate pr-2 flex-1">{template.name}</span>
+                              <span className="font-medium text-sm truncate pr-3 flex-1">{template.name}</span>
                               {hasPlaceholders(template.message) && (
-                                <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0">
+                                <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0 bg-emerald-400/10 px-2 py-0.5 rounded">
                                   <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                  <span className="whitespace-nowrap">Auto</span>
+                                  <span className="whitespace-nowrap font-medium">Auto</span>
                                 </div>
                               )}
                             </div>
                             {template.title && (
-                              <span className="text-xs text-emerald-400 md:text-[#71717a] truncate w-full">{template.title}</span>
+                              <div className="flex items-center gap-2 w-full">
+                                <span className="text-xs text-emerald-400 md:text-[#71717a] truncate flex-1">{template.title}</span>
+                                {hasPlaceholders(template.message) && (
+                                  <span className="text-xs text-emerald-400/70 italic whitespace-nowrap">Personalização automática</span>
+                                )}
+                              </div>
                             )}
-                            {hasPlaceholders(template.message) && (
+                            {!template.title && hasPlaceholders(template.message) && (
                               <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                             )}
                           </div>
@@ -550,30 +565,45 @@ export default function ClientesInativosPage() {
                   Modelo de Mensagem
                 </label>
                 <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-12 md:h-11 text-left">
+                  <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] transition-colors h-11 w-full">
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-none">{/* Limitar largura em mobile */}
+                  <SelectContent 
+                    className="bg-[#18181b] md:bg-[#27272a] border-[#27272a] md:border-[#3f3f46] max-w-[calc(100vw-2rem)] md:max-w-[400px]"
+                    position="popper"
+                    sideOffset={4}
+                    style={{ 
+                      maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 
+                        ? 'calc(100vw - 2rem)' 
+                        : '400px',
+                      minWidth: 'var(--radix-select-trigger-width)'
+                    }}
+                  >
                     {promotionTemplates.map((template) => (
                       <SelectItem 
                         key={template.id} 
                         value={template.id}
-                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer p-3"
+                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer py-2 pl-10 pr-3"
                       >
                         <div className="flex flex-col items-start w-full space-y-1">
                           <div className="flex items-center justify-between w-full min-w-0">
-                            <span className="font-medium text-sm truncate pr-2 flex-1">{template.name}</span>
+                            <span className="font-medium text-sm truncate pr-3 flex-1">{template.name}</span>
                             {hasPlaceholders(template.message) && (
-                              <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0">
+                              <div className="flex items-center gap-1 text-xs text-emerald-400 flex-shrink-0 bg-emerald-400/10 px-2 py-0.5 rounded">
                                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                                <span className="whitespace-nowrap">Auto</span>
+                                <span className="whitespace-nowrap font-medium">Auto</span>
                               </div>
                             )}
                           </div>
                           {template.title && (
-                            <span className="text-xs text-emerald-400 md:text-[#71717a] truncate w-full">{template.title}</span>
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="text-xs text-emerald-400 md:text-[#71717a] truncate flex-1">{template.title}</span>
+                              {hasPlaceholders(template.message) && (
+                                <span className="text-xs text-emerald-400/70 italic whitespace-nowrap">Personalização automática</span>
+                              )}
+                            </div>
                           )}
-                          {hasPlaceholders(template.message) && (
+                          {!template.title && hasPlaceholders(template.message) && (
                             <span className="text-xs text-emerald-400/70 italic">Personalização automática</span>
                           )}
                         </div>
