@@ -72,7 +72,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 Obrigado pela preferência! 🙏
 Nos vemos em breve! 🎉`,
 
-  reminder24h: (data) => `🔔 *Lembrete: Agendamento Amanhã!*
+  reminder24h: (data) => `🔔 *Não esqueça: você tem um horário marcado!*
 
 Olá *${data.clientName}*! 😊
 
@@ -87,7 +87,7 @@ Este é um lembrete do seu agendamento na *${data.businessName}*:
 
 Qualquer imprevisto, entre em contato conosco! 📱`,
 
-  reminder12h: (data) => `⏰ *Lembrete: Seu horário é hoje!*
+  reminder12h: (data) => `⏰ *Aviso: Seu agendamento é em breve!*
 
 Olá *${data.clientName}*!
 
@@ -118,9 +118,9 @@ Olá *${data.clientName}*! 😊
 
 Notamos que você não nos visita há um tempo na *${data.businessName}*!
 
-Como você é um cliente especial, preparamos uma oferta exclusiva:
+Estamos ansiosos para recebê-lo de novo.
 
-🎁 *20% de desconto* no seu próximo *${data.preferredService}*
+Reserve seu horário quando quiser, será um prazer revê-lo!
 
 🗓️ Agende já: ${data.customLink}
 ⏰ Oferta válida até o final do mês!
