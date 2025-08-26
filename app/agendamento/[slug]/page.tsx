@@ -356,7 +356,10 @@ export default function AgendamentoPage() {
         occupied: !slot.available,
         period: (() => {
           const hour = parseInt(slot.time.split(':')[0])
-          return hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night'
+          // ✅ CORRIGIDO: Madrugada (0-5h) = night, Manhã (6-11h) = morning
+          if (hour >= 6 && hour < 12) return 'morning'
+          if (hour >= 12 && hour < 18) return 'afternoon'
+          return 'night'  // 18-23h + 0-5h (madrugada)
         })() as 'morning' | 'afternoon' | 'night'
       })) || []
 
