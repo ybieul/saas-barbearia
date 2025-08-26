@@ -56,7 +56,7 @@ export default function ClientesInativosPage() {
     }
   }
 
-  const handleSendPromotion = () => {
+  const handleSendPromotion = async () => {
     if (selectedClients.length === 0) {
       notification.warning("Selecione pelo menos um cliente!")
       return
@@ -66,17 +66,61 @@ export default function ClientesInativosPage() {
       return
     }
     
-    // ✅ USAR DADOS REAIS DO BACKEND - Não precisamos mais atualizar contadores locais
-    // O backend já registra as promoções enviadas na tabela WhatsAppLog
-    
     const selectedTemplateData = getTemplate(selectedTemplate)
-    notification.success({
-      title: "Promoção enviada!",
-      description: `Template "${selectedTemplateData?.name}" enviado para ${selectedClients.length} cliente(s)!`
-    })
-    setSelectedClients([])
-    setSelectedTemplate("")
-    setIsPromotionModalOpen(false)
+    if (!selectedTemplateData) {
+      notification.error("Template não encontrado!")
+      return
+    }
+
+    try {
+      // Mostrar toast de loading
+      notification.info("Enviando promoções...")
+      
+      // Obter token de autenticação
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        notification.error("Token de autenticação não encontrado")
+        return
+      }
+
+      // Fazer chamada para API de promoções
+      const response = await fetch('/api/clients/inactive/promotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          clientIds: selectedClients,
+          templateId: selectedTemplate,
+          message: selectedTemplateData.message
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Erro ao enviar promoções')
+      }
+
+      // Sucesso real
+      notification.success({
+        title: "Promoção enviada!",
+        description: `Template "${selectedTemplateData?.name}" enviado para ${result.sentCount} cliente(s)!`
+      })
+      
+      // Limpar seleções
+      setSelectedClients([])
+      setSelectedTemplate("")
+      setIsPromotionModalOpen(false)
+      
+    } catch (error) {
+      console.error('Erro ao enviar promoção:', error)
+      notification.error({
+        title: "Erro ao enviar promoção",
+        description: error instanceof Error ? error.message : "Erro desconhecido"
+      })
+    }
   }
 
   // Função para obter dados do template selecionado
