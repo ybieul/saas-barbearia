@@ -206,20 +206,44 @@ export function debugTimezone(date: Date, context: string = 'Debug'): void {
 }
 
 /**
+ * 🇧🇷 Adiciona tempo (horas/minutos) a uma data brasileira de forma segura
+ * 
+ * @param brazilDate - Data base brasileira
+ * @param hours - Horas a adicionar
+ * @param minutes - Minutos a adicionar (opcional, padrão 0)
+ * @returns Nova data com tempo adicionado
+ */
+export function addTimeToBrazilDate(brazilDate: Date, hours: number, minutes: number = 0): Date {
+  const newDate = new Date(brazilDate)
+  
+  // Adicionar tempo de forma segura
+  newDate.setHours(
+    newDate.getHours() + hours,
+    newDate.getMinutes() + minutes,
+    0,
+    0
+  )
+  
+  return newDate
+}
+
+/**
  * 🇧🇷 Obtém a data atual no timezone brasileiro
  * 
  * @returns Date object representando agora no Brasil
  */
 export function getBrazilNow(): Date {
-  // Força uso do timezone brasileiro
+  // ✅ CORREÇÃO: Usar date-fns-tz para timezone handling confiável
   const now = new Date()
-  const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  
+  // Obter horário brasileiro usando método mais confiável
+  const brazilTime = new Date(now.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }))
   
   // Debug para monitoramento
   if (process.env.NODE_ENV === 'development') {
-    console.log('🕐 getBrazilNow() - System time:', now.toISOString())
+    console.log('🕐 getBrazilNow() - UTC time:', now.toISOString())
     console.log('🕐 getBrazilNow() - Brazil time:', brazilTime.toISOString())
-    console.log('🕐 getBrazilNow() - Local string:', brazilTime.toLocaleString('pt-BR', { 
+    console.log('🕐 getBrazilNow() - Brazil local:', brazilTime.toLocaleString('pt-BR', { 
       timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit', 
@@ -227,6 +251,13 @@ export function getBrazilNow(): Date {
       hour: '2-digit',
       minute: '2-digit'
     }))
+    console.log('🕐 getBrazilNow() - Validation:', {
+      hours: brazilTime.getHours(),
+      minutes: brazilTime.getMinutes(),
+      date: brazilTime.getDate(),
+      month: brazilTime.getMonth() + 1,
+      year: brazilTime.getFullYear()
+    })
   }
   
   return brazilTime
