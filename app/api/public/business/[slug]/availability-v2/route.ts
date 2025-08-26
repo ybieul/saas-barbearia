@@ -137,12 +137,13 @@ export async function GET(
 
     // PASSO 2.1: Filtrar horários passados (apenas para o dia atual)
     const now = new Date()
-    const isToday = isSameDay(targetDate, now)
+    const nowBRT = toSystemTimezone(now)  // ✅ Converter para timezone brasileiro
+    const isToday = isSameDay(targetDate, nowBRT)
     
     let slotsAfterTimeFilter = allSlots
     
     if (isToday) {
-      const currentTime = format(now, 'HH:mm')
+      const currentTime = format(nowBRT, 'HH:mm')  // ✅ Usar horário BRT
       const currentMinutes = timeToMinutes(currentTime)
       
       slotsAfterTimeFilter = allSlots.filter(slotTime => {
@@ -153,6 +154,8 @@ export async function GET(
       // 🔍 DEBUG: Log do filtro de horário atual
       console.log('🔍 [AVAILABILITY-V2] Filtro de horário atual aplicado:', {
         isToday,
+        nowUTC: now.toISOString(),
+        nowBRT: nowBRT.toISOString(),
         currentTime,
         currentMinutes,
         originalSlotsCount: allSlots.length,
