@@ -523,7 +523,7 @@ export function useEstablishment() {
   }
 }
 
-// Hook específico para WhatsApp logs
+// Hook específico para WhatsApp logs (busca unificada)
 export function useWhatsAppLogs() {
   const { data, loading, error, request } = useApi<{
     logs: Array<{
@@ -544,6 +544,10 @@ export function useWhatsAppLogs() {
       read: number
       failed: number
       pending: number
+    }
+    breakdown?: {
+      whatsapp_logs: number
+      appointment_reminders: number
     }
   }>()
 
@@ -566,6 +570,7 @@ export function useWhatsAppLogs() {
   return {
     logs: data?.logs || [],
     stats: data?.stats || { total: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
+    breakdown: data?.breakdown || { whatsapp_logs: 0, appointment_reminders: 0 },
     loading,
     error,
     fetchLogs

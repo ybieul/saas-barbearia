@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
             sentAt: new Date()
           }
         })
-        console.log('✅ [API] Log salvo no banco de dados')
+        console.log('✅ [API] Log salvo em whatsapp_logs')
       } catch (logError) {
         console.error('❌ [API] Erro ao salvar log:', logError)
         // Não falhar a operação por erro de log
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
             attempts: 1
           }
         })
-        console.log('✅ [API] Log de erro salvo no banco')
+        console.log('✅ [API] Log de erro salvo em whatsapp_logs')
       } catch (logError) {
         console.error('❌ [API] Erro ao salvar log de erro:', logError)
       }

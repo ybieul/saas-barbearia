@@ -22,8 +22,8 @@ interface WhatsAppMessage {
 export function WhatsAppStatus() {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([])
   
-  // ✅ USAR DADOS REAIS DO BANCO DE DADOS
-  const { logs, stats, loading, fetchLogs } = useWhatsAppLogs()
+  // ✅ USAR DADOS REAIS UNIFICADOS (whatsapp_logs + appointment_reminders)
+  const { logs, stats, breakdown, loading, fetchLogs } = useWhatsAppLogs()
 
   useEffect(() => {
     // Buscar logs das últimas 24 horas
@@ -55,6 +55,8 @@ export function WhatsAppStatus() {
         if (log.to.startsWith('55')) {
           const phone = log.to.replace('55', '')
           clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`
+        } else if (log.to === 'Não informado') {
+          clientPhone = 'Não informado'
         }
 
         return {
@@ -180,6 +182,11 @@ export function WhatsAppStatus() {
               </CardTitle>
               <CardDescription className="text-gray-400">
                 Mensagens reais enviadas nas últimas 24 horas
+                {breakdown && (
+                  <span className="block text-xs mt-1 text-gray-500">
+                    📊 {breakdown.whatsapp_logs} logs + {breakdown.appointment_reminders} lembretes
+                  </span>
+                )}
               </CardDescription>
             </div>
             <Button
