@@ -208,15 +208,12 @@ async function sendMultiTenantWhatsAppMessage(
     console.log(`📝 Tipo: ${messageType}`)
 
     // Evolution API configuration from environment
-    let EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
+    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
     const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
 
-    // 🔧 CORREÇÃO TEMPORAL: Se a URL contém hostname Docker, tentar localhost
-    if (EVOLUTION_API_URL?.includes('evolution_api_evolution-api')) {
-      console.log(`🔧 [MULTI-TENANT] URL Docker detectada, tentando localhost...`)
-      EVOLUTION_API_URL = EVOLUTION_API_URL.replace('evolution_api_evolution-api', 'localhost')
-      console.log(`🔄 [MULTI-TENANT] Nova URL: ${EVOLUTION_API_URL}`)
-    }
+    console.log(`� [MULTI-TENANT] URLs configuradas:`)
+    console.log(`📡 EVOLUTION_API_URL: ${EVOLUTION_API_URL}`)
+    console.log(`� EVOLUTION_API_KEY: ${EVOLUTION_API_KEY ? 'Definida' : 'Não definida'}`)
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       console.error('❌ [MULTI-TENANT] Configuração Evolution API incompleta')
@@ -237,9 +234,11 @@ async function sendMultiTenantWhatsAppMessage(
       delay: 1000
     }
 
-    console.log(`🌐 [MULTI-TENANT] Enviando para Evolution API:`, {
+    console.log(`🌐 [MULTI-TENANT] Tentando conectar à Evolution API:`, {
       url: `${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
-      payload
+      instanceName,
+      method: 'POST',
+      headers: { 'apikey': EVOLUTION_API_KEY ? 'PRESENTE' : 'AUSENTE' }
     })
 
     const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {

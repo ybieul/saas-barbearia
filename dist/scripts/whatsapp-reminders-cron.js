@@ -126,19 +126,26 @@ async function sendWhatsappReminders() {
                     }
                     // 🎯 TODAS AS VERIFICAÇÕES PASSARAM: Enviar lembrete
                     console.log(`✅ [VALID] Processando lembrete para tenant: ${appointment.tenant.businessName} (instância: ${appointment.tenant.whatsapp_instance_name})`);
-                    await sendReminderMessage(appointment, config.type, appointment.tenant.whatsapp_instance_name);
-                    // 📝 REGISTRAR: Criar registro na tabela appointment_reminders
-                    await prisma.appointmentReminder.create({
-                        data: {
-                            id: generateId(),
-                            appointmentId: appointment.id,
-                            reminderType: config.type,
-                            sentAt: now,
-                        }
-                    });
-                    validAppointments++;
-                    totalSent++;
-                    console.log(`✅ [SENT] Lembrete ${config.type} enviado para ${appointment.endUser.name} via instância ${appointment.tenant.whatsapp_instance_name}`);
+                    try {
+                        await sendReminderMessage(appointment, config.type, appointment.tenant.whatsapp_instance_name);
+                        // 📝 REGISTRAR: Criar registro na tabela appointment_reminders
+                        await prisma.appointmentReminder.create({
+                            data: {
+                                id: generateId(),
+                                appointmentId: appointment.id,
+                                reminderType: config.type,
+                                sentAt: now,
+                            }
+                        });
+                        validAppointments++;
+                        totalSent++;
+                        console.log(`✅ [SENT] Lembrete ${config.type} enviado para ${appointment.endUser.name} via instância ${appointment.tenant.whatsapp_instance_name}`);
+                    }
+                    catch (reminderError) {
+                        console.error(`❌ [REMINDER-FAIL] Erro específico no envio de lembrete:`, reminderError);
+                        console.error(`❌ [REMINDER-FAIL] Agendamento: ${appointment.id}, Cliente: ${appointment.endUser.name}`);
+                        console.error(`❌ [REMINDER-FAIL] Instância: ${appointment.tenant.whatsapp_instance_name}`);
+                    }
                     // Pequeno delay entre envios para não sobrecarregar a API
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -164,14 +171,11 @@ async function sendMultiTenantWhatsAppMessage(phoneNumber, message, instanceName
         console.log(`🏢 Instância: ${instanceName}`);
         console.log(`📝 Tipo: ${messageType}`);
         // Evolution API configuration from environment
-        let EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
+        const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
         const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
-        // 🔧 CORREÇÃO TEMPORAL: Se a URL contém hostname Docker, tentar localhost
-        if (EVOLUTION_API_URL?.includes('evolution_api_evolution-api')) {
-            console.log(`🔧 [MULTI-TENANT] URL Docker detectada, tentando localhost...`);
-            EVOLUTION_API_URL = EVOLUTION_API_URL.replace('evolution_api_evolution-api', 'localhost');
-            console.log(`🔄 [MULTI-TENANT] Nova URL: ${EVOLUTION_API_URL}`);
-        }
+        console.log(`� [MULTI-TENANT] URLs configuradas:`);
+        console.log(`📡 EVOLUTION_API_URL: ${EVOLUTION_API_URL}`);
+        console.log(`� EVOLUTION_API_KEY: ${EVOLUTION_API_KEY ? 'Definida' : 'Não definida'}`);
         if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
             console.error('❌ [MULTI-TENANT] Configuração Evolution API incompleta');
             console.error('🔍 [MULTI-TENANT] Debug Environment Variables:', {
@@ -188,9 +192,11 @@ async function sendMultiTenantWhatsAppMessage(phoneNumber, message, instanceName
             text: message,
             delay: 1000
         };
-        console.log(`🌐 [MULTI-TENANT] Enviando para Evolution API:`, {
+        console.log(`🌐 [MULTI-TENANT] Tentando conectar à Evolution API:`, {
             url: `${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
-            payload
+            instanceName,
+            method: 'POST',
+            headers: { 'apikey': EVOLUTION_API_KEY ? 'PRESENTE' : 'AUSENTE' }
         });
         const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
             method: 'POST',
