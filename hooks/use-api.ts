@@ -522,3 +522,52 @@ export function useEstablishment() {
     updateEstablishment
   }
 }
+
+// Hook específico para WhatsApp logs
+export function useWhatsAppLogs() {
+  const { data, loading, error, request } = useApi<{
+    logs: Array<{
+      id: string
+      to: string
+      message: string
+      type: 'CONFIRMATION' | 'REMINDER_24H' | 'REMINDER_2H' | 'REACTIVATION' | 'PROMOTION' | 'CUSTOM'
+      status: 'PENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'
+      sentAt: string | null
+      createdAt: string
+      errorMessage: string | null
+      attempts: number
+    }>
+    stats: {
+      total: number
+      sent: number
+      delivered: number
+      read: number
+      failed: number
+      pending: number
+    }
+  }>()
+
+  const fetchLogs = useCallback((options?: {
+    hours?: number
+    limit?: number
+    type?: string
+  }) => {
+    const params = new URLSearchParams()
+    if (options?.hours) params.append('hours', options.hours.toString())
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.type) params.append('type', options.type)
+    
+    const queryString = params.toString()
+    const url = `/api/whatsapp/logs${queryString ? `?${queryString}` : ''}`
+    
+    return request(url)
+  }, [request])
+
+  return {
+    logs: data?.logs || [],
+    stats: data?.stats || { total: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
+    loading,
+    error,
+    fetchLogs
+  }
+}

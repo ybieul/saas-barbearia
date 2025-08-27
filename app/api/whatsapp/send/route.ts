@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { formatPhoneNumber } from '@/lib/whatsapp'
+import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 
 interface AuthUser {
@@ -120,6 +121,24 @@ export async function POST(req: NextRequest) {
       console.log('✅ [API] Mensagem WhatsApp enviada com sucesso!')
       console.log('📋 [API] Resposta:', responseData)
       
+      // ✅ SALVAR LOG NO BANCO DE DADOS
+      try {
+        await prisma.whatsAppLog.create({
+          data: {
+            tenantId: user.tenantId,
+            to: formattedNumber,
+            message: message,
+            type: type.toUpperCase() as any, // CUSTOM, CONFIRMATION, etc.
+            status: 'SENT',
+            sentAt: new Date()
+          }
+        })
+        console.log('✅ [API] Log salvo no banco de dados')
+      } catch (logError) {
+        console.error('❌ [API] Erro ao salvar log:', logError)
+        // Não falhar a operação por erro de log
+      }
+      
       return NextResponse.json({
         success: true,
         message: 'Mensagem enviada com sucesso',
@@ -129,6 +148,24 @@ export async function POST(req: NextRequest) {
       console.error('❌ [API] Falha ao enviar mensagem')
       console.error('📋 Status:', response.status)
       console.error('📋 Resposta:', responseData)
+      
+      // ✅ SALVAR LOG DE ERRO NO BANCO
+      try {
+        await prisma.whatsAppLog.create({
+          data: {
+            tenantId: user.tenantId,
+            to: formattedNumber,
+            message: message,
+            type: type.toUpperCase() as any,
+            status: 'FAILED',
+            errorMessage: responseData.message || 'Erro desconhecido',
+            attempts: 1
+          }
+        })
+        console.log('✅ [API] Log de erro salvo no banco')
+      } catch (logError) {
+        console.error('❌ [API] Erro ao salvar log de erro:', logError)
+      }
       
       return NextResponse.json({
         success: false,
