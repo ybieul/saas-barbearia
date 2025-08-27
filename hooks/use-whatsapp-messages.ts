@@ -72,7 +72,7 @@ export function useWhatsAppMessages(): UseWhatsAppMessagesResult {
       const data = await response.json()
 
       if (data.success) {
-        // 🇧🇷 CORREÇÃO: Simples - deixar JavaScript fazer conversão automática para timezone local
+        // 🇧🇷 As datas já vêm processadas corretamente da API via parseDatabaseDateTime
         const messagesWithDates = data.messages.map((msg: any) => ({
           ...msg,
           sentAt: msg.sentAt ? new Date(msg.sentAt) : null,

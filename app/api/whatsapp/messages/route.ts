@@ -60,9 +60,9 @@ export async function GET(request: NextRequest) {
         message: log.message,
         type: mapWhatsAppTypeToLegacy(log.type),
         status: mapWhatsAppStatusToLegacy(log.status),
-        // 🇧🇷 CORREÇÃO: Retornar Date object diretamente (sem conversão UTC)
-        sentAt: log.sentAt || log.createdAt,
-        createdAt: log.createdAt,
+        // 🇧🇷 CORREÇÃO: Usar parseDatabaseDateTime para interpretar corretamente como BRT
+        sentAt: log.sentAt ? parseDatabaseDateTime(log.sentAt.toISOString()) : parseDatabaseDateTime(log.createdAt.toISOString()),
+        createdAt: parseDatabaseDateTime(log.createdAt.toISOString()),
         source: 'whatsapp_logs' as const
       })),
       
@@ -74,9 +74,9 @@ export async function GET(request: NextRequest) {
         message: generateReminderMessage(reminder, reminder.appointment),
         type: mapReminderTypeToLegacy(reminder.reminderType),
         status: 'sent' as const, // AppointmentReminder sempre são consideradas enviadas
-        // 🇧🇷 CORREÇÃO: Retornar Date object diretamente (sem conversão UTC)
-        sentAt: reminder.sentAt,
-        createdAt: reminder.createdAt,
+        // 🇧🇷 CORREÇÃO: Usar parseDatabaseDateTime para interpretar corretamente como BRT
+        sentAt: parseDatabaseDateTime(reminder.sentAt.toISOString()),
+        createdAt: parseDatabaseDateTime(reminder.createdAt.toISOString()),
         source: 'appointment_reminders' as const
       }))
     ]
