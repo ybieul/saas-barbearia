@@ -217,7 +217,11 @@ export async function DELETE(request: NextRequest) {
     // Verificar se há agendamentos futuros usando este serviço
     const futureAppointments = await prisma.appointment.count({
       where: {
-        serviceId: id,
+        services: {
+          some: {
+            id: id
+          }
+        },
         dateTime: {
           gte: new Date()
         },

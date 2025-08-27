@@ -287,16 +287,16 @@ export default function WhatsAppPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed]">
-            Configurações de Mensagens
-          </h1>
-          <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
-        </div>
-        
-        {/* Status da Evolution API - Layout conforme modelo */}
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:items-start lg:ml-auto">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed]">
+              Configurações de Mensagens
+            </h1>
+            <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
+          </div>
+          
+          {/* Status da conexão e botão verificar - lado direito */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:ml-auto">
             <Button 
               variant="outline" 
               onClick={checkEvolutionStatus}
@@ -311,7 +311,7 @@ export default function WhatsAppPage() {
               {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
             </Button>
             
-            {/* Card de Status com texto integrado */}
+            {/* Status da conexão */}
             <div className="order-1 sm:order-2 px-4 py-2 bg-[#18181b] border border-[#27272a] rounded-md">
               <div className="flex items-center gap-3">
                 <span className="text-sm text-[#a1a1aa]">Conexão com o WhatsApp:</span>
@@ -349,23 +349,7 @@ export default function WhatsAppPage() {
 
       {/* Stats */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-[#ededed]">Estatísticas em Tempo Real</h2>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={refetchStats}
-            disabled={isLoadingStats}
-            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
-          >
-            {isLoadingStats ? (
-              <Clock className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <MessageCircle className="w-4 h-4 mr-2" />
-            )}
-            {isLoadingStats ? 'Atualizando...' : 'Atualizar'}
-          </Button>
-        </div>
+        <h2 className="text-lg font-semibold text-[#ededed]">Estatísticas em Tempo Real</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {automationStats.map((stat, index) => (
