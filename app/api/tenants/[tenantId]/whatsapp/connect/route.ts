@@ -170,11 +170,24 @@ export async function POST(
     console.log(`📡 [API] Evolution API Response Status: ${response.status}`)
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ [API] Erro na Evolution API:', errorText)
+      console.error(`❌ [API] Evolution API retornou erro: ${response.status}`)
       
+      let errorText = 'Erro desconhecido'
+      try {
+        errorText = await response.text()
+        console.error('❌ [API] Detalhes do erro:', errorText)
+      } catch (e) {
+        console.error('❌ [API] Não foi possível ler detalhes do erro')
+      }
+      
+      // Para a rota de connect, erros da Evolution API são sempre problemas reais
       return NextResponse.json(
-        { error: `Erro ao criar instância WhatsApp: ${response.status}` },
+        { 
+          error: `Erro ao criar instância WhatsApp na Evolution API`,
+          details: process.env.NODE_ENV === 'development' ? 
+            `Status: ${response.status}, Detalhes: ${errorText}` : 
+            `Erro ${response.status} na Evolution API`
+        },
         { status: 500 }
       )
     }

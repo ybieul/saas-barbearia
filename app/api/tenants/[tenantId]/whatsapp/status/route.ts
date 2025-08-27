@@ -123,20 +123,42 @@ export async function GET(
       signal: AbortSignal.timeout(10000)
     })
 
+    // Tratar diferentes códigos de status HTTP
     if (!response.ok) {
-      console.error(`❌ [API] Erro ao verificar status: ${response.status}`)
+      console.log(`⚠️ [API] Evolution API retornou status: ${response.status}`)
+      
+      // 404 significa que a instância não existe ou está desconectada - isso é VÁLIDO
+      if (response.status === 404) {
+        console.log('📴 [API] Instância não encontrada (404) - interpretando como desconectada')
+        return NextResponse.json({
+          connected: false,
+          instanceName: instanceName,
+          status: 'close',
+          error: 'Instância não encontrada - WhatsApp desconectado',
+          data: {
+            tenantId: tenantId,
+            instanceName: instanceName,
+            lastCheck: new Date().toISOString()
+          }
+        })
+      }
+      
+      // Para outros erros (500, 401, etc.), retornar erro real
+      console.error(`❌ [API] Erro inesperado na Evolution API: ${response.status}`)
+      const errorText = await response.text().catch(() => 'Erro desconhecido')
       return NextResponse.json(
         { 
           connected: false,
           instanceName: instanceName,
-          error: `Erro na Evolution API: ${response.status}`
+          error: `Erro na Evolution API: ${response.status} - ${errorText}`
         },
         { status: 500 }
       )
     }
 
+    // Se chegou aqui, a resposta foi bem-sucedida (200)
     const data = await response.json()
-    console.log('📋 [API] Status da instância:', data)
+    console.log('📋 [API] Status da instância obtido com sucesso:', data)
     
     const isConnected = data.instance?.state === 'open' || data.state === 'open'
     
@@ -185,13 +207,29 @@ export async function GET(
       )
     }
     
-    console.log("10.4. ❌ Retornando 500 - Erro interno")
+    // Se o erro for de timeout ou rede, tratar como "desconectado" também
+    if (error.name === 'TimeoutError' || error.message?.includes('timeout') || error.message?.includes('fetch')) {
+      console.log("10.5. ⚠️  Timeout/erro de rede - interpretando como desconectado")
+      return NextResponse.json({
+        connected: false,
+        instanceName: `tenant_${params.tenantId}`,
+        status: 'close',
+        error: 'Timeout na comunicação com Evolution API - interpretado como desconectado',
+        data: {
+          tenantId: params.tenantId,
+          instanceName: `tenant_${params.tenantId}`,
+          lastCheck: new Date().toISOString()
+        }
+      })
+    }
+    
+    console.log("10.6. ❌ Retornando 500 - Erro interno")
     console.error('❌ [API] Erro ao verificar status WhatsApp:', error)
     
     return NextResponse.json(
       { 
         connected: false,
-        error: 'Erro ao verificar status da conexão WhatsApp',
+        error: 'Erro interno ao verificar status da conexão WhatsApp',
         details: process.env.NODE_ENV === 'development' ? error?.message : undefined
       },
       { status: 500 }
