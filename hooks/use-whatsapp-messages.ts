@@ -72,7 +72,7 @@ export function useWhatsAppMessages(): UseWhatsAppMessagesResult {
       const data = await response.json()
 
       if (data.success) {
-        // 🇧🇷 As datas já vêm processadas corretamente da API via parseDatabaseDateTime
+        // ✅ Datas vêm como objetos Date nativos do Prisma via JSON
         const messagesWithDates = data.messages.map((msg: any) => ({
           ...msg,
           sentAt: msg.sentAt ? new Date(msg.sentAt) : null,
