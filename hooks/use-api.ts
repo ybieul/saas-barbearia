@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 interface ApiState<T> {
   data: T | null
@@ -13,44 +13,51 @@ export function useApi<T>() {
     error: null
   })
 
-  const request = useCallback(async (
-    url: string,
-    options: RequestInit = {}
-  ): Promise<T | null> => {
-    setState(prev => ({ ...prev, loading: true, error: null }))
+  // ✅ Usar useRef para manter função estável e evitar loops infinitos
+  const requestRef = useRef<((url: string, options?: RequestInit) => Promise<T | null>) | null>(null)
 
-    try {
-      const token = localStorage.getItem('auth_token')
-      
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-          ...options.headers
+  if (!requestRef.current) {
+    requestRef.current = async (url: string, options: RequestInit = {}): Promise<T | null> => {
+      setState(prev => ({ ...prev, loading: true, error: null }))
+
+      try {
+        const token = localStorage.getItem('auth_token')
+        
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options.headers
+          }
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          const errorMessage = data.message || `Erro ${response.status}: ${response.statusText}`
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Erro na API:', { status: response.status, message: errorMessage, data })
+          }
+          throw new Error(errorMessage)
         }
-      })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        const errorMessage = data.message || `Erro ${response.status}: ${response.statusText}`
+        setState(prev => ({ ...prev, data, loading: false }))
+        return data
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
         if (process.env.NODE_ENV === 'development') {
-          console.error('Erro na API:', { status: response.status, message: errorMessage, data })
+          console.error('Erro na requisição:', error)
         }
-        throw new Error(errorMessage)
+        setState(prev => ({ ...prev, error: errorMessage, loading: false }))
+        throw error // Propagar o erro para que possa ser tratado no componente
       }
-
-      setState(prev => ({ ...prev, data, loading: false }))
-      return data
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro na requisição:', error)
-      }
-      setState(prev => ({ ...prev, error: errorMessage, loading: false }))
-      throw error // Propagar o erro para que possa ser tratado no componente
     }
+  }
+
+  // ✅ Função wrapper estável que não muda entre renders
+  const request = useCallback((url: string, options: RequestInit = {}) => {
+    return requestRef.current!(url, options)
   }, [])
 
   return { ...state, request }
@@ -551,6 +558,7 @@ export function useWhatsAppLogs() {
     }
   }>()
 
+  // ✅ Função estável que não causa loops infinitos
   const fetchLogs = useCallback((options?: {
     hours?: number
     limit?: number
@@ -565,7 +573,7 @@ export function useWhatsAppLogs() {
     const url = `/api/whatsapp/logs${queryString ? `?${queryString}` : ''}`
     
     return request(url)
-  }, [request])
+  }, [request]) // ✅ request agora é estável, não causará loops
 
   return {
     logs: data?.logs || [],

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,21 +24,43 @@ export function WhatsAppStatus() {
   
   // ✅ USAR DADOS REAIS UNIFICADOS (whatsapp_logs + appointment_reminders)
   const { logs, stats, breakdown, loading, fetchLogs } = useWhatsAppLogs()
+  
+  // ✅ UseRef para controlar o intervalo e evitar múltiplas instâncias
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const hasInitializedRef = useRef(false)
 
+  // ✅ Função de busca inicial e periódica
   useEffect(() => {
-    // Buscar logs das últimas 24 horas
+    // Evitar múltiplas inicializações
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+
+    console.log('🚀 [WhatsApp] Inicializando componente - busca inicial')
+    
+    // Buscar logs das últimas 24 horas (chamada inicial)
     fetchLogs({ hours: 24, limit: 50 })
     
     // ✅ ATUALIZAR AUTOMATICAMENTE A CADA 30 SEGUNDOS
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
+      console.log('🔄 [WhatsApp] Auto-refresh dos logs')
       fetchLogs({ hours: 24, limit: 50 })
     }, 30000)
 
-    return () => clearInterval(interval)
-  }, [fetchLogs])
+    // ✅ Cleanup do interval quando componente for desmontado
+    return () => {
+      console.log('🧹 [WhatsApp] Limpando interval')
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [fetchLogs]) // ✅ fetchLogs agora é estável, não causará loops
 
+  // ✅ Processar logs apenas quando mudarem
   useEffect(() => {
     if (logs && logs.length > 0) {
+      console.log(`📊 [WhatsApp] Processando ${logs.length} logs para exibição`)
+      
       // ✅ CONVERTER LOGS REAIS PARA FORMATO DO COMPONENTE
       const convertedMessages: WhatsAppMessage[] = logs.map((log) => {
         // Extrair nome do cliente do número de telefone ou da mensagem
@@ -52,9 +74,13 @@ export function WhatsAppStatus() {
         }
         
         // Formatar telefone para exibição
-        if (log.to.startsWith('55')) {
+        if (log.to.startsWith('55') && log.to.length > 10) {
           const phone = log.to.replace('55', '')
-          clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`
+          if (phone.length === 11) {
+            clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`
+          } else if (phone.length === 10) {
+            clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 6)}-${phone.slice(6)}`
+          }
         } else if (log.to === 'Não informado') {
           clientPhone = 'Não informado'
         }
@@ -73,10 +99,18 @@ export function WhatsAppStatus() {
       })
 
       setMessages(convertedMessages)
+      console.log(`✅ [WhatsApp] ${convertedMessages.length} mensagens processadas e exibindo`)
     } else {
+      console.log('📝 [WhatsApp] Nenhum log encontrado, limpando mensagens')
       setMessages([])
     }
-  }, [logs])
+  }, [logs]) // ✅ Dependência apenas de logs, mais eficiente
+
+  // ✅ Função manual de atualização
+  const handleManualRefresh = () => {
+    console.log('🔄 [WhatsApp] Refresh manual solicitado')
+    fetchLogs({ hours: 24, limit: 50 })
+  }
 
   useEffect(() => {
     // ✅ USAR ESTATÍSTICAS REAIS DO BANCO
@@ -192,7 +226,7 @@ export function WhatsAppStatus() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchLogs({ hours: 24, limit: 50 })}
+              onClick={handleManualRefresh}
               disabled={loading}
               className="border-gray-600 text-gray-400 hover:text-white"
             >
