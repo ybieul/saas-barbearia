@@ -164,8 +164,14 @@ async function sendMultiTenantWhatsAppMessage(phoneNumber, message, instanceName
         console.log(`🏢 Instância: ${instanceName}`);
         console.log(`📝 Tipo: ${messageType}`);
         // Evolution API configuration from environment
-        const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
+        let EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
         const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
+        // 🔧 CORREÇÃO TEMPORAL: Se a URL contém hostname Docker, tentar localhost
+        if (EVOLUTION_API_URL?.includes('evolution_api_evolution-api')) {
+            console.log(`🔧 [MULTI-TENANT] URL Docker detectada, tentando localhost...`);
+            EVOLUTION_API_URL = EVOLUTION_API_URL.replace('evolution_api_evolution-api', 'localhost');
+            console.log(`🔄 [MULTI-TENANT] Nova URL: ${EVOLUTION_API_URL}`);
+        }
         if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
             console.error('❌ [MULTI-TENANT] Configuração Evolution API incompleta');
             console.error('🔍 [MULTI-TENANT] Debug Environment Variables:', {
@@ -210,46 +216,50 @@ async function sendMultiTenantWhatsAppMessage(phoneNumber, message, instanceName
     }
 }
 async function sendReminderMessage(appointment, reminderType, instanceName) {
-    async function sendReminderMessage(appointment, reminderType, instanceName) {
-        if (!appointment.endUser.phone) {
-            throw new Error('Cliente não possui telefone cadastrado');
-        }
-        // Preparar dados para o template
-        const appointmentDate = new Date(appointment.dateTime);
-        const templateData = {
-            clientName: appointment.endUser.name,
-            businessName: appointment.tenant.businessName || 'Nossa Barbearia',
-            service: appointment.services.map((s) => s.name).join(', ') || 'Serviço',
-            professional: appointment.professional?.name || 'Profissional',
-            date: (0, timezone_1.formatBrazilDate)(appointmentDate),
-            time: (0, timezone_1.formatBrazilTime)(appointmentDate),
-            totalTime: appointment.services.reduce((total, s) => total + s.duration, 0),
-            price: appointment.totalPrice,
-            businessPhone: appointment.tenant.businessPhone || '',
-        };
-        // Gerar mensagem baseada no tipo
-        let message = '';
-        switch (reminderType) {
-            case 'reminder_24h':
-                message = whatsapp_server_1.whatsappTemplates.reminder24h(templateData);
-                break;
-            case 'reminder_12h':
-                message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData); // ✅ CORRIGIDO: usar template correto
-                break;
-            case 'reminder_2h':
-                message = whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
-                break;
-            default:
-                throw new Error(`Tipo de lembrete desconhecido: ${reminderType}`);
-        }
-        // 🎯 ENVIAR MENSAGEM USANDO INSTÂNCIA ESPECÍFICA DO TENANT
-        const success = await sendMultiTenantWhatsAppMessage(appointment.endUser.phone, message, instanceName, // 🏢 Instância específica do tenant
-        reminderType);
-        if (!success) {
-            throw new Error('Falha ao enviar mensagem via WhatsApp');
-        }
-        return success;
+    console.log(`📧 [REMINDER] Iniciando envio de lembrete ${reminderType} para ${appointment.endUser.name}`);
+    if (!appointment.endUser.phone) {
+        throw new Error('Cliente não possui telefone cadastrado');
     }
+    // Preparar dados para o template
+    const appointmentDate = new Date(appointment.dateTime);
+    const templateData = {
+        clientName: appointment.endUser.name,
+        businessName: appointment.tenant.businessName || 'Nossa Barbearia',
+        service: appointment.services.map((s) => s.name).join(', ') || 'Serviço',
+        professional: appointment.professional?.name || 'Profissional',
+        date: (0, timezone_1.formatBrazilDate)(appointmentDate),
+        time: (0, timezone_1.formatBrazilTime)(appointmentDate),
+        totalTime: appointment.services.reduce((total, s) => total + s.duration, 0),
+        price: appointment.totalPrice,
+        businessPhone: appointment.tenant.businessPhone || '',
+    };
+    // Gerar mensagem baseada no tipo
+    let message = '';
+    switch (reminderType) {
+        case 'reminder_24h':
+            message = whatsapp_server_1.whatsappTemplates.reminder24h(templateData);
+            break;
+        case 'reminder_12h':
+            message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData); // ✅ CORRIGIDO: usar template correto
+            break;
+        case 'reminder_2h':
+            message = whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
+            break;
+        default:
+            throw new Error(`Tipo de lembrete desconhecido: ${reminderType}`);
+    }
+    // 🎯 ENVIAR MENSAGEM USANDO INSTÂNCIA ESPECÍFICA DO TENANT
+    console.log(`📤 [REMINDER] Preparando envio via Evolution API`);
+    console.log(`📱 Telefone: ${appointment.endUser.phone}`);
+    console.log(`🏢 Instância: ${instanceName}`);
+    console.log(`📝 Mensagem: ${message.substring(0, 100)}...`);
+    const success = await sendMultiTenantWhatsAppMessage(appointment.endUser.phone, message, instanceName, // 🏢 Instância específica do tenant
+    reminderType);
+    console.log(`📊 [REMINDER] Resultado do envio: ${success ? 'SUCESSO' : 'FALHOU'}`);
+    if (!success) {
+        throw new Error('Falha ao enviar mensagem via WhatsApp');
+    }
+    return success;
 }
 // Este bloco permite que o script seja executado diretamente com "node" ou "ts-node"
 if (require.main === module) {

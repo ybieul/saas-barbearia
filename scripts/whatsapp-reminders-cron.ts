@@ -151,21 +151,28 @@ export async function sendWhatsappReminders() {
           // 🎯 TODAS AS VERIFICAÇÕES PASSARAM: Enviar lembrete
           console.log(`✅ [VALID] Processando lembrete para tenant: ${appointment.tenant.businessName} (instância: ${appointment.tenant.whatsapp_instance_name})`)
           
-          await sendReminderMessage(appointment, config.type, appointment.tenant.whatsapp_instance_name!)
-          
-          // 📝 REGISTRAR: Criar registro na tabela appointment_reminders
-          await prisma.appointmentReminder.create({
-            data: {
-              id: generateId(),
-              appointmentId: appointment.id,
-              reminderType: config.type,
-              sentAt: now,
-            }
-          })
+          try {
+            await sendReminderMessage(appointment, config.type, appointment.tenant.whatsapp_instance_name!)
+            
+            // 📝 REGISTRAR: Criar registro na tabela appointment_reminders
+            await prisma.appointmentReminder.create({
+              data: {
+                id: generateId(),
+                appointmentId: appointment.id,
+                reminderType: config.type,
+                sentAt: now,
+              }
+            })
 
-          validAppointments++
-          totalSent++
-          console.log(`✅ [SENT] Lembrete ${config.type} enviado para ${appointment.endUser.name} via instância ${appointment.tenant.whatsapp_instance_name}`)
+            validAppointments++
+            totalSent++
+            console.log(`✅ [SENT] Lembrete ${config.type} enviado para ${appointment.endUser.name} via instância ${appointment.tenant.whatsapp_instance_name}`)
+            
+          } catch (reminderError) {
+            console.error(`❌ [REMINDER-FAIL] Erro específico no envio de lembrete:`, reminderError)
+            console.error(`❌ [REMINDER-FAIL] Agendamento: ${appointment.id}, Cliente: ${appointment.endUser.name}`)
+            console.error(`❌ [REMINDER-FAIL] Instância: ${appointment.tenant.whatsapp_instance_name}`)
+          }
           
           // Pequeno delay entre envios para não sobrecarregar a API
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -201,8 +208,15 @@ async function sendMultiTenantWhatsAppMessage(
     console.log(`📝 Tipo: ${messageType}`)
 
     // Evolution API configuration from environment
-    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
+    let EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
     const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
+
+    // 🔧 CORREÇÃO TEMPORAL: Se a URL contém hostname Docker, tentar localhost
+    if (EVOLUTION_API_URL?.includes('evolution_api_evolution-api')) {
+      console.log(`🔧 [MULTI-TENANT] URL Docker detectada, tentando localhost...`)
+      EVOLUTION_API_URL = EVOLUTION_API_URL.replace('evolution_api_evolution-api', 'localhost')
+      console.log(`🔄 [MULTI-TENANT] Nova URL: ${EVOLUTION_API_URL}`)
+    }
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       console.error('❌ [MULTI-TENANT] Configuração Evolution API incompleta')
@@ -256,7 +270,8 @@ async function sendMultiTenantWhatsAppMessage(
 }
 
 async function sendReminderMessage(appointment: any, reminderType: string, instanceName: string) {
-async function sendReminderMessage(appointment: any, reminderType: string, instanceName: string) {
+  console.log(`📧 [REMINDER] Iniciando envio de lembrete ${reminderType} para ${appointment.endUser.name}`)
+  
   if (!appointment.endUser.phone) {
     throw new Error('Cliente não possui telefone cadastrado')
   }
@@ -292,19 +307,25 @@ async function sendReminderMessage(appointment: any, reminderType: string, insta
   }
 
   // 🎯 ENVIAR MENSAGEM USANDO INSTÂNCIA ESPECÍFICA DO TENANT
+  console.log(`📤 [REMINDER] Preparando envio via Evolution API`)
+  console.log(`📱 Telefone: ${appointment.endUser.phone}`)
+  console.log(`🏢 Instância: ${instanceName}`)
+  console.log(`📝 Mensagem: ${message.substring(0, 100)}...`)
+  
   const success = await sendMultiTenantWhatsAppMessage(
     appointment.endUser.phone,
     message,
     instanceName, // 🏢 Instância específica do tenant
     reminderType
   )
+  
+  console.log(`📊 [REMINDER] Resultado do envio: ${success ? 'SUCESSO' : 'FALHOU'}`)
 
   if (!success) {
     throw new Error('Falha ao enviar mensagem via WhatsApp')
   }
 
   return success
-}
 }
 
 // Este bloco permite que o script seja executado diretamente com "node" ou "ts-node"
