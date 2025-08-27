@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
     const user = verifyToken(request)
     const { searchParams } = new URL(request.url)
     
-    // Parâmetro configurável de dias (padrão: 45 dias)
-    const daysThreshold = parseInt(searchParams.get('days') || '45')
+    // Parâmetro configurável de dias (padrão: 15 dias para manter consistência)
+    const daysThreshold = parseInt(searchParams.get('days') || '15')
     
     // Calcular data limite para considerar cliente inativo
     const thresholdDate = new Date()

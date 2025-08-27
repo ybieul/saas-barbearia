@@ -43,29 +43,26 @@ export async function GET(request: NextRequest) {
       },
       select: {
         id: true,
+        totalVisits: true,
+        lastVisit: true,
         createdAt: true
       }
     })
 
-    // Buscar agendamentos dos últimos 15 dias para calcular clientes inativos
+    // ✅ USAR MESMA LÓGICA DA PÁGINA DE CLIENTES INATIVOS (15 dias)
     const fifteenDaysAgo = new Date(brazilNow)
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
 
-    const recentAppointments = await prisma.appointment.findMany({
-      where: {
-        tenantId: user.tenantId,
-        dateTime: {
-          gte: fifteenDaysAgo
-        }
-      },
-      select: {
-        endUserId: true
-      }
-    })
-
-    // Calcular clientes que tiveram agendamentos recentes
-    const activeClientIds = new Set(recentAppointments.map(apt => apt.endUserId))
-    const inactiveCount = allClients.filter(client => !activeClientIds.has(client.id)).length
+    // Calcular clientes inativos usando a mesma lógica da API /clients/inactive
+    const inactiveCount = allClients.filter(client => {
+      // Cliente nunca teve visitas
+      if (client.totalVisits === 0) return true
+      // Cliente não tem lastVisit registrado
+      if (!client.lastVisit) return true
+      // Cliente com última visita há mais de 15 dias
+      if (new Date(client.lastVisit) < fifteenDaysAgo) return true
+      return false
+    }).length
 
     // Calcular estatísticas baseadas nos dados reais
     const confirmedAppointments = todayAppointments.filter(apt => 

@@ -165,11 +165,16 @@ export default function WhatsAppPage() {
     
     const fifteenDaysAgo = getBrazilNow()
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    
+    // ✅ USAR MESMA LÓGICA DA API: baseado em lastVisit e totalVisits, não agendamentos
     const inactiveClients = clients.filter(client => {
-      const lastAppointment = appointments
-        .filter(apt => apt.clientId === client.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-      return !lastAppointment || new Date(lastAppointment.date) < fifteenDaysAgo
+      // Cliente nunca teve visitas
+      if (!client.totalVisits || client.totalVisits === 0) return true
+      // Cliente não tem lastVisit registrado
+      if (!client.lastVisit) return true
+      // Cliente com última visita há mais de 15 dias
+      if (new Date(client.lastVisit) < fifteenDaysAgo) return true
+      return false
     }).length
 
     const deliveryRate = totalMessages > 0 ? Math.max(95, Math.min(99, 100 - Math.floor(totalMessages / 10))) : 0
