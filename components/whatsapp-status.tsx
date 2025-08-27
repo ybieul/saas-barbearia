@@ -184,7 +184,7 @@ export function WhatsAppStatus() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-white">{stats.total}</div>
@@ -195,24 +195,6 @@ export function WhatsAppStatus() {
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-400">{stats.sent}</div>
             <div className="text-xs text-gray-400">Enviadas</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-400">{stats.delivered}</div>
-            <div className="text-xs text-gray-400">Entregues</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-400">{stats.read}</div>
-            <div className="text-xs text-gray-400">Lidas</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-400">{stats.failed}</div>
-            <div className="text-xs text-gray-400">Falharam</div>
           </CardContent>
         </Card>
       </div>
@@ -248,14 +230,13 @@ export function WhatsAppStatus() {
                         {message.type === "reactivation" && "Reativação"}
                         {message.type === "custom" && "Personalizada"}
                       </Badge>
-                      <Badge className={getStatusColor(message.status)}>
-                        {getStatusIcon(message.status)}
-                        {message.status === "pending" && "Pendente"}
-                        {message.status === "sent" && "Enviada"}
-                        {message.status === "delivered" && "Entregue"}
-                        {message.status === "read" && "Lida"}
-                        {message.status === "failed" && "Falhou"}
-                      </Badge>
+                      {/* Mostrar badge de status apenas se for "sent" (Enviada) */}
+                      {message.status === "sent" && (
+                        <Badge className={getStatusColor(message.status)}>
+                          {getStatusIcon(message.status)}
+                          Enviada
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-gray-400 mb-1">{message.clientPhone}</p>
                     <p className="text-sm text-gray-300 truncate max-w-md">{message.message}</p>
