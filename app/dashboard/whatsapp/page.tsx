@@ -12,6 +12,7 @@ import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber, checkWhatsAp
 import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
 import { useAutomationSettings } from "@/hooks/use-automation-settings"
+import { useToast } from "@/hooks/use-toast"
 import { getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
 
 export default function WhatsAppPage() {
@@ -30,6 +31,34 @@ export default function WhatsAppPage() {
     loadSettings: loadAutomationSettings, 
     updateSetting: saveAutomationSetting 
   } = useAutomationSettings()
+
+  // Hook para toast notifications
+  const { toast } = useToast()
+
+  // Função para lidar com mudanças de automação com notificações
+  const handleAutomationToggle = async (automationType: string, checked: boolean, displayName: string) => {
+    try {
+      await saveAutomationSetting(automationType, checked)
+      
+      // Mostrar notificação responsiva
+      toast({
+        title: checked ? "Automação Ativada" : "Automação Desativada",
+        description: `${displayName} foi ${checked ? 'ativada' : 'desativada'} com sucesso.`,
+        duration: 3000,
+        className: "text-sm sm:text-base", // Responsivo
+      })
+    } catch (error) {
+      // Notificação de erro
+      toast({
+        title: "Erro",
+        description: `Não foi possível ${checked ? 'ativar' : 'desativar'} ${displayName.toLowerCase()}.`,
+        variant: "destructive",
+        duration: 4000,
+        className: "text-sm sm:text-base",
+      })
+      console.error('Erro ao alterar automação:', error)
+    }
+  }
 
   const [whatsappStatus, setWhatsappStatus] = useState<{
     connected: boolean
@@ -209,41 +238,48 @@ export default function WhatsAppPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#ededed] flex items-center gap-2">
-            <MessageCircle className="w-8 h-8 text-[#10b981]" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed] flex items-center gap-2">
+            <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
             WhatsApp Business
           </h1>
-          <p className="text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
-          
-          {/* Status da Evolution API */}
-          <div className="flex items-center gap-2 mt-2">
+          <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
+        </div>
+        
+        {/* Status da Evolution API com Botão - Layout Responsivo */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm sm:text-base text-[#a1a1aa]">Conexão com o WhatsApp:</span>
             {whatsappStatus.loading ? (
               <div className="flex items-center gap-2 text-yellow-400">
                 <Clock className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Verificando conexão...</span>
+                <span className="text-sm font-medium">Verificando...</span>
               </div>
             ) : whatsappStatus.connected ? (
               <div className="flex items-center gap-2 text-green-400">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">Evolution API conectada ({whatsappStatus.instanceName})</span>
+                <span className="text-sm font-medium">Ativada</span>
+                {whatsappStatus.instanceName && (
+                  <span className="text-xs text-gray-500">({whatsappStatus.instanceName})</span>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2 text-red-400">
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-sm">Evolution API desconectada</span>
-                {whatsappStatus.error && <span className="text-xs">({whatsappStatus.error})</span>}
+                <span className="text-sm font-medium">Desativada</span>
+                {whatsappStatus.error && (
+                  <span className="text-xs text-gray-500">({whatsappStatus.error})</span>
+                )}
               </div>
             )}
           </div>
-        </div>
-        <div className="flex gap-2">
+          
           <Button 
             variant="outline" 
             onClick={checkEvolutionStatus}
             disabled={whatsappStatus.loading}
-            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
+            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent w-full sm:w-auto text-sm sm:text-base"
           >
             {whatsappStatus.loading ? (
               <Clock className="w-4 h-4 mr-2 animate-spin" />
@@ -393,7 +429,7 @@ export default function WhatsAppPage() {
           <CardHeader>
             <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
-              Automações
+              Mensagens Automáticas
             </CardTitle>
             <CardDescription className="text-[#71717a]">Configure mensagens automáticas</CardDescription>
           </CardHeader>
@@ -407,7 +443,7 @@ export default function WhatsAppPage() {
                 checked={automationSettings.confirmationEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  await saveAutomationSetting('confirmation', checked)
+                  await handleAutomationToggle('confirmation', checked, 'Confirmação de Agendamento')
                 }}
               />
             </div>
@@ -421,7 +457,7 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder24hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  await saveAutomationSetting('reminder_24h', checked)
+                  await handleAutomationToggle('reminder_24h', checked, 'Lembrete 24 horas')
                 }}
               />
             </div>
@@ -435,7 +471,7 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder12hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  await saveAutomationSetting('reminder_12h', checked)
+                  await handleAutomationToggle('reminder_12h', checked, 'Lembrete 12 horas')
                 }}
               />
             </div>
@@ -449,7 +485,7 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reminder2hEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  await saveAutomationSetting('reminder_2h', checked)
+                  await handleAutomationToggle('reminder_2h', checked, 'Lembrete 2 horas')
                 }}
               />
             </div>
@@ -463,7 +499,7 @@ export default function WhatsAppPage() {
                 checked={automationSettings.reactivationEnabled}
                 disabled={isLoadingSettings}
                 onCheckedChange={async (checked) => {
-                  await saveAutomationSetting('reactivation', checked)
+                  await handleAutomationToggle('reactivation', checked, 'Reativação de Clientes')
                 }}
               />
             </div>
@@ -478,14 +514,6 @@ export default function WhatsAppPage() {
                 readOnly
               />
             </div>
-
-            <Button 
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
-              disabled={isLoadingSettings}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              {isLoadingSettings ? 'Carregando...' : 'Configurações Ativas'}
-            </Button>
           </CardContent>
         </Card>
       </div>
