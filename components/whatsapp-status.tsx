@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react"
-import { useAppointments, useClients } from "@/hooks/use-api"
+import { useWhatsAppMessages } from "@/hooks/use-whatsapp-messages"
 
 interface WhatsAppMessage {
   id: string
@@ -14,118 +14,19 @@ interface WhatsAppMessage {
   message: string
   type: "confirmation" | "reminder" | "reactivation" | "custom"
   status: "pending" | "sent" | "delivered" | "read" | "failed"
-  sentAt?: Date
-  deliveredAt?: Date
-  readAt?: Date
+  sentAt: Date
+  createdAt: Date
+  source: "whatsapp_logs" | "appointment_reminders"
 }
 
 export function WhatsAppStatus() {
-  const [messages, setMessages] = useState<WhatsAppMessage[]>([])
-  
-  // Buscar dados reais da API
-  const { appointments, loading, fetchAppointments } = useAppointments()
-  const { clients, fetchClients } = useClients()
+  // Usar o hook dedicado para buscar mensagens reais do banco
+  const { messages, stats, loading, error, fetchMessages } = useWhatsAppMessages()
 
   useEffect(() => {
-    fetchAppointments()
-    fetchClients()
-  }, [fetchAppointments, fetchClients])
-
-  useEffect(() => {
-    if (appointments.length > 0 && clients.length > 0) {
-      // Gerar mensagens baseadas nos agendamentos reais das últimas 24 horas
-      const now = new Date()
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      
-      const recentAppointments = appointments.filter(apt => {
-        const aptDate = new Date(apt.date)
-        return aptDate >= yesterday
-      })
-
-      const generatedMessages: WhatsAppMessage[] = recentAppointments.slice(0, 10).map((apt, index) => {
-        const client = clients.find(c => c.id === apt.clientId)
-        const clientName = client?.name || `Cliente ${apt.clientId}`
-        const clientPhone = client?.phone || "(11) 9999-9999"
-        
-        // Determinar tipo de mensagem baseado no status e horário
-        let type: "confirmation" | "reminder" | "reactivation" | "custom" = "confirmation"
-        let message = ""
-        let status: "pending" | "sent" | "delivered" | "read" | "failed" = "sent" // Sempre "sent" para mostrar apenas badge "Enviada"
-        
-        if (apt.status === 'completed') {
-          type = "confirmation"
-          message = `Agendamento confirmado para ${apt.date} às ${apt.time} - ${apt.serviceName}`
-          status = "sent"
-        } else if (apt.status === 'CONFIRMED') {
-          type = "reminder" 
-          message = `Lembrete: seu agendamento é em ${apt.date} às ${apt.time}`
-          status = "sent"
-        } else {
-          type = "confirmation"
-          message = `Confirmação pendente: ${apt.serviceName} em ${apt.date} às ${apt.time}`
-          status = "sent"
-        }
-
-        const baseTime = now.getTime() - (index + 1) * 30 * 60 * 1000 // 30 min intervals
-        
-        return {
-          id: apt.id,
-          clientName,
-          clientPhone,
-          message,
-          type,
-          status,
-          sentAt: new Date(baseTime),
-          deliveredAt: undefined, // Não definir para mensagens "sent"
-          readAt: undefined, // Não definir para mensagens "sent"
-        }
-      })
-
-      // Adicionar algumas mensagens de reativação para clientes inativos
-      const inactiveClients = clients.filter(client => {
-        const hasRecentAppointment = appointments.some(apt => 
-          apt.clientId === client.id && new Date(apt.date) > new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        )
-        return !hasRecentAppointment
-      }).slice(0, 3)
-
-      const reactivationMessages: WhatsAppMessage[] = inactiveClients.map((client, index) => ({
-        id: `reactivation-${client.id}`,
-        clientName: client.name,
-        clientPhone: client.phone || "(11) 9999-9999", 
-        message: `Olá ${client.name}! Sentimos sua falta. Que tal agendar um novo atendimento? Temos ofertas especiais!`,
-        type: "reactivation",
-        status: "sent", // Sempre "sent" para mostrar badge "Enviada"
-        sentAt: new Date(now.getTime() - (generatedMessages.length + index + 1) * 45 * 60 * 1000),
-        deliveredAt: undefined, // Não definir para mensagens "sent"
-      }))
-
-      setMessages([...generatedMessages, ...reactivationMessages])
-    }
-  }, [appointments, clients])
-
-  const [stats, setStats] = useState({
-    total: 0,
-    sent: 0,
-    delivered: 0,
-    read: 0,
-    failed: 0,
-  })
-
-  useEffect(() => {
-    const newStats = messages.reduce(
-      (acc, msg) => {
-        acc.total++
-        if (msg.status === "sent" || msg.status === "delivered" || msg.status === "read") acc.sent++
-        if (msg.status === "delivered" || msg.status === "read") acc.delivered++
-        if (msg.status === "read") acc.read++
-        if (msg.status === "failed") acc.failed++
-        return acc
-      },
-      { total: 0, sent: 0, delivered: 0, read: 0, failed: 0 },
-    )
-    setStats(newStats)
-  }, [messages])
+    // Buscar mensagens ao carregar o componente
+    fetchMessages()
+  }, [fetchMessages])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -171,14 +72,9 @@ export function WhatsAppStatus() {
   }
 
   const retryFailedMessage = (messageId: string) => {
-    setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, status: "pending" as const } : msg)))
-
-    // Simulate retry
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, status: "sent" as const, sentAt: new Date() } : msg)),
-      )
-    }, 2000)
+    // Para mensagens reais, não podemos simular retry
+    // Em vez disso, vamos apenas recarregar os dados
+    fetchMessages()
   }
 
   return (
@@ -211,50 +107,93 @@ export function WhatsAppStatus() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-white font-medium">{message.clientName}</p>
-                      {/* Mostrar apenas badge "Enviada" quando status for "sent" */}
-                      {message.status === "sent" && (
-                        <Badge className={getStatusColor(message.status)}>
-                          {getStatusIcon(message.status)}
-                          Enviada
-                        </Badge>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Clock className="w-6 h-6 animate-spin text-blue-400 mr-2" />
+              <span className="text-gray-400">Carregando mensagens...</span>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                <p className="text-red-400 mb-2">Erro ao carregar mensagens</p>
+                <p className="text-gray-500 text-sm mb-4">{error}</p>
+                <Button 
+                  onClick={fetchMessages}
+                  size="sm"
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Tentar Novamente
+                </Button>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-400">Nenhuma mensagem encontrada</p>
+                <p className="text-gray-500 text-sm">As mensagens enviadas aparecerão aqui</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-white font-medium">{message.clientName}</p>
+                        {/* Mostrar apenas badge "Enviada" quando status for "sent" */}
+                        {message.status === "sent" && (
+                          <Badge className={getStatusColor(message.status)}>
+                            {getStatusIcon(message.status)}
+                            Enviada
+                          </Badge>
+                        )}
+                        {/* Badge para outros status se necessário */}
+                        {message.status === "failed" && (
+                          <Badge className={getStatusColor(message.status)}>
+                            {getStatusIcon(message.status)}
+                            Falhou
+                          </Badge>
+                        )}
+                        {message.status === "pending" && (
+                          <Badge className={getStatusColor(message.status)}>
+                            {getStatusIcon(message.status)}
+                            Pendente
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1">{message.clientPhone}</p>
+                      <p className="text-sm text-gray-300 truncate max-w-md">{message.message}</p>
+                      {message.sentAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enviada: {message.sentAt.toLocaleString("pt-BR")}
+                        </p>
                       )}
                     </div>
-                    <p className="text-sm text-gray-400 mb-1">{message.clientPhone}</p>
-                    <p className="text-sm text-gray-300 truncate max-w-md">{message.message}</p>
-                    {message.sentAt && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Enviada: {message.sentAt.toLocaleString("pt-BR")}
-                        {message.readAt && ` • Lida: ${message.readAt.toLocaleString("pt-BR")}`}
-                      </p>
-                    )}
                   </div>
+                  {message.status === "failed" && (
+                    <Button
+                      size="sm"
+                      onClick={() => retryFailedMessage(message.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Recarregar
+                    </Button>
+                  )}
                 </div>
-                {message.status === "failed" && (
-                  <Button
-                    size="sm"
-                    onClick={() => retryFailedMessage(message.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Tentar Novamente
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
