@@ -44,9 +44,6 @@ coverage/
 *.temp
 .cache/
 
-# Prisma
-prisma/migrations/
-
 # TypeScript
 *.tsbuildinfo
 .tsbuildinfo
