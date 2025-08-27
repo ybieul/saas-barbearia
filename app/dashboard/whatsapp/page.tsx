@@ -38,15 +38,19 @@ export default function WhatsAppPage() {
   // Função para lidar com mudanças de automação com notificações
   const handleAutomationToggle = async (automationType: string, checked: boolean, displayName: string) => {
     try {
-      await saveAutomationSetting(automationType, checked)
+      const success = await saveAutomationSetting(automationType, checked)
       
-      // Mostrar notificação responsiva
-      toast({
-        title: checked ? "Automação Ativada" : "Automação Desativada",
-        description: `${displayName} foi ${checked ? 'ativada' : 'desativada'} com sucesso.`,
-        duration: 3000,
-        className: "text-sm sm:text-base", // Responsivo
-      })
+      if (success) {
+        // Mostrar notificação responsiva
+        toast({
+          title: checked ? "Automação Ativada" : "Automação Desativada",
+          description: `${displayName} foi ${checked ? 'ativada' : 'desativada'} com sucesso.`,
+          duration: 3000,
+          className: "text-sm sm:text-base", // Responsivo
+        })
+      } else {
+        throw new Error('Falha ao salvar configuração')
+      }
     } catch (error) {
       // Notificação de erro
       toast({
@@ -240,54 +244,66 @@ export default function WhatsAppPage() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed] flex items-center gap-2">
-            <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
-            WhatsApp Business
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed]">
+            Configurações de Mensagens
           </h1>
           <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
         </div>
         
-        {/* Status da Evolution API com Botão - Layout Responsivo */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+        {/* Status da Evolution API com Card - Layout Responsivo */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm sm:text-base text-[#a1a1aa]">Conexão com o WhatsApp:</span>
-            {whatsappStatus.loading ? (
-              <div className="flex items-center gap-2 text-yellow-400">
-                <Clock className="w-4 h-4 animate-spin" />
-                <span className="text-sm font-medium">Verificando...</span>
-              </div>
-            ) : whatsappStatus.connected ? (
-              <div className="flex items-center gap-2 text-green-400">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">Ativada</span>
-                {whatsappStatus.instanceName && (
-                  <span className="text-xs text-gray-500">({whatsappStatus.instanceName})</span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-red-400">
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">Desativada</span>
-                {whatsappStatus.error && (
-                  <span className="text-xs text-gray-500">({whatsappStatus.error})</span>
-                )}
-              </div>
-            )}
           </div>
           
-          <Button 
-            variant="outline" 
-            onClick={checkEvolutionStatus}
-            disabled={whatsappStatus.loading}
-            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent w-full sm:w-auto text-sm sm:text-base"
-          >
-            {whatsappStatus.loading ? (
-              <Clock className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Settings className="w-4 h-4 mr-2" />
-            )}
-            {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+            {/* Card de Status */}
+            <Card className="bg-[#18181b] border-[#27272a] px-4 py-3 min-w-fit">
+              <div className="flex items-center gap-3">
+                {whatsappStatus.loading ? (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin text-yellow-400 flex-shrink-0" />
+                    <span className="text-sm font-medium text-yellow-400">Verificando...</span>
+                  </>
+                ) : whatsappStatus.connected ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-green-400">Conectado</span>
+                      {whatsappStatus.instanceName && (
+                        <span className="text-xs text-gray-500">{whatsappStatus.instanceName}</span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-red-400">Desconectado</span>
+                      {whatsappStatus.error && (
+                        <span className="text-xs text-gray-500">{whatsappStatus.error}</span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
+            
+            {/* Botão */}
+            <Button 
+              variant="outline" 
+              onClick={checkEvolutionStatus}
+              disabled={whatsappStatus.loading}
+              className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent text-sm sm:text-base"
+            >
+              {whatsappStatus.loading ? (
+                <Clock className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Settings className="w-4 h-4 mr-2" />
+              )}
+              {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
+            </Button>
+          </div>
         </div>
       </div>
 
