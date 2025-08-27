@@ -35,21 +35,34 @@ export function WhatsAppConnection() {
       throw new Error('Usuário não autenticado')
     }
 
+    // Tentar obter token de diferentes locais para compatibilidade
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+    
+    console.log('🔐 [Frontend] Fazendo chamada API:', endpoint)
+    console.log('🔐 [Frontend] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+    console.log('🔐 [Frontend] TenantId:', user.tenantId)
+
     const response = await fetch(`/api/tenants/${user.tenantId}/whatsapp/${endpoint}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
     })
 
+    console.log('📡 [Frontend] Response status:', response.status)
+    console.log('📡 [Frontend] Response ok:', response.ok)
+
     if (!response.ok) {
       const errorData = await response.json()
+      console.error('❌ [Frontend] Erro na API:', errorData)
       throw new Error(errorData.error || `Erro HTTP ${response.status}`)
     }
 
-    return response.json()
+    const responseData = await response.json()
+    console.log('✅ [Frontend] Resposta da API:', responseData)
+    return responseData
   }, [user?.tenantId])
 
   // Verificar status inicial

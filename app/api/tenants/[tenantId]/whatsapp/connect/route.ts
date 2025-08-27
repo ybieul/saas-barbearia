@@ -10,37 +10,59 @@ interface AuthUser {
 }
 
 function verifyToken(request: NextRequest): AuthUser {
+  console.log("--- INICIANDO VERIFICAÇÃO DE PERMISSÃO (CONNECT) ---")
+  
   // Tentar obter token do header Authorization
   let token = request.headers.get('authorization')?.replace('Bearer ', '')
+  console.log("1. Token do Authorization header:", token ? "✅ Encontrado" : "❌ Não encontrado")
   
   // Se não tiver no header, tentar obter do cookie
   if (!token) {
     token = request.cookies.get('token')?.value
+    console.log("1.1. Token do cookie:", token ? "✅ Encontrado" : "❌ Não encontrado")
   }
   
   // Se ainda não tiver, tentar obter do header x-auth-token
   if (!token) {
     token = request.headers.get('x-auth-token') || undefined
+    console.log("1.2. Token do x-auth-token header:", token ? "✅ Encontrado" : "❌ Não encontrado")
   }
 
+  console.log("2. Token final obtido:", token ? `✅ ${token.substring(0, 20)}...` : "❌ Nenhum token")
+
   if (!token) {
+    console.log("❌ ERRO: Token não fornecido")
     throw new Error('Token não fornecido')
   }
 
   try {
+    console.log("3. Tentando decodificar token...")
+    console.log("3.1. NEXTAUTH_SECRET existe:", process.env.NEXTAUTH_SECRET ? "✅ Sim" : "❌ Não")
+    
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as {
       userId: string
       tenantId: string
       email: string
       role: string
     }
+    
+    console.log("4. ✅ Token decodificado com sucesso:")
+    console.log("4.1. userId:", decoded.userId)
+    console.log("4.2. tenantId:", decoded.tenantId) 
+    console.log("4.3. email:", decoded.email)
+    console.log("4.4. role:", decoded.role)
+    
     return {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
       email: decoded.email,
       role: decoded.role
     }
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ ERRO na validação do token:")
+    console.error("5.1. Tipo do erro:", error.name)
+    console.error("5.2. Mensagem:", error.message)
+    console.error("5.3. Stack:", error.stack)
     throw new Error('Token inválido')
   }
 }
@@ -50,25 +72,38 @@ export async function POST(
   { params }: { params: { tenantId: string } }
 ) {
   try {
+    console.log("=== ROTA POST CONNECT INICIADA ===")
+    
     // 1. Autenticação: Verificar se o usuário tem permissão
+    console.log("6. Iniciando verificação de token...")
     const user = verifyToken(request)
+    console.log("7. ✅ Token verificado com sucesso")
     
     if (!user) {
+      console.log("❌ ERRO: Usuário não encontrado após verificação")
       return NextResponse.json(
         { error: 'Não autenticado' },
         { status: 401 }
       )
     }
 
-    const { tenantId } = params
+    console.log("8. Verificando permissão para tenant...")
+    console.log("8.1. Tenant ID da URL:", params.tenantId)
+    console.log("8.2. Tenant ID do token:", user.tenantId)
 
     // Verificar se o tenantId corresponde ao usuário logado
-    if (user.tenantId !== tenantId) {
+    if (user.tenantId !== params.tenantId) {
+      console.log("❌ ERRO 403: Permissão negada - IDs não correspondem")
       return NextResponse.json(
         { error: 'Sem permissão para acessar este tenant' },
         { status: 403 }
       )
     }
+    
+    console.log("9. ✅ Permissão verificada - usuário autorizado")
+    console.log("--- VERIFICAÇÃO DE PERMISSÃO BEM-SUCEDIDA ---")
+
+    const { tenantId } = params
 
     // Verificar se o usuário tem permissão para gerenciar este tenant
     const tenant = await prisma.tenant.findFirst({
@@ -178,6 +213,24 @@ export async function POST(
     })
 
   } catch (error: any) {
+    console.error("❌ ERRO GERAL na rota POST connect:")
+    console.error("10.1. Nome do erro:", error.name)
+    console.error("10.2. Mensagem:", error.message)
+    console.error("10.3. Stack completo:", error.stack)
+    
+    // Se o erro for de autenticação, retornar 401
+    if (error.message?.includes('Token não fornecido') || error.message?.includes('Token inválido')) {
+      console.log("10.4. ❌ Retornando 401 - Erro de autenticação")
+      return NextResponse.json(
+        { 
+          error: 'Token de autenticação inválido ou expirado',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 401 }
+      )
+    }
+    
+    console.log("10.4. ❌ Retornando 500 - Erro interno")
     console.error('❌ [API] Erro ao conectar WhatsApp:', error)
     
     // Em caso de erro, tentar remover o instance_name do banco
