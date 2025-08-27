@@ -247,19 +247,16 @@ export default function WhatsAppPage() {
   }
 
   const loadTemplate = (templateType: string) => {
-    // Usar dados reais do primeiro cliente e agendamento se disponível
-    const firstClient = clients[0]
-    const firstAppointment = appointments[0]
-    
+    // ✅ USAR SEMPRE DADOS FICTÍCIOS PARA TEMPLATES DE TESTE
     const sampleData = {
-      clientName: firstClient?.name || "Cliente Exemplo",
+      clientName: "João Silva",
       businessName: "Sua Barbearia",
-      service: firstAppointment?.serviceName || "Serviço Exemplo",
-      professional: firstAppointment?.professional || "Profissional",
+      service: "Corte Masculino",
+      professional: "Carlos",
       date: formatBrazilDate(getBrazilNow()),
-      time: firstAppointment?.time || "14:00",
+      time: "14:00",
       totalTime: 45,
-      price: firstAppointment?.totalPrice || 50,
+      price: 50,
       preferredService: "Corte Masculino",
       customLink: window.location.origin,
       additionalService: "Sobrancelha",
