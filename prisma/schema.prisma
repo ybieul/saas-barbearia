@@ -38,6 +38,9 @@ model Tenant {
   subscriptionEnd   DateTime?
   isActive          Boolean   @default(true)
   
+  // WhatsApp Evolution API
+  whatsapp_instance_name String? @unique // Nome da instância da Evolution API
+  
   // Configurações da barbearia
   businessConfig    Json?     // Configurações personalizadas
   
