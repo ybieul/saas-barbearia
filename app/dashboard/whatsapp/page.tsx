@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { WhatsAppStatus } from "@/components/whatsapp-status"
+import { WhatsAppConnection } from "@/components/whatsapp-connection"
 import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber, checkWhatsAppStatus } from "@/lib/whatsapp"
 import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
@@ -287,6 +288,9 @@ export default function WhatsAppPage() {
 
   return (
     <div className="space-y-8">
+      {/* Componente de Conexão WhatsApp Multi-Tenant */}
+      <WhatsAppConnection />
+
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">

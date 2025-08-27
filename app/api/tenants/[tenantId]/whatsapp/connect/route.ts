@@ -148,15 +148,8 @@ export async function POST(
     const evolutionResponse = await response.json()
     console.log('✅ [API] Instância criada com sucesso:', evolutionResponse)
 
-    // 6. Atualizar o banco de dados com o nome da instância
-    await prisma.tenant.update({
-      where: { id: tenantId },
-      data: { 
-        whatsapp_instance_name: instanceName 
-      }
-    })
-
-    console.log(`✅ [API] Banco atualizado - Tenant ${tenantId} vinculado à instância ${instanceName}`)
+    // 6. NOTA: Não salvar no banco ainda - apenas após confirmação da conexão via status
+    console.log(`✅ [API] Instância criada - Aguardando conexão do usuário para salvar no banco`)
 
     // 7. Verificar se a resposta contém QR Code
     let qrCodeData = null

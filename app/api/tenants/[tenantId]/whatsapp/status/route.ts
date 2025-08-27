@@ -56,7 +56,11 @@ export async function GET(
     }
 
     const { tenantId } = params
-    const instanceName = `tenant_${tenantId}`
+    
+    // Obter instanceName do query param ou gerar padrão
+    const url = new URL(request.url)
+    const queryInstanceName = url.searchParams.get('instanceName')
+    const instanceName = queryInstanceName || `tenant_${tenantId}`
 
     // Verificar variáveis de ambiente da Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL
