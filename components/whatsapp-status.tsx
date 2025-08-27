@@ -50,16 +50,16 @@ export function WhatsAppStatus() {
         // Determinar tipo de mensagem baseado no status e horário
         let type: "confirmation" | "reminder" | "reactivation" | "custom" = "confirmation"
         let message = ""
-        let status: "pending" | "sent" | "delivered" | "read" | "failed" = "delivered"
+        let status: "pending" | "sent" | "delivered" | "read" | "failed" = "sent" // Sempre "sent" para mostrar apenas badge "Enviada"
         
         if (apt.status === 'completed') {
           type = "confirmation"
           message = `Agendamento confirmado para ${apt.date} às ${apt.time} - ${apt.serviceName}`
-          status = Math.random() > 0.8 ? "read" : "delivered"
+          status = "sent"
         } else if (apt.status === 'CONFIRMED') {
           type = "reminder" 
           message = `Lembrete: seu agendamento é em ${apt.date} às ${apt.time}`
-          status = Math.random() > 0.9 ? "failed" : Math.random() > 0.3 ? "delivered" : "sent"
+          status = "sent"
         } else {
           type = "confirmation"
           message = `Confirmação pendente: ${apt.serviceName} em ${apt.date} às ${apt.time}`
@@ -76,8 +76,8 @@ export function WhatsAppStatus() {
           type,
           status,
           sentAt: new Date(baseTime),
-          deliveredAt: status !== "failed" ? new Date(baseTime + 30000) : undefined,
-          readAt: status === "read" ? new Date(baseTime + 60000 + Math.random() * 30 * 60 * 1000) : undefined,
+          deliveredAt: undefined, // Não definir para mensagens "sent"
+          readAt: undefined, // Não definir para mensagens "sent"
         }
       })
 
@@ -95,9 +95,9 @@ export function WhatsAppStatus() {
         clientPhone: client.phone || "(11) 9999-9999", 
         message: `Olá ${client.name}! Sentimos sua falta. Que tal agendar um novo atendimento? Temos ofertas especiais!`,
         type: "reactivation",
-        status: Math.random() > 0.7 ? "delivered" : "sent",
+        status: "sent", // Sempre "sent" para mostrar badge "Enviada"
         sentAt: new Date(now.getTime() - (generatedMessages.length + index + 1) * 45 * 60 * 1000),
-        deliveredAt: Math.random() > 0.7 ? new Date(now.getTime() - (generatedMessages.length + index + 1) * 45 * 60 * 1000 + 45000) : undefined,
+        deliveredAt: undefined, // Não definir para mensagens "sent"
       }))
 
       setMessages([...generatedMessages, ...reactivationMessages])
@@ -224,13 +224,7 @@ export function WhatsAppStatus() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-white font-medium">{message.clientName}</p>
-                      <Badge className={getTypeColor(message.type)}>
-                        {message.type === "confirmation" && "Confirmação"}
-                        {message.type === "reminder" && "Lembrete"}
-                        {message.type === "reactivation" && "Reativação"}
-                        {message.type === "custom" && "Personalizada"}
-                      </Badge>
-                      {/* Mostrar badge de status apenas se for "sent" (Enviada) */}
+                      {/* Mostrar apenas badge "Enviada" quando status for "sent" */}
                       {message.status === "sent" && (
                         <Badge className={getStatusColor(message.status)}>
                           {getStatusIcon(message.status)}
