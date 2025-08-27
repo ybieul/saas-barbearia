@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react"
 import { useWhatsAppMessages } from "@/hooks/use-whatsapp-messages"
+import { formatBrazilTime } from "@/lib/timezone"
 
 interface WhatsAppMessage {
   id: string
@@ -177,7 +178,7 @@ export function WhatsAppStatus() {
                       </p>
                       {message.sentAt && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Enviada: {message.sentAt.toLocaleString("pt-BR")}
+                          Enviada: {formatBrazilTime(message.sentAt, 'dd/MM/yyyy HH:mm')}
                         </p>
                       )}
                     </div>

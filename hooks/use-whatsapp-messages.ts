@@ -72,10 +72,10 @@ export function useWhatsAppMessages(): UseWhatsAppMessagesResult {
       const data = await response.json()
 
       if (data.success) {
-        // Converter strings de data para objetos Date
+        // 🇧🇷 CORREÇÃO: Simples - deixar JavaScript fazer conversão automática para timezone local
         const messagesWithDates = data.messages.map((msg: any) => ({
           ...msg,
-          sentAt: new Date(msg.sentAt),
+          sentAt: msg.sentAt ? new Date(msg.sentAt) : null,
           createdAt: new Date(msg.createdAt)
         }))
 
