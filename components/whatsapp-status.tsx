@@ -100,79 +100,81 @@ export function WhatsAppStatus() {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-emerald-400" />
-            Mensagens WhatsApp Recentes
+            <span className="text-lg sm:text-xl">Mensagens Enviadas Recentemente</span>
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-400 text-sm sm:text-base">
             Status das mensagens enviadas nas últimas 24 horas
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Clock className="w-6 h-6 animate-spin text-blue-400 mr-2" />
-              <span className="text-gray-400">Carregando mensagens...</span>
+            <div className="flex items-center justify-center py-6 sm:py-8">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-blue-400 mr-2" />
+              <span className="text-gray-400 text-sm sm:text-base">Carregando mensagens...</span>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                <p className="text-red-400 mb-2">Erro ao carregar mensagens</p>
-                <p className="text-gray-500 text-sm mb-4">{error}</p>
+            <div className="flex items-center justify-center py-6 sm:py-8">
+              <div className="text-center px-4">
+                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mx-auto mb-2" />
+                <p className="text-red-400 mb-2 text-sm sm:text-base">Erro ao carregar mensagens</p>
+                <p className="text-gray-500 text-xs sm:text-sm mb-4">{error}</p>
                 <Button 
                   onClick={fetchMessages}
                   size="sm"
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm"
                 >
-                  <RefreshCw className="w-4 h-4 mr-1" />
+                  <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Tentar Novamente
                 </Button>
               </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-400">Nenhuma mensagem encontrada</p>
-                <p className="text-gray-500 text-sm">As mensagens enviadas aparecerão aqui</p>
+            <div className="flex items-center justify-center py-6 sm:py-8">
+              <div className="text-center px-4">
+                <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-400 text-sm sm:text-base">Nenhuma mensagem encontrada</p>
+                <p className="text-gray-500 text-xs sm:text-sm">As mensagens enviadas aparecerão aqui</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700"
+                  className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-700"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                      <MessageCircle className="w-5 h-5 text-white" />
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
+                      <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-white font-medium">{message.clientName}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                        <p className="text-white font-medium text-sm sm:text-base truncate">{message.clientName}</p>
                         {/* Mostrar apenas badge "Enviada" quando status for "sent" */}
                         {message.status === "sent" && (
-                          <Badge className={getStatusColor(message.status)}>
+                          <Badge className={`${getStatusColor(message.status)} flex-shrink-0 text-xs`}>
                             {getStatusIcon(message.status)}
                             Enviada
                           </Badge>
                         )}
                         {/* Badge para outros status se necessário */}
                         {message.status === "failed" && (
-                          <Badge className={getStatusColor(message.status)}>
+                          <Badge className={`${getStatusColor(message.status)} flex-shrink-0 text-xs`}>
                             {getStatusIcon(message.status)}
                             Falhou
                           </Badge>
                         )}
                         {message.status === "pending" && (
-                          <Badge className={getStatusColor(message.status)}>
+                          <Badge className={`${getStatusColor(message.status)} flex-shrink-0 text-xs`}>
                             {getStatusIcon(message.status)}
                             Pendente
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-400 mb-1">{message.clientPhone}</p>
-                      <p className="text-sm text-gray-300 truncate max-w-md">{message.message}</p>
+                      <p className="text-xs sm:text-sm text-gray-400 mb-1 truncate">{message.clientPhone}</p>
+                      <p className="text-sm text-gray-300 truncate sm:whitespace-normal sm:break-words max-w-full pr-4">
+                        {message.message}
+                      </p>
                       {message.sentAt && (
                         <p className="text-xs text-gray-500 mt-1">
                           Enviada: {message.sentAt.toLocaleString("pt-BR")}
@@ -184,10 +186,11 @@ export function WhatsAppStatus() {
                     <Button
                       size="sm"
                       onClick={() => retryFailedMessage(message.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white"
+                      className="bg-red-500 hover:bg-red-600 text-white flex-shrink-0 ml-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                     >
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Recarregar
+                      <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      <span className="hidden sm:inline">Recarregar</span>
+                      <span className="sm:hidden">Retry</span>
                     </Button>
                   )}
                 </div>
