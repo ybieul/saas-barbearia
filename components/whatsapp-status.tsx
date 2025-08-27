@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,45 +22,23 @@ interface WhatsAppMessage {
 export function WhatsAppStatus() {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([])
   
-  // ✅ USAR DADOS REAIS UNIFICADOS (whatsapp_logs + appointment_reminders)
-  const { logs, stats, breakdown, loading, fetchLogs } = useWhatsAppLogs()
-  
-  // ✅ UseRef para controlar o intervalo e evitar múltiplas instâncias
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const hasInitializedRef = useRef(false)
+  // ✅ USAR DADOS REAIS DO BANCO DE DADOS
+  const { logs, stats, loading, fetchLogs } = useWhatsAppLogs()
 
-  // ✅ Função de busca inicial e periódica
   useEffect(() => {
-    // Evitar múltiplas inicializações
-    if (hasInitializedRef.current) return
-    hasInitializedRef.current = true
-
-    console.log('🚀 [WhatsApp] Inicializando componente - busca inicial')
-    
-    // Buscar logs das últimas 24 horas (chamada inicial)
+    // Buscar logs das últimas 24 horas
     fetchLogs({ hours: 24, limit: 50 })
     
     // ✅ ATUALIZAR AUTOMATICAMENTE A CADA 30 SEGUNDOS
-    intervalRef.current = setInterval(() => {
-      console.log('🔄 [WhatsApp] Auto-refresh dos logs')
+    const interval = setInterval(() => {
       fetchLogs({ hours: 24, limit: 50 })
     }, 30000)
 
-    // ✅ Cleanup do interval quando componente for desmontado
-    return () => {
-      console.log('🧹 [WhatsApp] Limpando interval')
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }
-  }, [fetchLogs]) // ✅ fetchLogs agora é estável, não causará loops
+    return () => clearInterval(interval)
+  }, [fetchLogs])
 
-  // ✅ Processar logs apenas quando mudarem
   useEffect(() => {
     if (logs && logs.length > 0) {
-      console.log(`📊 [WhatsApp] Processando ${logs.length} logs para exibição`)
-      
       // ✅ CONVERTER LOGS REAIS PARA FORMATO DO COMPONENTE
       const convertedMessages: WhatsAppMessage[] = logs.map((log) => {
         // Extrair nome do cliente do número de telefone ou da mensagem
@@ -74,15 +52,9 @@ export function WhatsAppStatus() {
         }
         
         // Formatar telefone para exibição
-        if (log.to.startsWith('55') && log.to.length > 10) {
+        if (log.to.startsWith('55')) {
           const phone = log.to.replace('55', '')
-          if (phone.length === 11) {
-            clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`
-          } else if (phone.length === 10) {
-            clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 6)}-${phone.slice(6)}`
-          }
-        } else if (log.to === 'Não informado') {
-          clientPhone = 'Não informado'
+          clientPhone = `(${phone.slice(0, 2)}) ${phone.slice(2, 7)}-${phone.slice(7)}`
         }
 
         return {
@@ -99,18 +71,10 @@ export function WhatsAppStatus() {
       })
 
       setMessages(convertedMessages)
-      console.log(`✅ [WhatsApp] ${convertedMessages.length} mensagens processadas e exibindo`)
     } else {
-      console.log('📝 [WhatsApp] Nenhum log encontrado, limpando mensagens')
       setMessages([])
     }
-  }, [logs]) // ✅ Dependência apenas de logs, mais eficiente
-
-  // ✅ Função manual de atualização
-  const handleManualRefresh = () => {
-    console.log('🔄 [WhatsApp] Refresh manual solicitado')
-    fetchLogs({ hours: 24, limit: 50 })
-  }
+  }, [logs])
 
   useEffect(() => {
     // ✅ USAR ESTATÍSTICAS REAIS DO BANCO
@@ -216,17 +180,12 @@ export function WhatsAppStatus() {
               </CardTitle>
               <CardDescription className="text-gray-400">
                 Mensagens reais enviadas nas últimas 24 horas
-                {breakdown && (
-                  <span className="block text-xs mt-1 text-gray-500">
-                    📊 {breakdown.whatsapp_logs} logs + {breakdown.appointment_reminders} lembretes
-                  </span>
-                )}
               </CardDescription>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleManualRefresh}
+              onClick={() => fetchLogs({ hours: 24, limit: 50 })}
               disabled={loading}
               className="border-gray-600 text-gray-400 hover:text-white"
             >

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 
 interface ApiState<T> {
   data: T | null
@@ -13,51 +13,44 @@ export function useApi<T>() {
     error: null
   })
 
-  // ✅ Usar useRef para manter função estável e evitar loops infinitos
-  const requestRef = useRef<((url: string, options?: RequestInit) => Promise<T | null>) | null>(null)
+  const request = useCallback(async (
+    url: string,
+    options: RequestInit = {}
+  ): Promise<T | null> => {
+    setState(prev => ({ ...prev, loading: true, error: null }))
 
-  if (!requestRef.current) {
-    requestRef.current = async (url: string, options: RequestInit = {}): Promise<T | null> => {
-      setState(prev => ({ ...prev, loading: true, error: null }))
-
-      try {
-        const token = localStorage.getItem('auth_token')
-        
-        const response = await fetch(url, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-            ...options.headers
-          }
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          const errorMessage = data.message || `Erro ${response.status}: ${response.statusText}`
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Erro na API:', { status: response.status, message: errorMessage, data })
-          }
-          throw new Error(errorMessage)
+    try {
+      const token = localStorage.getItem('auth_token')
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...options.headers
         }
+      })
 
-        setState(prev => ({ ...prev, data, loading: false }))
-        return data
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errorMessage = data.message || `Erro ${response.status}: ${response.statusText}`
         if (process.env.NODE_ENV === 'development') {
-          console.error('Erro na requisição:', error)
+          console.error('Erro na API:', { status: response.status, message: errorMessage, data })
         }
-        setState(prev => ({ ...prev, error: errorMessage, loading: false }))
-        throw error // Propagar o erro para que possa ser tratado no componente
+        throw new Error(errorMessage)
       }
-    }
-  }
 
-  // ✅ Função wrapper estável que não muda entre renders
-  const request = useCallback((url: string, options: RequestInit = {}) => {
-    return requestRef.current!(url, options)
+      setState(prev => ({ ...prev, data, loading: false }))
+      return data
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro na requisição:', error)
+      }
+      setState(prev => ({ ...prev, error: errorMessage, loading: false }))
+      throw error // Propagar o erro para que possa ser tratado no componente
+    }
   }, [])
 
   return { ...state, request }
@@ -530,7 +523,7 @@ export function useEstablishment() {
   }
 }
 
-// Hook específico para WhatsApp logs (busca unificada)
+// Hook específico para WhatsApp logs
 export function useWhatsAppLogs() {
   const { data, loading, error, request } = useApi<{
     logs: Array<{
@@ -552,13 +545,8 @@ export function useWhatsAppLogs() {
       failed: number
       pending: number
     }
-    breakdown?: {
-      whatsapp_logs: number
-      appointment_reminders: number
-    }
   }>()
 
-  // ✅ Função estável que não causa loops infinitos
   const fetchLogs = useCallback((options?: {
     hours?: number
     limit?: number
@@ -573,12 +561,11 @@ export function useWhatsAppLogs() {
     const url = `/api/whatsapp/logs${queryString ? `?${queryString}` : ''}`
     
     return request(url)
-  }, [request]) // ✅ request agora é estável, não causará loops
+  }, [request])
 
   return {
     logs: data?.logs || [],
     stats: data?.stats || { total: 0, sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
-    breakdown: data?.breakdown || { whatsapp_logs: 0, appointment_reminders: 0 },
     loading,
     error,
     fetchLogs
