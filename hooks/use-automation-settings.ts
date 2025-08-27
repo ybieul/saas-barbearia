@@ -18,7 +18,7 @@ export function useAutomationSettings() {
     reminder12hEnabled: false,
     reminder2hEnabled: false,
     reactivationEnabled: false,
-    reactivationDays: 45,
+    reactivationDays: 15,
   })
   
   const [isLoading, setIsLoading] = useState(true)
@@ -55,7 +55,7 @@ export function useAutomationSettings() {
           reminder12hEnabled: apiSettings.reminder_12h?.isEnabled ?? false,
           reminder2hEnabled: apiSettings.reminder_2h?.isEnabled ?? false,
           reactivationEnabled: apiSettings.reactivation?.isEnabled ?? false,
-          reactivationDays: 45,
+          reactivationDays: 15,
         }
         
         setSettings(newSettings)

@@ -12,6 +12,7 @@ import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber, checkWhatsAp
 import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
 import { useAutomationSettings } from "@/hooks/use-automation-settings"
+import { useWhatsAppStats } from "@/hooks/use-whatsapp-stats"
 import { useToast } from "@/hooks/use-toast"
 import { getBrazilNow, formatBrazilDate, toBrazilDateString } from "@/lib/timezone"
 
@@ -48,6 +49,11 @@ export default function WhatsAppPage() {
           duration: 3000,
           className: "text-sm sm:text-base", // Responsivo
         })
+        
+        // Atualizar estatísticas após mudança nas automações
+        setTimeout(() => {
+          refetchStats()
+        }, 1000)
       } else {
         throw new Error('Falha ao salvar configuração')
       }
@@ -74,13 +80,17 @@ export default function WhatsAppPage() {
   // Buscar dados reais da API
   const { appointments, loading, fetchAppointments } = useAppointments()
   const { clients, fetchClients } = useClients()
+  
+  // Hook para estatísticas do WhatsApp
+  const { stats: whatsappStats, isLoading: isLoadingStats, error: statsError, refetch: refetchStats } = useWhatsAppStats()
 
   useEffect(() => {
     fetchAppointments()
     fetchClients()
     loadAutomationSettings()
     checkEvolutionStatus()
-  }, [fetchAppointments, fetchClients, loadAutomationSettings])
+    refetchStats()
+  }, [fetchAppointments, fetchClients, loadAutomationSettings, refetchStats])
 
   // Verificar status da Evolution API
   const checkEvolutionStatus = async () => {
@@ -105,32 +115,97 @@ export default function WhatsAppPage() {
     }
   }
 
-  // Calcular estatísticas reais
-  const today = toBrazilDateString(getBrazilNow())
-  const todayAppointments = appointments.filter(apt => {
-    const aptDate = toBrazilDateString(new Date(apt.dateTime))
-    return aptDate === today
-  })
-  const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'completed')
+  // Usar dados reais das estatísticas do WhatsApp ou fallback para dados simulados
+  let automationStats = []
   
-  // Simular contadores de mensagens baseados nos agendamentos reais
-  const confirmationMessages = confirmedAppointments.length
-  const reminderMessages = Math.floor(confirmedAppointments.length * 0.7) // 70% recebem lembretes
-  const totalMessages = confirmationMessages + reminderMessages
-  
-  // Calcular clientes inativos (30+ dias sem agendamento)
-  const thirtyDaysAgo = getBrazilNow()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const inactiveClients = clients.filter(client => {
-    const lastAppointment = appointments
-      .filter(apt => apt.clientId === client.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-    return !lastAppointment || new Date(lastAppointment.date) < thirtyDaysAgo
-  }).length
+  if (whatsappStats && !isLoadingStats) {
+    // Usar dados reais do banco de dados
+    automationStats = [
+      {
+        title: "Mensagens Hoje",
+        value: whatsappStats.mensagensHoje.total.toString(),
+        description: whatsappStats.mensagensHoje.descricao,
+        icon: MessageCircle,
+        color: "text-blue-400",
+      },
+      {
+        title: "Taxa de Entrega",
+        value: `${whatsappStats.taxaEntrega.taxa}%`,
+        description: whatsappStats.taxaEntrega.descricao,
+        icon: CheckCircle,
+        color: "text-[#10b981]",
+      },
+      {
+        title: "Redução de Faltas",
+        value: `${whatsappStats.reducaoFaltas.taxa}%`,
+        description: whatsappStats.reducaoFaltas.descricao,
+        icon: Zap,
+        color: "text-yellow-400",
+      },
+      {
+        title: "Clientes Inativos",
+        value: whatsappStats.clientesInativos.total.toString(),
+        description: whatsappStats.clientesInativos.descricao,
+        icon: Users,
+        color: "text-purple-400",
+      },
+    ]
+  } else {
+    // Fallback para dados simulados baseados em agendamentos (enquanto carrega)
+    const today = toBrazilDateString(getBrazilNow())
+    const todayAppointments = appointments.filter(apt => {
+      const aptDate = toBrazilDateString(new Date(apt.dateTime))
+      return aptDate === today
+    })
+    const confirmedAppointments = todayAppointments.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'completed')
+    
+    const confirmationMessages = confirmedAppointments.length
+    const reminderMessages = Math.floor(confirmedAppointments.length * 0.7)
+    const totalMessages = confirmationMessages + reminderMessages
+    
+    const fifteenDaysAgo = getBrazilNow()
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    const inactiveClients = clients.filter(client => {
+      const lastAppointment = appointments
+        .filter(apt => apt.clientId === client.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+      return !lastAppointment || new Date(lastAppointment.date) < fifteenDaysAgo
+    }).length
 
-  // Taxa de entrega simulada (95-99% baseado no volume)
-  const deliveryRate = totalMessages > 0 ? Math.max(95, Math.min(99, 100 - Math.floor(totalMessages / 10))) : 0
-  const deliveredCount = Math.floor((totalMessages * deliveryRate) / 100)
+    const deliveryRate = totalMessages > 0 ? Math.max(95, Math.min(99, 100 - Math.floor(totalMessages / 10))) : 0
+    const deliveredCount = Math.floor((totalMessages * deliveryRate) / 100)
+
+    automationStats = [
+      {
+        title: "Mensagens Hoje",
+        value: isLoadingStats ? "..." : totalMessages.toString(),
+        description: isLoadingStats ? "Carregando..." : `${confirmationMessages} confirmações, ${reminderMessages} lembretes`,
+        icon: MessageCircle,
+        color: "text-blue-400",
+      },
+      {
+        title: "Taxa de Entrega",
+        value: isLoadingStats ? "..." : `${deliveryRate}%`,
+        description: isLoadingStats ? "Carregando..." : `${deliveredCount} de ${totalMessages} entregues`,
+        icon: CheckCircle,
+        color: "text-[#10b981]",
+      },
+      {
+        title: "Redução de Faltas",
+        value: isLoadingStats ? "..." : `${Math.min(95, Math.max(70, 100 - (inactiveClients * 2)))}%`,
+        description: isLoadingStats ? "Carregando..." : "Baseado em automações ativas",
+        icon: Zap,
+        color: "text-yellow-400",
+      },
+      {
+        title: "Clientes Inativos",
+        value: isLoadingStats ? "..." : inactiveClients.toString(),
+        description: isLoadingStats ? "Carregando..." : "Para reativação",
+        icon: Users,
+        color: "text-purple-400",
+      },
+    ]
+  }
 
   const handleSendTestMessage = async () => {
     if (!testMessage.phone || !testMessage.message) {
@@ -208,37 +283,6 @@ export default function WhatsAppPage() {
     setTestMessage({ ...testMessage, message: template })
   }
 
-  const automationStats = [
-    {
-      title: "Mensagens Hoje",
-      value: totalMessages.toString(),
-      description: `${confirmationMessages} confirmações, ${reminderMessages} lembretes`,
-      icon: MessageCircle,
-      color: "text-blue-400",
-    },
-    {
-      title: "Taxa de Entrega",
-      value: `${deliveryRate}%`,
-      description: `${deliveredCount} de ${totalMessages} entregues`,
-      icon: CheckCircle,
-      color: "text-[#10b981]",
-    },
-    {
-      title: "Redução de Faltas",
-      value: `${Math.min(95, Math.max(70, 100 - (inactiveClients * 2)))}%`,
-      description: "Baseado em automações ativas",
-      icon: Zap,
-      color: "text-yellow-400",
-    },
-    {
-      title: "Clientes Inativos",
-      value: inactiveClients.toString(),
-      description: "Para reativação",
-      icon: Users,
-      color: "text-purple-400",
-    },
-  ]
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -252,11 +296,7 @@ export default function WhatsAppPage() {
         
         {/* Status da Evolution API - Layout conforme modelo */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm sm:text-base text-[#a1a1aa]">Conexão com o WhatsApp:</span>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:items-start">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:items-start lg:ml-auto">
             <Button 
               variant="outline" 
               onClick={checkEvolutionStatus}
@@ -271,9 +311,10 @@ export default function WhatsAppPage() {
               {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
             </Button>
             
-            {/* Card de Status */}
+            {/* Card de Status com texto integrado */}
             <div className="order-1 sm:order-2 px-4 py-2 bg-[#18181b] border border-[#27272a] rounded-md">
               <div className="flex items-center gap-3">
+                <span className="text-sm text-[#a1a1aa]">Conexão com o WhatsApp:</span>
                 {whatsappStatus.loading ? (
                   <>
                     <Clock className="w-4 h-4 animate-spin text-yellow-400 flex-shrink-0" />
@@ -307,19 +348,47 @@ export default function WhatsAppPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {automationStats.map((stat, index) => (
-          <Card key={index} className="bg-[#18181b] border-[#27272a]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <p className="text-xs text-[#71717a]">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-[#ededed]">Estatísticas em Tempo Real</h2>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={refetchStats}
+            disabled={isLoadingStats}
+            className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
+          >
+            {isLoadingStats ? (
+              <Clock className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <MessageCircle className="w-4 h-4 mr-2" />
+            )}
+            {isLoadingStats ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {automationStats.map((stat, index) => (
+            <Card key={index} className="bg-[#18181b] border-[#27272a] relative">
+              {isLoadingStats && (
+                <div className="absolute inset-0 bg-[#18181b]/80 flex items-center justify-center rounded-md">
+                  <Clock className="w-4 h-4 animate-spin text-gray-400" />
+                </div>
+              )}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa]">{stat.title}</CardTitle>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{stat.value}</div>
+                <p className="text-xs text-[#71717a]">{stat.description}</p>
+                {statsError && index === 0 && (
+                  <p className="text-xs text-red-400 mt-1">Erro ao carregar dados reais</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -523,7 +592,7 @@ export default function WhatsAppPage() {
               <Label className="text-gray-300">Dias para considerar cliente inativo</Label>
               <Input
                 type="number"
-                value={automationSettings.reactivationDays}
+                value={15}
                 disabled={isLoadingSettings}
                 className="bg-gray-700 border-[#3f3f46] text-white w-32"
                 readOnly
