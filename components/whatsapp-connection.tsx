@@ -128,6 +128,23 @@ export function WhatsAppConnection() {
         method: 'POST',
       })
 
+      // Verificar se já está conectado (lógica idempotente)
+      if (response.alreadyConnected) {
+        console.log('✅ [Frontend] WhatsApp já estava conectado')
+        setConnectionStatus('connected')
+        setInstanceName(response.instanceName)
+        setQrCodeBase64(null)
+        
+        toast({
+          title: "✅ WhatsApp Já Conectado!",
+          description: response.message || "Seu WhatsApp já estava conectado.",
+          duration: 5000,
+        })
+        
+        return // Sair da função sem iniciar polling
+      }
+
+      // Fluxo normal - QR Code gerado
       if (response.success && response.qrcode) {
         setQrCodeBase64(response.qrcode)
         setInstanceName(response.instanceName)

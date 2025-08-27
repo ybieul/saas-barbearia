@@ -67,6 +67,47 @@ function verifyToken(request: NextRequest): AuthUser {
   }
 }
 
+// Função utilitária para verificar status de uma instância
+async function checkInstanceStatus(evolutionURL: string, evolutionKey: string, instanceName: string) {
+  const statusUrl = `${evolutionURL}/instance/connectionState/${instanceName}`
+  
+  const response = await fetch(statusUrl, {
+    method: 'GET',
+    headers: {
+      'apikey': evolutionKey,
+      'Accept': 'application/json'
+    },
+    signal: AbortSignal.timeout(10000)
+  })
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return { exists: false, state: null }
+    }
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  const state = data.instance?.state || data.state
+  return { exists: true, state, data }
+}
+
+// Função utilitária para deletar uma instância
+async function deleteInstance(evolutionURL: string, evolutionKey: string, instanceName: string) {
+  const deleteUrl = `${evolutionURL}/instance/delete/${instanceName}`
+  
+  const response = await fetch(deleteUrl, {
+    method: 'DELETE',
+    headers: {
+      'apikey': evolutionKey,
+      'Accept': 'application/json'
+    },
+    signal: AbortSignal.timeout(15000)
+  })
+
+  return response.ok
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { tenantId: string } }
@@ -143,8 +184,56 @@ export async function POST(
       )
     }
 
-    // 4. Chamada à Evolution API para criar instância
-    console.log(`🔄 [API] Criando instância WhatsApp para tenant: ${tenantId}`)
+    // 4. NOVA LÓGICA: Verificar se instância já existe (tornar idempotente)
+    console.log(`🔍 [API] Verificando se instância já existe: ${instanceName}`)
+    
+    try {
+      const statusCheck = await checkInstanceStatus(evolutionURL, evolutionKey, instanceName)
+      
+      if (statusCheck.exists) {
+        console.log(`📋 [API] Instância encontrada com estado: ${statusCheck.state}`)
+        
+        if (statusCheck.state === 'open') {
+          // Já está conectada - retornar sucesso sem fazer nada
+          console.log('✅ [API] WhatsApp já está conectado - não precisa gerar novo QR Code')
+          return NextResponse.json({
+            success: true,
+            alreadyConnected: true,
+            instanceName: instanceName,
+            message: 'WhatsApp já está conectado com sucesso!',
+            data: {
+              tenantId: tenantId,
+              instanceName: instanceName,
+              status: statusCheck.state,
+              connectedAt: new Date().toISOString()
+            }
+          })
+        } else {
+          // Existe mas não está conectada - limpar instância antiga
+          console.log(`🧹 [API] Instância existe mas não conectada (${statusCheck.state}) - limpando...`)
+          
+          const deleted = await deleteInstance(evolutionURL, evolutionKey, instanceName)
+          
+          if (deleted) {
+            console.log('🗑️ [API] Instância antiga deletada com sucesso')
+          } else {
+            console.warn('⚠️ [API] Erro ao deletar instância antiga (continuando)')
+          }
+          
+          // Aguardar um pouco para a Evolution API processar a deleção
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      } else {
+        // Instância não existe - isso é o esperado para primeira conexão
+        console.log('📋 [API] Instância não existe ainda - prosseguindo com criação')
+      }
+    } catch (statusError) {
+      // Erro de rede/timeout ao verificar - continuar com criação
+      console.warn('⚠️ [API] Erro ao verificar status da instância (continuando):', statusError)
+    }
+
+    // 5. Criar nova instância (só chega aqui se necessário)
+    console.log(`🔄 [API] Criando nova instância WhatsApp para tenant: ${tenantId}`)
     console.log(`📱 [API] Nome da instância: ${instanceName}`)
 
     const createInstanceUrl = `${evolutionURL}/instance/create`
@@ -192,14 +281,14 @@ export async function POST(
       )
     }
 
-    // 5. Processar resposta da Evolution API
+    // 6. Processar resposta da Evolution API
     const evolutionResponse = await response.json()
     console.log('✅ [API] Instância criada com sucesso:', evolutionResponse)
 
-    // 6. NOTA: Não salvar no banco ainda - apenas após confirmação da conexão via status
+    // 7. NOTA: Não salvar no banco ainda - apenas após confirmação da conexão via status
     console.log(`✅ [API] Instância criada - Aguardando conexão do usuário para salvar no banco`)
 
-    // 7. Verificar se a resposta contém QR Code
+    // 8. Verificar se a resposta contém QR Code
     let qrCodeData = null
     
     if (evolutionResponse.qrcode?.base64) {
@@ -210,7 +299,7 @@ export async function POST(
       qrCodeData = evolutionResponse.base64
     }
 
-    // 8. Retornar dados para o frontend
+    // 9. Retornar dados para o frontend
     return NextResponse.json({
       success: true,
       instanceName: instanceName,
