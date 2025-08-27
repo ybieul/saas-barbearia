@@ -72,11 +72,25 @@ export function useWhatsAppMessages(): UseWhatsAppMessagesResult {
       const data = await response.json()
 
       if (data.success) {
-        // ✅ Datas vêm como objetos Date nativos do Prisma via JSON
+        // ✅ Reconstituir Date objects a partir dos valores numéricos puros
         const messagesWithDates = data.messages.map((msg: any) => ({
           ...msg,
-          sentAt: msg.sentAt ? new Date(msg.sentAt) : null,
-          createdAt: new Date(msg.createdAt)
+          sentAt: msg.sentAt ? new Date(
+            msg.sentAt.year,
+            msg.sentAt.month,
+            msg.sentAt.day,
+            msg.sentAt.hours,
+            msg.sentAt.minutes,
+            msg.sentAt.seconds
+          ) : null,
+          createdAt: new Date(
+            msg.createdAt.year,
+            msg.createdAt.month,
+            msg.createdAt.day,
+            msg.createdAt.hours,
+            msg.createdAt.minutes,
+            msg.createdAt.seconds
+          )
         }))
 
         setMessages(messagesWithDates)

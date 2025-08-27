@@ -59,9 +59,30 @@ export async function GET(request: NextRequest) {
         message: log.message,
         type: mapWhatsAppTypeToLegacy(log.type),
         status: mapWhatsAppStatusToLegacy(log.status),
-        // 🇧🇷 CORREÇÃO: Usar Date object diretamente do Prisma (sem .toISOString())
-        sentAt: log.sentAt ? log.sentAt : log.createdAt,
-        createdAt: log.createdAt,
+        // 🇧🇷 CORREÇÃO: Extrair valores numéricos diretamente (sem conversões automáticas)
+        sentAt: log.sentAt ? {
+          year: log.sentAt.getFullYear(),
+          month: log.sentAt.getMonth(),
+          day: log.sentAt.getDate(),
+          hours: log.sentAt.getHours(),
+          minutes: log.sentAt.getMinutes(),
+          seconds: log.sentAt.getSeconds()
+        } : {
+          year: log.createdAt.getFullYear(),
+          month: log.createdAt.getMonth(),
+          day: log.createdAt.getDate(),
+          hours: log.createdAt.getHours(),
+          minutes: log.createdAt.getMinutes(),
+          seconds: log.createdAt.getSeconds()
+        },
+        createdAt: {
+          year: log.createdAt.getFullYear(),
+          month: log.createdAt.getMonth(),
+          day: log.createdAt.getDate(),
+          hours: log.createdAt.getHours(),
+          minutes: log.createdAt.getMinutes(),
+          seconds: log.createdAt.getSeconds()
+        },
         source: 'whatsapp_logs' as const
       })),
       
@@ -73,17 +94,33 @@ export async function GET(request: NextRequest) {
         message: generateReminderMessage(reminder, reminder.appointment),
         type: mapReminderTypeToLegacy(reminder.reminderType),
         status: 'sent' as const, // AppointmentReminder sempre são consideradas enviadas
-        // 🇧🇷 CORREÇÃO: Usar Date object diretamente do Prisma (sem .toISOString())
-        sentAt: reminder.sentAt,
-        createdAt: reminder.createdAt,
+        // 🇧🇷 CORREÇÃO: Extrair valores numéricos diretamente (sem conversões automáticas)
+        sentAt: {
+          year: reminder.sentAt.getFullYear(),
+          month: reminder.sentAt.getMonth(),
+          day: reminder.sentAt.getDate(),
+          hours: reminder.sentAt.getHours(),
+          minutes: reminder.sentAt.getMinutes(),
+          seconds: reminder.sentAt.getSeconds()
+        },
+        createdAt: {
+          year: reminder.createdAt.getFullYear(),
+          month: reminder.createdAt.getMonth(),
+          day: reminder.createdAt.getDate(),
+          hours: reminder.createdAt.getHours(),
+          minutes: reminder.createdAt.getMinutes(),
+          seconds: reminder.createdAt.getSeconds()
+        },
         source: 'appointment_reminders' as const
       }))
     ]
 
     // Ordenar por data de criação (mais recentes primeiro)
-    unifiedMessages.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    unifiedMessages.sort((a, b) => {
+      const dateA = new Date(a.createdAt.year, a.createdAt.month, a.createdAt.day, a.createdAt.hours, a.createdAt.minutes, a.createdAt.seconds)
+      const dateB = new Date(b.createdAt.year, b.createdAt.month, b.createdAt.day, b.createdAt.hours, b.createdAt.minutes, b.createdAt.seconds)
+      return dateB.getTime() - dateA.getTime()
+    })
 
     // Calcular estatísticas
     const stats = {
