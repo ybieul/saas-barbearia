@@ -250,15 +250,29 @@ export default function WhatsAppPage() {
           <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
         </div>
         
-        {/* Status da Evolution API com Card - Layout Responsivo */}
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-4">
+        {/* Status da Evolution API - Layout conforme modelo */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm sm:text-base text-[#a1a1aa]">Conexão com o WhatsApp:</span>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:items-start">
+            <Button 
+              variant="outline" 
+              onClick={checkEvolutionStatus}
+              disabled={whatsappStatus.loading}
+              className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent text-sm sm:text-base order-2 sm:order-1"
+            >
+              {whatsappStatus.loading ? (
+                <Clock className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Settings className="w-4 h-4 mr-2" />
+              )}
+              {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
+            </Button>
+            
             {/* Card de Status */}
-            <Card className="bg-[#18181b] border-[#27272a] px-4 py-3 min-w-fit">
+            <div className="order-1 sm:order-2 px-4 py-2 bg-[#18181b] border border-[#27272a] rounded-md">
               <div className="flex items-center gap-3">
                 {whatsappStatus.loading ? (
                   <>
@@ -281,28 +295,13 @@ export default function WhatsAppPage() {
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-red-400">Desconectado</span>
                       {whatsappStatus.error && (
-                        <span className="text-xs text-gray-500">{whatsappStatus.error}</span>
+                        <span className="text-xs text-gray-500 max-w-[200px] truncate">{whatsappStatus.error}</span>
                       )}
                     </div>
                   </>
                 )}
               </div>
-            </Card>
-            
-            {/* Botão */}
-            <Button 
-              variant="outline" 
-              onClick={checkEvolutionStatus}
-              disabled={whatsappStatus.loading}
-              className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent text-sm sm:text-base"
-            >
-              {whatsappStatus.loading ? (
-                <Clock className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Settings className="w-4 h-4 mr-2" />
-              )}
-              {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
-            </Button>
+            </div>
           </div>
         </div>
       </div>

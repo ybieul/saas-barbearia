@@ -76,7 +76,7 @@ export function useAutomationSettings() {
     }
   }, [])
 
-  const updateSetting = useCallback(async (automationType: string, isEnabled: boolean) => {
+  const updateSetting = useCallback(async (automationType: string, isEnabled: boolean): Promise<boolean> => {
     try {
       setError(null)
       console.log(`💾 [Hook] Salvando: ${automationType} = ${isEnabled}`)
@@ -132,7 +132,7 @@ export function useAutomationSettings() {
           return updated
         })
         
-        return true
+        return true // IMPORTANTE: retornar true quando sucesso
       } else {
         const errorData = await response.text()
         console.error('❌ [Hook] Erro ao salvar:', response.status, errorData)
@@ -145,7 +145,7 @@ export function useAutomationSettings() {
       
       // Recarregar configurações em caso de erro
       await loadSettings()
-      return false
+      return false // IMPORTANTE: retornar false quando erro
     }
   }, [loadSettings])
 
