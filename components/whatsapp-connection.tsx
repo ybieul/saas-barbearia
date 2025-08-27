@@ -65,6 +65,16 @@ export function WhatsAppConnection() {
     return responseData
   }, [user?.tenantId])
 
+  // Cleanup polling quando componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        console.log('🧹 [Frontend] Limpando polling no unmount')
+        clearInterval(pollingInterval)
+      }
+    }
+  }, [pollingInterval])
+
   // Verificar status inicial
   const checkInitialStatus = useCallback(async () => {
     try {
@@ -91,18 +101,21 @@ export function WhatsAppConnection() {
   // Verificar status durante o polling
   const checkConnectionStatus = useCallback(async (currentInstanceName: string) => {
     try {
+      console.log('🔍 [Frontend] Verificando status da conexão (polling)...')
       const data: WhatsAppConnectionData = await apiCall(`status?instanceName=${currentInstanceName}`)
       
       if (data.connected && data.status === 'open') {
         // Conexão estabelecida!
+        console.log('✅ [Frontend] WhatsApp conectado detectado - parando polling')
         setConnectionStatus('connected')
         setQrCodeBase64(null)
         setInstanceName(data.instanceName)
         
-        // Parar o polling
+        // Parar o polling PRIMEIRO antes de mostrar toast
         if (pollingInterval) {
           clearInterval(pollingInterval)
           setPollingInterval(null)
+          console.log('🛑 [Frontend] Polling interrompido')
         }
 
         toast({
@@ -110,10 +123,15 @@ export function WhatsAppConnection() {
           description: "Seu número WhatsApp foi conectado com sucesso.",
           duration: 5000,
         })
+        
+        return true // Indicar que a conexão foi estabelecida
       }
+      
+      return false // Conexão ainda não estabelecida
     } catch (err: any) {
       console.error('Erro no polling:', err)
       // Não mostrar erro durante polling para evitar spam
+      return false
     }
   }, [apiCall, pollingInterval, toast])
 
@@ -146,12 +164,18 @@ export function WhatsAppConnection() {
 
       // Fluxo normal - QR Code gerado
       if (response.success && response.qrcode) {
+        console.log('📱 [Frontend] QR Code gerado - iniciando polling')
         setQrCodeBase64(response.qrcode)
         setInstanceName(response.instanceName)
         
         // Iniciar polling para verificar quando a conexão for estabelecida
-        const interval = setInterval(() => {
-          checkConnectionStatus(response.instanceName)
+        const interval = setInterval(async () => {
+          const isConnected = await checkConnectionStatus(response.instanceName)
+          if (isConnected) {
+            // Conexão detectada, limpar este polling também
+            clearInterval(interval)
+            console.log('🛑 [Frontend] Polling principal interrompido')
+          }
         }, 3000) // A cada 3 segundos
 
         setPollingInterval(interval)
@@ -177,6 +201,7 @@ export function WhatsAppConnection() {
     try {
       setIsLoading(true)
       setError(null)
+      console.log('🔄 [Frontend] Iniciando desconexão do WhatsApp...')
 
       await apiCall('disconnect', {
         method: 'DELETE',
@@ -189,6 +214,7 @@ export function WhatsAppConnection() {
       
       // Parar polling se estiver ativo
       if (pollingInterval) {
+        console.log('🛑 [Frontend] Limpando polling na desconexão')
         clearInterval(pollingInterval)
         setPollingInterval(null)
       }
@@ -197,6 +223,8 @@ export function WhatsAppConnection() {
         title: "WhatsApp Desconectado",
         description: "Sua conta WhatsApp foi desconectada com sucesso.",
       })
+      
+      console.log('✅ [Frontend] WhatsApp desconectado com sucesso')
     } catch (err: any) {
       console.error('Erro ao desconectar:', err)
       setError(err.message)
