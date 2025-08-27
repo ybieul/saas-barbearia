@@ -28,7 +28,12 @@ function verifyToken(request: NextRequest): AuthUser {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as {
+      userId: string
+      tenantId: string
+      email: string
+      role: string
+    }
     return {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
@@ -144,16 +149,14 @@ export async function POST(
     console.log('✅ [API] Instância criada com sucesso:', evolutionResponse)
 
     // 6. Atualizar o banco de dados com o nome da instância
-    // NOTA: Esta operação será habilitada após executar a migração no servidor
-    // await prisma.tenant.update({
-    //   where: { id: tenantId },
-    //   data: { 
-    //     whatsapp_instance_name: instanceName 
-    //   }
-    // })
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { 
+        whatsapp_instance_name: instanceName 
+      }
+    })
 
-    console.log(`✅ [API] Instância criada - Tenant ${tenantId} pronto para vincular à instância ${instanceName}`)
-    console.log(`⚠️  [API] LEMBRETE: Execute a migração do banco no servidor para salvar o instanceName`)
+    console.log(`✅ [API] Banco atualizado - Tenant ${tenantId} vinculado à instância ${instanceName}`)
 
     // 7. Verificar se a resposta contém QR Code
     let qrCodeData = null
@@ -185,13 +188,12 @@ export async function POST(
     console.error('❌ [API] Erro ao conectar WhatsApp:', error)
     
     // Em caso de erro, tentar remover o instance_name do banco
-    // NOTA: Esta operação será habilitada após a migração no servidor
     try {
-      // await prisma.tenant.update({
-      //   where: { id: params.tenantId },
-      //   data: { whatsapp_instance_name: null }
-      // })
-      console.log('⚠️  [API] Em caso de erro, lembre-se de limpar o instanceName no banco manualmente')
+      await prisma.tenant.update({
+        where: { id: params.tenantId },
+        data: { whatsapp_instance_name: null }
+      })
+      console.log('✅ [API] Banco limpo após erro')
     } catch (cleanupError) {
       console.error('❌ [API] Erro ao limpar banco após falha:', cleanupError)
     }

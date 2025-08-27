@@ -103,15 +103,13 @@ export async function GET(
     // Se estiver conectado, atualizar o banco com o instanceName
     if (isConnected) {
       try {
-        // NOTA: Esta operação será habilitada após a migração no servidor
-        // await prisma.tenant.update({
-        //   where: { id: tenantId },
-        //   data: { 
-        //     whatsapp_instance_name: instanceName 
-        //   }
-        // })
-        console.log(`✅ [API] WhatsApp conectado para tenant ${tenantId}`)
-        console.log(`⚠️  [API] LEMBRETE: Salvar instanceName '${instanceName}' no banco após migração`)
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: { 
+            whatsapp_instance_name: instanceName 
+          }
+        })
+        console.log(`✅ [API] WhatsApp conectado para tenant ${tenantId} - instanceName salvo no banco`)
       } catch (dbError) {
         console.error('❌ [API] Erro ao atualizar banco:', dbError)
       }

@@ -95,15 +95,13 @@ export async function DELETE(
     // Limpar o instanceName do banco
     if (deletionSuccessful) {
       try {
-        // NOTA: Esta operação será habilitada após a migração no servidor
-        // await prisma.tenant.update({
-        //   where: { id: tenantId },
-        //   data: { 
-        //     whatsapp_instance_name: null 
-        //   }
-        // })
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: { 
+            whatsapp_instance_name: null 
+          }
+        })
         console.log(`✅ [API] Banco limpo - Tenant ${tenantId} desvinculado da instância WhatsApp`)
-        console.log(`⚠️  [API] LEMBRETE: Limpar manualmente o campo whatsapp_instance_name no banco`)
       } catch (dbError) {
         console.error('❌ [API] Erro ao limpar banco:', dbError)
         return NextResponse.json(
