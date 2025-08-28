@@ -2,7 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
-import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp-server'
+import { whatsappTemplates } from '@/lib/whatsapp-server'
+import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
+import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
 import { randomBytes } from 'crypto'
 
 // Função para gerar ID único (similar ao cuid do Prisma)
@@ -10,81 +12,92 @@ function generateId(): string {
   return randomBytes(12).toString('base64url')
 }
 
-// Função para enviar mensagem de confirmação
+// 🚀 FUNÇÃO MULTI-TENANT: Enviar mensagem de confirmação
 async function sendConfirmationMessage(appointment: any) {
-  // Verificar se a automação de confirmação está ativa
-  const automationSetting = await prisma.$queryRaw`
-    SELECT * FROM automation_settings 
-    WHERE establishmentId = ${appointment.tenantId} 
-    AND automationType = 'confirmation' 
-    AND isEnabled = true
-    LIMIT 1
-  ` as any[]
+  console.log(`📧 [CONFIRMATION] Iniciando processo de confirmação para agendamento: ${appointment.id}`)
   
-  if (automationSetting.length === 0) {
-    console.log('🔕 Automação de confirmação desabilitada ou não configurada')
-    return
-  }
-
-  // Verificar se já foi enviada uma confirmação para este agendamento
-  const existingConfirmation = await prisma.$queryRaw`
-    SELECT * FROM appointment_reminders 
-    WHERE appointmentId = ${appointment.id} 
-    AND reminderType = 'confirmation'
-    LIMIT 1
-  ` as any[]
+  // ✅ VERIFICAÇÃO 1: Buscar configuração WhatsApp do tenant
+  const tenantConfig = await getTenantWhatsAppConfig(appointment.tenantId)
   
-  if (existingConfirmation.length > 0) {
-    console.log('✅ Confirmação já foi enviada para este agendamento')
+  if (!tenantConfig || !tenantConfig.instanceName) {
+    console.log(`⚠️ [CONFIRMATION] Tenant ${appointment.tenantId} não possui instância WhatsApp configurada`)
+    return
+  }
+  
+  console.log(`✅ [CONFIRMATION] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
+
+  // ✅ VERIFICAÇÃO 2: Verificar se a automação de confirmação está ativa
+  const automationEnabled = await isAutomationEnabled(appointment.tenantId, 'confirmation')
+  
+  if (!automationEnabled) {
+    console.log(`⚠️ [CONFIRMATION] Automação de confirmação desabilitada para tenant: ${appointment.tenantId}`)
     return
   }
 
-  // Verificar se o cliente tem telefone
-  if (!appointment.endUser.phone) {
-    console.log('❌ Cliente não possui telefone cadastrado')
-    return
-  }
+  console.log(`✅ [CONFIRMATION] Automação de confirmação ativa`)
 
-  // Buscar dados do tenant para o template
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: appointment.tenantId },
-    select: {
-      businessName: true,
-      businessPhone: true,
+  // ✅ VERIFICAÇÃO 3: Verificar se já foi enviada uma confirmação para este agendamento
+  const existingConfirmation = await prisma.appointmentReminder.findFirst({
+    where: {
+      appointmentId: appointment.id,
+      reminderType: 'confirmation'
     }
   })
+  
+  if (existingConfirmation) {
+    console.log(`⚠️ [CONFIRMATION] Confirmação já foi enviada para este agendamento: ${appointment.id}`)
+    return
+  }
+
+  // ✅ VERIFICAÇÃO 4: Verificar se o cliente tem telefone
+  if (!appointment.endUser.phone) {
+    console.log(`❌ [CONFIRMATION] Cliente não possui telefone cadastrado: ${appointment.endUser.name}`)
+    return
+  }
+
+  console.log(`✅ [CONFIRMATION] Todas as verificações passaram - enviando confirmação`)
 
   // Preparar dados para o template
   const appointmentDate = new Date(appointment.dateTime)
   const templateData = {
     clientName: appointment.endUser.name,
-    businessName: tenant?.businessName || 'Nossa Barbearia',
+    businessName: tenantConfig.businessName,
     service: appointment.services.map((s: any) => s.name).join(', '),
     professional: appointment.professional?.name || 'Profissional',
     date: formatBrazilDate(appointmentDate),
     time: formatBrazilTime(appointmentDate),
     totalTime: appointment.services.reduce((total: number, s: any) => total + s.duration, 0),
     price: appointment.totalPrice,
+    businessPhone: tenantConfig.businessPhone || '',
   }
 
-  // Gerar e enviar mensagem
+  // Gerar mensagem e enviar usando instância específica do tenant
   const message = whatsappTemplates.confirmation(templateData)
   
-  const success = await sendWhatsAppMessage({
+  console.log(`📤 [CONFIRMATION] Enviando via instância: ${tenantConfig.instanceName}`)
+  console.log(`📱 [CONFIRMATION] Para cliente: ${appointment.endUser.name} (${appointment.endUser.phone})`)
+  
+  const success = await sendMultiTenantWhatsAppMessage({
     to: appointment.endUser.phone,
     message,
+    instanceName: tenantConfig.instanceName,
     type: 'confirmation',
   })
 
   if (success) {
-    // Registrar o envio
-    await prisma.$executeRaw`
-      INSERT INTO appointment_reminders (id, appointmentId, reminderType, sentAt, createdAt)
-      VALUES (${generateId()}, ${appointment.id}, 'confirmation', ${getBrazilNow()}, ${getBrazilNow()})
-    `
-    console.log('✅ Confirmação enviada com sucesso para:', appointment.endUser.name)
+    // Registrar o envio na tabela appointment_reminders
+    await prisma.appointmentReminder.create({
+      data: {
+        id: generateId(),
+        appointmentId: appointment.id,
+        reminderType: 'confirmation',
+        sentAt: getBrazilNow(),
+      }
+    })
+    
+    console.log(`✅ [CONFIRMATION] Confirmação enviada com sucesso para: ${appointment.endUser.name} via instância ${tenantConfig.instanceName}`)
   } else {
-    console.error('❌ Falha ao enviar confirmação WhatsApp')
+    console.error(`❌ [CONFIRMATION] Falha ao enviar confirmação WhatsApp para: ${appointment.endUser.name}`)
   }
 }
 

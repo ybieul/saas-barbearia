@@ -2,12 +2,18 @@ import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { replaceTemplatePlaceholders } from '@/lib/template-helpers'
+import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
+import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
 
-// POST - Enviar promoção para clientes inativos
+// 🚀 POST MULTI-TENANT - Enviar promoção para clientes inativos
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
     const { clientIds, templateId, message } = await request.json()
+
+    console.log(`🎯 [PROMOTIONS] Iniciando envio de promoções multi-tenant...`)
+    console.log(`🏢 [PROMOTIONS] TenantId: ${user.tenantId}`)
+    console.log(`👥 [PROMOTIONS] Clientes selecionados: ${clientIds?.length || 0}`)
 
     if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
       return NextResponse.json(
@@ -22,6 +28,36 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // ✅ VERIFICAÇÃO MULTI-TENANT 1: Buscar configuração WhatsApp do tenant
+    const tenantConfig = await getTenantWhatsAppConfig(user.tenantId)
+    
+    if (!tenantConfig || !tenantConfig.instanceName) {
+      console.log(`❌ [PROMOTIONS] Tenant ${user.tenantId} não possui instância WhatsApp configurada`)
+      
+      return NextResponse.json({
+        success: false,
+        message: 'Por favor, conecte seu número de WhatsApp primeiro. Acesse a seção "Configurações > WhatsApp" para conectar.',
+        code: 'WHATSAPP_NOT_CONNECTED'
+      }, { status: 400 })
+    }
+
+    console.log(`✅ [PROMOTIONS] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
+
+    // ✅ VERIFICAÇÃO MULTI-TENANT 2: Verificar se automação de reativação está ativa
+    const automationEnabled = await isAutomationEnabled(user.tenantId, 'reactivation')
+    
+    if (!automationEnabled) {
+      console.log(`⚠️ [PROMOTIONS] Automação de reativação desabilitada para tenant: ${user.tenantId}`)
+      
+      return NextResponse.json({
+        success: false,
+        message: 'Automação de reativação não está ativa. Ative nas configurações de mensagens automáticas.',
+        code: 'AUTOMATION_DISABLED'
+      }, { status: 400 })
+    }
+
+    console.log(`✅ [PROMOTIONS] Automação de reativação ativa`)
 
     // Verificar se todos os clientes pertencem ao tenant
     const clients = await prisma.endUser.findMany({
@@ -43,6 +79,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log(`✅ [PROMOTIONS] ${clients.length} clientes validados`)
+
     // Buscar dados do business para obter customLink
     const business = await prisma.tenant.findUnique({
       where: { id: user.tenantId },
@@ -53,69 +91,45 @@ export async function POST(request: NextRequest) {
     const businessConfig = business?.businessConfig as any
     const customLink = businessConfig?.customLink || 'sua-barbearia'
 
-    console.log(`📤 [API] Enviando promoções para ${clients.length} clientes...`)
-    console.log(`🔗 [API] Custom Link: ${customLink}`)
+    console.log(`🔗 [PROMOTIONS] Custom Link: ${customLink}`)
+    console.log(`🏢 [PROMOTIONS] Empresa: ${tenantConfig.businessName}`)
     
-    // Configurar Evolution API
-    const evolutionURL = process.env.EVOLUTION_API_URL
-    const evolutionKey = process.env.EVOLUTION_API_KEY
-    const instanceName = process.env.EVOLUTION_INSTANCE_NAME
-
-    if (!evolutionURL || !evolutionKey || !instanceName) {
-      return NextResponse.json({
-        message: 'Evolution API não configurada no servidor'
-      }, { status: 500 })
-    }
-
-    // Função para formatar telefone
-    const formatPhoneNumber = (phone: string): string => {
-      const cleaned = phone.replace(/\D/g, '')
-      if (cleaned.length === 11 && cleaned.startsWith('11')) {
-        return `55${cleaned}@s.whatsapp.net`
-      } else if (cleaned.length === 10 || cleaned.length === 11) {
-        return `55${cleaned}@s.whatsapp.net`
-      }
-      return `${cleaned}@s.whatsapp.net`
-    }
-
-    // Enviar mensagens via Evolution API
+    // 🎯 ENVIAR MENSAGENS USANDO INSTÂNCIA ESPECÍFICA DO TENANT
     const results = []
     let successCount = 0
     let errorCount = 0
 
     for (const client of clients) {
       try {
-        const formattedNumber = formatPhoneNumber(client.phone)
-        const apiUrl = `${evolutionURL}/message/sendText/${instanceName}`
+        console.log(`📤 [PROMOTIONS] Enviando para cliente: ${client.name} (${client.phone})`)
         
-        // 🎯 PERSONALIZAR MENSAGEM PARA CADA CLIENTE INDIVIDUAL
+        // Verificar se cliente tem telefone
+        if (!client.phone) {
+          console.log(`⚠️ [PROMOTIONS] Cliente ${client.name} não possui telefone cadastrado`)
+          errorCount++
+          results.push({
+            clientId: client.id,
+            clientName: client.name,
+            success: false,
+            error: 'Telefone não cadastrado'
+          })
+          continue
+        }
+        
+        // 🎯 PERSONALIZAR MENSAGEM PARA CADA CLIENTE
         const personalizedMessage = replaceTemplatePlaceholders(message, client.name, customLink)
         
-        const requestBody = {
-          number: formattedNumber,
-          text: personalizedMessage, // ✅ AGORA PERSONALIZADA
-          delay: 300 // ⚡ REDUZIDO DE 1000ms PARA 300ms
-        }
-
-        console.log(`📱 [API] Enviando para ${client.name} (${formattedNumber})`)
-        console.log(`💬 [API] Mensagem personalizada: "${personalizedMessage.substring(0, 50)}..."`)
-
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evolutionKey,
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(15000)
+        // Enviar usando instância específica do tenant
+        const success = await sendMultiTenantWhatsAppMessage({
+          to: client.phone,
+          message: personalizedMessage,
+          instanceName: tenantConfig.instanceName,
+          type: 'reactivation'
         })
 
-        const responseData = await response.json()
-
-        if (response.ok) {
+        if (success) {
           successCount++
-          console.log(`✅ [API] Mensagem enviada com sucesso para ${client.name}`)
+          console.log(`✅ [PROMOTIONS] Mensagem enviada para ${client.name} via instância ${tenantConfig.instanceName}`)
           
           // Registrar sucesso no banco
           await prisma.whatsAppLog.create({
@@ -123,23 +137,22 @@ export async function POST(request: NextRequest) {
               tenantId: user.tenantId,
               to: client.phone,
               type: 'PROMOTION',
-              message: personalizedMessage, // ✅ SALVAR MENSAGEM PERSONALIZADA
+              message: personalizedMessage,
               status: 'SENT',
               sentAt: new Date()
             }
           })
-
+          
           results.push({
             clientId: client.id,
             clientName: client.name,
-            phone: client.phone,
-            status: 'success',
-            personalizedMessage: personalizedMessage, // ✅ RETORNAR MENSAGEM PERSONALIZADA
-            data: responseData
+            success: true,
+            instanceName: tenantConfig.instanceName,
+            personalizedMessage: personalizedMessage
           })
         } else {
           errorCount++
-          console.error(`❌ [API] Erro ao enviar para ${client.name}:`, responseData)
+          console.error(`❌ [PROMOTIONS] Falha ao enviar mensagem para ${client.name}`)
           
           // Registrar erro no banco
           await prisma.whatsAppLog.create({
@@ -147,53 +160,68 @@ export async function POST(request: NextRequest) {
               tenantId: user.tenantId,
               to: client.phone,
               type: 'PROMOTION',
-              message: personalizedMessage, // ✅ SALVAR MENSAGEM PERSONALIZADA MESMO EM ERRO
+              message: personalizedMessage,
               status: 'FAILED',
               sentAt: new Date()
             }
           })
-
+          
           results.push({
             clientId: client.id,
             clientName: client.name,
-            phone: client.phone,
-            status: 'error',
-            personalizedMessage: personalizedMessage, // ✅ RETORNAR MENSAGEM PERSONALIZADA
-            error: responseData.message || 'Erro desconhecido'
+            success: false,
+            error: 'Falha no envio via Evolution API',
+            personalizedMessage: personalizedMessage
           })
         }
 
-        // Delay otimizado entre envios para não sobrecarregar
-        if (clients.length > 1) {
-          await new Promise(resolve => setTimeout(resolve, 800)) // ⚡ REDUZIDO DE 2000ms PARA 800ms
-        }
+        // Delay entre envios para não sobrecarregar a API
+        await new Promise(resolve => setTimeout(resolve, 500))
 
       } catch (error) {
         errorCount++
-        console.error(`❌ [API] Erro ao processar ${client.name}:`, error)
+        console.error(`❌ [PROMOTIONS] Erro ao processar cliente ${client.name}:`, error)
         
         results.push({
           clientId: client.id,
           clientName: client.name,
-          phone: client.phone,
-          status: 'error',
+          success: false,
           error: error instanceof Error ? error.message : 'Erro desconhecido'
         })
       }
     }
 
-    return NextResponse.json({ 
-      message: `Promoções processadas: ${successCount} enviadas, ${errorCount} falharam`,
-      sentCount: successCount,
-      errorCount: errorCount,
-      totalCount: clients.length,
-      results: results
+    console.log(`📊 [PROMOTIONS] Resultado final:`)
+    console.log(`✅ Sucessos: ${successCount}`)
+    console.log(`❌ Erros: ${errorCount}`)
+    console.log(`🏢 Instância usada: ${tenantConfig.instanceName}`)
+
+    return NextResponse.json({
+      success: true,
+      message: `Promoção enviada! ${successCount} sucessos, ${errorCount} erros`,
+      data: {
+        successCount,
+        errorCount,
+        totalClients: clients.length,
+        instanceName: tenantConfig.instanceName,
+        businessName: tenantConfig.businessName,
+        results
+      }
     })
+
   } catch (error) {
-    console.error('Erro ao enviar promoções:', error)
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Erro interno do servidor' },
-      { status: error instanceof Error && error.message.includes('Token') ? 401 : 500 }
-    )
+    console.error('❌ [PROMOTIONS] Erro ao processar requisição:', error)
+    
+    if (error instanceof Error && error.message.includes('Token')) {
+      return NextResponse.json({
+        success: false,
+        message: error.message
+      }, { status: 401 })
+    }
+    
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro interno do servidor'
+    }, { status: 500 })
   }
 }

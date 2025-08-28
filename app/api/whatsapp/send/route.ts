@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { formatPhoneNumber } from '@/lib/whatsapp'
+import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
+import { getTenantWhatsAppConfig } from '@/lib/whatsapp-tenant-helper'
 import jwt from 'jsonwebtoken'
 
 interface AuthUser {
@@ -50,14 +52,16 @@ function verifyToken(request: NextRequest): AuthUser {
   }
 }
 
+// 🚀 POST MULTI-TENANT - Enviar mensagem de teste
 export async function POST(req: NextRequest) {
   try {
     // Verificar autenticação JWT
     const user = verifyToken(req)
-    console.log('✅ [API] Usuário autenticado:', user.email)
+    console.log('✅ [TEST-MESSAGE] Usuário autenticado:', user.email)
+    console.log('🏢 [TEST-MESSAGE] TenantId:', user.tenantId)
 
     // Obter dados da requisição
-    const { to, message, type = 'custom' } = await req.json()
+    const { to, message, type = 'test' } = await req.json()
 
     if (!to || !message) {
       return NextResponse.json({ 
@@ -66,90 +70,71 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Obter variáveis de ambiente
-    const evolutionURL = process.env.EVOLUTION_API_URL
-    const evolutionKey = process.env.EVOLUTION_API_KEY
-    const instanceName = process.env.EVOLUTION_INSTANCE_NAME
+    console.log(`📤 [TEST-MESSAGE] Iniciando envio de mensagem de teste...`)
+    console.log(`📱 Para: ${to}`)
+    console.log(`📝 Mensagem: ${message.substring(0, 50)}...`)
 
-    console.log('🔍 [API] Verificando variáveis de ambiente:')
-    console.log('🔍 EVOLUTION_API_URL:', evolutionURL ? '✅ Definida' : '❌ Undefined')
-    console.log('🔍 EVOLUTION_API_KEY:', evolutionKey ? '✅ Definida' : '❌ Undefined')
-    console.log('🔍 EVOLUTION_INSTANCE_NAME:', instanceName ? '✅ Definida' : '❌ Undefined')
-
-    if (!evolutionURL || !evolutionKey || !instanceName) {
+    // ✅ VERIFICAÇÃO MULTI-TENANT: Buscar configuração WhatsApp do tenant
+    const tenantConfig = await getTenantWhatsAppConfig(user.tenantId)
+    
+    if (!tenantConfig || !tenantConfig.instanceName) {
+      console.log(`❌ [TEST-MESSAGE] Tenant ${user.tenantId} não possui instância WhatsApp configurada`)
+      
       return NextResponse.json({
         success: false,
-        error: 'Evolution API não configurada no servidor'
-      }, { status: 500 })
+        error: 'Por favor, conecte seu número de WhatsApp primeiro. Acesse a seção "Configurações > WhatsApp" para conectar.',
+        code: 'WHATSAPP_NOT_CONNECTED'
+      }, { status: 400 })
     }
 
-    console.log(`📤 [API] Enviando mensagem WhatsApp...`)
-    console.log(`📱 Para: ${to}`)
-    console.log(`📝 Tipo: ${type}`)
+    console.log(`✅ [TEST-MESSAGE] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
+    console.log(`🏢 [TEST-MESSAGE] Empresa: ${tenantConfig.businessName}`)
 
-    // Formatar número para o padrão internacional
-    const formattedNumber = formatPhoneNumber(to)
-    
-    // Endpoint da Evolution API para envio de mensagem
-    const apiUrl = `${evolutionURL}/message/sendText/${instanceName}`
-    
-    const requestBody = {
-      number: formattedNumber,
-      text: message,
-      delay: 1000
-    }
-
-    console.log(`🔗 [API] URL: ${apiUrl}`)
-    console.log(`📞 [API] Número formatado: ${formattedNumber}`)
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': evolutionKey,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody),
-      // Timeout de 15 segundos
-      signal: AbortSignal.timeout(15000)
+    // 🎯 ENVIAR MENSAGEM USANDO INSTÂNCIA ESPECÍFICA DO TENANT
+    const success = await sendMultiTenantWhatsAppMessage({
+      to,
+      message,
+      instanceName: tenantConfig.instanceName,
+      type: 'test'
     })
 
-    const responseData = await response.json()
-
-    if (response.ok) {
-      console.log('✅ [API] Mensagem WhatsApp enviada com sucesso!')
-      console.log('📋 [API] Resposta:', responseData)
+    if (success) {
+      console.log(`✅ [TEST-MESSAGE] Mensagem de teste enviada com sucesso via instância: ${tenantConfig.instanceName}`)
       
       return NextResponse.json({
         success: true,
-        message: 'Mensagem enviada com sucesso',
-        data: responseData
+        message: 'Mensagem de teste enviada com sucesso!',
+        data: {
+          instanceName: tenantConfig.instanceName,
+          businessName: tenantConfig.businessName,
+          to: formatPhoneNumber(to)
+        }
       })
     } else {
-      console.error('❌ [API] Falha ao enviar mensagem')
-      console.error('📋 Status:', response.status)
-      console.error('📋 Resposta:', responseData)
+      console.error(`❌ [TEST-MESSAGE] Falha ao enviar mensagem de teste`)
       
       return NextResponse.json({
         success: false,
-        error: `Erro na Evolution API: ${responseData.message || 'Erro desconhecido'}`,
-        details: responseData
+        error: 'Falha ao enviar mensagem. Verifique se o WhatsApp está conectado e tente novamente.',
+        code: 'SEND_FAILED'
       }, { status: 500 })
     }
 
   } catch (error) {
-    console.error('❌ [API] Erro ao processar requisição:', error)
+    console.error('❌ [TEST-MESSAGE] Erro ao processar requisição:', error)
     
     if (error instanceof Error && error.message.includes('Token')) {
       return NextResponse.json({
         success: false,
-        error: error.message
+        error: error.message,
+        code: 'AUTH_ERROR'
       }, { status: 401 })
     }
     
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro interno do servidor'
+      error: error instanceof Error ? error.message : 'Erro interno do servidor',
+      code: 'INTERNAL_ERROR'
     }, { status: 500 })
   }
 }
