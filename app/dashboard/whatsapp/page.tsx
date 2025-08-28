@@ -206,7 +206,7 @@ export default function WhatsAppPage() {
       {
         title: "Clientes Inativos",
         value: isLoadingStats ? "..." : inactiveClients.toString(),
-        description: isLoadingStats ? "Carregando..." : "Para reativação",
+        description: isLoadingStats ? "Carregando..." : "Clientes sem agendamentos",
         icon: Users,
         color: "text-purple-400",
       },
@@ -455,14 +455,6 @@ export default function WhatsAppPage() {
                 >
                   Lembrete 2h
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => loadTemplate("reactivation")}
-                  className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent"
-                >
-                  Reativação
-                </Button>
               </div>
             </div>
 
@@ -561,31 +553,6 @@ export default function WhatsAppPage() {
                 onCheckedChange={async (checked) => {
                   await handleAutomationToggle('reminder_2h', checked, 'Lembrete 2 horas')
                 }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white font-medium">Reativação de Clientes</p>
-                <p className="text-sm text-[#71717a]">Mensagem para clientes inativos</p>
-              </div>
-              <Switch
-                checked={automationSettings.reactivationEnabled}
-                disabled={isLoadingSettings}
-                onCheckedChange={async (checked) => {
-                  await handleAutomationToggle('reactivation', checked, 'Reativação de Clientes')
-                }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-gray-300">Dias para considerar cliente inativo</Label>
-              <Input
-                type="number"
-                value={15}
-                disabled={isLoadingSettings}
-                className="bg-gray-700 border-[#3f3f46] text-white w-32"
-                readOnly
               />
             </div>
           </CardContent>

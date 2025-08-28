@@ -357,7 +357,7 @@ export function WhatsAppConnection() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Seu WhatsApp está conectado e pronto para enviar mensagens automáticas de confirmação, lembretes e reativação de clientes.
+                Seu WhatsApp está conectado e pronto para enviar mensagens automáticas de confirmação e lembretes.
               </AlertDescription>
             </Alert>
 
