@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 
+// Função utilitária para gerar nome da instância baseado no nome do estabelecimento
+function generateInstanceName(businessName: string | null, tenantId: string): string {
+  if (!businessName) {
+    // Fallback para o formato antigo se não houver businessName
+    return `tenant_${tenantId}`
+  }
+  
+  // Limpar o nome do estabelecimento para usar como nome da instância
+  const cleanBusinessName = businessName
+    .toLowerCase() // converter para minúsculas
+    .trim() // remover espaços
+    .replace(/[^a-z0-9]/g, '_') // substituir caracteres especiais por underscore
+    .replace(/_+/g, '_') // múltiplos underscores viram um só
+    .replace(/^_|_$/g, '') // remover underscores do início e fim
+    .substring(0, 20) // limitar a 20 caracteres
+  
+  return `${cleanBusinessName}_${tenantId}`
+}
+
 interface AuthUser {
   userId: string
   tenantId: string
@@ -53,7 +72,32 @@ export async function DELETE(
     }
 
     const { tenantId } = params
-    const instanceName = `tenant_${tenantId}`
+    
+    // Buscar dados do tenant para gerar nome da instância correto
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        id: tenantId
+      },
+      select: {
+        id: true,
+        businessName: true,
+        whatsapp_instance_name: true
+      }
+    })
+
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Tenant não encontrado' },
+        { status: 404 }
+      )
+    }
+    
+    // Gerar nome da instância baseado no businessName
+    const instanceName = generateInstanceName(tenant.businessName, tenantId)
+    
+    console.log(`🏢 [DISCONNECT] Desconectando instância: "${instanceName}"`)
+    console.log(`🏢 [DISCONNECT] Baseado em: "${tenant.businessName}" + "${tenantId}"`)
+    
 
     // Verificar variáveis de ambiente da Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL

@@ -67,6 +67,25 @@ function verifyToken(request: NextRequest): AuthUser {
   }
 }
 
+// Função utilitária para gerar nome da instância baseado no nome do estabelecimento
+function generateInstanceName(businessName: string | null, tenantId: string): string {
+  if (!businessName) {
+    // Fallback para o formato antigo se não houver businessName
+    return `tenant_${tenantId}`
+  }
+  
+  // Limpar o nome do estabelecimento para usar como nome da instância
+  const cleanBusinessName = businessName
+    .toLowerCase() // converter para minúsculas
+    .trim() // remover espaços
+    .replace(/[^a-z0-9]/g, '_') // substituir caracteres especiais por underscore
+    .replace(/_+/g, '_') // múltiplos underscores viram um só
+    .replace(/^_|_$/g, '') // remover underscores do início e fim
+    .substring(0, 20) // limitar a 20 caracteres
+  
+  return `${cleanBusinessName}_${tenantId}`
+}
+
 // Função utilitária para verificar status de uma instância
 async function checkInstanceStatus(evolutionURL: string, evolutionKey: string, instanceName: string) {
   const statusUrl = `${evolutionURL}/instance/connectionState/${instanceName}`
@@ -150,6 +169,11 @@ export async function POST(
     const tenant = await prisma.tenant.findFirst({
       where: {
         id: tenantId
+      },
+      select: {
+        id: true,
+        businessName: true,
+        whatsapp_instance_name: true
       }
     })
 
@@ -160,6 +184,8 @@ export async function POST(
       )
     }
 
+    console.log(`🏢 [API] Estabelecimento encontrado: "${tenant.businessName}" (${tenantId})`)
+
     // Verificar se já tem uma instância conectada
     // NOTA: Esta verificação será habilitada após a migração do banco
     // if (tenant.whatsapp_instance_name) {
@@ -169,8 +195,12 @@ export async function POST(
     //   )
     // }
 
-    // 2. Geração do Nome da Instância
-    const instanceName = `tenant_${tenantId}`
+    // 2. Geração do Nome da Instância baseado no nome do estabelecimento
+    const instanceName = generateInstanceName(tenant.businessName, tenantId)
+    
+    console.log(`🏷️ [API] Nome da instância gerado: "${instanceName}"`)
+    console.log(`🏢 [API] Baseado em: "${tenant.businessName}" + "${tenantId}"`)
+    
 
     // 3. Verificar variáveis de ambiente da Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL

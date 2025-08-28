@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 
+// Função utilitária para gerar nome da instância baseado no nome do estabelecimento
+function generateInstanceName(businessName: string | null, tenantId: string): string {
+  if (!businessName) {
+    // Fallback para o formato antigo se não houver businessName
+    return `tenant_${tenantId}`
+  }
+  
+  // Limpar o nome do estabelecimento para usar como nome da instância
+  const cleanBusinessName = businessName
+    .toLowerCase() // converter para minúsculas
+    .trim() // remover espaços
+    .replace(/[^a-z0-9]/g, '_') // substituir caracteres especiais por underscore
+    .replace(/_+/g, '_') // múltiplos underscores viram um só
+    .replace(/^_|_$/g, '') // remover underscores do início e fim
+    .substring(0, 20) // limitar a 20 caracteres
+  
+  return `${cleanBusinessName}_${tenantId}`
+}
+
 interface AuthUser {
   userId: string
   tenantId: string
@@ -93,10 +112,33 @@ export async function GET(
 
     const { tenantId } = params
     
-    // Obter instanceName do query param ou gerar padrão
+    // Buscar dados do tenant para gerar nome da instância correto
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        id: tenantId
+      },
+      select: {
+        id: true,
+        businessName: true,
+        whatsapp_instance_name: true
+      }
+    })
+
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Tenant não encontrado' },
+        { status: 404 }
+      )
+    }
+    
+    // Obter instanceName do query param ou gerar baseado no businessName
     const url = new URL(request.url)
     const queryInstanceName = url.searchParams.get('instanceName')
-    const instanceName = queryInstanceName || `tenant_${tenantId}`
+    const instanceName = queryInstanceName || generateInstanceName(tenant.businessName, tenantId)
+    
+    console.log(`🏢 [STATUS] Verificando instância: "${instanceName}"`)
+    console.log(`🏢 [STATUS] Baseado em: "${tenant.businessName}" + "${tenantId}"`)
+    
 
     // Verificar variáveis de ambiente da Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL
@@ -210,14 +252,29 @@ export async function GET(
     // Se o erro for de timeout ou rede, tratar como "desconectado" também
     if (error.name === 'TimeoutError' || error.message?.includes('timeout') || error.message?.includes('fetch')) {
       console.log("10.5. ⚠️  Timeout/erro de rede - interpretando como desconectado")
+      
+      // Buscar businessName para fallback
+      let fallbackInstanceName = `tenant_${params.tenantId}` // padrão antigo como fallback
+      try {
+        const fallbackTenant = await prisma.tenant.findFirst({
+          where: { id: params.tenantId },
+          select: { businessName: true }
+        })
+        if (fallbackTenant) {
+          fallbackInstanceName = generateInstanceName(fallbackTenant.businessName, params.tenantId)
+        }
+      } catch (e) {
+        console.warn('⚠️  Erro ao buscar tenant para fallback, usando padrão antigo')
+      }
+      
       return NextResponse.json({
         connected: false,
-        instanceName: `tenant_${params.tenantId}`,
+        instanceName: fallbackInstanceName,
         status: 'close',
         error: 'Timeout na comunicação com Evolution API - interpretado como desconectado',
         data: {
           tenantId: params.tenantId,
-          instanceName: `tenant_${params.tenantId}`,
+          instanceName: fallbackInstanceName,
           lastCheck: new Date().toISOString()
         }
       })
