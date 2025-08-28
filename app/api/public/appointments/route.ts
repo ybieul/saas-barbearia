@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime, parseBirthDate } from '@/lib/timezone'
-import { sendWhatsAppMessage, whatsappTemplates } from '@/lib/whatsapp-server'
+import { whatsappTemplates } from '@/lib/whatsapp-server'
+import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
+import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
 import { randomBytes } from 'crypto'
 
 // Função para gerar ID único (similar ao cuid do Prisma)
@@ -9,7 +11,7 @@ function generateId(): string {
   return randomBytes(12).toString('base64url')
 }
 
-// Função para enviar mensagem de confirmação para agendamentos públicos
+// 🚀 FUNÇÃO MULTI-TENANT: Enviar mensagem de confirmação para agendamentos públicos
 async function sendPublicConfirmationMessage(
   appointment: any, 
   client: any, 
@@ -19,70 +21,90 @@ async function sendPublicConfirmationMessage(
   totalDuration: number, 
   totalPrice: number
 ) {
-  // Verificar se a automação de confirmação está ativa
-  const automationSetting = await prisma.$queryRaw`
-    SELECT * FROM automation_settings 
-    WHERE establishmentId = ${business.id} 
-    AND automationType = 'confirmation' 
-    AND isEnabled = true
-    LIMIT 1
-  ` as any[]
+  console.log(`📧 [PUBLIC-CONFIRMATION] Iniciando processo de confirmação para agendamento público: ${appointment.id}`)
   
-  if (automationSetting.length === 0) {
-    console.log('🔕 Automação de confirmação desabilitada ou não configurada')
+  // ✅ VERIFICAÇÃO 1: Buscar configuração WhatsApp do tenant (business)
+  const tenantConfig = await getTenantWhatsAppConfig(business.id)
+  
+  if (!tenantConfig || !tenantConfig.instanceName) {
+    console.log(`⚠️ [PUBLIC-CONFIRMATION] Tenant ${business.id} não possui instância WhatsApp configurada`)
+    return
+  }
+  
+  console.log(`✅ [PUBLIC-CONFIRMATION] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
+
+  // ✅ VERIFICAÇÃO 2: Verificar se a automação de confirmação está ativa
+  const automationEnabled = await isAutomationEnabled(business.id, 'confirmation')
+  
+  if (!automationEnabled) {
+    console.log(`⚠️ [PUBLIC-CONFIRMATION] Automação de confirmação desabilitada para tenant: ${business.id}`)
     return
   }
 
-  // Verificar se já foi enviada uma confirmação para este agendamento
-  const existingConfirmation = await prisma.$queryRaw`
-    SELECT * FROM appointment_reminders 
-    WHERE appointmentId = ${appointment.id} 
-    AND reminderType = 'confirmation'
-    LIMIT 1
-  ` as any[]
+  console.log(`✅ [PUBLIC-CONFIRMATION] Automação de confirmação ativa`)
+
+  // ✅ VERIFICAÇÃO 3: Verificar se já foi enviada uma confirmação para este agendamento
+  const existingConfirmation = await prisma.appointmentReminder.findFirst({
+    where: {
+      appointmentId: appointment.id,
+      reminderType: 'confirmation'
+    }
+  })
   
-  if (existingConfirmation.length > 0) {
-    console.log('✅ Confirmação já foi enviada para este agendamento')
+  if (existingConfirmation) {
+    console.log(`⚠️ [PUBLIC-CONFIRMATION] Confirmação já foi enviada para este agendamento: ${appointment.id}`)
     return
   }
 
-  // Verificar se o cliente tem telefone
+  // ✅ VERIFICAÇÃO 4: Verificar se o cliente tem telefone
   if (!client.phone) {
-    console.log('❌ Cliente não possui telefone cadastrado')
+    console.log(`❌ [PUBLIC-CONFIRMATION] Cliente não possui telefone cadastrado: ${client.name}`)
     return
   }
+
+  console.log(`✅ [PUBLIC-CONFIRMATION] Todas as verificações passaram - enviando confirmação`)
 
   // Preparar dados para o template
   const appointmentDate = new Date(appointment.dateTime)
   const templateData = {
     clientName: client.name,
-    businessName: business.businessName || 'Nossa Barbearia',
+    businessName: tenantConfig.businessName || 'Nossa Empresa',
     service: services.map((s: any) => s.name).join(', '),
     professional: professional?.name || 'Profissional',
     date: formatBrazilDate(appointmentDate),
     time: formatBrazilTime(appointmentDate),
     totalTime: totalDuration,
     price: totalPrice,
+    businessPhone: tenantConfig.businessPhone || '',
   }
 
-  // Gerar e enviar mensagem
+  // Gerar mensagem e enviar usando instância específica do tenant
   const message = whatsappTemplates.confirmation(templateData)
   
-  const success = await sendWhatsAppMessage({
+  console.log(`📤 [PUBLIC-CONFIRMATION] Enviando via instância: ${tenantConfig.instanceName}`)
+  console.log(`📱 [PUBLIC-CONFIRMATION] Para cliente: ${client.name} (${client.phone})`)
+  
+  const success = await sendMultiTenantWhatsAppMessage({
     to: client.phone,
     message,
+    instanceName: tenantConfig.instanceName,
     type: 'confirmation',
   })
 
   if (success) {
-    // Registrar o envio
-    await prisma.$executeRaw`
-      INSERT INTO appointment_reminders (id, appointmentId, reminderType, sentAt, createdAt)
-      VALUES (${generateId()}, ${appointment.id}, 'confirmation', ${getBrazilNow()}, ${getBrazilNow()})
-    `
-    console.log('✅ Confirmação pública enviada com sucesso para:', client.name)
+    // Registrar o envio na tabela appointment_reminders
+    await prisma.appointmentReminder.create({
+      data: {
+        id: generateId(),
+        appointmentId: appointment.id,
+        reminderType: 'confirmation',
+        sentAt: getBrazilNow(),
+      }
+    })
+    
+    console.log(`✅ [PUBLIC-CONFIRMATION] Confirmação enviada com sucesso para: ${client.name} via instância ${tenantConfig.instanceName}`)
   } else {
-    console.error('❌ Falha ao enviar confirmação WhatsApp')
+    console.error(`❌ [PUBLIC-CONFIRMATION] Falha ao enviar confirmação WhatsApp para: ${client.name}`)
   }
 }
 
