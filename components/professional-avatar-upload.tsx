@@ -232,7 +232,7 @@ export function ProfessionalAvatarUpload({
 
       {/* Botões de pré-visualização estilo serviços */}
       {hasChanges && (
-        <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 justify-center">
           <Button
             size="sm"
             onClick={handleSaveAvatar}
