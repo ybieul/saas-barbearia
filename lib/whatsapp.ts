@@ -78,7 +78,7 @@ Olá *${data.clientName}*! 😊
 
 Este é um lembrete do seu agendamento na *${data.businessName}*:
 
-�️ *Amanhã - ${data.date}*
+�️ *Data: ${data.date}*
 ⏰ Horário: ${data.time}
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -93,7 +93,7 @@ Olá *${data.clientName}*!
 
 Seu agendamento na *${data.businessName}* é hoje:
 
-🗓️ *Hoje - ${data.date}*
+🗓️ *Data: ${data.date}*
 ⏰ Horário: ${data.time}  
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -106,7 +106,7 @@ Olá *${data.clientName}*!
 
 Não esqueça do seu agendamento:
 
-⏰ *${data.time}* (em 2 horas)
+⏰ *Horário:${data.time}* (em 2 horas)
 🔹 Serviço: ${data.service}  
 👨‍💼 Profissional: ${data.professional}
 
