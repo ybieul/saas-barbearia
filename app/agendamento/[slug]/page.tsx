@@ -2178,9 +2178,9 @@ export default function AgendamentoPage() {
                       ℹ️ Informações Importantes
                     </h4>
                     <div className="text-sm text-[#a1a1aa] space-y-1">
-                      <p>• Você receberá um lembrete 24h antes do agendamento</p>
-                      <p>• Em caso de cancelamento, avise com pelo menos 2h de antecedência</p>
-                      <p>• Chegue com 5 minutos de antecedência</p>
+                      <p>• Você receberá lembretes antes do agendamento</p>
+                      <p>• Em caso de cancelamento, avise com antecedência</p>
+                      <p>• Chegue com 10 minutos de antecedência</p>
                     </div>
                   </div>
 

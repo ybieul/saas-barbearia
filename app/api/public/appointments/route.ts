@@ -72,7 +72,7 @@ async function sendPublicConfirmationMessage(
     service: services.map((s: any) => s.name).join(', '),
     professional: professional?.name || 'Profissional',
     date: formatBrazilDate(appointmentDate),
-    time: formatBrazilTime(appointmentDate),
+    time: formatBrazilTime(appointmentDate, 'HH:mm'),
     totalTime: totalDuration,
     price: totalPrice,
     businessPhone: tenantConfig.businessPhone || '',

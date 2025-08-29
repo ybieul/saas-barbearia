@@ -65,7 +65,7 @@ async function sendConfirmationMessage(appointment: any) {
     service: appointment.services.map((s: any) => s.name).join(', '),
     professional: appointment.professional?.name || 'Profissional',
     date: formatBrazilDate(appointmentDate),
-    time: formatBrazilTime(appointmentDate),
+    time: formatBrazilTime(appointmentDate, 'HH:mm'),
     totalTime: appointment.services.reduce((total: number, s: any) => total + s.duration, 0),
     price: appointment.totalPrice,
     businessPhone: tenantConfig.businessPhone || '',

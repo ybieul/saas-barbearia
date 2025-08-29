@@ -1761,10 +1761,6 @@ export default function FinanceiroPage() {
                       />
                       <div>
                         <p className="text-[#ededed] font-medium text-sm sm:text-base">{sanitizeString(professional.name)}</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                          <span className="text-xs sm:text-sm text-[#71717a]">{professional.rating || 'N/A'}</span>
-                        </div>
                       </div>
                     </div>
                     <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs sm:text-sm">

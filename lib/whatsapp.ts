@@ -67,7 +67,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 
 💡 *Lembre-se:*
 • Chegue 10 min antes do horário
-• Em caso de cancelamento, avise com 24h de antecedência
+• Em caso de cancelamento, avise com antecedência
 
 Obrigado pela preferência! 🙏
 Nos vemos em breve! 🎉`,
