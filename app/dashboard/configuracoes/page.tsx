@@ -671,8 +671,7 @@ export default function ConfiguracoesPage() {
         name: newService.name.trim(),
         description: newService.description.trim() || "",
         price: parseFloat(newService.price) || 0,
-        duration: parseInt(newService.duration) || 0,
-        category: "Geral"
+        duration: parseInt(newService.duration) || 0
       })
 
       if (result) {
@@ -1819,7 +1818,7 @@ export default function ConfiguracoesPage() {
                         </div>
 
                         {/* Informações em grid responsivo */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs text-[#71717a]">Preço</Label>
                             <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm font-medium">
@@ -1830,12 +1829,6 @@ export default function ConfiguracoesPage() {
                             <Label className="text-xs text-[#71717a]">Duração</Label>
                             <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
                               {service.duration || 0} minutos
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-[#71717a]">Categoria</Label>
-                            <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-sm">
-                              {service.category || "Geral"}
                             </div>
                           </div>
                         </div>

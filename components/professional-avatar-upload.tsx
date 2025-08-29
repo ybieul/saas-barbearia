@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Camera, X } from "lucide-react"
 
 interface ProfessionalAvatarUploadProps {
