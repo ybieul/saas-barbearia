@@ -75,145 +75,6 @@ export function WhatsAppConnection() {
     }
   }, [pollingInterval])
 
-  // Sistema de limpeza automática híbrido - Frontend (Best-Effort) + Backend (Garantido)
-  useEffect(() => {
-    // Só ativar o cleanup se estivermos no estado de conexão (mostrando QR Code)
-    if (connectionStatus !== 'connecting' || !instanceName || !qrCodeBase64) {
-      return
-    }
-
-    console.log('🔧 [Frontend] Iniciando sistema híbrido de cleanup para instância:', instanceName)
-
-    // Função para fazer cleanup imediato da instância (Best-Effort)
-    const performImmediateCleanup = async (reason: string) => {
-      try {
-        console.log(`🧹 [Frontend] Executando cleanup imediato (${reason}):`, instanceName)
-        
-        const cleanupData = JSON.stringify({
-          instanceName: instanceName,
-          reason: reason
-        })
-
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
-        const cleanupUrl = `/api/tenants/${user?.tenantId}/whatsapp/cleanup`
-        
-        // Estratégia híbrida: Tentar múltiplos métodos para máxima confiabilidade
-        let success = false
-
-        // Método 1: sendBeacon (mais confiável para unload events)
-        if (navigator.sendBeacon) {
-          const blob = new Blob([cleanupData], { type: 'application/json' })
-          success = navigator.sendBeacon(cleanupUrl, blob)
-          console.log(`📡 [Frontend] Cleanup via sendBeacon (${reason}):`, success ? 'sucesso' : 'falha')
-        }
-
-        // Método 2: fetch com keepalive como backup
-        if (!success) {
-          try {
-            await fetch(cleanupUrl, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: cleanupData,
-              keepalive: true // Manter conexão viva durante navegação
-            })
-            console.log(`📡 [Frontend] Cleanup via fetch keepalive (${reason}): sucesso`)
-            success = true
-          } catch (fetchError) {
-            console.warn(`⚠️ [Frontend] Fetch keepalive falhou (${reason}):`, fetchError)
-          }
-        }
-
-        // Método 3: localStorage como último recurso (para o GC backend pegar)
-        if (!success) {
-          console.log(`💾 [Frontend] Salvando cleanup pendente no localStorage (${reason})`)
-          const pendingCleanups = JSON.parse(localStorage.getItem('pendingWhatsappCleanups') || '[]')
-          pendingCleanups.push({
-            instanceName,
-            reason,
-            timestamp: Date.now(),
-            tenantId: user?.tenantId
-          })
-          localStorage.setItem('pendingWhatsappCleanups', JSON.stringify(pendingCleanups))
-        }
-
-      } catch (error) {
-        console.error(`❌ [Frontend] Erro durante cleanup imediato (${reason}):`, error)
-        
-        // Fallback: salvar no localStorage para o backend processar
-        try {
-          const pendingCleanups = JSON.parse(localStorage.getItem('pendingWhatsappCleanups') || '[]')
-          pendingCleanups.push({
-            instanceName,
-            reason: `${reason}_error`,
-            timestamp: Date.now(),
-            tenantId: user?.tenantId,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          })
-          localStorage.setItem('pendingWhatsappCleanups', JSON.stringify(pendingCleanups))
-          console.log(`💾 [Frontend] Cleanup salvo no localStorage devido a erro`)
-        } catch (storageError) {
-          console.error(`💥 [Frontend] Falha crítica no cleanup (${reason}):`, storageError)
-        }
-      }
-    }
-
-    // Detectar quando usuário sai da página/aba (página sendo fechada/navegação)
-    const handleBeforeUnload = () => {
-      console.log('🚪 [Frontend] Detectado beforeunload - executando cleanup imediato')
-      performImmediateCleanup('page_unload')
-    }
-
-    // Detectar quando página perde foco (usuário mudou de aba) - Mais agressivo
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log('👁️ [Frontend] Página perdeu visibilidade - iniciando cleanup agressivo')
-        // Cleanup mais rápido para visibilidade (15 segundos ao invés de 30)
-        setTimeout(() => {
-          if (document.hidden && connectionStatus === 'connecting') {
-            console.log('👁️ [Frontend] Página ainda oculta após 15s - executando cleanup')
-            performImmediateCleanup('page_hidden')
-          }
-        }, 15000) // 15 segundos de página oculta = cleanup
-      }
-    }
-
-    // Cleanup programado agressivo para instâncias muito antigas (3 minutos ao invés de 5)
-    const cleanupTimer = setTimeout(() => {
-      if (connectionStatus === 'connecting') {
-        console.log('⏰ [Frontend] Timeout de 3 minutos atingido - executando cleanup agressivo')
-        performImmediateCleanup('frontend_timeout')
-      }
-    }, 180000) // 3 minutos (o backend fará limpeza adicional a cada 5 minutos)
-
-    // Registrar event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    // Limpeza inicial do localStorage de cleanups antigos (mais de 1 hora)
-    try {
-      const pendingCleanups = JSON.parse(localStorage.getItem('pendingWhatsappCleanups') || '[]')
-      const oneHourAgo = Date.now() - (60 * 60 * 1000)
-      const recentCleanups = pendingCleanups.filter((cleanup: any) => cleanup.timestamp > oneHourAgo)
-      if (recentCleanups.length !== pendingCleanups.length) {
-        localStorage.setItem('pendingWhatsappCleanups', JSON.stringify(recentCleanups))
-        console.log(`🧹 [Frontend] Removidos ${pendingCleanups.length - recentCleanups.length} cleanups antigos do localStorage`)
-      }
-    } catch (error) {
-      console.warn('⚠️ [Frontend] Erro ao limpar localStorage:', error)
-    }
-
-    // Cleanup function para remover listeners e timer
-    return () => {
-      console.log('🧹 [Frontend] Removendo listeners de cleanup para:', instanceName)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      clearTimeout(cleanupTimer)
-    }
-  }, [connectionStatus, instanceName, qrCodeBase64, user?.tenantId])
-
   // Verificar status inicial
   const checkInitialStatus = useCallback(async () => {
     try {
@@ -465,58 +326,13 @@ export function WhatsAppConnection() {
 
             <Button 
               variant="outline" 
-              onClick={async () => {
-                // Fazer cleanup imediato da instância antes de cancelar
-                if (instanceName) {
-                  console.log('🚫 [Frontend] Cancelamento manual - fazendo cleanup imediato de:', instanceName)
-                  
-                  try {
-                    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
-                    
-                    // Tentar cleanup imediato via fetch (mais confiável para ação manual)
-                    await fetch(`/api/tenants/${user?.tenantId}/whatsapp/cleanup`, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        instanceName: instanceName,
-                        reason: 'manual_cancel'
-                      }),
-                      signal: AbortSignal.timeout(5000) // 5 segundos timeout
-                    })
-                    console.log('✅ [Frontend] Cleanup de cancelamento concluído via fetch')
-                  } catch (error) {
-                    console.error('❌ [Frontend] Erro no cleanup de cancelamento:', error)
-                    
-                    // Fallback: sendBeacon como alternativa
-                    if (navigator.sendBeacon) {
-                      const blob = new Blob([JSON.stringify({
-                        instanceName: instanceName,
-                        reason: 'manual_cancel_fallback'
-                      })], { type: 'application/json' })
-                      
-                      const success = navigator.sendBeacon(`/api/tenants/${user?.tenantId}/whatsapp/cleanup`, blob)
-                      console.log('📡 [Frontend] Cleanup de cancelamento via sendBeacon:', success ? 'sucesso' : 'falha')
-                    }
-                  }
-                }
-
-                // Limpar estado local
+              onClick={() => {
                 setConnectionStatus('disconnected')
                 setQrCodeBase64(null)
-                setInstanceName(null)
-                
                 if (pollingInterval) {
                   clearInterval(pollingInterval)
                   setPollingInterval(null)
                 }
-
-                toast({
-                  title: "Conexão Cancelada",
-                  description: "A tentativa de conexão foi cancelada e a instância será limpa automaticamente.",
-                })
               }}
             >
               Cancelar
