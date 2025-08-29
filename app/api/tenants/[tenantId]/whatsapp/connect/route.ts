@@ -135,37 +135,26 @@ export async function POST(
     console.log("=== ROTA POST CONNECT INICIADA ===")
     
     // 1. Autenticação: Verificar se o usuário tem permissão
-    console.log("6. Iniciando verificação de token...")
     const user = verifyToken(request)
-    console.log("7. ✅ Token verificado com sucesso")
     
     if (!user) {
-      console.log("❌ ERRO: Usuário não encontrado após verificação")
       return NextResponse.json(
         { error: 'Não autenticado' },
         { status: 401 }
       )
     }
 
-    console.log("8. Verificando permissão para tenant...")
-    console.log("8.1. Tenant ID da URL:", params.tenantId)
-    console.log("8.2. Tenant ID do token:", user.tenantId)
-
     // Verificar se o tenantId corresponde ao usuário logado
     if (user.tenantId !== params.tenantId) {
-      console.log("❌ ERRO 403: Permissão negada - IDs não correspondem")
       return NextResponse.json(
         { error: 'Sem permissão para acessar este tenant' },
         { status: 403 }
       )
     }
-    
-    console.log("9. ✅ Permissão verificada - usuário autorizado")
-    console.log("--- VERIFICAÇÃO DE PERMISSÃO BEM-SUCEDIDA ---")
 
     const { tenantId } = params
 
-    // Verificar se o usuário tem permissão para gerenciar este tenant
+    // 2. Buscar dados do tenant
     const tenant = await prisma.tenant.findFirst({
       where: {
         id: tenantId
@@ -184,48 +173,37 @@ export async function POST(
       )
     }
 
-    console.log(`🏢 [API] Estabelecimento encontrado: "${tenant.businessName}" (${tenantId})`)
-
-    // Verificar se já tem uma instância conectada
-    // NOTA: Esta verificação será habilitada após a migração do banco
-    // if (tenant.whatsapp_instance_name) {
-    //   return NextResponse.json(
-    //     { error: 'Este tenant já possui uma instância WhatsApp conectada' },
-    //     { status: 400 }
-    //   )
-    // }
-
-    // 2. Geração do Nome da Instância baseado no nome do estabelecimento
-    const instanceName = generateInstanceName(tenant.businessName, tenantId)
-    
-    console.log(`🏷️ [API] Nome da instância gerado: "${instanceName}"`)
-    console.log(`🏢 [API] Baseado em: "${tenant.businessName}" + "${tenantId}"`)
-    
+    console.log(`🏢 Estabelecimento: "${tenant.businessName}" (${tenantId})`)
 
     // 3. Verificar variáveis de ambiente da Evolution API
     const evolutionURL = process.env.EVOLUTION_API_URL
     const evolutionKey = process.env.EVOLUTION_API_KEY
 
     if (!evolutionURL || !evolutionKey) {
-      console.error('❌ [API] Configuração Evolution API incompleta')
       return NextResponse.json(
         { error: 'Configuração da Evolution API não encontrada no servidor' },
         { status: 500 }
       )
     }
 
-    // 4. NOVA LÓGICA: Verificar se instância já existe (tornar idempotente)
-    console.log(`🔍 [API] Verificando se instância já existe: ${instanceName}`)
+    // 4. Geração do Nome da Instância
+    const instanceName = generateInstanceName(tenant.businessName, tenantId)
+    console.log(`🏷️ Nome da instância: "${instanceName}"`)
+
+    // 5. NOVA LÓGICA DE 3 CENÁRIOS: Verificar status da instância existente
+    console.log(`🔍 Verificando status da instância: ${instanceName}`)
     
     try {
+      // Tentativa de verificar status da instância
       const statusCheck = await checkInstanceStatus(evolutionURL, evolutionKey, instanceName)
       
       if (statusCheck.exists) {
-        console.log(`📋 [API] Instância encontrada com estado: ${statusCheck.state}`)
+        console.log(`📋 Instância encontrada - Estado: ${statusCheck.state}`)
         
+        // CENÁRIO C: Instância existe e está conectada
         if (statusCheck.state === 'open') {
-          // Já está conectada - retornar sucesso sem fazer nada
-          console.log('✅ [API] WhatsApp já está conectado - não precisa gerar novo QR Code')
+          console.log('✅ CENÁRIO C: WhatsApp já conectado')
+          
           return NextResponse.json({
             success: true,
             alreadyConnected: true,
@@ -235,36 +213,62 @@ export async function POST(
               tenantId: tenantId,
               instanceName: instanceName,
               status: statusCheck.state,
-              connectedAt: new Date().toISOString()
+              scenario: 'C - Already Connected'
             }
           })
-        } else {
-          // Existe mas não está conectada - limpar instância antiga
-          console.log(`🧹 [API] Instância existe mas não conectada (${statusCheck.state}) - limpando...`)
+        } 
+        
+        // CENÁRIO B: Instância existe mas está desconectada
+        else {
+          console.log(`🔄 CENÁRIO B: Instância existe mas desconectada (${statusCheck.state})`)
           
-          const deleted = await deleteInstance(evolutionURL, evolutionKey, instanceName)
-          
-          if (deleted) {
-            console.log('🗑️ [API] Instância antiga deletada com sucesso')
+          // Gerar novo QR Code para reconexão
+          const qrResponse = await fetch(`${evolutionURL}/instance/connect/${instanceName}`, {
+            method: 'GET',
+            headers: {
+              'apikey': evolutionKey,
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(15000)
+          })
+
+          if (qrResponse.ok) {
+            const qrData = await qrResponse.json()
+            let qrCodeData = null
+            
+            // Extrair QR Code da resposta
+            if (qrData.base64) {
+              qrCodeData = qrData.base64
+            } else if (qrData.qrcode?.base64) {
+              qrCodeData = qrData.qrcode.base64
+            }
+
+            return NextResponse.json({
+              success: true,
+              instanceName: instanceName,
+              qrcode: qrCodeData,
+              message: 'Nova sessão WhatsApp iniciada. Escaneie o QR Code para reconectar.',
+              data: {
+                tenantId: tenantId,
+                instanceName: instanceName,
+                scenario: 'B - Reconnection Required'
+              }
+            })
           } else {
-            console.warn('⚠️ [API] Erro ao deletar instância antiga (continuando)')
+            // Se falhar em gerar QR, deletar instância e criar nova
+            console.log('⚠️ Falha ao gerar QR para reconexão - deletando instância')
+            await deleteInstance(evolutionURL, evolutionKey, instanceName)
+            await new Promise(resolve => setTimeout(resolve, 1000))
           }
-          
-          // Aguardar um pouco para a Evolution API processar a deleção
-          await new Promise(resolve => setTimeout(resolve, 1000))
         }
-      } else {
-        // Instância não existe - isso é o esperado para primeira conexão
-        console.log('📋 [API] Instância não existe ainda - prosseguindo com criação')
       }
-    } catch (statusError) {
-      // Erro de rede/timeout ao verificar - continuar com criação
-      console.warn('⚠️ [API] Erro ao verificar status da instância (continuando):', statusError)
+    } catch (error) {
+      // CENÁRIO A: Erro 404 ou instância não existe - criar nova
+      console.log('� CENÁRIO A: Instância não existe - criando nova')
     }
 
-    // 5. Criar nova instância (só chega aqui se necessário)
-    console.log(`🔄 [API] Criando nova instância WhatsApp para tenant: ${tenantId}`)
-    console.log(`📱 [API] Nome da instância: ${instanceName}`)
+    // CENÁRIO A: Criar nova instância
+    console.log(`� Criando nova instância WhatsApp: ${instanceName}`)
 
     const createInstanceUrl = `${evolutionURL}/instance/create`
     
@@ -282,43 +286,27 @@ export async function POST(
         'Accept': 'application/json'
       },
       body: JSON.stringify(payload),
-      // Timeout de 30 segundos para criação da instância
       signal: AbortSignal.timeout(30000)
     })
 
-    console.log(`📡 [API] Evolution API Response Status: ${response.status}`)
-
     if (!response.ok) {
-      console.error(`❌ [API] Evolution API retornou erro: ${response.status}`)
+      const errorText = await response.text().catch(() => 'Erro desconhecido')
+      console.error(`❌ Evolution API erro: ${response.status} - ${errorText}`)
       
-      let errorText = 'Erro desconhecido'
-      try {
-        errorText = await response.text()
-        console.error('❌ [API] Detalhes do erro:', errorText)
-      } catch (e) {
-        console.error('❌ [API] Não foi possível ler detalhes do erro')
-      }
-      
-      // Para a rota de connect, erros da Evolution API são sempre problemas reais
       return NextResponse.json(
         { 
-          error: `Erro ao criar instância WhatsApp na Evolution API`,
+          error: `Erro ao criar instância WhatsApp`,
           details: process.env.NODE_ENV === 'development' ? 
-            `Status: ${response.status}, Detalhes: ${errorText}` : 
-            `Erro ${response.status} na Evolution API`
+            `Status: ${response.status}` : undefined
         },
         { status: 500 }
       )
     }
-
     // 6. Processar resposta da Evolution API
     const evolutionResponse = await response.json()
-    console.log('✅ [API] Instância criada com sucesso:', evolutionResponse)
+    console.log('✅ Instância criada com sucesso:', evolutionResponse)
 
-    // 7. NOTA: Não salvar no banco ainda - apenas após confirmação da conexão via status
-    console.log(`✅ [API] Instância criada - Aguardando conexão do usuário para salvar no banco`)
-
-    // 8. Verificar se a resposta contém QR Code
+    // 7. Extrair QR Code da resposta
     let qrCodeData = null
     
     if (evolutionResponse.qrcode?.base64) {
@@ -329,30 +317,24 @@ export async function POST(
       qrCodeData = evolutionResponse.base64
     }
 
-    // 9. Retornar dados para o frontend
+    // 8. Retornar dados para o frontend
     return NextResponse.json({
       success: true,
       instanceName: instanceName,
       qrcode: qrCodeData,
-      message: 'Instância WhatsApp criada com sucesso. Escaneie o QR Code para conectar.',
+      message: 'Nova instância WhatsApp criada. Escaneie o QR Code para conectar.',
       data: {
         tenantId: tenantId,
         instanceName: instanceName,
-        createdAt: new Date().toISOString()
-      },
-      // Incluir resposta completa para debug (remover em produção se necessário)
-      evolutionResponse: evolutionResponse
+        scenario: 'A - New Instance Created'
+      }
     })
 
   } catch (error: any) {
-    console.error("❌ ERRO GERAL na rota POST connect:")
-    console.error("10.1. Nome do erro:", error.name)
-    console.error("10.2. Mensagem:", error.message)
-    console.error("10.3. Stack completo:", error.stack)
+    console.error("❌ ERRO na rota POST connect:", error.message)
     
     // Se o erro for de autenticação, retornar 401
     if (error.message?.includes('Token não fornecido') || error.message?.includes('Token inválido')) {
-      console.log("10.4. ❌ Retornando 401 - Erro de autenticação")
       return NextResponse.json(
         { 
           error: 'Token de autenticação inválido ou expirado',
@@ -362,20 +344,6 @@ export async function POST(
       )
     }
     
-    console.log("10.4. ❌ Retornando 500 - Erro interno")
-    console.error('❌ [API] Erro ao conectar WhatsApp:', error)
-    
-    // Em caso de erro, tentar remover o instance_name do banco
-    try {
-      await prisma.tenant.update({
-        where: { id: params.tenantId },
-        data: { whatsapp_instance_name: null }
-      })
-      console.log('✅ [API] Banco limpo após erro')
-    } catch (cleanupError) {
-      console.error('❌ [API] Erro ao limpar banco após falha:', cleanupError)
-    }
-
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor ao conectar WhatsApp',
