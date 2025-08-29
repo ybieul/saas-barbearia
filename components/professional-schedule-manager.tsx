@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useProfessionalSchedule } from "@/hooks/use-schedule"
-import { Save, Clock, Plus, Trash2 } from "lucide-react"
+import { Clock, Plus, Trash2 } from "lucide-react"
 import type { ProfessionalScheduleData, RecurringBreakData } from "@/lib/types/schedule"
 
 interface ProfessionalScheduleManagerProps {
@@ -39,7 +39,6 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   const { toast } = useToast()
   const { getSchedule, updateSchedule, isLoading, error } = useProfessionalSchedule(professionalId)
   const [schedules, setSchedules] = useState<DaySchedule[]>([])
-  const [isSaving, setIsSaving] = useState(false)
 
   // Inicializar horários padrão
   useEffect(() => {
@@ -103,42 +102,74 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
     return times
   }
 
-  // Atualizar horário de um dia
-  const handleScheduleChange = (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
-    setSchedules(prev => prev.map(schedule => 
+  // Atualizar horário de um dia com auto-save
+  const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
+    // Atualizar estado local primeiro
+    const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { ...schedule, [field]: value }
         : schedule
-    ))
+    )
+    setSchedules(updatedSchedules)
+
+    // Validação para horários
+    if (field === 'startTime' || field === 'endTime') {
+      const currentSchedule = updatedSchedules.find(s => s.dayOfWeek === dayOfWeek)
+      if (currentSchedule) {
+        // Converter para minutos para comparação
+        const startMinutes = parseInt(currentSchedule.startTime.split(':')[0]) * 60 + parseInt(currentSchedule.startTime.split(':')[1])
+        const endMinutes = parseInt(currentSchedule.endTime.split(':')[0]) * 60 + parseInt(currentSchedule.endTime.split(':')[1])
+        
+        if (startMinutes >= endMinutes) {
+          toast({
+            title: "Horário inválido",
+            description: "O horário de início deve ser anterior ao horário de fim.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+    }
+
+    // Auto-save
+    await handleAutoSave(updatedSchedules, `horário ${field === 'isActive' ? (value ? 'ativado' : 'desativado') : 'atualizado'}`)
   }
 
-  // Adicionar novo intervalo para um dia específico
-  const addBreak = (dayOfWeek: number) => {
-    setSchedules(prev => prev.map(schedule => 
+  // Adicionar novo intervalo para um dia específico com auto-save
+  const addBreak = async (dayOfWeek: number) => {
+    const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
             ...schedule, 
             breaks: [...schedule.breaks, { startTime: '12:00', endTime: '13:00' }]
           }
         : schedule
-    ))
+    )
+    setSchedules(updatedSchedules)
+    
+    // Auto-save
+    await handleAutoSave(updatedSchedules, 'intervalo adicionado')
   }
 
-  // Remover intervalo de um dia específico
-  const removeBreak = (dayOfWeek: number, breakIndex: number) => {
-    setSchedules(prev => prev.map(schedule => 
+  // Remover intervalo de um dia específico com auto-save
+  const removeBreak = async (dayOfWeek: number, breakIndex: number) => {
+    const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
             ...schedule, 
             breaks: schedule.breaks.filter((_, index) => index !== breakIndex)
           }
         : schedule
-    ))
+    )
+    setSchedules(updatedSchedules)
+    
+    // Auto-save
+    await handleAutoSave(updatedSchedules, 'intervalo removido')
   }
 
-  // Atualizar horário de um intervalo específico
-  const updateBreak = (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
-    setSchedules(prev => prev.map(schedule => 
+  // Atualizar horário de um intervalo específico com auto-save
+  const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
             ...schedule, 
@@ -149,15 +180,37 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
             )
           }
         : schedule
-    ))
+    )
+    setSchedules(updatedSchedules)
+
+    // Validação do intervalo
+    const currentSchedule = updatedSchedules.find(s => s.dayOfWeek === dayOfWeek)
+    if (currentSchedule) {
+      const currentBreak = currentSchedule.breaks[breakIndex]
+      if (currentBreak) {
+        const startMinutes = parseInt(currentBreak.startTime.split(':')[0]) * 60 + parseInt(currentBreak.startTime.split(':')[1])
+        const endMinutes = parseInt(currentBreak.endTime.split(':')[0]) * 60 + parseInt(currentBreak.endTime.split(':')[1])
+        
+        if (startMinutes >= endMinutes) {
+          toast({
+            title: "Intervalo inválido",
+            description: "O horário de início do intervalo deve ser anterior ao horário de fim.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+    }
+    
+    // Auto-save
+    await handleAutoSave(updatedSchedules, 'intervalo atualizado')
   }
 
-  // Salvar horários
-  const handleSave = async () => {
-    setIsSaving(true)
+  // Função de auto-save (similar à handleWorkingHoursChange)
+  const handleAutoSave = async (schedulesToSave: DaySchedule[], action: string) => {
     try {
       // Preparar dados apenas dos dias ativos
-      const activeSchedules: ProfessionalScheduleData[] = schedules
+      const activeSchedules: ProfessionalScheduleData[] = schedulesToSave
         .filter(schedule => schedule.isActive)
         .map(schedule => ({
           dayOfWeek: schedule.dayOfWeek,
@@ -170,19 +223,17 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       
       if (success) {
         toast({
-          title: "Sucesso!",
-          description: "Horários do profissional atualizados com sucesso.",
+          title: "Horário atualizado!",
+          description: `O ${action} foi salvo automaticamente.`,
           variant: "default"
         })
       }
     } catch (err: any) {
       toast({
         title: "Erro",
-        description: err.message || "Erro ao salvar horários.",
+        description: err.message || "Erro ao salvar horário automaticamente.",
         variant: "destructive"
       })
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -434,27 +485,6 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Botão Salvar */}
-        <div className="flex justify-end mt-6">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="bg-[#10b981] hover:bg-[#059669] text-white border-0 px-6 sm:px-8"
-          >
-            {isSaving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Horário Padrão
-              </>
-            )}
-          </Button>
         </div>
       </CardContent>
     </Card>
