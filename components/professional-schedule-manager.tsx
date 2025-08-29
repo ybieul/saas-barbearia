@@ -103,12 +103,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Atualizar horário de um dia com auto-save
-  const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string, event?: Event) => {
-    // Prevenir recarregamento de página
-    if (event) {
-      event.preventDefault()
-    }
-    
+  const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
     // Atualizar estado local primeiro
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -141,12 +136,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Adicionar novo intervalo para um dia específico com auto-save
-  const addBreak = async (dayOfWeek: number, event?: Event) => {
-    // Prevenir recarregamento de página
-    if (event) {
-      event.preventDefault()
-    }
-    
+  const addBreak = async (dayOfWeek: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -162,12 +152,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Remover intervalo de um dia específico com auto-save
-  const removeBreak = async (dayOfWeek: number, breakIndex: number, event?: Event) => {
-    // Prevenir recarregamento de página
-    if (event) {
-      event.preventDefault()
-    }
-    
+  const removeBreak = async (dayOfWeek: number, breakIndex: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -183,12 +168,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Atualizar horário de um intervalo específico com auto-save
-  const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string, event?: Event) => {
-    // Prevenir recarregamento de página
-    if (event) {
-      event.preventDefault()
-    }
-    
+  const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -394,7 +374,10 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => addBreak(schedule.dayOfWeek)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            addBreak(schedule.dayOfWeek)
+                          }}
                           className="text-[#10b981] hover:text-[#059669] hover:bg-[#10b981]/10 text-xs h-7 px-2"
                         >
                           <Plus className="w-3 h-3 mr-1" />
@@ -422,7 +405,10 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      removeBreak(schedule.dayOfWeek, breakIndex)
+                                    }}
                                     className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0 sm:hidden"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -485,7 +471,10 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => removeBreak(schedule.dayOfWeek, breakIndex)}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      removeBreak(schedule.dayOfWeek, breakIndex)
+                                    }}
                                     className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 p-0 hidden sm:flex"
                                   >
                                     <Trash2 className="w-3 h-3" />
