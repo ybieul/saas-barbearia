@@ -84,13 +84,16 @@ export async function GET(request: NextRequest) {
       const automationSettings = await prisma.automationSetting.findMany({
         where: {
           establishmentId: user.tenantId,
-          isEnabled: true
+          isEnabled: true,
+          automationType: {
+            not: 'reactivation' // Excluir automações de reativação da contagem
+          }
         }
       })
       activeAutomations = automationSettings.length
     } catch (error) {
       console.log('⚠️ Tabela automation_settings não encontrada, usando valor padrão')
-      activeAutomations = 3 // Valor padrão para simular automações ativas
+      activeAutomations = 4 // Valor padrão para simular automações ativas (Confirmação + 3 Lembretes)
     }
 
     const reductionRate = Math.min(95, Math.max(70, 70 + (activeAutomations * 5)))
