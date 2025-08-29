@@ -1,147 +1,119 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
-const CLEANUP_THRESHOLD_MINUTES = 5; // Tempo reduzido para limpeza agressiva
-export async function cleanupOrphanedInstances() {
-    console.log('🧹 [GC] Iniciando verificação de instâncias órfãs...');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.cleanupOrphanedInstances = cleanupOrphanedInstances;
+const prisma_1 = require("../lib/prisma");
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
+async function cleanupOrphanedInstances() {
+    console.log('[GARBAGE-COLLECTOR] 🧹 Iniciando limpeza diária de instâncias órfãs...');
     try {
-        // Configuração da Evolution API
-        const evolutionApiUrl = process.env.EVOLUTION_API_URL;
-        const evolutionApiKey = process.env.EVOLUTION_API_KEY;
-        if (!evolutionApiUrl || !evolutionApiKey) {
-            console.error('❌ [GC] Configuração da Evolution API não encontrada');
+        // Verificar configuração da Evolution API
+        if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+            console.error('[GARBAGE-COLLECTOR] ❌ Configuração da Evolution API não encontrada');
             return;
         }
-        console.log('🔗 [GC] Conectando com Evolution API:', evolutionApiUrl);
-        // Buscar todas as instâncias da Evolution API
-        const response = await fetch(`${evolutionApiUrl}/instance/all`, {
+        console.log(`[GARBAGE-COLLECTOR] 🔗 Conectando com Evolution API: ${EVOLUTION_API_URL}`);
+        // 1. Buscar instâncias válidas do banco de dados
+        const tenantsWithInstance = await prisma_1.prisma.tenant.findMany({
+            where: {
+                whatsapp_instance_name: { not: null }
+            },
+            select: {
+                id: true,
+                businessName: true,
+                whatsapp_instance_name: true
+            }
+        });
+        const validInstances = new Set(tenantsWithInstance
+            .filter(t => t.whatsapp_instance_name)
+            .map(t => t.whatsapp_instance_name));
+        console.log(`[GARBAGE-COLLECTOR] 📊 Encontradas ${validInstances.size} instâncias válidas no banco de dados:`);
+        tenantsWithInstance.forEach(tenant => {
+            console.log(`[GARBAGE-COLLECTOR]   - ${tenant.whatsapp_instance_name} (${tenant.businessName})`);
+        });
+        // 2. Buscar todas as instâncias da Evolution API
+        const response = await fetch(`${EVOLUTION_API_URL}/instance/all`, {
             method: 'GET',
             headers: {
-                'apikey': evolutionApiKey,
-                'Content-Type': 'application/json',
+                'apikey': EVOLUTION_API_KEY,
+                'Accept': 'application/json'
             },
-            signal: AbortSignal.timeout(15000) // 15 segundos timeout
+            signal: AbortSignal.timeout(30000) // 30 segundos timeout
         });
         if (!response.ok) {
             throw new Error(`Evolution API retornou ${response.status}: ${response.statusText}`);
         }
-        const instances = await response.json();
-        if (!instances || instances.length === 0) {
-            console.log('✅ [GC] Nenhuma instância encontrada na Evolution API.');
+        const allEvolutionInstances = await response.json();
+        console.log(`[GARBAGE-COLLECTOR] 🔍 Encontradas ${allEvolutionInstances.length} instâncias na Evolution API.`);
+        if (allEvolutionInstances.length === 0) {
+            console.log('[GARBAGE-COLLECTOR] ✅ Nenhuma instância encontrada na Evolution API. Sistema limpo.');
             return;
         }
-        console.log(`📊 [GC] ${instances.length} instâncias encontradas na Evolution API. Verificando...`);
-        let cleanedCount = 0;
-        let skippedCount = 0;
+        // 3. Comparar e deletar instâncias órfãs
+        let orphanCount = 0;
+        let deletedCount = 0;
         let errorCount = 0;
-        // Buscar todas as instâncias válidas do nosso banco de dados
-        const validInstances = await prisma.tenant.findMany({
-            where: {
-                whatsapp_instance_name: {
-                    not: null
-                }
-            },
-            select: {
-                id: true,
-                whatsapp_instance_name: true
-            }
-        });
-        const validInstanceNames = new Set(validInstances
-            .filter(t => t.whatsapp_instance_name)
-            .map(t => t.whatsapp_instance_name));
-        console.log(`📋 [GC] ${validInstanceNames.size} instâncias válidas encontradas no banco de dados`);
-        for (const instance of instances) {
-            const instanceName = instance.instance.instanceName;
-            const state = instance.state;
-            console.log(`🔍 [GC] Verificando instância: ${instanceName} (Estado: ${state})`);
-            // Pular instâncias conectadas (open)
-            if (state === 'open') {
-                console.log(`✅ [GC] Instância ${instanceName} está conectada - ignorando`);
-                skippedCount++;
+        for (const evolutionInstance of allEvolutionInstances) {
+            const instanceName = evolutionInstance.instance?.instanceName;
+            if (!instanceName) {
+                console.warn('[GARBAGE-COLLECTOR] ⚠️ Instância sem nome encontrada, pulando...');
                 continue;
             }
-            // Verificar se a instância está registrada no nosso banco de dados
-            if (validInstanceNames.has(instanceName)) {
-                // Instância válida no banco - verificar se devemos limpar por tempo
-                const tenant = validInstances.find(t => t.whatsapp_instance_name === instanceName);
-                if (tenant && (state === 'connecting' || state === 'close')) {
-                    console.log(`⏰ [GC] Instância válida mas não conectada: ${instanceName} (Estado: ${state})`);
-                    // Para instâncias do banco que não estão conectadas, limpamos mais agressivamente
-                    // pois sabemos que são legítimas mas abandonadas
-                    try {
-                        await cleanupInstance(instanceName, evolutionApiUrl, evolutionApiKey);
-                        // Também limpar do banco de dados
-                        await prisma.tenant.update({
-                            where: { id: tenant.id },
-                            data: {
-                                whatsapp_instance_name: null
-                            }
-                        });
-                        cleanedCount++;
-                        console.log(`✅ [GC] Instância abandonada ${instanceName} removida e limpa do banco`);
+            if (!validInstances.has(instanceName)) {
+                orphanCount++;
+                console.log(`[GARBAGE-COLLECTOR] 🗑️ Instância órfã encontrada: "${instanceName}". Removendo...`);
+                try {
+                    const deleteResponse = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': EVOLUTION_API_KEY,
+                            'Accept': 'application/json'
+                        },
+                        signal: AbortSignal.timeout(15000) // 15 segundos timeout
+                    });
+                    if (deleteResponse.ok) {
+                        deletedCount++;
+                        console.log(`[GARBAGE-COLLECTOR] ✅ Instância "${instanceName}" removida com sucesso.`);
                     }
-                    catch (error) {
-                        console.error(`❌ [GC] Erro ao limpar instância abandonada ${instanceName}:`, error);
+                    else {
                         errorCount++;
+                        console.error(`[GARBAGE-COLLECTOR] ❌ Falha ao remover instância "${instanceName}": ${deleteResponse.status} - ${deleteResponse.statusText}`);
                     }
                 }
-                else {
-                    console.log(`⏭️ [GC] Instância ${instanceName} é válida e será mantida`);
-                    skippedCount++;
+                catch (deleteError) {
+                    errorCount++;
+                    console.error(`[GARBAGE-COLLECTOR] ❌ Erro ao remover instância "${instanceName}":`, deleteError.message);
                 }
+                // Aguardar um pouco entre deletions para não sobrecarregar a API
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             else {
-                // Instância órfã - não está no nosso banco de dados
-                console.log(`🗑️ [GC] Instância órfã encontrada: ${instanceName} (Estado: ${state}). Removendo...`);
-                try {
-                    await cleanupInstance(instanceName, evolutionApiUrl, evolutionApiKey);
-                    cleanedCount++;
-                    console.log(`✅ [GC] Instância órfã ${instanceName} removida com sucesso`);
-                }
-                catch (error) {
-                    console.error(`❌ [GC] Erro ao remover instância órfã ${instanceName}:`, error);
-                    errorCount++;
-                }
+                console.log(`[GARBAGE-COLLECTOR] ✅ Instância "${instanceName}" é válida - mantendo.`);
             }
         }
-        // Relatório final
-        console.log(`📈 [GC] Limpeza concluída:`);
-        console.log(`   • Instâncias removidas: ${cleanedCount}`);
-        console.log(`   • Instâncias mantidas: ${skippedCount}`);
-        console.log(`   • Erros encontrados: ${errorCount}`);
-        console.log(`   • Total processado: ${instances.length}`);
+        // 4. Relatório final
+        console.log('\n[GARBAGE-COLLECTOR] 📋 RELATÓRIO FINAL:');
+        console.log(`[GARBAGE-COLLECTOR]   - Instâncias válidas no banco: ${validInstances.size}`);
+        console.log(`[GARBAGE-COLLECTOR]   - Instâncias na Evolution API: ${allEvolutionInstances.length}`);
+        console.log(`[GARBAGE-COLLECTOR]   - Instâncias órfãs encontradas: ${orphanCount}`);
+        console.log(`[GARBAGE-COLLECTOR]   - Instâncias deletadas com sucesso: ${deletedCount}`);
+        console.log(`[GARBAGE-COLLECTOR]   - Erros durante deleção: ${errorCount}`);
+        if (orphanCount === 0) {
+            console.log('[GARBAGE-COLLECTOR] 🎉 Nenhuma instância órfã encontrada. Sistema limpo!');
+        }
+        else if (deletedCount === orphanCount) {
+            console.log('[GARBAGE-COLLECTOR] 🎉 Todas as instâncias órfãs foram removidas com sucesso!');
+        }
+        else if (deletedCount > 0) {
+            console.log(`[GARBAGE-COLLECTOR] ⚠️ Limpeza parcial: ${deletedCount}/${orphanCount} instâncias órfãs removidas.`);
+        }
+        else {
+            console.log('[GARBAGE-COLLECTOR] ❌ Nenhuma instância órfã pôde ser removida.');
+        }
     }
     catch (error) {
-        console.error('💥 [GC] Erro geral ao executar limpeza de instâncias:', error.message);
-        throw error;
+        console.error('[GARBAGE-COLLECTOR] ❌ ERRO CRÍTICO durante limpeza de instâncias órfãs:', error.message);
+        console.error('[GARBAGE-COLLECTOR] Stack trace:', error.stack);
     }
-    finally {
-        await prisma.$disconnect();
-    }
-}
-async function cleanupInstance(instanceName, apiUrl, apiKey) {
-    console.log(`🧹 [GC] Removendo instância: ${instanceName}`);
-    const deleteResponse = await fetch(`${apiUrl}/instance/delete/${instanceName}`, {
-        method: 'DELETE',
-        headers: {
-            'apikey': apiKey,
-            'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000) // 10 segundos timeout
-    });
-    if (!deleteResponse.ok && deleteResponse.status !== 404) {
-        const errorText = await deleteResponse.text().catch(() => 'Erro desconhecido');
-        throw new Error(`Falha ao deletar instância ${instanceName}: ${deleteResponse.status} - ${errorText}`);
-    }
-    console.log(`✅ [GC] Instância ${instanceName} removida da Evolution API`);
-}
-// Função de teste para execução manual
-export async function testGarbageCollector() {
-    console.log('🧪 [GC-TEST] Executando teste do coletor de lixo...');
-    try {
-        await cleanupOrphanedInstances();
-        console.log('✅ [GC-TEST] Teste concluído com sucesso');
-    }
-    catch (error) {
-        console.error('❌ [GC-TEST] Teste falhou:', error);
-    }
+    console.log('[GARBAGE-COLLECTOR] 🏁 Limpeza diária finalizada.\n');
 }

@@ -1,6 +1,6 @@
-import cron from 'node-cron';
-import { sendWhatsappReminders } from './whatsapp-reminders-cron';
-import { cleanupOrphanedInstances } from './whatsapp-instance-gc';
+const cron = require('node-cron');
+const { sendWhatsappReminders } = require('./whatsapp-reminders-cron.js');
+const { cleanupOrphanedInstances } = require('./whatsapp-instance-gc.js');
 
 console.log('✅ Agendador (Scheduler) de tarefas foi iniciado com sucesso.');
 console.log('🕐 Executando a cada 5 minutos para verificação de lembretes...');

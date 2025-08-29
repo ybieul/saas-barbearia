@@ -19,8 +19,11 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "scheduler:start": "tsx scripts/scheduler.ts",
+    "scheduler:dev": "tsx watch scripts/scheduler.ts",
+    "scheduler:prod": "node dist/scripts/scheduler-cron.js",
     "reminders:run": "tsx scripts/whatsapp-reminders-cron.ts",
-    "scheduler:dev": "tsx watch scripts/scheduler.ts"
+    "gc:run": "tsx scripts/whatsapp-instance-gc.ts",
+    "gc:test": "node dist/scripts/test-gc.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

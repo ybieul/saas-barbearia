@@ -234,7 +234,7 @@ async function sendReminderMessage(appointment, reminderType, instanceName) {
         service: appointment.services.map((s) => s.name).join(', ') || 'Serviço',
         professional: appointment.professional?.name || 'Profissional',
         date: (0, timezone_1.formatBrazilDate)(appointmentDate),
-        time: (0, timezone_1.formatBrazilTime)(appointmentDate),
+        time: (0, timezone_1.formatBrazilTime)(appointmentDate, 'HH:mm'),
         totalTime: appointment.services.reduce((total, s) => total + s.duration, 0),
         price: appointment.totalPrice,
         businessPhone: appointment.tenant.businessPhone || '',
