@@ -102,15 +102,14 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
     return times
   }
 
-  // Atualizar horário de um dia com auto-save
+  // Atualizar horário de um dia com auto-save (estratégia do estabelecimento)
   const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
-    // Atualizar estado local primeiro
+    // Criar objeto atualizado SEM alterar estado local ainda
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { ...schedule, [field]: value }
         : schedule
     )
-    setSchedules(updatedSchedules)
 
     // Validação para horários
     if (field === 'startTime' || field === 'endTime') {
@@ -131,11 +130,41 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       }
     }
 
-    // Auto-save
-    await handleAutoSave(updatedSchedules, `horário ${field === 'isActive' ? (value ? 'ativado' : 'desativado') : 'atualizado'}`)
+    // Salvar na API diretamente (estratégia do estabelecimento)
+    try {
+      // Preparar dados apenas dos dias ativos
+      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
+        .filter(schedule => schedule.isActive)
+        .map(schedule => ({
+          dayOfWeek: schedule.dayOfWeek,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          breaks: schedule.breaks
+        }))
+
+      const success = await updateSchedule(activeSchedules, professionalId)
+      
+      if (success) {
+        // APENAS APÓS SUCESSO, atualizar estado local
+        setSchedules(updatedSchedules)
+        
+        toast({
+          title: "Horário atualizado!",
+          description: `O horário ${field === 'isActive' ? (value ? 'foi ativado' : 'foi desativado') : 'foi atualizado'} automaticamente.`,
+          variant: "default"
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro no auto-save:', err)
+      toast({
+        title: "Erro",
+        description: err.message || "Erro ao salvar horário automaticamente.",
+        variant: "destructive"
+      })
+    }
   }
 
-  // Adicionar novo intervalo para um dia específico com auto-save
+  // Adicionar novo intervalo para um dia específico (estratégia do estabelecimento)
   const addBreak = async (dayOfWeek: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -145,13 +174,41 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
           }
         : schedule
     )
-    setSchedules(updatedSchedules)
     
-    // Auto-save
-    await handleAutoSave(updatedSchedules, 'intervalo adicionado')
+    // Salvar na API diretamente
+    try {
+      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
+        .filter(schedule => schedule.isActive)
+        .map(schedule => ({
+          dayOfWeek: schedule.dayOfWeek,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          breaks: schedule.breaks
+        }))
+
+      const success = await updateSchedule(activeSchedules, professionalId)
+      
+      if (success) {
+        // APENAS APÓS SUCESSO, atualizar estado local
+        setSchedules(updatedSchedules)
+        
+        toast({
+          title: "Intervalo adicionado!",
+          description: "O intervalo foi adicionado automaticamente.",
+          variant: "default"
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro ao adicionar intervalo:', err)
+      toast({
+        title: "Erro",
+        description: err.message || "Erro ao adicionar intervalo.",
+        variant: "destructive"
+      })
+    }
   }
 
-  // Remover intervalo de um dia específico com auto-save
+  // Remover intervalo de um dia específico (estratégia do estabelecimento)
   const removeBreak = async (dayOfWeek: number, breakIndex: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -161,13 +218,41 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
           }
         : schedule
     )
-    setSchedules(updatedSchedules)
     
-    // Auto-save
-    await handleAutoSave(updatedSchedules, 'intervalo removido')
+    // Salvar na API diretamente
+    try {
+      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
+        .filter(schedule => schedule.isActive)
+        .map(schedule => ({
+          dayOfWeek: schedule.dayOfWeek,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          breaks: schedule.breaks
+        }))
+
+      const success = await updateSchedule(activeSchedules, professionalId)
+      
+      if (success) {
+        // APENAS APÓS SUCESSO, atualizar estado local
+        setSchedules(updatedSchedules)
+        
+        toast({
+          title: "Intervalo removido!",
+          description: "O intervalo foi removido automaticamente.",
+          variant: "default"
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro ao remover intervalo:', err)
+      toast({
+        title: "Erro",
+        description: err.message || "Erro ao remover intervalo.",
+        variant: "destructive"
+      })
+    }
   }
 
-  // Atualizar horário de um intervalo específico com auto-save
+  // Atualizar horário de um intervalo específico (estratégia do estabelecimento)
   const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -181,7 +266,6 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
           }
         : schedule
     )
-    setSchedules(updatedSchedules)
 
     // Validação do intervalo
     const currentSchedule = updatedSchedules.find(s => s.dayOfWeek === dayOfWeek)
@@ -202,20 +286,9 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       }
     }
     
-    // Auto-save
-    await handleAutoSave(updatedSchedules, 'intervalo atualizado')
-  }
-
-  // Função de auto-save (similar à handleWorkingHoursChange)
-  const handleAutoSave = async (schedulesToSave: DaySchedule[], action: string) => {
+    // Salvar na API diretamente
     try {
-      // Prevenir múltiplas chamadas simultâneas
-      if (isLoading) {
-        return
-      }
-
-      // Preparar dados apenas dos dias ativos
-      const activeSchedules: ProfessionalScheduleData[] = schedulesToSave
+      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
         .filter(schedule => schedule.isActive)
         .map(schedule => ({
           dayOfWeek: schedule.dayOfWeek,
@@ -227,17 +300,20 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       const success = await updateSchedule(activeSchedules, professionalId)
       
       if (success) {
+        // APENAS APÓS SUCESSO, atualizar estado local
+        setSchedules(updatedSchedules)
+        
         toast({
-          title: "Horário atualizado!",
-          description: `O ${action} foi salvo automaticamente.`,
+          title: "Intervalo atualizado!",
+          description: "O intervalo foi atualizado automaticamente.",
           variant: "default"
         })
       }
     } catch (err: any) {
-      console.error('Erro no auto-save:', err)
+      console.error('Erro ao atualizar intervalo:', err)
       toast({
         title: "Erro",
-        description: err.message || "Erro ao salvar horário automaticamente.",
+        description: err.message || "Erro ao atualizar intervalo.",
         variant: "destructive"
       })
     }
