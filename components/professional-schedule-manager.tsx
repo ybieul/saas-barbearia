@@ -4,91 +4,19 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useProfessionalSchedule } from "@/hooks/use-schedule"
+import { useProfessionalSchedule, type DaySchedule } from "@/hooks/use-professional-schedule"
 import { Clock, Plus, Trash2 } from "lucide-react"
-import type { ProfessionalScheduleData, RecurringBreakData } from "@/lib/types/schedule"
 
 interface ProfessionalScheduleManagerProps {
   professionalId: string
   professionalName?: string
 }
 
-interface DaySchedule {
-  dayOfWeek: number
-  dayName: string
-  isActive: boolean
-  startTime: string
-  endTime: string
-  breaks: RecurringBreakData[]
-}
-
-const DAYS_OF_WEEK: Pick<DaySchedule, 'dayOfWeek' | 'dayName'>[] = [
-  { dayOfWeek: 1, dayName: 'Segunda-feira' },
-  { dayOfWeek: 2, dayName: 'Terça-feira' },
-  { dayOfWeek: 3, dayName: 'Quarta-feira' },
-  { dayOfWeek: 4, dayName: 'Quinta-feira' },
-  { dayOfWeek: 5, dayName: 'Sexta-feira' },
-  { dayOfWeek: 6, dayName: 'Sábado' },
-  { dayOfWeek: 0, dayName: 'Domingo' }
-]
-
-const DEFAULT_START_TIME = '09:00'
-const DEFAULT_END_TIME = '18:00'
-
 export function ProfessionalScheduleManager({ professionalId, professionalName }: ProfessionalScheduleManagerProps) {
   const { toast } = useToast()
-  const { getSchedule, updateSchedule, isLoading, error } = useProfessionalSchedule(professionalId)
-  const [schedules, setSchedules] = useState<DaySchedule[]>([])
-
-  // Inicializar horários padrão
-  useEffect(() => {
-    const initialSchedules: DaySchedule[] = DAYS_OF_WEEK.map(day => ({
-      ...day,
-      isActive: false,
-      startTime: DEFAULT_START_TIME,
-      endTime: DEFAULT_END_TIME,
-      breaks: []
-    }))
-    setSchedules(initialSchedules)
-  }, [])
-
-  // Carregar horários do profissional
-  useEffect(() => {
-    const loadSchedules = async () => {
-      if (!professionalId || professionalId === 'establishment') return
-
-      try {
-        const response = await getSchedule(professionalId)
-        if (response?.schedule) {
-          const updatedSchedules = DAYS_OF_WEEK.map(day => {
-            const existingSchedule = response.schedule.find(s => s.dayOfWeek === day.dayOfWeek)
-            return {
-              ...day,
-              isActive: existingSchedule?.isWorking || false,
-              startTime: existingSchedule?.startTime?.substring(0, 5) || DEFAULT_START_TIME,
-              endTime: existingSchedule?.endTime?.substring(0, 5) || DEFAULT_END_TIME,
-              breaks: existingSchedule?.breaks?.map(breakItem => ({
-                startTime: breakItem.startTime.substring(0, 5),
-                endTime: breakItem.endTime.substring(0, 5)
-              })) || []
-            }
-          })
-          setSchedules(updatedSchedules)
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao carregar horários:', err)
-        }
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os horários do profissional.",
-          variant: "destructive"
-        })
-      }
-    }
-
-    loadSchedules()
-  }, [professionalId, getSchedule, toast])
+  
+  // Usar o novo hook (igual ao useWorkingHours do estabelecimento)
+  const { schedules, loading: isLoading, error, updateSchedules } = useProfessionalSchedule(professionalId)
 
   // Gerar opções de horário (de 15 em 15 minutos)
   const generateTimeOptions = () => {
@@ -102,9 +30,9 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
     return times
   }
 
-  // Atualizar horário de um dia com auto-save (estratégia do estabelecimento)
+  // Atualizar horário de um dia (igual ao handleWorkingHoursChange do estabelecimento)
   const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
-    // Criar objeto atualizado SEM alterar estado local ainda
+    // Criar objeto atualizado (igual ao estabelecimento)
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { ...schedule, [field]: value }
@@ -115,7 +43,6 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
     if (field === 'startTime' || field === 'endTime') {
       const currentSchedule = updatedSchedules.find(s => s.dayOfWeek === dayOfWeek)
       if (currentSchedule) {
-        // Converter para minutos para comparação
         const startMinutes = parseInt(currentSchedule.startTime.split(':')[0]) * 60 + parseInt(currentSchedule.startTime.split(':')[1])
         const endMinutes = parseInt(currentSchedule.endTime.split(':')[0]) * 60 + parseInt(currentSchedule.endTime.split(':')[1])
         
@@ -130,41 +57,25 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       }
     }
 
-    // Salvar na API diretamente (estratégia do estabelecimento)
+    // Salvar usando o hook (igual ao updateWorkingHours do estabelecimento)
     try {
-      // Preparar dados apenas dos dias ativos
-      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
-        .filter(schedule => schedule.isActive)
-        .map(schedule => ({
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          breaks: schedule.breaks
-        }))
-
-      const success = await updateSchedule(activeSchedules, professionalId)
+      await updateSchedules(updatedSchedules)
       
-      if (success) {
-        // APENAS APÓS SUCESSO, atualizar estado local
-        setSchedules(updatedSchedules)
-        
-        toast({
-          title: "Horário atualizado!",
-          description: `O horário ${field === 'isActive' ? (value ? 'foi ativado' : 'foi desativado') : 'foi atualizado'} automaticamente.`,
-          variant: "default"
-        })
-      }
-    } catch (err: any) {
-      console.error('Erro no auto-save:', err)
       toast({
-        title: "Erro",
-        description: err.message || "Erro ao salvar horário automaticamente.",
+        title: "Horário atualizado!",
+        description: `O horário ${field === 'isActive' ? (value ? 'foi ativado' : 'foi desativado') : 'foi atualizado'} com sucesso.`,
+        variant: "default"
+      })
+    } catch (err: any) {
+      toast({
+        title: "Erro ao atualizar horário",
+        description: "Ocorreu um erro ao salvar o horário. Tente novamente.",
         variant: "destructive"
       })
     }
   }
 
-  // Adicionar novo intervalo para um dia específico (estratégia do estabelecimento)
+  // Adicionar novo intervalo (igual ao padrão do estabelecimento)
   const addBreak = async (dayOfWeek: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -175,40 +86,25 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
         : schedule
     )
     
-    // Salvar na API diretamente
+    // Salvar usando o hook
     try {
-      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
-        .filter(schedule => schedule.isActive)
-        .map(schedule => ({
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          breaks: schedule.breaks
-        }))
-
-      const success = await updateSchedule(activeSchedules, professionalId)
+      await updateSchedules(updatedSchedules)
       
-      if (success) {
-        // APENAS APÓS SUCESSO, atualizar estado local
-        setSchedules(updatedSchedules)
-        
-        toast({
-          title: "Intervalo adicionado!",
-          description: "O intervalo foi adicionado automaticamente.",
-          variant: "default"
-        })
-      }
-    } catch (err: any) {
-      console.error('Erro ao adicionar intervalo:', err)
       toast({
-        title: "Erro",
-        description: err.message || "Erro ao adicionar intervalo.",
+        title: "Intervalo adicionado!",
+        description: "O intervalo foi adicionado com sucesso.",
+        variant: "default"
+      })
+    } catch (err: any) {
+      toast({
+        title: "Erro ao adicionar intervalo",
+        description: "Ocorreu um erro ao adicionar o intervalo. Tente novamente.",
         variant: "destructive"
       })
     }
   }
 
-  // Remover intervalo de um dia específico (estratégia do estabelecimento)
+  // Remover intervalo (igual ao padrão do estabelecimento)
   const removeBreak = async (dayOfWeek: number, breakIndex: number) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -219,40 +115,25 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
         : schedule
     )
     
-    // Salvar na API diretamente
+    // Salvar usando o hook
     try {
-      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
-        .filter(schedule => schedule.isActive)
-        .map(schedule => ({
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          breaks: schedule.breaks
-        }))
-
-      const success = await updateSchedule(activeSchedules, professionalId)
+      await updateSchedules(updatedSchedules)
       
-      if (success) {
-        // APENAS APÓS SUCESSO, atualizar estado local
-        setSchedules(updatedSchedules)
-        
-        toast({
-          title: "Intervalo removido!",
-          description: "O intervalo foi removido automaticamente.",
-          variant: "default"
-        })
-      }
-    } catch (err: any) {
-      console.error('Erro ao remover intervalo:', err)
       toast({
-        title: "Erro",
-        description: err.message || "Erro ao remover intervalo.",
+        title: "Intervalo removido!",
+        description: "O intervalo foi removido com sucesso.",
+        variant: "default"
+      })
+    } catch (err: any) {
+      toast({
+        title: "Erro ao remover intervalo",
+        description: "Ocorreu um erro ao remover o intervalo. Tente novamente.",
         variant: "destructive"
       })
     }
   }
 
-  // Atualizar horário de um intervalo específico (estratégia do estabelecimento)
+  // Atualizar horário de um intervalo (igual ao padrão do estabelecimento)
   const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -286,34 +167,19 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       }
     }
     
-    // Salvar na API diretamente
+    // Salvar usando o hook
     try {
-      const activeSchedules: ProfessionalScheduleData[] = updatedSchedules
-        .filter(schedule => schedule.isActive)
-        .map(schedule => ({
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          breaks: schedule.breaks
-        }))
-
-      const success = await updateSchedule(activeSchedules, professionalId)
+      await updateSchedules(updatedSchedules)
       
-      if (success) {
-        // APENAS APÓS SUCESSO, atualizar estado local
-        setSchedules(updatedSchedules)
-        
-        toast({
-          title: "Intervalo atualizado!",
-          description: "O intervalo foi atualizado automaticamente.",
-          variant: "default"
-        })
-      }
-    } catch (err: any) {
-      console.error('Erro ao atualizar intervalo:', err)
       toast({
-        title: "Erro",
-        description: err.message || "Erro ao atualizar intervalo.",
+        title: "Intervalo atualizado!",
+        description: "O intervalo foi atualizado com sucesso.",
+        variant: "default"
+      })
+    } catch (err: any) {
+      toast({
+        title: "Erro ao atualizar intervalo",
+        description: "Ocorreu um erro ao atualizar o intervalo. Tente novamente.",
         variant: "destructive"
       })
     }
