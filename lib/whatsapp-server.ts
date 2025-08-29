@@ -1,4 +1,4 @@
-// WhatsApp API integration utilities - SERVER SIDE VERSION
+// WhatsApp API integration utilities
 import { formatCurrency } from './currency'
 
 export interface WhatsAppMessage {
@@ -49,7 +49,7 @@ export interface WhatsAppTemplate {
   }) => string
 }
 
-// Server-side WhatsApp templates
+// WhatsApp message templates (UNIFICADOS com whatsapp-server.ts)
 export const whatsappTemplates: WhatsAppTemplate = {
   confirmation: (data) => `✅ *Agendamento Confirmado!*
 
@@ -57,7 +57,7 @@ Olá *${data.clientName}*! 😊
 
 Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 
-📋 *Detalhes:*
+� *Detalhes:*
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
 🗓️ Data: ${data.date}
@@ -67,7 +67,7 @@ Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 
 💡 *Lembre-se:*
 • Chegue 10 min antes do horário
-• Em caso de cancelamento, avise com 24h de antecedência
+• Em caso de cancelamento, avise com antecedência
 
 Obrigado pela preferência! 🙏
 Nos vemos em breve! 🎉`,
@@ -78,7 +78,7 @@ Olá *${data.clientName}*! 😊
 
 Este é um lembrete do seu agendamento na *${data.businessName}*:
 
-🗓️ *Amanhã - ${data.date}*
+�️ *Data: ${data.date}*
 ⏰ Horário: ${data.time}
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -93,7 +93,7 @@ Olá *${data.clientName}*!
 
 Seu agendamento na *${data.businessName}* é hoje:
 
-🗓️ *Hoje - ${data.date}*
+🗓️ *Data: ${data.date}*
 ⏰ Horário: ${data.time}  
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -106,7 +106,7 @@ Olá *${data.clientName}*!
 
 Não esqueça do seu agendamento:
 
-⏰ *${data.time}* (em 2 horas)
+⏰ *Horário:${data.time}* (em 2 horas)
 🔹 Serviço: ${data.service}  
 👨‍💼 Profissional: ${data.professional}
 
@@ -122,36 +122,83 @@ Estamos ansiosos para recebê-lo de novo.
 
 Reserve seu horário quando quiser, será um prazer revê-lo!
 
-🗓️ Agende já: ${data.customLink}
+�️ Agende já: ${data.customLink}
 ⏰ Oferta válida até o final do mês!
 
 Estamos ansiosos para te receber novamente! ✨`,
 }
 
-// Format phone number to Brazilian standard
+// Evolution API integration (Client-side version)
+export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boolean> {
+  try {
+    console.log(`📤 [Client] Enviando mensagem WhatsApp via API Route...`)
+    console.log(`📱 Para: ${message.to}`)
+    console.log(`📝 Tipo: ${message.type}`)
+
+    // Obter token do localStorage
+    const token = localStorage.getItem('auth_token')
+    console.log('🔍 [Client] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch('/api/whatsapp/send', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        to: message.to,
+        message: message.message,
+        type: message.type
+      })
+    })
+
+    const responseData = await response.json()
+
+    if (response.ok && responseData.success) {
+      console.log('✅ [Client] Mensagem enviada com sucesso!')
+      console.log('📋 [Client] Resposta:', responseData)
+      return true
+    } else {
+      console.error('❌ [Client] Falha ao enviar mensagem')
+      console.error('📋 Status:', response.status)
+      console.error('📋 Resposta:', responseData)
+      return false
+    }
+
+  } catch (error) {
+    console.error('❌ [Client] Erro ao conectar com API:', error)
+    return false
+  }
+}
+
+// Format phone number for WhatsApp API (Brazilian format)
 export function formatPhoneNumber(phone: string): string {
-  if (!phone) return ""
+  if (!phone) return ''
   
   // Remove all non-numeric characters
-  const cleaned = phone.replace(/\D/g, '')
-  console.log(`📱 Formatando telefone: ${phone} -> ${cleaned}`)
+  const cleaned = phone.replace(/\D/g, "")
   
-  // Handle different Brazilian phone number formats
+  console.log(`📞 Formatando número: "${phone}" -> "${cleaned}"`)
+
+  // Brazilian phone number patterns
   if (cleaned.length === 13 && cleaned.startsWith('55')) {
-    // Full format with country code: 5511999999999
-    const formatted = cleaned
-    console.log(`✅ Formato completo: ${formatted}`)
-    return formatted
+    // Already in international format: 5511999999999
+    console.log(`✅ Número já no formato internacional: ${cleaned}`)
+    return cleaned
   } else if (cleaned.length === 11) {
-    // With area code but without country: 11999999999, 24993273697, etc
+    // Brazilian format with area code: 11999999999
     const formatted = `55${cleaned}`
-    console.log(`✅ Adicionado código do país (DDD ${cleaned.substring(0,2)}): ${formatted}`)
+    console.log(`✅ Adicionado código do país: ${formatted}`)
     return formatted
   } else if (cleaned.length === 10) {
-    // Old format without 9th digit: 1199999999
-    const areaCode = cleaned.substring(0, 2)
-    const number = cleaned.substring(2)
-    const formatted = `55${areaCode}9${number}`
+    // Old Brazilian format without 9: 1199999999
+    const formatted = `5511${cleaned.substring(2)}`
     console.log(`✅ Formato antigo convertido: ${formatted}`)
     return formatted
   } else if (cleaned.length === 9) {
@@ -166,116 +213,29 @@ export function formatPhoneNumber(phone: string): string {
   return cleaned
 }
 
-// Server-side Evolution API integration (direct HTTP calls)
-export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boolean> {
-  try {
-    console.log(`📤 [Server] Enviando mensagem WhatsApp diretamente para Evolution API...`)
-    console.log(`📱 Para: ${message.to}`)
-    console.log(`📝 Tipo: ${message.type}`)
-    console.log(`🔍 [Server] Usando instância: ${process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE}`)
-
-    // Evolution API configuration from environment
-    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
-    const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE
-
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
-      console.error('❌ [Server] Configuração Evolution API incompleta')
-      console.error('🔍 [Server] Debug Environment Variables:', {
-        EVOLUTION_API_URL: EVOLUTION_API_URL ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_API_KEY: EVOLUTION_API_KEY ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_INSTANCE: EVOLUTION_INSTANCE ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME ? '✅ Definida' : '❌ Não definida'
-      })
-      return false
-    }
-
-    // Format phone number
-    const formattedPhone = formatPhoneNumber(message.to)
-    console.log(`📱 [Server] Telefone formatado: ${message.to} -> ${formattedPhone}`)
-    
-    const payload = {
-      number: formattedPhone,
-      text: message.message,
-      delay: 1000
-    }
-
-    console.log('📡 [Server] Payload:', payload)
-
-    const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': EVOLUTION_API_KEY
-      },
-      body: JSON.stringify(payload)
-    })
-
-    console.log('📋 [Server] Response status:', response.status)
-
-    if (response.ok) {
-      const responseData = await response.json()
-      console.log('✅ [Server] Mensagem enviada com sucesso:', responseData)
-      return true
-    } else {
-      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }))
-      console.error('❌ [Server] Erro ao enviar mensagem:', response.status, errorData)
-      return false
-    }
-
-  } catch (error) {
-    console.error('❌ [Server] Erro ao conectar com Evolution API:', error)
-    return false
-  }
-}
-
-// Check Evolution API status (server-side)
+// Check Evolution API instance status (Client-side version)
 export async function checkWhatsAppStatus(): Promise<{
   connected: boolean
   instanceName: string | null
   error?: string
 }> {
   try {
-    console.log('🔍 [Server] Verificando status Evolution API...')
+    console.log('🔍 [Client] Verificando status via API Route...')
     
-    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
-    const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || process.env.EVOLUTION_INSTANCE
-
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
-      console.error('❌ [Server] Configuração Evolution API incompleta para status check')
-      console.error('🔍 [Server] Debug Environment Variables:', {
-        EVOLUTION_API_URL: EVOLUTION_API_URL ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_API_KEY: EVOLUTION_API_KEY ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_INSTANCE: EVOLUTION_INSTANCE ? '✅ Definida' : '❌ Não definida',
-        EVOLUTION_INSTANCE_NAME: process.env.EVOLUTION_INSTANCE_NAME ? '✅ Definida' : '❌ Não definida'
-      })
-      return {
-        connected: false,
-        instanceName: null,
-        error: 'Configuração Evolution API incompleta'
-      }
-    }
-
-    const response = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`, {
+    const response = await fetch('/api/whatsapp/status', {
       method: 'GET',
       headers: {
-        'apikey': EVOLUTION_API_KEY
+        'Accept': 'application/json'
       }
     })
 
     if (response.ok) {
       const data = await response.json()
-      console.log('📋 [Server] Status recebido:', data)
-      
-      return {
-        connected: data.state === 'open',
-        instanceName: EVOLUTION_INSTANCE,
-        error: data.state !== 'open' ? `Estado: ${data.state}` : undefined
-      }
+      console.log('📋 [Client] Status recebido:', data)
+      return data
     } else {
       const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }))
-      console.error('❌ [Server] Erro ao verificar status:', errorData)
+      console.error('❌ [Client] Erro ao verificar status:', errorData)
       
       return {
         connected: false,
@@ -285,11 +245,56 @@ export async function checkWhatsAppStatus(): Promise<{
     }
 
   } catch (error) {
-    console.error('❌ [Server] Erro ao conectar com Evolution API:', error)
+    console.error('❌ [Client] Erro ao conectar com API:', error)
     return {
       connected: false,
       instanceName: null,
       error: error instanceof Error ? error.message : 'Erro de conexão'
     }
+  }
+}
+
+// Schedule WhatsApp reminders
+export function scheduleReminders(appointmentData: {
+  clientName: string
+  clientPhone: string
+  businessName: string
+  service: string
+  professional: string
+  date: string
+  time: string
+  appointmentDateTime: Date
+}) {
+  const now = new Date()
+  const appointmentTime = appointmentData.appointmentDateTime
+
+  // Calculate reminder times
+  const reminder24h = new Date(appointmentTime.getTime() - 24 * 60 * 60 * 1000)
+  const reminder2h = new Date(appointmentTime.getTime() - 2 * 60 * 60 * 1000)
+
+  // Schedule 24-hour reminder
+  if (reminder24h > now) {
+    const delay24h = reminder24h.getTime() - now.getTime()
+    setTimeout(async () => {
+      const message = whatsappTemplates.reminder24h(appointmentData)
+      await sendWhatsAppMessage({
+        to: formatPhoneNumber(appointmentData.clientPhone),
+        message,
+        type: "reminder",
+      })
+    }, delay24h)
+  }
+
+  // Schedule 2-hour reminder
+  if (reminder2h > now) {
+    const delay2h = reminder2h.getTime() - now.getTime()
+    setTimeout(async () => {
+      const message = whatsappTemplates.reminder2h(appointmentData)
+      await sendWhatsAppMessage({
+        to: formatPhoneNumber(appointmentData.clientPhone),
+        message,
+        type: "reminder",
+      })
+    }, delay2h)
   }
 }
