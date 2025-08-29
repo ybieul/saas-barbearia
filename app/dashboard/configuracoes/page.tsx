@@ -1086,14 +1086,31 @@ export default function ConfiguracoesPage() {
                       id="customLink"
                       value={businessData.customLink}
                       onChange={(e) => {
-                        // Formatar automaticamente para URL válida
-                        const formattedValue = e.target.value
+                        const inputValue = e.target.value
+                        
+                        // Permitir digitação livre, mas formatar ao sair do foco
+                        // Apenas remove caracteres claramente inválidos em tempo real
+                        const formattedValue = inputValue
                           .toLowerCase()
                           .replace(/\s+/g, '-') // Converter espaços em hífens
-                          .replace(/[^a-z0-9-]/g, '') // Remove caracteres inválidos (mantém hífens)
-                          .replace(/-+/g, '-') // Remove hífens duplicados
+                          .replace(/[^a-z0-9\-]/g, '') // Remove caracteres inválidos (mantém hífens explicitamente)
+                          .replace(/-{2,}/g, '-') // Remove apenas hífens múltiplos (2 ou mais)
                           .replace(/^-+|-+$/g, '') // Remove hífens do início e fim
+                        
                         updateField('customLink', formattedValue)
+                      }}
+                      onBlur={(e) => {
+                        // Aplicar formatação final ao sair do campo
+                        const finalValue = e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, '-')
+                          .replace(/[^a-z0-9\-]/g, '')
+                          .replace(/-{2,}/g, '-')
+                          .replace(/^-+|-+$/g, '')
+                        
+                        if (finalValue !== businessData.customLink) {
+                          updateField('customLink', finalValue)
+                        }
                       }}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       placeholder="Exemplo: barbearia-do-jorge"
