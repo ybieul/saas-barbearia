@@ -106,7 +106,7 @@ Olá *${data.clientName}*!
 
 Não esqueça do seu agendamento:
 
-⏰ *Horário:${data.time}* (em 2 horas)
+⏰ *Horário: ${data.time}* (em 2 horas)
 🔹 Serviço: ${data.service}  
 👨‍💼 Profissional: ${data.professional}
 

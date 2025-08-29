@@ -57,7 +57,7 @@ Olá *${data.clientName}*! 😊
 
 Seu agendamento na *${data.businessName}* foi confirmado com sucesso!
 
-� *Detalhes:*
+📋 *Detalhes:*
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
 🗓️ Data: ${data.date}
@@ -78,7 +78,7 @@ Olá *${data.clientName}*! 😊
 
 Este é um lembrete do seu agendamento na *${data.businessName}*:
 
-�️ *Data: ${data.date}*
+🗓️ *Data: ${data.date}*
 ⏰ Horário: ${data.time}
 🔹 Serviço: ${data.service}
 👨‍💼 Profissional: ${data.professional}
@@ -106,7 +106,7 @@ Olá *${data.clientName}*!
 
 Não esqueça do seu agendamento:
 
-⏰ *Horário:${data.time}* (em 2 horas)
+⏰ *Horário: ${data.time}* (em 2 horas)
 🔹 Serviço: ${data.service}  
 👨‍💼 Profissional: ${data.professional}
 
