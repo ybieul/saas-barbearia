@@ -57,12 +57,17 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Salvar dados do usuário e token
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token)
+        // Usar os mesmos nomes que o AuthProvider usa
+        localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
+        
+        // Salvar cookie para o middleware (mesmo padrão do AuthProvider)
+        document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 dias
         
         notification.success('Conta criada com sucesso!')
-        router.push('/dashboard')
+        
+        // Redirecionar para login para garantir fluxo correto
+        router.push('/login')
       } else {
         notification.error(data.message || 'Erro ao criar conta')
       }

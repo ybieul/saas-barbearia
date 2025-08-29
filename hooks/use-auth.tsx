@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = JSON.parse(savedUser)
         setToken(savedToken)
         setUser(userData)
+        
+        // Se estamos na página de login e já temos dados válidos, redirecionar
+        if (window.location.pathname === '/login') {
+          router.push('/dashboard')
+        }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Erro ao recuperar dados do usuário:', error)

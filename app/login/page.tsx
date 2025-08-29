@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,8 +19,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
-  const { login } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
+
+  // Se já estiver autenticado, redirecionar para dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, authLoading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
