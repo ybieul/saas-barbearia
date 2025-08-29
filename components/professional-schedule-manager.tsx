@@ -103,7 +103,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Atualizar horário de um dia com auto-save
-  const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string) => {
+  const handleScheduleChange = async (dayOfWeek: number, field: 'isActive' | 'startTime' | 'endTime', value: boolean | string, event?: Event) => {
+    // Prevenir recarregamento de página
+    if (event) {
+      event.preventDefault()
+    }
+    
     // Atualizar estado local primeiro
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
@@ -136,7 +141,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Adicionar novo intervalo para um dia específico com auto-save
-  const addBreak = async (dayOfWeek: number) => {
+  const addBreak = async (dayOfWeek: number, event?: Event) => {
+    // Prevenir recarregamento de página
+    if (event) {
+      event.preventDefault()
+    }
+    
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -152,7 +162,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Remover intervalo de um dia específico com auto-save
-  const removeBreak = async (dayOfWeek: number, breakIndex: number) => {
+  const removeBreak = async (dayOfWeek: number, breakIndex: number, event?: Event) => {
+    // Prevenir recarregamento de página
+    if (event) {
+      event.preventDefault()
+    }
+    
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -168,7 +183,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   }
 
   // Atualizar horário de um intervalo específico com auto-save
-  const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string) => {
+  const updateBreak = async (dayOfWeek: number, breakIndex: number, field: 'startTime' | 'endTime', value: string, event?: Event) => {
+    // Prevenir recarregamento de página
+    if (event) {
+      event.preventDefault()
+    }
+    
     const updatedSchedules = schedules.map(schedule => 
       schedule.dayOfWeek === dayOfWeek 
         ? { 
@@ -209,6 +229,11 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   // Função de auto-save (similar à handleWorkingHoursChange)
   const handleAutoSave = async (schedulesToSave: DaySchedule[], action: string) => {
     try {
+      // Prevenir múltiplas chamadas simultâneas
+      if (isLoading) {
+        return
+      }
+
       // Preparar dados apenas dos dias ativos
       const activeSchedules: ProfessionalScheduleData[] = schedulesToSave
         .filter(schedule => schedule.isActive)
@@ -229,6 +254,7 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
         })
       }
     } catch (err: any) {
+      console.error('Erro no auto-save:', err)
       toast({
         title: "Erro",
         description: err.message || "Erro ao salvar horário automaticamente.",
