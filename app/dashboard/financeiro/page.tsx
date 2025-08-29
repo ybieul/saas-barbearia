@@ -257,7 +257,67 @@ export default function FinanceiroPage() {
     })
   }
 
-  // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 12 meses
+  // ✅ PERFORMANCE: Função otimizada para agendamentos do período atual
+  const currentPeriodAppointments = useMemo(() => {
+    try {
+      const today = getBrazilNow()
+      let currentStart: Date
+      let currentEnd: Date = today
+      
+      switch (period) {
+        case 'today':
+          currentStart = new Date(today)
+          currentStart.setHours(0, 0, 0, 0)
+          currentEnd = new Date(today)
+          currentEnd.setHours(23, 59, 59, 999)
+          break
+        case 'week':
+          currentStart = new Date(today)
+          currentStart.setDate(today.getDate() - 7)
+          break
+        case 'month':
+          currentStart = new Date(today)
+          currentStart.setMonth(today.getMonth() - 1)
+          break
+        default:
+          currentStart = new Date(today)
+          currentStart.setHours(0, 0, 0, 0)
+          currentEnd = new Date(today)
+          currentEnd.setHours(23, 59, 59, 999)
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Filtrando agendamentos por período:', { 
+          period, 
+          currentStart: currentStart.toISOString(), 
+          currentEnd: currentEnd.toISOString() 
+        })
+      }
+      
+      const filtered = completedAppointments.filter(app => {
+        try {
+          const appointmentDate = utcToBrazil(new Date(app.dateTime))
+          return appointmentDate >= currentStart && appointmentDate <= currentEnd
+        } catch {
+          return false
+        }
+      })
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Agendamentos do período atual:', {
+          total: filtered.length,
+          revenue: filtered.reduce((sum, app) => sum + parseFloat(app.totalPrice), 0)
+        })
+      }
+      
+      return filtered
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Erro ao filtrar agendamentos do período atual:', err)
+      }
+      return []
+    }
+  }, [completedAppointments, period])
   const getMonthlyData = useMemo(() => {
     try {
       if (!Array.isArray(completedAppointments)) return []
@@ -583,53 +643,16 @@ export default function FinanceiroPage() {
     }
   }, [appointments, period])
   
+  // ✅ PERFORMANCE: Receita do período atual usando agendamentos filtrados
   const currentPeriodRevenue = useMemo(() => {
-    const today = getBrazilNow()
-    let currentStart: Date
-    let currentEnd: Date = today
-    
-    switch (period) {
-      case 'today':
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-        break
-      case 'week':
-        currentStart = new Date(today)
-        currentStart.setDate(today.getDate() - 7)
-        break
-      case 'month':
-        currentStart = new Date(today)
-        currentStart.setMonth(today.getMonth() - 1)
-        break
-      default:
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-    }
-    
-    const currentPeriodAppointments = completedAppointments.filter(app => {
-      try {
-        const appointmentDate = utcToBrazil(new Date(app.dateTime))
-        return appointmentDate >= currentStart && appointmentDate <= currentEnd
-      } catch {
-        return false
-      }
-    })
-    
     return currentPeriodAppointments.reduce((total, app) => 
       total + (parseFloat(app.totalPrice) || 0), 0
     )
-  }, [completedAppointments, period])
+  }, [currentPeriodAppointments])
   
-  // Cálculo do ticket médio com dados reais
-  const currentTicketMedio = completedAppointments.length > 0 ? 
-    completedAppointments.reduce((total, app) => {
-      const price = parseFloat(app.totalPrice) || 0
-      return total + price
-    }, 0) / completedAppointments.length : 0
+  // ✅ CORREÇÃO: Ticket médio baseado no período atual
+  const currentTicketMedio = currentPeriodAppointments.length > 0 ? 
+    currentPeriodRevenue / currentPeriodAppointments.length : 0
   
   const previousTicketMedio = previousPeriodData.completedCount > 0 ? 
     previousPeriodData.revenue / previousPeriodData.completedCount : 0
@@ -644,10 +667,55 @@ export default function FinanceiroPage() {
     }
   }
   
+  // ✅ CORREÇÃO: Usar dados do período atual para comparações
   const revenueChange = calculateChange(currentPeriodRevenue, previousPeriodData.revenue)
-  const completedChange = calculateChange(completedAppointments.length, previousPeriodData.completedCount)
+  const completedChange = calculateChange(currentPeriodAppointments.length, previousPeriodData.completedCount)
+  
+  // ✅ CORREÇÃO: Calcular taxa de conversão do período atual
+  const currentPeriodConversionRate = useMemo(() => {
+    const today = getBrazilNow()
+    let currentStart: Date
+    let currentEnd: Date = today
+    
+    switch (period) {
+      case 'today':
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+        break
+      case 'week':
+        currentStart = new Date(today)
+        currentStart.setDate(today.getDate() - 7)
+        currentEnd = new Date(today)
+        break
+      case 'month':
+        currentStart = new Date(today)
+        currentStart.setMonth(today.getMonth() - 1)
+        currentEnd = new Date(today)
+        break
+      default:
+        currentStart = new Date(today)
+        currentStart.setHours(0, 0, 0, 0)
+        currentEnd = new Date(today)
+        currentEnd.setHours(23, 59, 59, 999)
+    }
+    
+    const allPeriodAppointments = appointments.filter(app => {
+      try {
+        const appointmentDate = utcToBrazil(new Date(app.dateTime))
+        return appointmentDate >= currentStart && appointmentDate <= currentEnd
+      } catch {
+        return false
+      }
+    })
+    
+    return allPeriodAppointments.length > 0 ? 
+      (currentPeriodAppointments.length / allPeriodAppointments.length) * 100 : 0
+  }, [appointments, currentPeriodAppointments, period])
+  
   const conversionChange = calculateChange(
-    (completedAppointments.length / Math.max(appointments.length, 1)) * 100,
+    currentPeriodConversionRate,
     previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0
   )
   const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
@@ -719,53 +787,105 @@ export default function FinanceiroPage() {
   }
   */
 
+  // ✅ CORREÇÃO: Função para obter título dinâmico baseado no período
+  const getPeriodTitle = (baseTitle: string) => {
+    switch (period) {
+      case 'today':
+        return baseTitle.replace('Hoje', 'Hoje').replace('Agendamentos', 'Agendamentos Hoje').replace('Taxa', 'Taxa Hoje').replace('Ticket', 'Ticket Hoje')
+      case 'week':
+        return baseTitle.replace('Hoje', 'Semana').replace('Agendamentos', 'Agendamentos Semana').replace('Taxa', 'Taxa Semana').replace('Ticket', 'Ticket Semana')
+      case 'month':
+        return baseTitle.replace('Hoje', 'Mês').replace('Agendamentos', 'Agendamentos Mês').replace('Taxa', 'Taxa Mês').replace('Ticket', 'Ticket Mês')
+      default:
+        return baseTitle
+    }
+  }
+
   const financialStats = [
     {
-      title: "Faturamento Hoje",
+      title: getPeriodTitle("Faturamento Hoje"),
       value: (() => {
-        // Calcular faturamento real baseado nos agendamentos concluídos hoje
-        const today = getBrazilNow()
-        const todayString = today.toDateString()
-        
-        const todayRevenue = completedAppointments
-          .filter(app => {
-            try {
-              const appointmentDate = utcToBrazil(new Date(app.dateTime))
-              return appointmentDate.toDateString() === todayString
-            } catch {
-              return false
-            }
-          })
+        // ✅ CORREÇÃO: Usar agendamentos do período atual
+        const periodRevenue = currentPeriodAppointments
           .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('💰 Faturamento hoje calculado:', todayRevenue)
+          console.log(`💰 Faturamento ${period} calculado:`, periodRevenue)
         }
         
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayRevenue)
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodRevenue)
       })(),
       change: revenueChange.change,
       changeType: revenueChange.type,
       icon: DollarSign,
     },
     {
-      title: "Agendamentos Concluídos",
-      value: completedAppointments.length.toString(),
+      title: getPeriodTitle("Agendamentos Concluídos"),
+      value: currentPeriodAppointments.length.toString(),
       change: completedChange.change,
       changeType: completedChange.type,
       icon: TrendingUp,
     },
     {
-      title: "Taxa de Conversão",
-      value: `${Math.round((completedAppointments.length / Math.max(appointments.length, 1)) * 100)}%`,
+      title: getPeriodTitle("Taxa de Conversão"),
+      value: (() => {
+        // ✅ CORREÇÃO: Calcular taxa baseada no período atual
+        // Precisamos buscar TODOS os agendamentos do período (não só concluídos) para calcular conversão
+        const today = getBrazilNow()
+        let currentStart: Date
+        let currentEnd: Date = today
+        
+        switch (period) {
+          case 'today':
+            currentStart = new Date(today)
+            currentStart.setHours(0, 0, 0, 0)
+            currentEnd = new Date(today)
+            currentEnd.setHours(23, 59, 59, 999)
+            break
+          case 'week':
+            currentStart = new Date(today)
+            currentStart.setDate(today.getDate() - 7)
+            currentEnd = new Date(today)
+            break
+          case 'month':
+            currentStart = new Date(today)
+            currentStart.setMonth(today.getMonth() - 1)
+            currentEnd = new Date(today)
+            break
+          default:
+            currentStart = new Date(today)
+            currentStart.setHours(0, 0, 0, 0)
+            currentEnd = new Date(today)
+            currentEnd.setHours(23, 59, 59, 999)
+        }
+        
+        const allPeriodAppointments = appointments.filter(app => {
+          try {
+            const appointmentDate = utcToBrazil(new Date(app.dateTime))
+            return appointmentDate >= currentStart && appointmentDate <= currentEnd
+          } catch {
+            return false
+          }
+        })
+        
+        const conversionRate = allPeriodAppointments.length > 0 ? 
+          (currentPeriodAppointments.length / allPeriodAppointments.length) * 100 : 0
+        
+        return `${Math.round(conversionRate)}%`
+      })(),
       change: conversionChange.change,
       changeType: conversionChange.type,
       icon: Calendar,
     },
     {
-      title: "Ticket Médio",
-      value: completedAppointments.length > 0 ? 
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentTicketMedio) : "R$ 0,00",
+      title: getPeriodTitle("Ticket Médio"),
+      value: (() => {
+        // ✅ CORREÇÃO: Ticket médio baseado no período atual
+        const periodTicketMedio = currentPeriodAppointments.length > 0 ? 
+          currentPeriodAppointments.reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0) / currentPeriodAppointments.length : 0
+        
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodTicketMedio)
+      })(),
       change: ticketChange.change,
       changeType: ticketChange.type,
       icon: CreditCard,
@@ -1019,6 +1139,33 @@ export default function FinanceiroPage() {
               {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </Button>
             
+            {/* ✅ SELETOR DE PERÍODO */}
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-36 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#18181b] border-[#27272a]">
+                <SelectItem value="today">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Hoje
+                  </div>
+                </SelectItem>
+                <SelectItem value="week">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Semana
+                  </div>
+                </SelectItem>
+                <SelectItem value="month">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Mês
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
             {/* ✅ FILTRO POR PROFISSIONAL */}
             <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
               <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
@@ -1040,8 +1187,20 @@ export default function FinanceiroPage() {
             </Select>
           </div>
 
-          {/* ✅ MOBILE: Ordem invertida - Filtro depois Botão */}
+          {/* ✅ MOBILE: Ordem invertida - Período + Filtro + Botão */}
           <div className="flex sm:hidden items-center gap-3">
+            {/* ✅ SELETOR DE PERÍODO */}
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-28 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#18181b] border-[#27272a]">
+                <SelectItem value="today">Hoje</SelectItem>
+                <SelectItem value="week">Semana</SelectItem>
+                <SelectItem value="month">Mês</SelectItem>
+              </SelectContent>
+            </Select>
+            
             {/* ✅ FILTRO POR PROFISSIONAL */}
             <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
               <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
