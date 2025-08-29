@@ -75,6 +75,96 @@ export function WhatsAppConnection() {
     }
   }, [pollingInterval])
 
+  // Sistema de limpeza automática de instâncias abandonadas
+  useEffect(() => {
+    // Só ativar o cleanup se estivermos no estado de conexão (mostrando QR Code)
+    if (connectionStatus !== 'connecting' || !instanceName || !qrCodeBase64) {
+      return
+    }
+
+    console.log('🔧 [Frontend] Iniciando monitoramento de cleanup para instância:', instanceName)
+
+    // Função para fazer cleanup da instância
+    const performCleanup = async () => {
+      try {
+        console.log('🧹 [Frontend] Executando cleanup de instância abandonada:', instanceName)
+        
+        // Usar navigator.sendBeacon para garantir que a requisição seja enviada
+        // mesmo se o usuário estiver saindo da página
+        const cleanupData = JSON.stringify({
+          instanceName: instanceName,
+          reason: 'abandoned_qr_scan'
+        })
+
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+        const cleanupUrl = `/api/tenants/${user?.tenantId}/whatsapp/cleanup`
+        
+        // Preparar headers para sendBeacon (deve ser compatível com FormData ou string)
+        const blob = new Blob([cleanupData], { type: 'application/json' })
+        
+        if (navigator.sendBeacon) {
+          // Usar sendBeacon preferencialmente (mais confiável durante unload)
+          const success = navigator.sendBeacon(cleanupUrl, blob)
+          console.log('📡 [Frontend] Cleanup via sendBeacon:', success ? 'sucesso' : 'falha')
+        } else {
+          // Fallback para fetch normal
+          await fetch(cleanupUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: cleanupData,
+            keepalive: true // Manter conexão viva durante navegação
+          })
+          console.log('📡 [Frontend] Cleanup via fetch com keepalive concluído')
+        }
+      } catch (error) {
+        console.error('❌ [Frontend] Erro durante cleanup:', error)
+      }
+    }
+
+    // Detectar quando usuário sai da página/aba (página sendo fechada/navegação)
+    const handleBeforeUnload = () => {
+      console.log('🚪 [Frontend] Detectado beforeunload - executando cleanup')
+      performCleanup()
+    }
+
+    // Detectar quando página perde foco (usuário mudou de aba)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('👁️ [Frontend] Página perdeu visibilidade - potencial abandono')
+        // Esperar um pouco antes de fazer cleanup para evitar falsos positivos
+        setTimeout(() => {
+          if (document.hidden && connectionStatus === 'connecting') {
+            console.log('👁️ [Frontend] Página ainda oculta após timeout - executando cleanup')
+            performCleanup()
+          }
+        }, 30000) // 30 segundos de página oculta = cleanup
+      }
+    }
+
+    // Cleanup programado para instâncias muito antigas (5 minutos sem conexão)
+    const cleanupTimer = setTimeout(() => {
+      if (connectionStatus === 'connecting') {
+        console.log('⏰ [Frontend] Timeout de 5 minutos atingido - executando cleanup')
+        performCleanup()
+      }
+    }, 300000) // 5 minutos
+
+    // Registrar event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Cleanup function para remover listeners e timer
+    return () => {
+      console.log('🧹 [Frontend] Removendo listeners de cleanup para:', instanceName)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearTimeout(cleanupTimer)
+    }
+  }, [connectionStatus, instanceName, qrCodeBase64, user?.tenantId])
+
   // Verificar status inicial
   const checkInitialStatus = useCallback(async () => {
     try {
@@ -327,12 +417,49 @@ export function WhatsAppConnection() {
             <Button 
               variant="outline" 
               onClick={() => {
+                // Fazer cleanup da instância antes de cancelar
+                if (instanceName) {
+                  console.log('🚫 [Frontend] Cancelamento manual - fazendo cleanup de:', instanceName)
+                  
+                  // Cleanup imediato via API
+                  const performCancelCleanup = async () => {
+                    try {
+                      const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+                      await fetch(`/api/tenants/${user?.tenantId}/whatsapp/cleanup`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          instanceName: instanceName,
+                          reason: 'manual'
+                        })
+                      })
+                      console.log('✅ [Frontend] Cleanup de cancelamento concluído')
+                    } catch (error) {
+                      console.error('❌ [Frontend] Erro no cleanup de cancelamento:', error)
+                    }
+                  }
+                  
+                  // Executar cleanup assíncrono
+                  performCancelCleanup()
+                }
+
+                // Limpar estado local
                 setConnectionStatus('disconnected')
                 setQrCodeBase64(null)
+                setInstanceName(null)
+                
                 if (pollingInterval) {
                   clearInterval(pollingInterval)
                   setPollingInterval(null)
                 }
+
+                toast({
+                  title: "Conexão Cancelada",
+                  description: "A tentativa de conexão foi cancelada e a instância foi limpa.",
+                })
               }}
             >
               Cancelar
