@@ -358,14 +358,14 @@ export default function ConfiguracoesPage() {
     try {
       await updateBusinessData(businessData)
       toast({
-        title: "Configurações salvas!",
-        description: "As configurações do estabelecimento foram salvas com sucesso.",
+        title: "✅ Configurações salvas",
+        description: "Todas as alterações foram salvas com sucesso.",
         variant: "default",
       })
     } catch (error) {
       toast({
-        title: "Erro ao salvar!",
-        description: "Ocorreu um erro ao salvar as configurações. Tente novamente.",
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações. Verifique sua conexão e tente novamente.",
         variant: "destructive",
       })
     }
@@ -380,16 +380,39 @@ export default function ConfiguracoesPage() {
       updateField('logo', logoBase64)
       
       toast({
-        title: "Logo carregada!",
+        title: "✅ Logo carregada",
         description: "Logo do estabelecimento foi carregada com sucesso.",
         variant: "default",
       })
     } catch (error) {
-      toast({
-        title: "Erro no upload!",
-        description: error instanceof Error ? error.message : "Erro ao carregar logo.",
-        variant: "destructive",
-      })
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar logo"
+      
+      // Notificações específicas baseadas no tipo de erro
+      if (errorMessage.includes('deve ser uma imagem')) {
+        toast({
+          title: "Formato inválido",
+          description: "Por favor, selecione uma imagem JPG, PNG, GIF ou WEBP.",
+          variant: "destructive",
+        })
+      } else if (errorMessage.includes('máximo 5MB')) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB. Tente reduzir o tamanho.",
+          variant: "destructive",
+        })
+      } else if (errorMessage.includes('processar imagem')) {
+        toast({
+          title: "Erro ao processar",
+          description: "Não foi possível processar a imagem. Tente novamente.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Erro no upload",
+          description: "Ocorreu um erro ao carregar a logo. Tente novamente.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -1066,9 +1089,10 @@ export default function ConfiguracoesPage() {
                         // Formatar automaticamente para URL válida
                         const formattedValue = e.target.value
                           .toLowerCase()
-                          .replace(/[^a-z0-9-]/g, '-') // Substitui caracteres inválidos por hífen
+                          .replace(/\s+/g, '-') // Converter espaços em hífens
+                          .replace(/[^a-z0-9-]/g, '') // Remove caracteres inválidos (mantém hífens)
                           .replace(/-+/g, '-') // Remove hífens duplicados
-                          .replace(/^-|-$/g, '') // Remove hífens do início e fim
+                          .replace(/^-+|-+$/g, '') // Remove hífens do início e fim
                         updateField('customLink', formattedValue)
                       }}
                       className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
