@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Camera, X } from "lucide-react"
+import { Camera, X, Check } from "lucide-react"
 
 interface ProfessionalAvatarUploadProps {
   currentAvatar?: string | null
@@ -104,14 +104,14 @@ export function ProfessionalAvatarUpload({
       setPreviewAvatar(compressedImage)
 
       toast({
-        title: "Imagem carregada!",
-        description: "Clique em 'Salvar' para confirmar a alteração.",
+        title: "✅ Imagem carregada",
+        description: "Clique em 'Confirmar' para salvar a alteração.",
         variant: "default",
       })
     } catch (error) {
       console.error('Erro ao processar imagem:', error)
       toast({
-        title: "Erro no processamento",
+        title: "Erro ao processar",
         description: "Não foi possível processar a imagem. Tente novamente.",
         variant: "destructive",
       })
@@ -131,6 +131,11 @@ export function ProfessionalAvatarUpload({
     setIsUploading(true)
     try {
       await onAvatarChange(previewAvatar)
+      
+      toast({
+        title: "✅ Foto salva",
+        description: "A foto de perfil foi atualizada com sucesso.",
+      })
     } catch (error) {
       toast({
         title: "Erro ao salvar",
@@ -144,16 +149,25 @@ export function ProfessionalAvatarUpload({
     }
   }
 
+  // Função para cancelar alteração
+  const handleCancelAvatar = () => {
+    setPreviewAvatar(currentAvatar || null)
+    toast({
+      title: "❌ Alteração cancelada",
+      description: "A foto anterior foi mantida.",
+    })
+  }
+
   // Função para remover avatar
   const handleRemoveAvatar = async () => {
     setIsUploading(true)
     try {
       await onAvatarChange(null)
       setPreviewAvatar(null)
+      
       toast({
-        title: "Foto removida!",
-        description: "A foto de perfil foi removida com sucesso.",
-        variant: "default",
+        title: "🗑️ Foto removida",
+        description: "A foto de perfil foi removida.",
       })
     } catch (error) {
       toast({
@@ -164,11 +178,6 @@ export function ProfessionalAvatarUpload({
     } finally {
       setIsUploading(false)
     }
-  }
-
-  // Cancelar preview
-  const handleCancelPreview = () => {
-    setPreviewAvatar(currentAvatar || null)
   }
 
   // Iniciais do nome para fallback
@@ -187,8 +196,8 @@ export function ProfessionalAvatarUpload({
     <div className="space-y-4 sm:space-y-6">
       {/* Header com ícone e título */}
       <div className="text-center">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-green-500/30">
+          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Foto de Perfil</h2>
         <p className="text-[#71717a] text-xs sm:text-sm">
@@ -211,7 +220,7 @@ export function ProfessionalAvatarUpload({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg sm:text-xl">
                   {getInitials(professionalName)}
                 </span>
@@ -221,62 +230,64 @@ export function ProfessionalAvatarUpload({
         </div>
       </div>
 
-      {/* Botões de ação */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {!hasChanges ? (
-          <>
-            {/* Input de arquivo (oculto) */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
-              disabled={disabled || isUploading}
-            />
+      {/* Botões de pré-visualização estilo serviços */}
+      {hasChanges && (
+        <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <Button
+            size="sm"
+            onClick={handleSaveAvatar}
+            disabled={disabled || isUploading}
+            className="bg-green-600 hover:bg-green-700 text-white border-0 min-h-[44px] touch-manipulation"
+          >
+            <Check className="w-4 h-4" />
+            <span className="ml-2">Confirmar</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCancelAvatar}
+            disabled={disabled || isUploading}
+            className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white min-h-[44px] touch-manipulation"
+          >
+            <X className="w-4 h-4" />
+            <span className="ml-2">Cancelar</span>
+          </Button>
+        </div>
+      )}
 
+      {/* Botões de ação principais */}
+      {!hasChanges && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || isUploading}
-              className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
               <Camera className="w-4 h-4 mr-2" />
               {previewAvatar ? 'Alterar Foto' : 'Adicionar Foto'}
-            </Button>
-            
-            {previewAvatar && (
-              <Button
-                variant="outline"
-                onClick={handleRemoveAvatar}
-                disabled={disabled || isUploading}
-                className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Remover Foto
-              </Button>
-            )}
-          </>
-        ) : (
-          /* Botões de confirmação quando há mudanças */
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            </Button>          {previewAvatar && (
             <Button
-              onClick={handleSaveAvatar}
-              disabled={disabled || isUploading}
-              className="bg-[#10b981] hover:bg-[#059669] text-white w-full sm:w-auto min-h-[44px] touch-manipulation"
-            >
-              {isUploading ? "Salvando..." : "Salvar Alteração"}
-            </Button>
-            <Button
-              onClick={handleCancelPreview}
-              disabled={disabled || isUploading}
               variant="outline"
-              className="border-[#27272a] text-[#a1a1aa] hover:bg-[#27272a] w-full sm:w-auto min-h-[44px] touch-manipulation"
+              onClick={handleRemoveAvatar}
+              disabled={disabled || isUploading}
+              className="border-red-600/50 text-red-400 hover:bg-red-600/20 hover:border-red-500 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
-              Cancelar
+              <X className="w-4 h-4 mr-2" />
+              Remover Foto
             </Button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
+      {/* Input file oculto */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        onChange={handleFileChange}
+        className="hidden"
+        disabled={disabled || isUploading}
+      />
 
       {/* Requisitos com emojis */}
       <div className="bg-[#111111] rounded-lg p-3 sm:p-4 border border-[#27272a]">
