@@ -1795,20 +1795,20 @@ export default function AgendaPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
-          <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
-          {lastUpdated && (
-            <p className="text-xs text-[#71717a] mt-1">
-              Última atualização: {lastUpdated.toLocaleString('pt-BR')}
-            </p>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
+            <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
+            {lastUpdated && (
+              <p className="text-xs text-[#71717a] mt-1">
+                Última atualização: {lastUpdated.toLocaleString('pt-BR')}
+              </p>
+            )}
+          </div>
+          
           {/* ✅ DESKTOP: Layout horizontal - ordem original (Atualizar primeiro) */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 lg:ml-auto">
             <Button 
               onClick={handleRefreshData}
               disabled={isRefreshing}
@@ -1829,12 +1829,12 @@ export default function AgendaPage() {
             </Button>
           </div>
 
-          {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
-          <div className="flex md:hidden flex-col items-center gap-3 w-full">
-            <div className="flex flex-col gap-3 w-full">
+          {/* ✅ MOBILE: Igual estrutura WhatsApp */}
+          <div className="md:hidden lg:ml-auto w-full lg:w-auto">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               <Button 
                 onClick={() => setIsNewAppointmentOpen(true)}
-                className="bg-[#10b981] hover:bg-[#059669] text-sm w-full flex items-center justify-center gap-2"
+                className="bg-[#10b981] hover:bg-[#059669] text-sm w-full lg:w-auto flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Novo Agendamento
@@ -1845,7 +1845,7 @@ export default function AgendaPage() {
                 disabled={isRefreshing}
                 variant="outline"
                 size="sm"
-                className="border-[#27272a] hover:bg-[#27272a] text-sm w-full flex items-center justify-center gap-2"
+                className="border-[#27272a] hover:bg-[#27272a] text-sm w-full lg:w-auto flex items-center justify-center gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Atualizando...' : 'Atualizar'}

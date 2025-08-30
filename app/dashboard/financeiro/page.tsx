@@ -1108,25 +1108,25 @@ export default function FinanceiroPage() {
   return (
     <div className="space-y-8">
       {/* Header com filtro por profissional */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
-            {lastUpdated && (
-              <span className="text-xs text-[#52525b] sm:ml-2">
-                • Última atualização: {lastUpdated.toLocaleTimeString('pt-BR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </span>
-            )}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
+              {lastUpdated && (
+                <span className="text-xs text-[#52525b] sm:ml-2">
+                  • Última atualização: {lastUpdated.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
+          
           {/* ✅ DESKTOP: Ordem original - Botão depois Filtro */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3 lg:ml-auto">
             {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
             <Button
               onClick={handleRefreshData}
@@ -1187,12 +1187,12 @@ export default function FinanceiroPage() {
             </Select>
           </div>
 
-          {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
-          <div className="flex sm:hidden flex-col items-center gap-3 w-full">
-            <div className="flex flex-col gap-3 w-full">
+          {/* ✅ MOBILE: Igual estrutura WhatsApp */}
+          <div className="sm:hidden lg:ml-auto w-full lg:w-auto">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               {/* ✅ SELETOR DE PERÍODO */}
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-full bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed]">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1204,7 +1204,7 @@ export default function FinanceiroPage() {
               
               {/* ✅ FILTRO POR PROFISSIONAL */}
               <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                <SelectTrigger className="w-full bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed]">
                   <SelectValue placeholder="Filtrar por profissional" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1228,7 +1228,7 @@ export default function FinanceiroPage() {
                 disabled={isRefreshing}
                 variant="outline"
                 size="sm"
-                className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center justify-center gap-2 w-full"
+                className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center justify-center gap-2 w-full lg:w-auto"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Atualizando...' : 'Atualizar'}
