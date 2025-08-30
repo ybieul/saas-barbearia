@@ -274,7 +274,7 @@ export default function WhatsAppPage() {
           
           {/* Status de Conexão e Botão Conectar WhatsApp */}
           <div className="lg:ml-auto">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               {/* Botão Conectar WhatsApp */}
               <Dialog>
                 <DialogTrigger asChild>
@@ -301,8 +301,8 @@ export default function WhatsAppPage() {
                 </DialogContent>
               </Dialog>
 
-              {/* Indicador de Status - Desktop: ao lado, Mobile: abaixo */}
-              <div className="flex items-center gap-2 text-sm lg:order-first">
+              {/* Indicador de Status - Desktop: ao lado, Mobile: centralizado abaixo */}
+              <div className="flex items-center justify-center lg:justify-start gap-2 text-sm lg:order-first">
                 {isLoadingStatus ? (
                   <div className="flex items-center gap-2 text-gray-400">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>

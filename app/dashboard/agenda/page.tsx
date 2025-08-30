@@ -1807,34 +1807,51 @@ export default function AgendaPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Versão Mobile - Novo Agendamento primeiro */}
-          <Button 
-            onClick={() => setIsNewAppointmentOpen(true)}
-            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm md:hidden"
-          >
-            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-            Novo Agendamento
-          </Button>
-          
-          <Button 
-            onClick={handleRefreshData}
-            disabled={isRefreshing}
-            variant="outline"
-            size="sm"
-            className="border-[#27272a] hover:bg-[#27272a] text-xs md:text-sm"
-          >
-            <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-          </Button>
-          
-          {/* Versão Desktop - ordem original (Atualizar primeiro) */}
-          <Button 
-            onClick={() => setIsNewAppointmentOpen(true)}
-            className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm hidden md:flex"
-          >
-            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-            Novo Agendamento
-          </Button>
+          {/* ✅ DESKTOP: Layout horizontal - ordem original (Atualizar primeiro) */}
+          <div className="hidden md:flex items-center gap-2">
+            <Button 
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="border-[#27272a] hover:bg-[#27272a] text-xs md:text-sm"
+            >
+              <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+            
+            <Button 
+              onClick={() => setIsNewAppointmentOpen(true)}
+              className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm"
+            >
+              <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+              Novo Agendamento
+            </Button>
+          </div>
+
+          {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
+          <div className="flex md:hidden flex-col items-center gap-3 w-full">
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              <Button 
+                onClick={() => setIsNewAppointmentOpen(true)}
+                className="bg-[#10b981] hover:bg-[#059669] text-sm w-full flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Novo Agendamento
+              </Button>
+              
+              <Button 
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+                className="border-[#27272a] hover:bg-[#27272a] text-sm w-full flex items-center justify-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -212,13 +212,15 @@ export default function ClientesPage() {
         
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button 
-              className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
-              onClick={() => resetForm()}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Cliente
-            </Button>
+            <div className="flex justify-center lg:justify-start">
+              <Button 
+                className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
+                onClick={() => resetForm()}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
+            </div>
           </DialogTrigger>
           <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
             {/* Header fixo */}

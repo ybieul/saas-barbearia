@@ -1187,51 +1187,53 @@ export default function FinanceiroPage() {
             </Select>
           </div>
 
-          {/* ✅ MOBILE: Ordem invertida - Período + Filtro + Botão */}
-          <div className="flex sm:hidden items-center gap-3">
-            {/* ✅ SELETOR DE PERÍODO */}
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-28 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="week">Semana</SelectItem>
-                <SelectItem value="month">Mês</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {/* ✅ FILTRO POR PROFISSIONAL */}
-            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-              <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <SelectValue placeholder="Filtrar por profissional" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="todos">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Todos os profissionais
-                  </div>
-                </SelectItem>
-                {professionals?.map((professional: any) => (
-                  <SelectItem key={professional.id} value={professional.id}>
-                    {sanitizeString(professional.name)}
+          {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
+          <div className="flex sm:hidden flex-col items-center gap-3 w-full">
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              {/* ✅ SELETOR DE PERÍODO */}
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-full bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-[#27272a]">
+                  <SelectItem value="today">Hoje</SelectItem>
+                  <SelectItem value="week">Semana</SelectItem>
+                  <SelectItem value="month">Mês</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* ✅ FILTRO POR PROFISSIONAL */}
+              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                <SelectTrigger className="w-full bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <SelectValue placeholder="Filtrar por profissional" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-[#27272a]">
+                  <SelectItem value="todos">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Todos os profissionais
+                    </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
-            <Button
-              onClick={handleRefreshData}
-              disabled={isRefreshing}
-              variant="outline"
-              size="sm"
-              className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-            </Button>
+                  {professionals?.map((professional: any) => (
+                    <SelectItem key={professional.id} value={professional.id}>
+                      {sanitizeString(professional.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
+              <Button
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+                className="bg-[#18181b] border-[#27272a] text-[#ededed] hover:bg-[#27272a] hover:border-[#3f3f46] flex items-center justify-center gap-2 w-full"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
