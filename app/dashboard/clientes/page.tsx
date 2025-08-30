@@ -212,9 +212,9 @@ export default function ClientesPage() {
         
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <div className="flex justify-center lg:justify-start">
+            <div className="flex justify-center lg:justify-start w-full lg:w-auto">
               <Button 
-                className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
+                className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white w-full lg:w-auto"
                 onClick={() => resetForm()}
               >
                 <Plus className="w-4 h-4 mr-2" />

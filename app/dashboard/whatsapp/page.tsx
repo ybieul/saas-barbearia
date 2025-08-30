@@ -273,13 +273,13 @@ export default function WhatsAppPage() {
           </div>
           
           {/* Status de Conexão e Botão Conectar WhatsApp */}
-          <div className="lg:ml-auto">
+          <div className="lg:ml-auto w-full lg:w-auto">
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               {/* Botão Conectar WhatsApp */}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
+                    className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base w-full lg:w-auto"
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
                     Conectar WhatsApp

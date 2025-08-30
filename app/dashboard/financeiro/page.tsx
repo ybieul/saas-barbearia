@@ -1189,7 +1189,7 @@ export default function FinanceiroPage() {
 
           {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
           <div className="flex sm:hidden flex-col items-center gap-3 w-full">
-            <div className="flex flex-col gap-3 w-full max-w-xs">
+            <div className="flex flex-col gap-3 w-full max-w-sm">
               {/* ✅ SELETOR DE PERÍODO */}
               <Select value={period} onValueChange={setPeriod}>
                 <SelectTrigger className="w-full bg-[#18181b] border-[#27272a] text-[#ededed]">
