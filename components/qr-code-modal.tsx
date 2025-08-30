@@ -29,30 +29,47 @@ export function QrCodeModal({ isOpen, onClose, customLink, businessName, busines
       const element = document.getElementById('printableArea')
       
       if (element) {
-        // Capturar o elemento como imagem
+        // Capturar o elemento como imagem com fundo branco garantido
         const canvas = await html2canvas(element, { 
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          allowTaint: true,
-          logging: false
+          scale: 2, 
+          backgroundColor: '#ffffff' // Garantir fundo branco
         })
         
         const imgData = canvas.toDataURL('image/png')
         
-        // Criar PDF
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = pdf.internal.pageSize.getHeight()
+        const pdf = new jsPDF('p', 'mm', 'a4') // 'p' para portrait, 'mm' para milímetros, 'a4' para tamanho
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth()    // Largura da página A4 em mm
+        const pdfHeight = pdf.internal.pageSize.getHeight()  // Altura da página A4 em mm
+        
         const imgProps = pdf.getImageProperties(imgData)
-        const imgWidth = pdfWidth - 20 // Margem de 10mm de cada lado
-        const imgHeight = (imgProps.height * imgWidth) / imgProps.width
+        const imgWidth = imgProps.width
+        const imgHeight = imgProps.height
+
+        // Calcular a proporção da imagem
+        const ratio = imgHeight / imgWidth
+
+        // Definir largura máxima da imagem no PDF com margem (ex: 10mm de cada lado)
+        const maxPdfImageWidth = pdfWidth - 20 // 20mm de margem total (10mm esquerda, 10mm direita)
+        let finalImgWidth = maxPdfImageWidth
+        let finalImgHeight = maxPdfImageWidth * ratio
+
+        // Se a altura calculada for maior que a altura do PDF (com margem), 
+        // ajusta pela altura para garantir que não corte
+        const maxPdfImageHeight = pdfHeight - 20 // 20mm de margem total (10mm topo, 10mm base)
+        if (finalImgHeight > maxPdfImageHeight) {
+          finalImgHeight = maxPdfImageHeight
+          finalImgWidth = finalImgHeight / ratio
+        }
+
+        // Centralizar a imagem no PDF
+        const x = (pdfWidth - finalImgWidth) / 2
+        const y = (pdfHeight - finalImgHeight) / 2
         
-        // Centralizar a imagem na página
-        const x = 10 // Margem esquerda
-        const y = (pdfHeight - imgHeight) / 2 // Centralizar verticalmente
+        // Adiciona a imagem ao PDF
+        pdf.addImage(imgData, 'PNG', x, y, finalImgWidth, finalImgHeight)
         
-        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight)
+        // Inicia o download
         pdf.save(`TymerBook-QRCode-${businessName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`)
       }
     } catch (error) {

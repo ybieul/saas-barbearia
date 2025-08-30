@@ -52,9 +52,21 @@ O cartaz gerado inclui:
 
 - **Responsivo**: Funciona em desktop e mobile
 - **Qualidade**: QR Code em alta resolução (scale: 2)
-- **Formato**: PDF A4 com margem adequada
+- **Formato**: PDF A4 com margem adequada (10mm em todas as bordas)
+- **Redimensionamento inteligente**: Calcula proporção automaticamente para evitar cortes
+- **Centralização**: Imagem centralizada tanto horizontal quanto verticalmente
 - **Arquivo**: Nome personalizado baseado no estabelecimento
 - **Loading**: Estado de "Gerando PDF..." durante processamento
+- **Fundo branco garantido**: backgroundColor '#ffffff' forçado no html2canvas
+
+### Algoritmo de Redimensionamento
+
+1. **Captura**: html2canvas com scale 2 e fundo branco
+2. **Dimensões**: Calcula largura e altura da página A4
+3. **Proporção**: Mantém aspect ratio original da imagem
+4. **Largura**: Ajusta para máximo de (largura PDF - 20mm de margem)
+5. **Altura**: Se exceder altura máxima, ajusta pela altura
+6. **Centralização**: Calcula X e Y para centralizar perfeitamente
 
 ### Como Usar
 
