@@ -29,42 +29,58 @@ interface AuthUser {
 }
 
 function verifyToken(request: NextRequest): AuthUser {
-  console.log("--- INICIANDO VERIFICAÇÃO DE PERMISSÃO (STATUS) ---")
+  if (process.env.NODE_ENV === 'development') {
+    console.log("--- INICIANDO VERIFICAÇÃO DE PERMISSÃO (STATUS) ---")
+  }
   
   // Tentar obter token do header Authorization
   let token = request.headers.get('authorization')?.replace('Bearer ', '')
-  console.log("1. Token do Authorization header:", token ? "✅ Encontrado" : "❌ Não encontrado")
+  if (process.env.NODE_ENV === 'development') {
+    console.log("1. Token do Authorization header:", token ? "✅ Encontrado" : "❌ Não encontrado")
+  }
   
   // Se não tiver no header, tentar obter do cookie
   if (!token) {
     token = request.cookies.get('token')?.value
-    console.log("1.1. Token do cookie:", token ? "✅ Encontrado" : "❌ Não encontrado")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("1.1. Token do cookie:", token ? "✅ Encontrado" : "❌ Não encontrado")
+    }
   }
   
   // Se ainda não tiver, tentar obter do header x-auth-token
   if (!token) {
     token = request.headers.get('x-auth-token') || undefined
-    console.log("1.2. Token do x-auth-token header:", token ? "✅ Encontrado" : "❌ Não encontrado")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("1.2. Token do x-auth-token header:", token ? "✅ Encontrado" : "❌ Não encontrado")
+    }
   }
 
-  console.log("2. Token final obtido:", token ? `✅ ${token.substring(0, 20)}...` : "❌ Nenhum token")
+  if (process.env.NODE_ENV === 'development') {
+    console.log("2. Token final obtido:", token ? `✅ ${token.substring(0, 20)}...` : "❌ Nenhum token")
+  }
 
   if (!token) {
-    console.log("❌ ERRO: Token não fornecido")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("❌ ERRO: Token não fornecido")
+    }
     throw new Error('Token não fornecido')
   }
 
   try {
-    console.log("3. Tentando decodificar token...")
-    console.log("3.1. NEXTAUTH_SECRET existe:", process.env.NEXTAUTH_SECRET ? "✅ Sim" : "❌ Não")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("3. Tentando decodificar token...")
+      console.log("3.1. NEXTAUTH_SECRET existe:", process.env.NEXTAUTH_SECRET ? "✅ Sim" : "❌ Não")
+    }
     
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
     
-    console.log("4. ✅ Token decodificado com sucesso:")
-    console.log("4.1. userId:", decoded.userId)
-    console.log("4.2. tenantId:", decoded.tenantId) 
-    console.log("4.3. email:", decoded.email)
-    console.log("4.4. role:", decoded.role)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("4. ✅ Token decodificado com sucesso:")
+      console.log("4.1. userId:", decoded.userId)
+      console.log("4.2. tenantId:", decoded.tenantId) 
+      console.log("4.3. email:", decoded.email)
+      console.log("4.4. role:", decoded.role)
+    }
     
     return {
       userId: decoded.userId,
@@ -73,10 +89,12 @@ function verifyToken(request: NextRequest): AuthUser {
       role: decoded.role
     }
   } catch (error: any) {
-    console.error("❌ ERRO na validação do token:")
-    console.error("5.1. Tipo do erro:", error.name)
-    console.error("5.2. Mensagem:", error.message)
-    console.error("5.3. Stack:", error.stack)
+    if (process.env.NODE_ENV === 'development') {
+      console.error("❌ ERRO na validação do token:")
+      console.error("5.1. Tipo do erro:", error.name)
+      console.error("5.2. Mensagem:", error.message)
+      console.error("5.3. Stack:", error.stack)
+    }
     throw new Error('Token inválido')
   }
 }
@@ -86,21 +104,31 @@ export async function GET(
   { params }: { params: { tenantId: string } }
 ) {
   try {
-    console.log("=== ROTA GET STATUS INICIADA ===")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("=== ROTA GET STATUS INICIADA ===")
+    }
     
     // Autenticação
-    console.log("6. Iniciando verificação de token...")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("6. Iniciando verificação de token...")
+    }
     const user = verifyToken(request)
-    console.log("7. ✅ Token verificado com sucesso")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("7. ✅ Token verificado com sucesso")
+    }
     
-    console.log("8. Verificando permissão para tenant...")
-    console.log("8.1. Tenant ID da URL:", params.tenantId)
-    console.log("8.2. Tenant ID do token:", user.tenantId)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("8. Verificando permissão para tenant...")
+      console.log("8.1. Tenant ID da URL:", params.tenantId)
+      console.log("8.2. Tenant ID do token:", user.tenantId)
+    }
     
     if (!user || user.tenantId !== params.tenantId) {
-      console.log("❌ ERRO 403: Permissão negada")
-      console.log("8.3. User existe:", !!user)
-      console.log("8.4. IDs correspondem:", user?.tenantId === params.tenantId)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("❌ ERRO 403: Permissão negada")
+        console.log("8.3. User existe:", !!user)
+        console.log("8.4. IDs correspondem:", user?.tenantId === params.tenantId)
+      }
       return NextResponse.json(
         { error: 'Não autorizado' },
         { status: 401 }

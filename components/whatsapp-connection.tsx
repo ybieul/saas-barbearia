@@ -38,9 +38,11 @@ export function WhatsAppConnection() {
     // Tentar obter token de diferentes locais para compatibilidade
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
     
-    console.log('🔐 [Frontend] Fazendo chamada API:', endpoint)
-    console.log('🔐 [Frontend] Token encontrado:', token ? '✅ Sim' : '❌ Não')
-    console.log('🔐 [Frontend] TenantId:', user.tenantId)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 [Frontend] Fazendo chamada API:', endpoint)
+      console.log('🔐 [Frontend] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+      console.log('🔐 [Frontend] TenantId:', user.tenantId)
+    }
 
     const response = await fetch(`/api/tenants/${user.tenantId}/whatsapp/${endpoint}`, {
       headers: {
@@ -51,17 +53,23 @@ export function WhatsAppConnection() {
       ...options,
     })
 
-    console.log('📡 [Frontend] Response status:', response.status)
-    console.log('📡 [Frontend] Response ok:', response.ok)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📡 [Frontend] Response status:', response.status)
+      console.log('📡 [Frontend] Response ok:', response.ok)
+    }
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error('❌ [Frontend] Erro na API:', errorData)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Frontend] Erro na API:', errorData)
+      }
       throw new Error(errorData.error || `Erro HTTP ${response.status}`)
     }
 
     const responseData = await response.json()
-    console.log('✅ [Frontend] Resposta da API:', responseData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ [Frontend] Resposta da API:', responseData)
+    }
     return responseData
   }, [user?.tenantId])
 
@@ -69,7 +77,9 @@ export function WhatsAppConnection() {
   useEffect(() => {
     return () => {
       if (pollingInterval) {
-        console.log('🧹 [Frontend] Limpando polling no unmount')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🧹 [Frontend] Limpando polling no unmount')
+        }
         clearInterval(pollingInterval)
       }
     }
@@ -90,7 +100,9 @@ export function WhatsAppConnection() {
         setConnectionStatus('disconnected')
       }
     } catch (err: any) {
-      console.error('Erro ao verificar status inicial:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao verificar status inicial:', err)
+      }
       setError(err.message)
       setConnectionStatus('disconnected')
     } finally {
@@ -101,12 +113,16 @@ export function WhatsAppConnection() {
   // Verificar status durante o polling
   const checkConnectionStatus = useCallback(async (currentInstanceName: string) => {
     try {
-      console.log('🔍 [Frontend] Verificando status da conexão (polling)...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [Frontend] Verificando status da conexão (polling)...')
+      }
       const data: WhatsAppConnectionData = await apiCall(`status?instanceName=${currentInstanceName}`)
       
       if (data.connected && data.status === 'open') {
         // Conexão estabelecida!
-        console.log('✅ [Frontend] WhatsApp conectado detectado - parando polling')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [Frontend] WhatsApp conectado detectado - parando polling')
+        }
         setConnectionStatus('connected')
         setQrCodeBase64(null)
         setInstanceName(data.instanceName)
@@ -115,7 +131,9 @@ export function WhatsAppConnection() {
         if (pollingInterval) {
           clearInterval(pollingInterval)
           setPollingInterval(null)
-          console.log('🛑 [Frontend] Polling interrompido')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🛑 [Frontend] Polling interrompido')
+          }
         }
 
         toast({
@@ -129,7 +147,9 @@ export function WhatsAppConnection() {
       
       return false // Conexão ainda não estabelecida
     } catch (err: any) {
-      console.error('Erro no polling:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro no polling:', err)
+      }
       // Não mostrar erro durante polling para evitar spam
       return false
     }
@@ -148,7 +168,9 @@ export function WhatsAppConnection() {
 
       // Verificar se já está conectado (lógica idempotente)
       if (response.alreadyConnected) {
-        console.log('✅ [Frontend] WhatsApp já estava conectado')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [Frontend] WhatsApp já estava conectado')
+        }
         setConnectionStatus('connected')
         setInstanceName(response.instanceName)
         setQrCodeBase64(null)
@@ -164,7 +186,9 @@ export function WhatsAppConnection() {
 
       // Fluxo normal - QR Code gerado
       if (response.success && response.qrcode) {
-        console.log('📱 [Frontend] QR Code gerado - iniciando polling')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📱 [Frontend] QR Code gerado - iniciando polling')
+        }
         setQrCodeBase64(response.qrcode)
         setInstanceName(response.instanceName)
         
@@ -174,7 +198,9 @@ export function WhatsAppConnection() {
           if (isConnected) {
             // Conexão detectada, limpar este polling também
             clearInterval(interval)
-            console.log('🛑 [Frontend] Polling principal interrompido')
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🛑 [Frontend] Polling principal interrompido')
+            }
           }
         }, 3000) // A cada 3 segundos
 
@@ -188,7 +214,9 @@ export function WhatsAppConnection() {
         throw new Error('Erro ao gerar QR Code')
       }
     } catch (err: any) {
-      console.error('Erro ao conectar:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao conectar:', err)
+      }
       setError(err.message)
       setConnectionStatus('error')
     } finally {
@@ -201,7 +229,9 @@ export function WhatsAppConnection() {
     try {
       setIsLoading(true)
       setError(null)
-      console.log('🔄 [Frontend] Iniciando desconexão do WhatsApp...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 [Frontend] Iniciando desconexão do WhatsApp...')
+      }
 
       await apiCall('disconnect', {
         method: 'DELETE',
@@ -214,7 +244,9 @@ export function WhatsAppConnection() {
       
       // Parar polling se estiver ativo
       if (pollingInterval) {
-        console.log('🛑 [Frontend] Limpando polling na desconexão')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🛑 [Frontend] Limpando polling na desconexão')
+        }
         clearInterval(pollingInterval)
         setPollingInterval(null)
       }
@@ -224,9 +256,13 @@ export function WhatsAppConnection() {
         description: "Sua conta WhatsApp foi desconectada com sucesso.",
       })
       
-      console.log('✅ [Frontend] WhatsApp desconectado com sucesso')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ [Frontend] WhatsApp desconectado com sucesso')
+      }
     } catch (err: any) {
-      console.error('Erro ao desconectar:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao desconectar:', err)
+      }
       setError(err.message)
       setConnectionStatus('error')
     } finally {

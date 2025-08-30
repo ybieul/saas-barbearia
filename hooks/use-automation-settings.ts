@@ -28,11 +28,15 @@ export function useAutomationSettings() {
     try {
       setIsLoading(true)
       setError(null)
-      console.log('📋 [Hook] Carregando configurações de automação...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📋 [Hook] Carregando configurações de automação...')
+      }
       
       // Obter token do localStorage
       const token = localStorage.getItem('auth_token')
-      console.log('🔍 [Hook] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [Hook] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+      }
 
       const headers: Record<string, string> = {
         'Accept': 'application/json'
@@ -43,11 +47,15 @@ export function useAutomationSettings() {
       }
       
       const response = await fetch('/api/automation-settings', { headers })
-      console.log('📋 [Hook] Response status:', response.status)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📋 [Hook] Response status:', response.status)
+      }
       
       if (response.ok) {
         const apiSettings = await response.json()
-        console.log('📋 [Hook] Configurações carregadas:', apiSettings)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📋 [Hook] Configurações carregadas:', apiSettings)
+        }
         
         const newSettings: AutomationSettings = {
           confirmationEnabled: apiSettings.confirmation?.isEnabled ?? false,
@@ -59,16 +67,22 @@ export function useAutomationSettings() {
         }
         
         setSettings(newSettings)
-        console.log('✅ [Hook] Configurações aplicadas:', newSettings)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [Hook] Configurações aplicadas:', newSettings)
+        }
         return newSettings
       } else {
         const errorData = await response.text()
-        console.error('❌ [Hook] Erro ao carregar configurações:', response.status, errorData)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ [Hook] Erro ao carregar configurações:', response.status, errorData)
+        }
         throw new Error(`Erro ${response.status}: ${errorData}`)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      console.error('❌ [Hook] Erro ao carregar configurações:', errorMessage)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Hook] Erro ao carregar configurações:', errorMessage)
+      }
       setError(errorMessage)
       return null
     } finally {
@@ -79,11 +93,15 @@ export function useAutomationSettings() {
   const updateSetting = useCallback(async (automationType: string, isEnabled: boolean): Promise<boolean> => {
     try {
       setError(null)
-      console.log(`💾 [Hook] Salvando: ${automationType} = ${isEnabled}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`💾 [Hook] Salvando: ${automationType} = ${isEnabled}`)
+      }
       
       // Obter token do localStorage
       const token = localStorage.getItem('auth_token')
-      console.log('🔍 [Hook] Token encontrado para save:', token ? '✅ Sim' : '❌ Não')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [Hook] Token encontrado para save:', token ? '✅ Sim' : '❌ Não')
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -102,11 +120,15 @@ export function useAutomationSettings() {
         }),
       })
 
-      console.log('💾 [Hook] Response status:', response.status)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('💾 [Hook] Response status:', response.status)
+      }
       
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ [Hook] Configuração salva:', result)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [Hook] Configuração salva:', result)
+        }
         
         // Atualizar estado local
         setSettings(prev => {
@@ -128,19 +150,25 @@ export function useAutomationSettings() {
               updated.reactivationEnabled = isEnabled
               break
           }
-          console.log('🔄 [Hook] Estado atualizado:', updated)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔄 [Hook] Estado atualizado:', updated)
+          }
           return updated
         })
         
         return true // IMPORTANTE: retornar true quando sucesso
       } else {
         const errorData = await response.text()
-        console.error('❌ [Hook] Erro ao salvar:', response.status, errorData)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ [Hook] Erro ao salvar:', response.status, errorData)
+        }
         throw new Error(`Erro ${response.status}: ${errorData}`)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      console.error('❌ [Hook] Erro ao salvar configuração:', errorMessage)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Hook] Erro ao salvar configuração:', errorMessage)
+      }
       setError(errorMessage)
       
       // Recarregar configurações em caso de erro
