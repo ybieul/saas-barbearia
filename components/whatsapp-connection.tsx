@@ -119,7 +119,7 @@ export function WhatsAppConnection() {
         }
 
         toast({
-          title: "✅ WhatsApp Conectado!",
+          title: "WhatsApp Conectado!",
           description: "Seu número WhatsApp foi conectado com sucesso.",
           duration: 5000,
         })
@@ -154,7 +154,7 @@ export function WhatsAppConnection() {
         setQrCodeBase64(null)
         
         toast({
-          title: "✅ WhatsApp Já Conectado!",
+          title: "WhatsApp Já Conectado!",
           description: response.message || "Seu WhatsApp já estava conectado.",
           duration: 5000,
         })
@@ -348,7 +348,7 @@ export function WhatsAppConnection() {
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-2 text-green-600">
             <CheckCircle className="h-5 w-5" />
-            <span className="font-medium">✅ WhatsApp Conectado com Sucesso!</span>
+            <span className="font-medium text-sm sm:text-base">WhatsApp Conectado com Sucesso!</span>
           </div>
           
           {instanceName && (

@@ -273,52 +273,54 @@ export default function WhatsAppPage() {
           </div>
           
           {/* Status de Conexão e Botão Conectar WhatsApp */}
-          <div className="lg:ml-auto flex items-center gap-3">
-            {/* Indicador de Status */}
-            <div className="flex items-center gap-2 text-sm">
-              {isLoadingStatus ? (
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                  <span>Verificando...</span>
-                </div>
-              ) : isConnected ? (
-                <div className="flex items-center gap-2 text-green-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="font-medium">Conectado</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-red-400">
-                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                  <span className="font-medium">Desconectado</span>
-                </div>
-              )}
-            </div>
+          <div className="lg:ml-auto">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+              {/* Botão Conectar WhatsApp */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
+                  >
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    Conectar WhatsApp
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md mx-auto sm:w-full sm:max-w-md rounded-xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Smartphone className="h-5 w-5" />
+                      Conexão WhatsApp
+                    </DialogTitle>
+                    <DialogDescription>
+                      Conecte seu número de WhatsApp para enviar mensagens automáticas aos seus clientes
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <WhatsAppConnection />
+                  </div>
+                </DialogContent>
+              </Dialog>
 
-            {/* Botão Conectar WhatsApp */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
-                >
-                  <Smartphone className="w-4 h-4 mr-2" />
-                  Conectar WhatsApp
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md mx-auto sm:w-full sm:max-w-md rounded-xl">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    Conexão WhatsApp
-                  </DialogTitle>
-                  <DialogDescription>
-                    Conecte seu número de WhatsApp para enviar mensagens automáticas aos seus clientes
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="mt-4">
-                  <WhatsAppConnection />
-                </div>
-              </DialogContent>
-            </Dialog>
+              {/* Indicador de Status - Desktop: ao lado, Mobile: abaixo */}
+              <div className="flex items-center gap-2 text-sm lg:order-first">
+                {isLoadingStatus ? (
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                    <span>Verificando...</span>
+                  </div>
+                ) : isConnected ? (
+                  <div className="flex items-center gap-2 text-green-400">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="font-medium">Conectado</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-400">
+                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                    <span className="font-medium">Desconectado</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
