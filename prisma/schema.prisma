@@ -33,10 +33,14 @@ model Tenant {
   businessLogo      String?   @db.LongText
   businessCnpj      String?   // CNPJ da empresa
   businessInstagram String?   // URL do Instagram
-  businessPlan      String    @default("BASIC") // Plano contratado
-  subscriptionStart DateTime  @default(now())
-  subscriptionEnd   DateTime?
-  isActive          Boolean   @default(true)
+  
+  // Subscription and billing (assinaturas e cobrança)
+  businessPlan         String    @default("FREE") // FREE, BASIC, PREMIUM
+  subscriptionStart    DateTime  @default(now())
+  subscriptionEnd      DateTime?
+  isActive             Boolean   @default(false)
+  kirvanoCustomerId    String?   @unique // ID do cliente na Kirvano
+  kirvanoSubscriptionId String?  @unique // ID da assinatura na Kirvano
   
   // WhatsApp Evolution API
   whatsapp_instance_name String? @unique // Nome da instância da Evolution API
