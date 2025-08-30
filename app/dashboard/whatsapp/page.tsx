@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { WhatsAppStatus } from "@/components/whatsapp-status"
 import { WhatsAppConnection } from "@/components/whatsapp-connection"
-import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber, checkWhatsAppStatus } from "@/lib/whatsapp"
-import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle } from "lucide-react"
+import { sendWhatsAppMessage, whatsappTemplates, formatPhoneNumber } from "@/lib/whatsapp"
+import { MessageCircle, Send, Settings, Users, Clock, Zap, TestTube, CheckCircle, AlertCircle, Smartphone } from "lucide-react"
 import { useAppointments, useClients } from "@/hooks/use-api"
 import { useAutomationSettings } from "@/hooks/use-automation-settings"
 import { useWhatsAppStats } from "@/hooks/use-whatsapp-stats"
@@ -71,13 +72,6 @@ export default function WhatsAppPage() {
     }
   }
 
-  const [whatsappStatus, setWhatsappStatus] = useState<{
-    connected: boolean
-    instanceName: string | null
-    error?: string
-    loading: boolean
-  }>({ connected: false, instanceName: null, loading: true })
-
   // Buscar dados reais da API
   const { appointments, loading, fetchAppointments } = useAppointments()
   const { clients, fetchClients } = useClients()
@@ -89,32 +83,8 @@ export default function WhatsAppPage() {
     fetchAppointments()
     fetchClients()
     loadAutomationSettings()
-    checkEvolutionStatus()
     refetchStats()
   }, [fetchAppointments, fetchClients, loadAutomationSettings, refetchStats])
-
-  // Verificar status da Evolution API
-  const checkEvolutionStatus = async () => {
-    try {
-      setWhatsappStatus(prev => ({ ...prev, loading: true }))
-      const status = await checkWhatsAppStatus()
-      setWhatsappStatus({
-        connected: status.connected,
-        instanceName: status.instanceName,
-        error: status.error,
-        loading: false
-      })
-      console.log('📡 Status Evolution API:', status)
-    } catch (error) {
-      console.error('❌ Erro ao verificar status:', error)
-      setWhatsappStatus({
-        connected: false,
-        instanceName: null,
-        error: 'Erro ao conectar',
-        loading: false
-      })
-    }
-  }
 
   // Usar dados reais das estatísticas do WhatsApp ou fallback para dados simulados
   let automationStats = []
@@ -288,9 +258,6 @@ export default function WhatsAppPage() {
 
   return (
     <div className="space-y-8">
-      {/* Componente de Conexão WhatsApp Multi-Tenant */}
-      <WhatsAppConnection />
-
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
@@ -301,54 +268,32 @@ export default function WhatsAppPage() {
             <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
           </div>
           
-          {/* Status da conexão e botão verificar - lado direito */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:ml-auto">
-            <Button 
-              variant="outline" 
-              onClick={checkEvolutionStatus}
-              disabled={whatsappStatus.loading}
-              className="border-[#3f3f46] text-[#71717a] hover:text-white bg-transparent text-sm sm:text-base order-2 sm:order-1"
-            >
-              {whatsappStatus.loading ? (
-                <Clock className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Settings className="w-4 h-4 mr-2" />
-              )}
-              {whatsappStatus.loading ? 'Verificando...' : 'Verificar Conexão'}
-            </Button>
-            
-            {/* Status da conexão */}
-            <div className="order-1 sm:order-2 px-4 py-2 bg-[#18181b] border border-[#27272a] rounded-md">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-[#a1a1aa]">Conexão com o WhatsApp:</span>
-                {whatsappStatus.loading ? (
-                  <>
-                    <Clock className="w-4 h-4 animate-spin text-yellow-400 flex-shrink-0" />
-                    <span className="text-sm font-medium text-yellow-400">Verificando...</span>
-                  </>
-                ) : whatsappStatus.connected ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-green-400">Conectado</span>
-                      {whatsappStatus.instanceName && (
-                        <span className="text-xs text-gray-500">{whatsappStatus.instanceName}</span>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-red-400">Desconectado</span>
-                      {whatsappStatus.error && (
-                        <span className="text-xs text-gray-500 max-w-[200px] truncate">{whatsappStatus.error}</span>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+          {/* Botão Conectar WhatsApp - lado direito */}
+          <div className="lg:ml-auto">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
+                >
+                  <Smartphone className="w-4 h-4 mr-2" />
+                  Conectar WhatsApp
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Conexão WhatsApp
+                  </DialogTitle>
+                  <DialogDescription>
+                    Conecte seu número de WhatsApp para enviar mensagens automáticas aos seus clientes
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4">
+                  <WhatsAppConnection />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>

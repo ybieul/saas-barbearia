@@ -249,156 +249,147 @@ export function WhatsAppConnection() {
   }, [pollingInterval])
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Smartphone className="h-5 w-5" />
-          <CardTitle>Conexão WhatsApp</CardTitle>
-        </div>
-        <CardDescription>
-          Conecte seu número de WhatsApp para enviar mensagens automáticas aos seus clientes
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <CardContent className="space-y-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Estado: Desconectado */}
-        {connectionStatus === 'disconnected' && (
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <AlertCircle className="h-5 w-5" />
-              <span>WhatsApp não conectado</span>
-            </div>
-            <Button 
-              onClick={startConnection} 
-              disabled={isLoading}
-              size="lg"
-              className="w-full sm:w-auto"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando QR Code...
-                </>
-              ) : (
-                <>
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Conectar WhatsApp
-                </>
-              )}
-            </Button>
+      {/* Estado: Desconectado */}
+      {connectionStatus === 'disconnected' && (
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <AlertCircle className="h-5 w-5" />
+            <span>WhatsApp não conectado</span>
           </div>
-        )}
-
-        {/* Estado: Conectando (mostrando QR Code) */}
-        {connectionStatus === 'connecting' && qrCodeBase64 && (
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-blue-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Aguardando conexão...</span>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300 inline-block">
-              <Image
-                src={qrCodeBase64}
-                alt="QR Code WhatsApp"
-                width={200}
-                height={200}
-                className="mx-auto"
-              />
-            </div>
-            
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p><strong>Como conectar:</strong></p>
-              <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
-                <li>Abra o WhatsApp no seu celular</li>
-                <li>Toque em "Mais opções" (⋮) &gt; "Aparelhos conectados"</li>
-                <li>Toque em "Conectar um aparelho"</li>
-                <li>Escaneie este QR Code</li>
-              </ol>
-            </div>
-
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setConnectionStatus('disconnected')
-                setQrCodeBase64(null)
-                if (pollingInterval) {
-                  clearInterval(pollingInterval)
-                  setPollingInterval(null)
-                }
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        )}
-
-        {/* Estado: Conectado */}
-        {connectionStatus === 'connected' && (
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">✅ WhatsApp Conectado com Sucesso!</span>
-            </div>
-            
-            {instanceName && (
-              <div className="text-sm text-muted-foreground">
-                <p>Instância: <code className="bg-gray-100 px-2 py-1 rounded text-xs">{instanceName}</code></p>
-              </div>
+          <Button 
+            onClick={startConnection} 
+            disabled={isLoading}
+            size="lg"
+            className="w-full"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Gerando QR Code...
+              </>
+            ) : (
+              <>
+                <QrCode className="mr-2 h-4 w-4" />
+                Conectar WhatsApp
+              </>
             )}
+          </Button>
+        </div>
+      )}
 
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Seu WhatsApp está conectado e pronto para enviar mensagens automáticas de confirmação e lembretes.
-              </AlertDescription>
-            </Alert>
-
-            <Button 
-              variant="destructive" 
-              onClick={disconnect} 
-              disabled={isLoading}
-              size="sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Desconectando...
-                </>
-              ) : (
-                <>
-                  <Unlink className="mr-2 h-4 w-4" />
-                  Desconectar
-                </>
-              )}
-            </Button>
+      {/* Estado: Conectando (mostrando QR Code) */}
+      {connectionStatus === 'connecting' && qrCodeBase64 && (
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-blue-600">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Aguardando conexão...</span>
           </div>
-        )}
+          
+          <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300 inline-block">
+            <Image
+              src={qrCodeBase64}
+              alt="QR Code WhatsApp"
+              width={200}
+              height={200}
+              className="mx-auto"
+            />
+          </div>
+          
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p><strong>Como conectar:</strong></p>
+            <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+              <li>Abra o WhatsApp no seu celular</li>
+              <li>Toque em "Mais opções" (⋮) &gt; "Aparelhos conectados"</li>
+              <li>Toque em "Conectar um aparelho"</li>
+              <li>Escaneie este QR Code</li>
+            </ol>
+          </div>
 
-        {/* Estado: Erro */}
-        {connectionStatus === 'error' && (
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-red-600">
-              <AlertCircle className="h-5 w-5" />
-              <span>Erro na Conexão</span>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setConnectionStatus('disconnected')
+              setQrCodeBase64(null)
+              if (pollingInterval) {
+                clearInterval(pollingInterval)
+                setPollingInterval(null)
+              }
+            }}
+            className="w-full"
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
+
+      {/* Estado: Conectado */}
+      {connectionStatus === 'connected' && (
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-green-600">
+            <CheckCircle className="h-5 w-5" />
+            <span className="font-medium">✅ WhatsApp Conectado com Sucesso!</span>
+          </div>
+          
+          {instanceName && (
+            <div className="text-sm text-muted-foreground">
+              <p>Instância: <code className="bg-gray-100 px-2 py-1 rounded text-xs">{instanceName}</code></p>
             </div>
-            
-            <Button 
-              onClick={checkInitialStatus}
-              variant="outline"
-            >
-              Tentar Novamente
-            </Button>
+          )}
+
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              Seu WhatsApp está conectado e pronto para enviar mensagens automáticas de confirmação e lembretes.
+            </AlertDescription>
+          </Alert>
+
+          <Button 
+            variant="destructive" 
+            onClick={disconnect} 
+            disabled={isLoading}
+            size="sm"
+            className="w-full"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Desconectando...
+              </>
+            ) : (
+              <>
+                <Unlink className="mr-2 h-4 w-4" />
+                Desconectar
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Estado: Erro */}
+      {connectionStatus === 'error' && (
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            <span>Erro na Conexão</span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          
+          <Button 
+            onClick={checkInitialStatus}
+            variant="outline"
+            className="w-full"
+          >
+            Tentar Novamente
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }
