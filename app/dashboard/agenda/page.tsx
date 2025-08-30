@@ -1831,7 +1831,7 @@ export default function AgendaPage() {
 
           {/* ✅ MOBILE: Em coluna vertical e centralizado (igual WhatsApp) */}
           <div className="flex md:hidden flex-col items-center gap-3 w-full">
-            <div className="flex flex-col gap-3 w-full max-w-sm">
+            <div className="flex flex-col gap-3 w-full">
               <Button 
                 onClick={() => setIsNewAppointmentOpen(true)}
                 className="bg-[#10b981] hover:bg-[#059669] text-sm w-full flex items-center justify-center gap-2"
