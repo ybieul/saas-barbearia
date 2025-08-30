@@ -58,7 +58,9 @@ export function useWhatsAppStatus() {
         setInstanceName(null)
       }
     } catch (err: any) {
-      console.error('Erro ao verificar status do WhatsApp:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao verificar status do WhatsApp:', err)
+      }
       setError(err.message)
       setConnectionStatus('error')
     }

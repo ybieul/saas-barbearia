@@ -143,7 +143,9 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro ao buscar mensagens WhatsApp:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Erro ao buscar mensagens WhatsApp:', error)
+    }
     
     // Se for erro de autenticação, retornar 401
     if (error instanceof Error && error.message.includes('Token')) {

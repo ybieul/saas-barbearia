@@ -14,7 +14,9 @@ export interface TenantWhatsAppConfig {
  */
 export async function getTenantWhatsAppConfig(tenantId: string): Promise<TenantWhatsAppConfig | null> {
   try {
-    console.log(`🔍 [HELPER] Buscando configuração WhatsApp para tenant: ${tenantId}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 [HELPER] Buscando configuração WhatsApp para tenant: ${tenantId}`)
+    }
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -26,14 +28,18 @@ export async function getTenantWhatsAppConfig(tenantId: string): Promise<TenantW
     })
 
     if (!tenant) {
-      console.error(`❌ [HELPER] Tenant não encontrado: ${tenantId}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`❌ [HELPER] Tenant não encontrado: ${tenantId}`)
+      }
       return null
     }
 
-    console.log(`📊 [HELPER] Tenant encontrado:`, {
-      businessName: tenant.businessName,
-      hasInstance: !!tenant.whatsapp_instance_name
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📊 [HELPER] Tenant encontrado:`, {
+        businessName: tenant.businessName,
+        hasInstance: !!tenant.whatsapp_instance_name
+      })
+    }
 
     return {
       instanceName: tenant.whatsapp_instance_name,
@@ -41,7 +47,9 @@ export async function getTenantWhatsAppConfig(tenantId: string): Promise<TenantW
       businessPhone: tenant.businessPhone,
     }
   } catch (error) {
-    console.error(`❌ [HELPER] Erro ao buscar configuração WhatsApp do tenant:`, error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`❌ [HELPER] Erro ao buscar configuração WhatsApp do tenant:`, error)
+    }
     return null
   }
 }
@@ -54,7 +62,9 @@ export async function getTenantWhatsAppConfig(tenantId: string): Promise<TenantW
  */
 export async function isAutomationEnabled(tenantId: string, automationType: string): Promise<boolean> {
   try {
-    console.log(`🔍 [HELPER] Verificando automação ${automationType} para tenant: ${tenantId}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 [HELPER] Verificando automação ${automationType} para tenant: ${tenantId}`)
+    }
 
     const automationSetting = await prisma.automationSetting.findFirst({
       where: {
@@ -65,11 +75,15 @@ export async function isAutomationEnabled(tenantId: string, automationType: stri
     })
 
     const isEnabled = !!automationSetting
-    console.log(`📊 [HELPER] Automação ${automationType}: ${isEnabled ? '✅ Ativa' : '❌ Inativa'}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📊 [HELPER] Automação ${automationType}: ${isEnabled ? '✅ Ativa' : '❌ Inativa'}`)
+    }
 
     return isEnabled
   } catch (error) {
-    console.error(`❌ [HELPER] Erro ao verificar automação:`, error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`❌ [HELPER] Erro ao verificar automação:`, error)
+    }
     return false
   }
 }

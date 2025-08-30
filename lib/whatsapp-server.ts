@@ -131,13 +131,17 @@ Estamos ansiosos para te receber novamente! ✨`,
 // Evolution API integration (Client-side version)
 export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boolean> {
   try {
-    console.log(`📤 [Client] Enviando mensagem WhatsApp via API Route...`)
-    console.log(`📱 Para: ${message.to}`)
-    console.log(`📝 Tipo: ${message.type}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📤 [Client] Enviando mensagem WhatsApp via API Route...`)
+      console.log(`📱 Para: ${message.to}`)
+      console.log(`📝 Tipo: ${message.type}`)
+    }
 
     // Obter token do localStorage
     const token = localStorage.getItem('auth_token')
-    console.log('🔍 [Client] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 [Client] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -161,18 +165,24 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
     const responseData = await response.json()
 
     if (response.ok && responseData.success) {
-      console.log('✅ [Client] Mensagem enviada com sucesso!')
-      console.log('📋 [Client] Resposta:', responseData)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ [Client] Mensagem enviada com sucesso!')
+        console.log('📋 [Client] Resposta:', responseData)
+      }
       return true
     } else {
-      console.error('❌ [Client] Falha ao enviar mensagem')
-      console.error('📋 Status:', response.status)
-      console.error('📋 Resposta:', responseData)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Client] Falha ao enviar mensagem')
+        console.error('📋 Status:', response.status)
+        console.error('📋 Resposta:', responseData)
+      }
       return false
     }
 
   } catch (error) {
-    console.error('❌ [Client] Erro ao conectar com API:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [Client] Erro ao conectar com API:', error)
+    }
     return false
   }
 }
@@ -184,32 +194,44 @@ export function formatPhoneNumber(phone: string): string {
   // Remove all non-numeric characters
   const cleaned = phone.replace(/\D/g, "")
   
-  console.log(`📞 Formatando número: "${phone}" -> "${cleaned}"`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📞 Formatando número: "${phone}" -> "${cleaned}"`)
+  }
 
   // Brazilian phone number patterns
   if (cleaned.length === 13 && cleaned.startsWith('55')) {
     // Already in international format: 5511999999999
-    console.log(`✅ Número já no formato internacional: ${cleaned}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Número já no formato internacional: ${cleaned}`)
+    }
     return cleaned
   } else if (cleaned.length === 11) {
     // Brazilian format with area code: 11999999999
     const formatted = `55${cleaned}`
-    console.log(`✅ Adicionado código do país: ${formatted}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Adicionado código do país: ${formatted}`)
+    }
     return formatted
   } else if (cleaned.length === 10) {
     // Old Brazilian format without 9: 1199999999
     const formatted = `5511${cleaned.substring(2)}`
-    console.log(`✅ Formato antigo convertido: ${formatted}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Formato antigo convertido: ${formatted}`)
+    }
     return formatted
   } else if (cleaned.length === 9) {
     // Only the number without area code: 999999999
     const formatted = `5511${cleaned}`
-    console.log(`✅ Adicionado DDD 11: ${formatted}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Adicionado DDD 11: ${formatted}`)
+    }
     return formatted
   }
 
   // Return as is if doesn't match common Brazilian patterns
-  console.log(`⚠️ Formato não reconhecido, retornando como está: ${cleaned}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`⚠️ Formato não reconhecido, retornando como está: ${cleaned}`)
+  }
   return cleaned
 }
 
@@ -220,7 +242,9 @@ export async function checkWhatsAppStatus(): Promise<{
   error?: string
 }> {
   try {
-    console.log('🔍 [Client] Verificando status via API Route...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 [Client] Verificando status via API Route...')
+    }
     
     const response = await fetch('/api/whatsapp/status', {
       method: 'GET',
@@ -231,11 +255,15 @@ export async function checkWhatsAppStatus(): Promise<{
 
     if (response.ok) {
       const data = await response.json()
-      console.log('📋 [Client] Status recebido:', data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📋 [Client] Status recebido:', data)
+      }
       return data
     } else {
       const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }))
-      console.error('❌ [Client] Erro ao verificar status:', errorData)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Client] Erro ao verificar status:', errorData)
+      }
       
       return {
         connected: false,
@@ -245,7 +273,9 @@ export async function checkWhatsAppStatus(): Promise<{
     }
 
   } catch (error) {
-    console.error('❌ [Client] Erro ao conectar com API:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [Client] Erro ao conectar com API:', error)
+    }
     return {
       connected: false,
       instanceName: null,

@@ -7,14 +7,19 @@ import { getBrazilNow, getBrazilStartOfDay, getBrazilEndOfDay, toBrazilDateStrin
 export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
-    console.log('📊 Buscando estatísticas WhatsApp para tenant:', user.tenantId)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Buscando estatísticas WhatsApp para tenant:', user.tenantId)
+    }
 
     // Obter horário brasileiro atual
     const brazilNow = getBrazilNow()
     const startOfDay = getBrazilStartOfDay(brazilNow)
     const endOfDay = getBrazilEndOfDay(brazilNow)
     
-    console.log('📅 Período: hoje', startOfDay.toISOString(), 'até', endOfDay.toISOString())
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📅 Período: hoje', startOfDay.toISOString(), 'até', endOfDay.toISOString())
+    }
 
     // Buscar dados de agendamentos e clientes para cálculo das estatísticas
     const today = toBrazilDateString(brazilNow)
@@ -92,22 +97,26 @@ export async function GET(request: NextRequest) {
       })
       activeAutomations = automationSettings.length
     } catch (error) {
-      console.log('⚠️ Tabela automation_settings não encontrada, usando valor padrão')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Tabela automation_settings não encontrada, usando valor padrão')
+      }
       activeAutomations = 4 // Valor padrão para simular automações ativas (Confirmação + 3 Lembretes)
     }
 
     const reductionRate = Math.min(95, Math.max(70, 70 + (activeAutomations * 5)))
 
-    console.log('📊 Estatísticas calculadas:', {
-      totalMessages,
-      totalDelivered,
-      deliveryRate,
-      confirmationMessages,
-      reminderMessages,
-      inactiveCount,
-      reductionRate,
-      activeAutomations
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Estatísticas calculadas:', {
+        totalMessages,
+        totalDelivered,
+        deliveryRate,
+        confirmationMessages,
+        reminderMessages,
+        inactiveCount,
+        reductionRate,
+        activeAutomations
+      })
+    }
 
     const stats = {
       mensagensHoje: {
@@ -136,7 +145,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(stats)
     
   } catch (error) {
-    console.error('❌ Erro ao buscar estatísticas WhatsApp:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Erro ao buscar estatísticas WhatsApp:', error)
+    }
     
     if (error instanceof Error && error.message.includes('Token')) {
       return NextResponse.json(

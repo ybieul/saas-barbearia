@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([])
     
   } catch (error) {
-    console.error('❌ Erro ao buscar logs WhatsApp:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Erro ao buscar logs WhatsApp:', error)
+    }
     
     if (error instanceof Error && error.message.includes('Token')) {
       return NextResponse.json(

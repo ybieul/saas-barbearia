@@ -35,11 +35,17 @@ export function useWhatsAppStats() {
     try {
       setIsLoading(true)
       setError(null)
-      console.log('📊 [Hook] Carregando estatísticas WhatsApp...')
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 [Hook] Carregando estatísticas WhatsApp...')
+      }
       
       // Obter token do localStorage
       const token = localStorage.getItem('auth_token')
-      console.log('🔍 [Hook] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [Hook] Token encontrado:', token ? '✅ Sim' : '❌ Não')
+      }
 
       const headers: Record<string, string> = {
         'Accept': 'application/json'
@@ -50,20 +56,35 @@ export function useWhatsAppStats() {
       }
       
       const response = await fetch('/api/whatsapp/stats', { headers })
-      console.log('📊 [Hook] Response status:', response.status)
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 [Hook] Response status:', response.status)
+      }
       
       if (response.ok) {
         const data = await response.json()
-        console.log('📊 [Hook] Estatísticas carregadas:', data)
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📊 [Hook] Estatísticas carregadas:', data)
+        }
+        
         setStats(data)
       } else {
         const errorData = await response.text()
-        console.error('❌ [Hook] Erro ao carregar estatísticas:', response.status, errorData)
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ [Hook] Erro ao carregar estatísticas:', response.status, errorData)
+        }
+        
         throw new Error(`Erro ${response.status}: ${errorData}`)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      console.error('❌ [Hook] Erro ao carregar estatísticas WhatsApp:', errorMessage)
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [Hook] Erro ao carregar estatísticas WhatsApp:', errorMessage)
+      }
+      
       setError(errorMessage)
     } finally {
       setIsLoading(false)

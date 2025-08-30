@@ -25,7 +25,9 @@ function verifyToken(request: NextRequest): AuthUser {
     token = request.headers.get('x-auth-token') || undefined
   }
 
-  console.log('🔍 [API] Verificando token:', token ? '✅ Token encontrado' : '❌ Token não encontrado')
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 [API] Verificando token:', token ? '✅ Token encontrado' : '❌ Token não encontrado')
+  }
 
   if (!token) {
     throw new Error('Token não fornecido')
@@ -38,7 +40,9 @@ function verifyToken(request: NextRequest): AuthUser {
       throw new Error('Token inválido: tenantId não encontrado')
     }
 
-    console.log('✅ [API] Token válido para usuário:', decoded.email)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ [API] Token válido para usuário:', decoded.email)
+    }
 
     return {
       userId: decoded.userId,
@@ -47,7 +51,9 @@ function verifyToken(request: NextRequest): AuthUser {
       role: decoded.role
     }
   } catch (error) {
-    console.error('❌ [API] Erro ao verificar token:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [API] Erro ao verificar token:', error)
+    }
     throw new Error('Token inválido')
   }
 }
@@ -57,8 +63,11 @@ export async function POST(req: NextRequest) {
   try {
     // Verificar autenticação JWT
     const user = verifyToken(req)
-    console.log('✅ [TEST-MESSAGE] Usuário autenticado:', user.email)
-    console.log('🏢 [TEST-MESSAGE] TenantId:', user.tenantId)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ [TEST-MESSAGE] Usuário autenticado:', user.email)
+      console.log('🏢 [TEST-MESSAGE] TenantId:', user.tenantId)
+    }
 
     // Obter dados da requisição
     const { to, message, type = 'test' } = await req.json()
@@ -70,15 +79,19 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log(`📤 [TEST-MESSAGE] Iniciando envio de mensagem de teste...`)
-    console.log(`📱 Para: ${to}`)
-    console.log(`📝 Mensagem: ${message.substring(0, 50)}...`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📤 [TEST-MESSAGE] Iniciando envio de mensagem de teste...`)
+      console.log(`📱 Para: ${to}`)
+      console.log(`📝 Mensagem: ${message.substring(0, 50)}...`)
+    }
 
     // ✅ VERIFICAÇÃO MULTI-TENANT: Buscar configuração WhatsApp do tenant
     const tenantConfig = await getTenantWhatsAppConfig(user.tenantId)
     
     if (!tenantConfig || !tenantConfig.instanceName) {
-      console.log(`❌ [TEST-MESSAGE] Tenant ${user.tenantId} não possui instância WhatsApp configurada`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`❌ [TEST-MESSAGE] Tenant ${user.tenantId} não possui instância WhatsApp configurada`)
+      }
       
       return NextResponse.json({
         success: false,
@@ -87,8 +100,10 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log(`✅ [TEST-MESSAGE] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
-    console.log(`🏢 [TEST-MESSAGE] Empresa: ${tenantConfig.businessName}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ [TEST-MESSAGE] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
+      console.log(`🏢 [TEST-MESSAGE] Empresa: ${tenantConfig.businessName}`)
+    }
 
     // 🎯 ENVIAR MENSAGEM USANDO INSTÂNCIA ESPECÍFICA DO TENANT
     const success = await sendMultiTenantWhatsAppMessage({
@@ -99,7 +114,9 @@ export async function POST(req: NextRequest) {
     })
 
     if (success) {
-      console.log(`✅ [TEST-MESSAGE] Mensagem de teste enviada com sucesso via instância: ${tenantConfig.instanceName}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ [TEST-MESSAGE] Mensagem de teste enviada com sucesso via instância: ${tenantConfig.instanceName}`)
+      }
       
       return NextResponse.json({
         success: true,
@@ -111,7 +128,9 @@ export async function POST(req: NextRequest) {
         }
       })
     } else {
-      console.error(`❌ [TEST-MESSAGE] Falha ao enviar mensagem de teste`)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`❌ [TEST-MESSAGE] Falha ao enviar mensagem de teste`)
+      }
       
       return NextResponse.json({
         success: false,
@@ -121,7 +140,9 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ [TEST-MESSAGE] Erro ao processar requisição:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [TEST-MESSAGE] Erro ao processar requisição:', error)
+    }
     
     if (error instanceof Error && error.message.includes('Token')) {
       return NextResponse.json({
