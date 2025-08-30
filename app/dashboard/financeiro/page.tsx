@@ -1067,13 +1067,6 @@ export default function FinanceiroPage() {
   if (loading || isLoading) {
     return (
       <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
-            <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
-          </div>
-          <div className="animate-pulse bg-[#27272a] rounded-lg h-10 w-40"></div>
-        </div>
 
         {/* Financial Stats Skeleton */}
         <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
