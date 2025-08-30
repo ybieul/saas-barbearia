@@ -45,6 +45,8 @@ import {
   Camera,
   X,
   QrCode,
+  Copy,
+  Check,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -353,10 +355,29 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(`https://agendapro.com/${businessData.customLink}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopyLink = async () => {
+    if (!businessData.customLink) return
+    
+    const publicUrl = `https://tymerbook.com/agendamento/${businessData.customLink}`
+    
+    try {
+      await navigator.clipboard.writeText(publicUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      
+      toast({
+        title: "Link copiado!",
+        description: "O link foi copiado para a área de transferência.",
+        variant: "default",
+      })
+    } catch (err) {
+      console.error('Falha ao copiar o link para a área de transferência: ', err)
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o link. Tente novamente.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSave = async () => {
@@ -1227,7 +1248,32 @@ export default function ConfiguracoesPage() {
                     <LinkIcon className="w-4 h-4 text-[#10b981]" />
                     <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
                   </div>
-                  <p className="text-emerald-300 text-sm mb-4">https://tymerbook.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}</p>
+                  
+                  {/* Container flexível para o link e botão copiar */}
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <p className="text-emerald-300 text-sm flex-1 break-all">
+                      https://tymerbook.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}
+                    </p>
+                    <Button
+                      onClick={handleCopyLink}
+                      disabled={copied || !businessData.customLink}
+                      variant="outline"
+                      size="sm"
+                      className="border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-200 transition-all duration-200 whitespace-nowrap"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3 h-3 mr-1" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copiar
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   
                   {/* Botão para gerar QR Code */}
                   <Button 

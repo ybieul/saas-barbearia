@@ -71,10 +71,19 @@ O cartaz gerado inclui:
 ### Como Usar
 
 1. Configure o "Link Personalizado" nas configurações
-2. Clique em "Gerar QR Code para Impressão"
-3. Visualize a prévia no modal
-4. Clique em "Baixar PDF"
-5. Imprima e cole no estabelecimento
+2. **Copie o link**: Clique no botão "Copiar" ao lado da URL para copiar o link para área de transferência
+3. **Gere QR Code**: Clique em "Gerar QR Code para Impressão"
+4. Visualize a prévia no modal
+5. Clique em "Baixar PDF"
+6. Imprima e cole no estabelecimento
+
+### Funcionalidades de Link
+
+- **URL do TymerBook**: `https://tymerbook.com/agendamento/[customLink]`
+- **Botão Copiar**: Copia automaticamente o link completo
+- **Feedback Visual**: Botão muda para "Copiado!" com ícone de check
+- **Toast Notification**: Confirmação visual ao copiar com sucesso
+- **Tratamento de Erro**: Notificação caso falhe ao copiar
 
 ### Validações
 
