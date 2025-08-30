@@ -27,6 +27,7 @@ import { useServices } from "@/hooks/use-services"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
+import { QrCodeModal } from "@/components/qr-code-modal"
 import {
   Upload,
   Save,
@@ -43,6 +44,7 @@ import {
   MessageSquare,
   Camera,
   X,
+  QrCode,
 } from "lucide-react"
 
 export default function ConfiguracoesPage() {
@@ -53,6 +55,9 @@ export default function ConfiguracoesPage() {
   const [professionalName, setProfessionalName] = useState<string>("");
   
   const [activeTab, setActiveTab] = useState("estabelecimento")
+
+  // Estado para o modal do QR Code
+  const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false)
 
   // Função para gerar horários
   const generateTimeOptions = () => {
@@ -1222,7 +1227,17 @@ export default function ConfiguracoesPage() {
                     <LinkIcon className="w-4 h-4 text-[#10b981]" />
                     <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
                   </div>
-                  <p className="text-emerald-300 text-sm">https://agendapro.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}</p>
+                  <p className="text-emerald-300 text-sm mb-4">https://tymerbook.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}</p>
+                  
+                  {/* Botão para gerar QR Code */}
+                  <Button 
+                    onClick={() => setIsQrCodeModalOpen(true)}
+                    disabled={!businessData.customLink}
+                    className="bg-[#10b981] hover:bg-[#059669] text-white w-full sm:w-auto"
+                  >
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Gerar QR Code para Impressão
+                  </Button>
                 </div>
                 </>
                 )}
@@ -2482,6 +2497,15 @@ export default function ConfiguracoesPage() {
         cancelText="Cancelar"
         type={confirmDialog.type as 'professional' | 'service' | 'template' | 'default'}
         itemName={confirmDialog.item?.name}
+      />
+
+      {/* Modal do QR Code */}
+      <QrCodeModal
+        isOpen={isQrCodeModalOpen}
+        onClose={() => setIsQrCodeModalOpen(false)}
+        customLink={businessData.customLink || ''}
+        businessName={businessData.name || 'Estabelecimento'}
+        businessLogo={businessData.logo}
       />
     </div>
   )
