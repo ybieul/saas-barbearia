@@ -285,48 +285,61 @@ export function WhatsAppConnection() {
         </div>
       )}
 
-      {/* Estado: Conectando (mostrando QR Code) */}
-      {connectionStatus === 'connecting' && qrCodeBase64 && (
+      {/* Estado: Conectando */}
+      {connectionStatus === 'connecting' && (
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-2 text-blue-600">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Aguardando conexão...</span>
-          </div>
+          {/* Loading enquanto gera QR Code */}
+          {!qrCodeBase64 && (
+            <div className="flex items-center justify-center gap-2 text-blue-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Gerando QR Code...</span>
+            </div>
+          )}
           
-          <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300 inline-block">
-            <Image
-              src={qrCodeBase64}
-              alt="QR Code WhatsApp"
-              width={200}
-              height={200}
-              className="mx-auto"
-            />
-          </div>
-          
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p><strong>Como conectar:</strong></p>
-            <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
-              <li>Abra o WhatsApp no seu celular</li>
-              <li>Toque em "Mais opções" (⋮) &gt; "Aparelhos conectados"</li>
-              <li>Toque em "Conectar um aparelho"</li>
-              <li>Escaneie este QR Code</li>
-            </ol>
-          </div>
+          {/* QR Code gerado - aguardando conexão */}
+          {qrCodeBase64 && (
+            <>
+              <div className="flex items-center justify-center gap-2 text-blue-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Aguardando conexão...</span>
+              </div>
+              
+              <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300 inline-block">
+                <Image
+                  src={qrCodeBase64}
+                  alt="QR Code WhatsApp"
+                  width={200}
+                  height={200}
+                  className="mx-auto"
+                />
+              </div>
+              
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p><strong>Como conectar:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+                  <li>Abra o WhatsApp no seu celular</li>
+                  <li>Toque em "Mais opções" (⋮) &gt; "Aparelhos conectados"</li>
+                  <li>Toque em "Conectar um aparelho"</li>
+                  <li>Escaneie este QR Code</li>
+                </ol>
+              </div>
 
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setConnectionStatus('disconnected')
-              setQrCodeBase64(null)
-              if (pollingInterval) {
-                clearInterval(pollingInterval)
-                setPollingInterval(null)
-              }
-            }}
-            className="w-full"
-          >
-            Cancelar
-          </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setConnectionStatus('disconnected')
+                  setQrCodeBase64(null)
+                  if (pollingInterval) {
+                    clearInterval(pollingInterval)
+                    setPollingInterval(null)
+                  }
+                }}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
+            </>
+          )}
         </div>
       )}
 
