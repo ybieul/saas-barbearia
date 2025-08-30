@@ -266,10 +266,10 @@ export default function WhatsAppPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#ededed]">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">
               Configurações de Mensagens
             </h1>
-            <p className="text-sm sm:text-base text-[#3f3f46]">Automatize suas comunicações e reduza faltas</p>
+            <p className="text-[#a1a1aa]">Automatize suas comunicações e reduza faltas</p>
           </div>
           
           {/* Status de Conexão e Botão Conectar WhatsApp */}
