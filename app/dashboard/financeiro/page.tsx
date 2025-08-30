@@ -1192,7 +1192,7 @@ export default function FinanceiroPage() {
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               {/* ✅ SELETOR DE PERÍODO */}
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#18181b] border-[#27272a]">
@@ -1204,7 +1204,7 @@ export default function FinanceiroPage() {
               
               {/* ✅ FILTRO POR PROFISSIONAL */}
               <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
                   <SelectValue placeholder="Filtrar por profissional" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#18181b] border-[#27272a]">
