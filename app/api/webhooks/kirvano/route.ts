@@ -31,9 +31,28 @@ const PLAN_MAPPING: { [key: string]: string } = {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== DEBUG: NOVO WEBHOOK RECEBIDO DA KIRVANO ===");
+
+    // 1. Logar todos os cabeçalhos para descobrir o nome correto do header do token
+    console.log("📋 Cabeçalhos recebidos:", JSON.stringify(Object.fromEntries(request.headers), null, 2));
+
     // 1. Validação de Segurança - Verificar token do webhook
-    const kirvanoToken = request.headers.get('Kirvano-Token') || request.headers.get('kirvano-token')
+    // Tenta diferentes variações de header que a Kirvano pode usar
+    const kirvanoToken = request.headers.get('Kirvano-Token') || 
+                        request.headers.get('kirvano-token') ||
+                        request.headers.get('X-Kirvano-Token') ||
+                        request.headers.get('x-kirvano-token') ||
+                        request.headers.get('Authorization')?.replace('Bearer ', '')
+    
     const webhookSecret = process.env.KIRVANO_WEBHOOK_SECRET
+    
+    console.log("🔍 --- DEBUG: VERIFICANDO TOKENS ---");
+    console.log(`🔑 Token Recebido da Kirvano: [${kirvanoToken}]`);
+    console.log(`🗝️  Token Esperado do .env:   [${webhookSecret}]`);
+    console.log(`📏 Tamanho do token recebido: ${kirvanoToken?.length || 0}`);
+    console.log(`📏 Tamanho do token esperado: ${webhookSecret?.length || 0}`);
+    console.log(`🔍 Os tokens são idênticos? (sem trim): ${kirvanoToken === webhookSecret}`);
+    console.log(`🧹 Os tokens são idênticos? (com trim): ${kirvanoToken?.trim() === webhookSecret?.trim()}`);
     
     if (!webhookSecret) {
       console.error('❌ KIRVANO_WEBHOOK_SECRET não configurado')
@@ -43,13 +62,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    if (!kirvanoToken || kirvanoToken !== webhookSecret) {
-      console.error('❌ Token inválido no webhook da Kirvano:', kirvanoToken)
+    // Validação robusta com .trim() para remover espaços em branco
+    if (!kirvanoToken || !webhookSecret || kirvanoToken.trim() !== webhookSecret.trim()) {
+      console.error('❌ Validação de token falhou! Acesso negado.');
+      console.error('❌ Token inválido no webhook da Kirvano. Detalhes:');
+      console.error(`   - Token recebido: [${kirvanoToken}]`);
+      console.error(`   - Token esperado: [${webhookSecret}]`);
+      console.error(`   - Headers disponíveis: ${JSON.stringify([...request.headers.keys()])}`);
       return NextResponse.json(
         { error: 'Unauthorized - Invalid webhook token' },
         { status: 401 }
       )
     }
+
+    console.log("✅ Validação de token BEM-SUCEDIDA. Prosseguindo com o processamento do webhook...");
 
     // 2. Ler e validar o corpo da requisição
     let webhookData: KirvanoWebhookEvent
