@@ -31,10 +31,23 @@ export function useSubscription() {
 
     try {
       setLoading(true)
-      const response = await fetch('/api/subscription/info')
+      
+      // Obter token do localStorage
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado')
+      }
+
+      const response = await fetch('/api/subscription/info', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
       
       if (!response.ok) {
-        throw new Error('Failed to fetch subscription info')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch subscription info`)
       }
       
       const data = await response.json()
@@ -53,10 +66,22 @@ export function useSubscription() {
     if (!user?.id) return
 
     try {
-      const response = await fetch('/api/subscription/limits')
+      // Obter token do localStorage
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado')
+      }
+
+      const response = await fetch('/api/subscription/limits', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
       
       if (!response.ok) {
-        throw new Error('Failed to fetch plan limits')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch plan limits`)
       }
       
       const data = await response.json()
