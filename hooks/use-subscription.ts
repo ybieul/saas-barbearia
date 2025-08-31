@@ -130,6 +130,45 @@ export function useSubscription() {
     }
   }
 
+  // Gerenciar assinatura (abrir portal da Kirvano)
+  const manageSubscription = async (): Promise<string> => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado')
+    }
+
+    try {
+      // Obter token do localStorage
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado')
+      }
+
+      const response = await fetch('/api/subscriptions/manage-portal', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || `Erro ${response.status}: Não foi possível gerar o link do portal`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.portalUrl) {
+        throw new Error('URL do portal não foi retornada')
+      }
+      
+      return data.portalUrl
+    } catch (err) {
+      console.error('Erro ao gerar link do portal:', err)
+      throw err instanceof Error ? err : new Error('Erro desconhecido ao gerar link do portal')
+    }
+  }
+
   // Atualizar dados
   const refresh = async () => {
     await Promise.all([
@@ -154,6 +193,7 @@ export function useSubscription() {
     getResourceUsage,
     isNearLimit,
     getPlanInfo,
+    manageSubscription,
     refresh
   }
 }

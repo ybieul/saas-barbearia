@@ -1,15 +1,57 @@
 'use client'
 
+import { useState } from 'react'
 import { useSubscription } from '@/hooks/use-subscription'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useToast } from '@/hooks/use-toast'
 
 export default function SubscriptionPage() {
-  const { subscriptionInfo: subscription, loading, error } = useSubscription()
+  const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
+  const [isManaging, setIsManaging] = useState(false)
+  const { toast } = useToast()
+
+  // Função para gerenciar assinatura (abrir portal da Kirvano)
+  const handleManageSubscription = async () => {
+    if (!subscription?.isActive) {
+      toast({
+        title: 'Assinatura inativa',
+        description: 'Apenas assinaturas ativas podem ser gerenciadas.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      setIsManaging(true)
+      
+      // Chamar API para obter link do portal
+      const portalUrl = await manageSubscription()
+      
+      // Abrir portal em nova aba
+      window.open(portalUrl, '_blank', 'noopener,noreferrer')
+      
+      toast({
+        title: 'Portal aberto',
+        description: 'O portal de gerenciamento foi aberto em uma nova aba.'
+      })
+      
+    } catch (error) {
+      console.error('Erro ao abrir portal:', error)
+      
+      toast({
+        title: 'Erro ao abrir portal',
+        description: error instanceof Error ? error.message : 'Erro desconhecido. Tente novamente.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsManaging(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -298,16 +340,32 @@ export default function SubscriptionPage() {
               </div>
             )}
 
-            {/* Botão de Gerenciamento (Placeholder) */}
+            {/* Botão de Gerenciamento */}
             <Button 
               className="w-full" 
               variant="outline" 
-              disabled
+              onClick={handleManageSubscription}
+              disabled={isManaging || !subscription?.isActive || subscription?.isExpired}
             >
-              <Crown className="h-4 w-4 mr-2" />
-              Gerenciar Assinatura
-              <span className="text-xs ml-2">(Em breve)</span>
+              {isManaging ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Abrindo portal...
+                </>
+              ) : (
+                <>
+                  <Crown className="h-4 w-4 mr-2" />
+                  Gerenciar Assinatura
+                  <ExternalLink className="h-3 w-3 ml-2" />
+                </>
+              )}
             </Button>
+            
+            {(!subscription?.isActive || subscription?.isExpired) && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Apenas assinaturas ativas podem ser gerenciadas
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
