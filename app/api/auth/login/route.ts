@@ -74,36 +74,11 @@ export async function POST(request: NextRequest) {
       tenantId: tenant.id
     }
 
-    // ✅ Criar resposta JSON
-    const response = NextResponse.json({
+    return NextResponse.json({
       user: userResponse,
       token,
       message: 'Login realizado com sucesso'
     })
-
-    // ✅ CORREÇÃO: Definir cookie httpOnly para o middleware
-    // Configuração segura do cookie para produção
-    const isProduction = process.env.NODE_ENV === 'production'
-    const cookieName = isProduction ? '__Secure-auth-token' : 'auth_token'
-    
-    response.cookies.set({
-      name: cookieName,
-      value: token,
-      httpOnly: true, // Importante: não acessível via JavaScript (segurança)
-      secure: isProduction, // HTTPS apenas em produção
-      sameSite: 'lax', // Proteção contra CSRF
-      path: '/', // Disponível em todo o domínio
-      domain: isProduction ? '.tymerbook.com' : 'localhost', // Funciona em subdomínios
-      maxAge: 60 * 60 * 24 * 7 // 7 dias (mesmo tempo do JWT)
-    })
-
-    console.log("✅ Login bem-sucedido:", {
-      usuario: tenant.email,
-      cookieDefinido: cookieName,
-      ambiente: isProduction ? 'produção' : 'desenvolvimento'
-    })
-
-    return response
   } catch (error) {
     console.error('Erro no login:', error)
     return NextResponse.json(

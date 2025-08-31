@@ -222,25 +222,6 @@ export default function SubscriptionPage() {
         <h1 className="text-3xl font-bold">Gerenciamento da Assinatura</h1>
       </div>
 
-      {/* 🔒 PAYWALL ALERT - Mostra quando assinatura está inativa */}
-      {!subscription.isActive && (
-        <Alert variant="destructive" className="border-2 border-red-300 bg-red-50">
-          <XCircle className="h-5 w-5" />
-          <AlertDescription className="text-red-800 font-medium">
-            <div className="space-y-2">
-              <div className="text-lg font-semibold">🔒 Sua conta está bloqueada</div>
-              <div>
-                Sua assinatura está inativa. Para reativar o acesso a todas as funcionalidades do TymerBook, 
-                por favor, escolha um plano e efetue o pagamento.
-              </div>
-              <div className="text-sm text-red-600">
-                Enquanto sua assinatura estiver inativa, você não poderá acessar outras funcionalidades do sistema.
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Status Alert */}
       {subscription.isExpired && (
         <Alert variant="destructive">

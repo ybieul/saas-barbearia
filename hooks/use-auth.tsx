@@ -116,35 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = async () => {
-    try {
-      // Chamar endpoint de logout para limpar cookie httpOnly
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      console.log("✅ Cookie httpOnly limpo via API")
-    } catch (error) {
-      console.error('Erro ao chamar API de logout:', error)
-      // Continua com logout local mesmo se API falhar
-    }
-    
-    // Limpar estado local
+  const logout = () => {
     setUser(null)
     setToken(null)
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
     
-    // Tentar limpar cookie acessível via JavaScript (fallback)
-    const isProduction = process.env.NODE_ENV === 'production'
-    const cookieName = isProduction ? '__Secure-auth-token' : 'auth_token'
-    const domain = isProduction ? '; domain=.tymerbook.com' : ''
+    // Remover cookie
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'
     
-    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC${domain}`
-    
-    console.log("🚪 Logout completo, redirecionando para login")
     router.push('/login')
   }
 
