@@ -29,8 +29,22 @@ const PLAN_MAPPING: { [key: string]: string } = {
   'gratuito': 'FREE'
 }
 
-export async function POST(request: NextRequest) {
-  console.log("🚀 --- NOVO WEBHOOK RECEBIDO DA KIRVANO (Validação de token desativada) ---");
+export async function POST(request: NextRequest, { params }: { params: { secret: string } }) {
+  const secretFromUrl = params.secret;
+  const expectedSecret = process.env.KIRVANO_WEBHOOK_SECRET_PATH;
+
+  // Validação de segurança da URL
+  if (!secretFromUrl || secretFromUrl !== expectedSecret) {
+    console.warn(`🚨 Tentativa de acesso ao webhook com chave secreta inválida: [${secretFromUrl}]`);
+    console.warn(`🔑 Chave esperada: [${expectedSecret}]`);
+    return NextResponse.json(
+      { error: "Unauthorized" }, 
+      { status: 401 }
+    );
+  }
+
+  console.log("✅ Chave secreta do webhook validada com sucesso.");
+  console.log("🚀 --- NOVO WEBHOOK RECEBIDO DA KIRVANO (Validação por URL ativa) ---");
 
   try {
     // 1. Ler e processar o corpo da requisição
