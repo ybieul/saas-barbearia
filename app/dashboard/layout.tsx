@@ -18,6 +18,7 @@ import {
   MessageCircle,
   UserCircle,
   Clock,
+  Crown,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ const menuItems = [
   { icon: UserX, label: "Clientes Inativos", href: "/dashboard/clientes-inativos", description: "Reativar clientes" },
   { icon: DollarSign, label: "Relatório e Financeiro", href: "/dashboard/financeiro", description: "Receitas, relatórios e análises" },
   { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens" },
+  { icon: Crown, label: "Minha Assinatura", href: "/dashboard/assinatura", description: "Gerenciar plano e assinatura" },
   { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes", description: "Configurar estabelecimento" },
 ]
 
