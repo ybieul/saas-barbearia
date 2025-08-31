@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
+import { generateSecurePassword, sendWelcomeEmail } from '@/lib/email'
 
 // Tipos para os eventos da Kirvano
 interface KirvanoWebhookEvent {
@@ -73,14 +75,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔔 Webhook recebido da Kirvano - Evento: ${event}`, data)
 
-    // 3. Buscar o tenant pelo email do cliente
-    const tenant = await prisma.tenant.findUnique({
+    // 3. Buscar ou criar o tenant baseado no evento
+    let tenant = await prisma.tenant.findUnique({
       where: {
         email: data.customer_email
       }
     })
 
-    if (!tenant) {
+    // Se não encontrar o tenant e for um evento de ativação, criar automaticamente
+    if (!tenant && (event.toLowerCase() === 'assinatura.ativa' || event.toLowerCase() === 'compra.aprovada')) {
+      tenant = await handleNewUserOnboarding(data)
+    } else if (!tenant) {
       console.error('❌ Tenant não encontrado para o email:', data.customer_email)
       return NextResponse.json(
         { error: 'Tenant not found for email' },
@@ -89,19 +94,21 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Processar diferentes tipos de eventos
+    const isNewTenant = !tenant || tenant.createdAt > new Date(Date.now() - 60000) // Criado nos últimos 60 segundos
+    
     switch (event.toLowerCase()) {
       case 'assinatura.ativa':
       case 'compra.aprovada':
-        await handleSubscriptionActive(tenant.id, data)
+        await handleSubscriptionActive(tenant!.id, data, isNewTenant)
         break
 
       case 'assinatura.cancelada':
       case 'assinatura.expirada':
-        await handleSubscriptionCancelled(tenant.id, data)
+        await handleSubscriptionCancelled(tenant!.id, data)
         break
 
       case 'assinatura.atrasada':
-        await handleSubscriptionOverdue(tenant.id, data)
+        await handleSubscriptionOverdue(tenant!.id, data)
         break
 
       default:
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
       { 
         message: 'Webhook processed successfully',
         event,
-        tenant_id: tenant.id 
+        tenant_id: tenant!.id 
       },
       { status: 200 }
     )
@@ -133,12 +140,101 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Função para fazer onboarding de novos usuários automaticamente
+async function handleNewUserOnboarding(data: KirvanoWebhookEvent['data']) {
+  try {
+    console.log(`🆕 Criando novo tenant para email: ${data.customer_email}`)
+    
+    // 1. Gerar senha segura
+    const temporaryPassword = generateSecurePassword(12)
+    
+    // 2. Fazer hash da senha
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 12)
+    
+    // 3. Determinar plano
+    const planName = data.plan_name?.toLowerCase() || 'basic'
+    const mappedPlan = PLAN_MAPPING[planName] || 'BASIC'
+    
+    // 4. Calcular data de expiração
+    let subscriptionEnd: Date = new Date()
+    if (data.expires_at) {
+      subscriptionEnd = new Date(data.expires_at)
+    } else {
+      // Padrão: 1 mês a partir de agora
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+    }
+    
+    // 5. Criar novo tenant no banco
+    const tenantData = {
+      name: data.customer_name || data.customer_email.split('@')[0],
+      email: data.customer_email,
+      password: hashedPassword,
+      isActive: true,
+      businessPlan: mappedPlan,
+      subscriptionEnd,
+      // Configurações padrão para novo negócio
+      businessName: data.customer_name || 'Meu Negócio',
+      businessPhone: '',
+      businessAddress: '',
+      businessLogo: null,
+    } as any // Usar any para contornar erro de tipo temporariamente
+    
+    // Adicionar campos da Kirvano se disponíveis
+    if (data.customer_id) {
+      tenantData.kirvanoCustomerId = data.customer_id
+    }
+    if (data.subscription_id) {
+      tenantData.kirvanoSubscriptionId = data.subscription_id
+    }
+    
+    const newTenant = await prisma.tenant.create({
+      data: tenantData
+    })
+    
+    console.log(`✅ Novo tenant criado com ID: ${newTenant.id}`)
+    
+    // 6. Enviar email de boas-vindas com credenciais
+    try {
+      const emailSent = await sendWelcomeEmail(
+        newTenant.name,
+        newTenant.email,
+        temporaryPassword
+      )
+      
+      if (emailSent) {
+        console.log(`✅ Email de boas-vindas enviado para: ${newTenant.email}`)
+      } else {
+        console.error(`❌ Falha ao enviar email de boas-vindas para: ${newTenant.email}`)
+        // Não falha o processo se o email não for enviado
+      }
+    } catch (emailError) {
+      console.error('❌ Erro ao enviar email de boas-vindas:', emailError)
+      // Continua sem falhar, pois o tenant já foi criado
+    }
+    
+    console.log(`🎉 Onboarding automático concluído para tenant: ${newTenant.email}`)
+    
+    return newTenant
+    
+  } catch (error) {
+    console.error('❌ Erro no onboarding automático:', error)
+    throw error
+  }
+}
+
 // Função para ativar assinatura
-async function handleSubscriptionActive(tenantId: string, data: KirvanoWebhookEvent['data']) {
+async function handleSubscriptionActive(tenantId: string, data: KirvanoWebhookEvent['data'], isNewTenant: boolean = false) {
   try {
     const planName = data.plan_name?.toLowerCase() || 'basic'
     const mappedPlan = PLAN_MAPPING[planName] || 'BASIC'
     
+    // Para novos tenants, os dados já foram configurados na criação
+    if (isNewTenant) {
+      console.log(`✅ Assinatura ativada para NOVO tenant ${tenantId} - Plano: ${mappedPlan}`)
+      return
+    }
+    
+    // Para tenants existentes, atualizar os dados da assinatura
     // Calcular data de expiração (se fornecida)
     let subscriptionEnd: Date | undefined
     if (data.expires_at) {
@@ -167,7 +263,7 @@ async function handleSubscriptionActive(tenantId: string, data: KirvanoWebhookEv
       data: updateData
     })
 
-    console.log(`✅ Assinatura ativada para tenant ${tenantId} - Plano: ${mappedPlan}`)
+    console.log(`✅ Assinatura reativada/atualizada para tenant existente ${tenantId} - Plano: ${mappedPlan}`)
     
   } catch (error) {
     console.error('❌ Erro ao ativar assinatura:', error)
