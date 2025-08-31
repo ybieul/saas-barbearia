@@ -62,23 +62,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Validação robusta com .trim() para remover espaços em branco
-    if (!kirvanoToken || !webhookSecret || kirvanoToken.trim() !== webhookSecret.trim()) {
-      console.error('❌ Validação de token falhou! Acesso negado.');
-      console.error('❌ Token inválido no webhook da Kirvano. Detalhes:');
-      console.error(`   - Token recebido: [${kirvanoToken}]`);
-      console.error(`   - Token esperado: [${webhookSecret}]`);
-      console.error(`   - Headers disponíveis: ${JSON.stringify([...request.headers.keys()])}`);
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid webhook token' },
-        { status: 401 }
-      )
-    }
-
-    console.log("✅ Validação de token BEM-SUCEDIDA. Prosseguindo com o processamento do webhook...");
-
-    // 2. Ler e validar o corpo da requisição
-    let webhookData: KirvanoWebhookEvent
+    // TEMPORARIAMENTE COMENTADO: Validação do header
+    // Vamos primeiro testar se o token vem no body da requisição
+    console.log("⚠️ PULAREMOS a validação do header por enquanto para testar o body...");
+    
+    // 2. Ler e validar o corpo da requisição PRIMEIRO
+    let webhookData: any; // Mudando temporariamente para 'any' para capturar qualquer estrutura
     try {
       webhookData = await request.json()
     } catch (error) {
@@ -86,6 +75,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid JSON payload' },
         { status: 400 }
+      )
+    }
+
+    // --- INÍCIO DA NOVA LÓGICA DE DEBUG ---
+    console.log("🔍 --- DEBUG: CORPO COMPLETO DO WEBHOOK RECEBIDO ---");
+    console.log(JSON.stringify(webhookData, null, 2));
+    
+    // Vamos procurar o token em várias possíveis propriedades
+    const possibleTokenFields = ['token', 'secret_token', 'webhook_token', 'auth_token', 'signature', 'secret', 'key'];
+    let receivedTokenFromBody = null;
+    let tokenFieldFound = null;
+    
+    for (const field of possibleTokenFields) {
+      if (webhookData[field]) {
+        receivedTokenFromBody = webhookData[field];
+        tokenFieldFound = field;
+        break;
+      }
+    }
+    
+    console.log("🔍 --- DEBUG: PROCURANDO TOKEN NO BODY ---");
+    console.log(`🔑 Token encontrado no campo '${tokenFieldFound}': [${receivedTokenFromBody}]`);
+    console.log(`🗝️  Token Esperado do .env: [${webhookSecret}]`);
+    
+    // Validação robusta com .trim() se encontramos token no body
+    if (receivedTokenFromBody && webhookSecret && receivedTokenFromBody.trim() === webhookSecret.trim()) {
+      console.log("✅ Validação de token do BODY BEM-SUCEDIDA. Prosseguindo...");
+    } else if (!kirvanoToken && !receivedTokenFromBody) {
+      console.error('❌ NENHUM TOKEN encontrado nem no header nem no body!');
+      console.error('❌ Headers disponíveis:', JSON.stringify([...request.headers.keys()]));
+      console.error('❌ Campos do body disponíveis:', Object.keys(webhookData));
+      return NextResponse.json(
+        { error: 'Unauthorized - No webhook token found in headers or body' },
+        { status: 401 }
+      )
+    } else if (kirvanoToken && webhookSecret && kirvanoToken.trim() === webhookSecret.trim()) {
+      console.log("✅ Validação de token do HEADER BEM-SUCEDIDA. Prosseguindo...");
+    } else {
+      console.error('❌ Validação de token falhou em AMBOS header e body!');
+      console.error(`   - Token do header: [${kirvanoToken}]`);
+      console.error(`   - Token do body (campo ${tokenFieldFound}): [${receivedTokenFromBody}]`);
+      console.error(`   - Token esperado: [${webhookSecret}]`);
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid webhook token in both header and body' },
+        { status: 401 }
       )
     }
 
