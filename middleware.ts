@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 import { prisma } from './lib/prisma'
 import { getBrazilNow } from './lib/timezone'
 
@@ -43,8 +43,12 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      // 2. Verificar e decodificar o JWT token customizado
-      const decoded = jwt.verify(token, secret) as {
+      // 2. Verificar e decodificar o JWT token customizado usando jose (compatível com Edge)
+      const secretKey = new TextEncoder().encode(secret)
+      
+      const { payload } = await jwtVerify(token, secretKey)
+      
+      const decoded = payload as {
         userId: string
         tenantId: string
         email: string
