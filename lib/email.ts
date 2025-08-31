@@ -168,7 +168,7 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
             </div>
             
             <div style="text-align: center;">
-                <a href="${process.env.NEXTAUTH_URL || 'https://app.tymerbook.com'}/login" class="cta-button">
+                <a href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" class="cta-button">
                     Fazer Login Agora
                 </a>
             </div>
