@@ -27,7 +27,9 @@ import { useServices } from "@/hooks/use-services"
 import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
+import { useSubscription } from "@/hooks/use-subscription"
 import { QrCodeModal } from "@/components/qr-code-modal"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Upload,
   Save,
@@ -133,6 +135,9 @@ export default function ConfiguracoesPage() {
     deleteProfessional,
     fetchProfessionals
   } = useProfessionals()
+
+  // Hook para limites de assinatura
+  const { planLimits, loading: limitsLoading } = useSubscription()
 
   // Hook para gerenciar serviços com banco de dados
   const {
@@ -502,12 +507,21 @@ export default function ConfiguracoesPage() {
         // Recarrega os dados dos profissionais
         await fetchProfessionals()
       }
-    } catch (error) {
-      toast({
-        title: "Erro ao adicionar profissional",
-        description: professionalsError || "Ocorreu um erro inesperado.",
-        variant: "destructive",
-      })
+    } catch (error: any) {
+      // Tratamento específico para erro de limite de plano
+      if (error?.message?.includes('limite') || error?.message?.includes('atingiu')) {
+        toast({
+          title: "Limite de plano atingido",
+          description: error.message || "Você atingiu o limite de profissionais para seu plano atual.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Erro ao adicionar profissional",
+          description: professionalsError || error?.message || "Ocorreu um erro inesperado.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -1298,10 +1312,45 @@ export default function ConfiguracoesPage() {
               <Card className="bg-[#18181b] border-[#27272a]">
                 <CardHeader>
                   <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-                    <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Profissionais</CardTitle>
+                    <div className="space-y-2">
+                      <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Profissionais</CardTitle>
+                      
+                      {/* Indicador de uso de profissionais */}
+                      {!limitsLoading && planLimits?.professionals && (
+                        <div className="flex items-center gap-2 text-sm">
+                          {planLimits.professionals.limit === -1 ? (
+                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                              Profissionais ilimitados
+                            </Badge>
+                          ) : (
+                            <Badge 
+                              variant="secondary" 
+                              className={`${
+                                planLimits.professionals.current >= planLimits.professionals.limit
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                  : planLimits.professionals.current >= planLimits.professionals.limit * 0.8
+                                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                              }`}
+                            >
+                              {planLimits.professionals.current} de {planLimits.professionals.limit} profissionais
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
                     <Dialog open={isNewProfessionalOpen} onOpenChange={setIsNewProfessionalOpen}>
                       <DialogTrigger asChild>
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-[#ededed] w-full sm:w-auto">
+                        <Button 
+                          className="bg-blue-500 hover:bg-blue-600 text-[#ededed] w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={
+                            limitsLoading || 
+                            (planLimits?.professionals && 
+                             planLimits.professionals.limit !== -1 && 
+                             planLimits.professionals.current >= planLimits.professionals.limit)
+                          }
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Novo Profissional
                         </Button>
@@ -1423,6 +1472,31 @@ export default function ConfiguracoesPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Alerta de limite de plano */}
+                  {!limitsLoading && planLimits?.professionals && planLimits.professionals.limit !== -1 && (
+                    <div className="mb-4">
+                      {planLimits.professionals.current >= planLimits.professionals.limit ? (
+                        <Alert className="border-red-500/20 bg-red-500/10">
+                          <AlertDescription className="text-red-400">
+                            <strong>Limite atingido!</strong> Você atingiu o limite de {planLimits.professionals.limit} profissionais para seu plano atual.
+                            {planLimits.professionals.limit === 1 && (
+                              <span> Considere fazer upgrade para o plano Premium (5 profissionais) ou Ultra (ilimitado).</span>
+                            )}
+                            {planLimits.professionals.limit === 5 && (
+                              <span> Considere fazer upgrade para o plano Ultra (profissionais ilimitados).</span>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      ) : planLimits.professionals.current >= planLimits.professionals.limit * 0.8 ? (
+                        <Alert className="border-yellow-500/20 bg-yellow-500/10">
+                          <AlertDescription className="text-yellow-400">
+                            <strong>Atenção!</strong> Você está próximo do limite de profissionais ({planLimits.professionals.current} de {planLimits.professionals.limit}).
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
+                    </div>
+                  )}
+                  
                   <div className="space-y-4">
                     {professionalsLoading ? (
                       <div className="text-center py-8 text-[#71717a]">

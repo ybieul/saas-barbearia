@@ -9,31 +9,32 @@ export interface SubscriptionInfo {
   canAccessFeature: (feature: string) => boolean
 }
 
-// Recursos por plano
+// Recursos por plano - ATUALIZADO conforme novos requisitos
 const PLAN_FEATURES = {
-  FREE: {
-    maxClients: 10,
-    maxAppointments: 50,
-    maxServices: 3,
-    maxProfessionals: 1,
-    whatsappIntegration: false,
-    customReports: false,
-    apiAccess: false
-  },
+  // Removido plano FREE - usuários devem ter assinatura ativa
   BASIC: {
-    maxClients: 100,
-    maxAppointments: 500,
-    maxServices: 10,
-    maxProfessionals: 3,
+    maxClients: -1, // Ilimitado (não há limite especificado)
+    maxAppointments: -1, // Ilimitado (não há limite especificado)
+    maxServices: -1, // Ilimitado (não há limite especificado)
+    maxProfessionals: 1, // Plano Básico: 1 profissional
     whatsappIntegration: true,
     customReports: false,
     apiAccess: false
   },
   PREMIUM: {
+    maxClients: -1, // Ilimitado (não há limite especificado)
+    maxAppointments: -1, // Ilimitado (não há limite especificado)
+    maxServices: -1, // Ilimitado (não há limite especificado)
+    maxProfessionals: 5, // Plano Premium: 5 profissionais
+    whatsappIntegration: true,
+    customReports: true,
+    apiAccess: true
+  },
+  ULTRA: {
     maxClients: -1, // Ilimitado
     maxAppointments: -1, // Ilimitado
     maxServices: -1, // Ilimitado
-    maxProfessionals: -1, // Ilimitado
+    maxProfessionals: -1, // Plano Ultra: Ilimitado
     whatsappIntegration: true,
     customReports: true,
     apiAccess: true
@@ -61,25 +62,31 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       ? Math.ceil((tenant.subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       : undefined
 
-    // Se expirou, forçar plano FREE
-    const effectivePlan = (isExpired || !tenant.isActive) ? 'FREE' : tenant.businessPlan
-    const planFeatures = PLAN_FEATURES[effectivePlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.FREE
+    // Se expirou ou não ativo, usuario não pode usar o sistema
+    const isActiveSubscription = tenant.isActive && !isExpired
+    const effectivePlan = isActiveSubscription ? tenant.businessPlan : 'INACTIVE'
+    
+    // Só buscar features se a assinatura estiver ativa
+    const planFeatures = isActiveSubscription 
+      ? PLAN_FEATURES[effectivePlan as keyof typeof PLAN_FEATURES] 
+      : null
 
     return {
-      isActive: tenant.isActive && !isExpired,
+      isActive: isActiveSubscription,
       plan: effectivePlan,
       isExpired,
       daysUntilExpiry: daysUntilExpiry || undefined,
       canAccessFeature: (feature: string) => {
+        if (!planFeatures) return false
         return planFeatures[feature as keyof typeof planFeatures] === true
       }
     }
   } catch (error) {
     console.error('Erro ao verificar assinatura:', error)
-    // Em caso de erro, retornar plano FREE por segurança
+    // Em caso de erro, retornar assinatura inativa por segurança
     return {
       isActive: false,
-      plan: 'FREE',
+      plan: 'INACTIVE',
       isExpired: true,
       canAccessFeature: () => false
     }
@@ -89,7 +96,17 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
 export async function checkPlanLimit(tenantId: string, resource: string): Promise<{ allowed: boolean, current: number, limit: number }> {
   try {
     const subscriptionInfo = await getSubscriptionInfo(tenantId)
+    
+    // Se assinatura inativa, negar acesso
+    if (!subscriptionInfo.isActive) {
+      return { allowed: false, current: 0, limit: 0 }
+    }
+    
     const planFeatures = PLAN_FEATURES[subscriptionInfo.plan as keyof typeof PLAN_FEATURES]
+    
+    if (!planFeatures) {
+      return { allowed: false, current: 0, limit: 0 }
+    }
     
     let current = 0
     let limit = 0
@@ -108,7 +125,12 @@ export async function checkPlanLimit(tenantId: string, resource: string): Promis
         limit = planFeatures.maxServices
         break
       case 'professionals':
-        current = await prisma.professional.count({ where: { tenantId } })
+        current = await prisma.professional.count({ 
+          where: { 
+            tenantId,
+            isActive: true  // Contar apenas profissionais ativos
+          } 
+        })
         limit = planFeatures.maxProfessionals
         break
       default:

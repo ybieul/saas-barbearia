@@ -153,6 +153,96 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 🔒 VALIDAÇÃO DE LIMITES DE PLANO - PROFISSIONAIS
+    console.log('🔍 [Professionals API] Verificando limites de plano...')
+    
+    // Buscar dados do tenant e contar profissionais ativos
+    const tenant = await prisma.tenant.findUnique({ 
+      where: { id: user.tenantId },
+      select: { businessPlan: true, isActive: true }
+    })
+    
+    if (!tenant) {
+      return NextResponse.json(
+        { message: 'Tenant não encontrado' },
+        { status: 404 }
+      )
+    }
+
+    if (!tenant.isActive) {
+      return NextResponse.json(
+        { message: 'Sua assinatura não está ativa. Renove sua assinatura para continuar usando o sistema.' },
+        { status: 403 }
+      )
+    }
+
+    const professionalCount = await prisma.professional.count({ 
+      where: { 
+        tenantId: user.tenantId, 
+        isActive: true 
+      } 
+    })
+
+    // Definir limites por plano
+    let limit = 0
+    let planDisplayName = ''
+    
+    switch (tenant.businessPlan) {
+      case 'BASIC':
+      case 'Básico':
+        limit = 1
+        planDisplayName = 'Básico'
+        break
+      case 'PREMIUM':  
+      case 'Premium':
+        limit = 5
+        planDisplayName = 'Premium'
+        break
+      case 'ULTRA':
+      case 'Ultra':
+        limit = Infinity // Ilimitado
+        planDisplayName = 'Ultra'
+        break
+      default:
+        // Plano não reconhecido - tratar como básico por segurança
+        limit = 1
+        planDisplayName = tenant.businessPlan || 'Básico'
+    }
+
+    console.log('📊 [Professionals API] Contagem atual:', {
+      tenant: user.tenantId,
+      plan: tenant.businessPlan,
+      current: professionalCount,
+      limit: limit === Infinity ? 'Ilimitado' : limit,
+      canCreate: professionalCount < limit
+    })
+
+    // Verificar se atingiu o limite
+    if (professionalCount >= limit && limit !== Infinity) {
+      const limitText = limit === 1 ? '1 profissional' : `${limit} profissionais`
+      
+      console.log('❌ [Professionals API] Limite atingido:', {
+        current: professionalCount,
+        limit,
+        plan: planDisplayName
+      })
+      
+      return NextResponse.json(
+        { 
+          message: `Você atingiu o limite de ${limitText} para o seu plano ${planDisplayName}.`,
+          error: 'PLAN_LIMIT_REACHED',
+          details: {
+            current: professionalCount,
+            limit,
+            plan: planDisplayName
+          }
+        },
+        { status: 403 }
+      )
+    }
+
+    console.log('✅ [Professionals API] Limite OK - criando profissional...')
+
     const professional = await prisma.professional.create({
       data: {
         name,
