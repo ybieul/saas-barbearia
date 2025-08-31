@@ -2,7 +2,28 @@
 
 ## Visão Geral
 
-Sistema implementado para bloquear automaticamente usuários com assinaturas expiradas ou inativas, redirecionando-os para a página de gerenciamento de assinatura.
+Sistema implementado para bloquear automaticamente usuários com as### Debugging e Logs
+
+### Logs do Middleware
+```typescript
+// Log principal do redirecionamento
+console.log(`🔒 PAYWALL: Redirecionando usuário ${tenantId} para /dashboard/assinatura`)
+
+// Log de debug para conversão TINYINT → Boolean (apenas em desenvolvimento)
+console.log(`🔍 DEBUG: tenant.isActive = ${tenant.isActive} (tipo: ${typeof tenant.isActive}) → Boolean = ${isActiveAsBoolean}`)
+```
+
+### Verificação Manual
+```sql
+-- Verificar status de assinatura de um tenant
+SELECT id, isActive, subscriptionEnd, businessPlan 
+FROM Tenant 
+WHERE id = 'TENANT_ID';
+
+-- Verificar tipo de dado do campo isActive
+DESCRIBE Tenant isActive;
+-- Resultado esperado: TINYINT(1)
+```radas ou inativas, redirecionando-os para a página de gerenciamento de assinatura.
 
 ## Componentes do Sistema
 
@@ -112,9 +133,19 @@ DATABASE_URL=sua_conexao_prisma
 
 ### Status de Assinatura Válida
 ```typescript
-const isSubscriptionActive = tenant.isActive && 
+// Conversão explícita para lidar com TINYINT(1) do MySQL
+const isActiveAsBoolean = Boolean(tenant?.isActive)
+
+const isSubscriptionActive = isActiveAsBoolean && 
   (tenant.subscriptionEnd ? tenant.subscriptionEnd > getBrazilNow() : true)
 ```
+
+**Por que esta abordagem é mais robusta:**
+- ✅ Converte `1` (TINYINT MySQL) para `true`
+- ✅ Converte `0` (TINYINT MySQL) para `false`  
+- ✅ Converte `null` ou `undefined` para `false`
+- ✅ Funciona com valores booleanos nativos
+- ✅ Mais explícito e fácil de debuggar
 
 ### Lógica do Redirecionamento
 ```typescript

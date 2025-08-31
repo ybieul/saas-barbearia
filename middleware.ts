@@ -48,7 +48,17 @@ export async function middleware(request: NextRequest) {
 
       // 4. Verificar se a assinatura está ativa
       const now = getBrazilNow()
-      const isSubscriptionActive = tenant.isActive && 
+      
+      // Converte explicitamente o valor para um booleano. 
+      // Isso funciona para: true, 1, false, 0, null, undefined.
+      const isActiveAsBoolean = Boolean(tenant?.isActive)
+      
+      // Debug: Log para verificar conversão de TINYINT(1) -> Boolean
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 DEBUG: tenant.isActive = ${tenant.isActive} (tipo: ${typeof tenant.isActive}) → Boolean = ${isActiveAsBoolean}`)
+      }
+      
+      const isSubscriptionActive = isActiveAsBoolean && 
         (tenant.subscriptionEnd ? tenant.subscriptionEnd > now : true)
       
       // 5. Verificar se já está na página de assinatura
