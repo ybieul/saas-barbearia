@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { getToken } from 'next-auth/jwt'
 import { prisma } from './lib/prisma'
 import { getBrazilNow } from './lib/timezone'
 
@@ -17,17 +17,35 @@ export async function middleware(request: NextRequest) {
 
   // Para rotas do dashboard, verificar autenticação e assinatura
   if (pathname.startsWith('/dashboard')) {
-    const token = request.cookies.get('auth_token')?.value
+    const secret = process.env.NEXTAUTH_SECRET
+
+    // --- INÍCIO DA CORREÇÃO ---
     
-    // 1. Verificar se há token
-    if (!token) {
+    // Log para depuração. No EasyPanel, verifique os logs do serviço para ver esta saída.
+    console.log("🔍 Verificando NEXTAUTH_SECRET no middleware:", secret ? "✅ Encontrada" : "❌ NÃO ENCONTRADA!")
+
+    // Verificação de segurança: se a chave secreta não estiver configurada no servidor,
+    // a autenticação é impossível e deve falhar com um erro claro.
+    if (!secret) {
+      console.error("💥 Erro Crítico: A variável de ambiente NEXTAUTH_SECRET não está configurada no servidor.")
+      // Retorna um erro 500 para indicar uma falha de configuração do servidor
+      return new Response("Erro de configuração de autenticação interna.", { status: 500 })
+    }
+    
+    // Garante que a chave secreta seja passada para a função getToken
+    const sessionToken = await getToken({ req: request, secret })
+    
+    // --- FIM DA CORREÇÃO ---
+    
+    // 1. Verificar se há token válido
+    if (!sessionToken) {
+      console.log("🔒 Sem token de sessão válido, redirecionando para login")
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
     try {
-      // 2. Decodificar o token para obter o tenantId
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
-      const tenantId = decoded.tenantId
+      // 2. Obter o tenantId do token do NextAuth
+      const tenantId = sessionToken.tenantId as string
 
       if (!tenantId) {
         return NextResponse.redirect(new URL('/login', request.url))
