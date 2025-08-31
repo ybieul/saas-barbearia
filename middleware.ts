@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import jwt from 'jsonwebtoken'
 import { prisma } from './lib/prisma'
 import { getBrazilNow } from './lib/timezone'
 
@@ -19,33 +19,42 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/dashboard')) {
     const secret = process.env.NEXTAUTH_SECRET
 
-    // --- INÍCIO DA CORREÇÃO ---
-    
-    // Log para depuração. No EasyPanel, verifique os logs do serviço para ver esta saída.
+    // Log para depuração
     console.log("🔍 Verificando NEXTAUTH_SECRET no middleware:", secret ? "✅ Encontrada" : "❌ NÃO ENCONTRADA!")
 
     // Verificação de segurança: se a chave secreta não estiver configurada no servidor,
     // a autenticação é impossível e deve falhar com um erro claro.
     if (!secret) {
       console.error("💥 Erro Crítico: A variável de ambiente NEXTAUTH_SECRET não está configurada no servidor.")
-      // Retorna um erro 500 para indicar uma falha de configuração do servidor
       return new Response("Erro de configuração de autenticação interna.", { status: 500 })
     }
     
-    // Garante que a chave secreta seja passada para a função getToken
-    const sessionToken = await getToken({ req: request, secret })
+    // 1. Obter token do cookie httpOnly (configurado no login)
+    const isProduction = process.env.NODE_ENV === 'production'
+    const cookieName = isProduction ? '__Secure-auth-token' : 'auth_token'
+    const token = request.cookies.get(cookieName)?.value
     
-    // --- FIM DA CORREÇÃO ---
+    console.log("🍪 Procurando cookie:", cookieName, "- Encontrado:", token ? "✅ Sim" : "❌ Não")
     
-    // 1. Verificar se há token válido
-    if (!sessionToken) {
-      console.log("🔒 Sem token de sessão válido, redirecionando para login")
+    // Verificar se há token
+    if (!token) {
+      console.log("🔒 Sem token de autenticação, redirecionando para login")
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
     try {
-      // 2. Obter o tenantId do token do NextAuth
-      const tenantId = sessionToken.tenantId as string
+      // 2. Verificar e decodificar o JWT token customizado
+      const decoded = jwt.verify(token, secret) as {
+        userId: string
+        tenantId: string
+        email: string
+        role: string
+      }
+
+      console.log("✅ Token JWT decodificado com sucesso para usuário:", decoded.email)
+      
+      // 3. Obter tenantId do token
+      const tenantId = decoded.tenantId
 
       if (!tenantId) {
         return NextResponse.redirect(new URL('/login', request.url))
