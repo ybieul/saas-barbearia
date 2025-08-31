@@ -18,8 +18,8 @@ const PLAN_FEATURES = {
     maxServices: -1, // Ilimitado (não há limite especificado)
     maxProfessionals: 1, // Plano Básico: 1 profissional
     whatsappIntegration: true,
-    customReports: false,
-    apiAccess: false
+    customReports: true, // ✅ AGORA LIBERADO para plano básico
+    apiAccess: false // ❌ Sistema privado - nenhum plano tem acesso à API
   },
   PREMIUM: {
     maxClients: -1, // Ilimitado (não há limite especificado)
@@ -28,7 +28,7 @@ const PLAN_FEATURES = {
     maxProfessionals: 5, // Plano Premium: 5 profissionais
     whatsappIntegration: true,
     customReports: true,
-    apiAccess: true
+    apiAccess: false // ❌ Sistema privado - nenhum plano tem acesso à API
   },
   ULTRA: {
     maxClients: -1, // Ilimitado
@@ -37,7 +37,7 @@ const PLAN_FEATURES = {
     maxProfessionals: -1, // Plano Ultra: Ilimitado
     whatsappIntegration: true,
     customReports: true,
-    apiAccess: true
+    apiAccess: false // ❌ Sistema privado - nenhum plano tem acesso à API
   }
 }
 

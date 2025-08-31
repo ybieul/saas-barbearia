@@ -7,17 +7,17 @@ const DEFAULT_TEMPLATES = [
   {
     name: "Desconto de Retorno 20%",
     title: "20% OFF", 
-    message: "🌟 *Sentimos sua falta!*\n\nOlá *[nome]*! 😊\n\nNotamos que você não nos visita há um tempo e estamos com saudades!\n\n💰 *Oferta Especial:*\n🎁 20% OFF em qualquer serviço\n✨ Oferta válida até 31/12/2025\n\n🗓️ *Reserve já seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 Chegue 10 min antes do horário\n\nEstamos ansiosos para te receber novamente! �"
+    message: "🌟 *Sentimos sua falta!*\n\nOlá *[nome]*! 😊\n\nNotamos que você não nos visita há um tempo e estamos com saudades!\n\n💰 *Oferta Especial:*\n🎁 20% OFF em qualquer serviço\n✨ Oferta válida até 31/12/2025\n\n🗓️ *Reserve já seu horário:*\nhttps://tymerbook.com/agendamento/[customLink]\n\n💡 Chegue 10 min antes do horário\n\nEstamos ansiosos para te receber novamente! �"
   },
   {
     name: "Promoção Especial",
     title: "30% OFF",
-    message: "🎉 *Super Promoção Especial!*\n\nOlá *[nome]*, tudo bem?\n\nTemos uma oferta imperdível para você:\n\n💸 *30% OFF em todos os serviços!*\n⏰ Oferta por tempo limitado\n🔥 Apenas para clientes especiais\n\n🗓️ *Agende agora:*\nhttps://agendapro.com/agendamento/[customLink]\n\n💡 *Lembre-se:*\n• Chegue 10 min antes\n• Oferta válida até 31/12/2025\n\nNão perca essa oportunidade! 🚀"
+    message: "🎉 *Super Promoção Especial!*\n\nOlá *[nome]*, tudo bem?\n\nTemos uma oferta imperdível para você:\n\n💸 *30% OFF em todos os serviços!*\n⏰ Oferta por tempo limitado\n🔥 Apenas para clientes especiais\n\n🗓️ *Agende agora:*\nhttps://tymerbook.com/agendamento/[customLink]\n\n💡 *Lembre-se:*\n• Chegue 10 min antes\n• Oferta válida até 31/12/2025\n\nNão perca essa oportunidade! 🚀"
   },
   {
     name: "Volte Sempre",
     title: "15% OFF", 
-    message: "💈 *Queremos você de volta!*\n\nOi *[nome]*! Como você está? 😊\n\n🎯 *Oferta Exclusiva:*\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n⭐ Atendimento personalizado\n\n🗓️ *Marque seu horário:*\nhttps://agendapro.com/agendamento/[customLink]\n\n🗓️ Reserve quando quiser\n💡 Chegue 10 min antes do horário\n\nSera um prazer revê-lo! ✨"
+    message: "💈 *Queremos você de volta!*\n\nOi *[nome]*! Como você está? 😊\n\n🎯 *Oferta Exclusiva:*\n🎁 15% de desconto especial\n💈 Seus serviços favoritos te aguardam\n⭐ Atendimento personalizado\n\n🗓️ *Marque seu horário:*\nhttps://tymerbook.com/agendamento/[customLink]\n\n🗓️ Reserve quando quiser\n💡 Chegue 10 min antes do horário\n\nSera um prazer revê-lo! ✨"
   }
 ]
 
