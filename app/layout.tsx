@@ -21,9 +21,9 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: 'TymerBook',
+  description: 'TymerBook - A Plataforma de Agendamento Mais Completa do Brasil!',
+  generator: 'gabale',
 }
 
 export default function RootLayout({
