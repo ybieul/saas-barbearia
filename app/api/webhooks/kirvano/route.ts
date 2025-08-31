@@ -30,44 +30,11 @@ const PLAN_MAPPING: { [key: string]: string } = {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("🚀 --- NOVO WEBHOOK RECEBIDO DA KIRVANO (Validação de token desativada) ---");
+
   try {
-    console.log("=== DEBUG: NOVO WEBHOOK RECEBIDO DA KIRVANO ===");
-
-    // 1. Logar todos os cabeçalhos para descobrir o nome correto do header do token
-    console.log("📋 Cabeçalhos recebidos:", JSON.stringify(Object.fromEntries(request.headers), null, 2));
-
-    // 1. Validação de Segurança - Verificar token do webhook
-    // Tenta diferentes variações de header que a Kirvano pode usar
-    const kirvanoToken = request.headers.get('Kirvano-Token') || 
-                        request.headers.get('kirvano-token') ||
-                        request.headers.get('X-Kirvano-Token') ||
-                        request.headers.get('x-kirvano-token') ||
-                        request.headers.get('Authorization')?.replace('Bearer ', '')
-    
-    const webhookSecret = process.env.KIRVANO_WEBHOOK_SECRET
-    
-    console.log("🔍 --- DEBUG: VERIFICANDO TOKENS ---");
-    console.log(`🔑 Token Recebido da Kirvano: [${kirvanoToken}]`);
-    console.log(`🗝️  Token Esperado do .env:   [${webhookSecret}]`);
-    console.log(`📏 Tamanho do token recebido: ${kirvanoToken?.length || 0}`);
-    console.log(`📏 Tamanho do token esperado: ${webhookSecret?.length || 0}`);
-    console.log(`🔍 Os tokens são idênticos? (sem trim): ${kirvanoToken === webhookSecret}`);
-    console.log(`🧹 Os tokens são idênticos? (com trim): ${kirvanoToken?.trim() === webhookSecret?.trim()}`);
-    
-    if (!webhookSecret) {
-      console.error('❌ KIRVANO_WEBHOOK_SECRET não configurado')
-      return NextResponse.json(
-        { error: 'Webhook secret not configured' },
-        { status: 500 }
-      )
-    }
-    
-    // TEMPORARIAMENTE COMENTADO: Validação do header
-    // Vamos primeiro testar se o token vem no body da requisição
-    console.log("⚠️ PULAREMOS a validação do header por enquanto para testar o body...");
-    
-    // 2. Ler e validar o corpo da requisição PRIMEIRO
-    let webhookData: any; // Mudando temporariamente para 'any' para capturar qualquer estrutura
+    // 1. Ler e processar o corpo da requisição
+    let webhookData: KirvanoWebhookEvent
     try {
       webhookData = await request.json()
     } catch (error) {
@@ -78,50 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // --- INÍCIO DA NOVA LÓGICA DE DEBUG ---
-    console.log("🔍 --- DEBUG: CORPO COMPLETO DO WEBHOOK RECEBIDO ---");
-    console.log(JSON.stringify(webhookData, null, 2));
-    
-    // Vamos procurar o token em várias possíveis propriedades
-    const possibleTokenFields = ['token', 'secret_token', 'webhook_token', 'auth_token', 'signature', 'secret', 'key'];
-    let receivedTokenFromBody = null;
-    let tokenFieldFound = null;
-    
-    for (const field of possibleTokenFields) {
-      if (webhookData[field]) {
-        receivedTokenFromBody = webhookData[field];
-        tokenFieldFound = field;
-        break;
-      }
-    }
-    
-    console.log("🔍 --- DEBUG: PROCURANDO TOKEN NO BODY ---");
-    console.log(`🔑 Token encontrado no campo '${tokenFieldFound}': [${receivedTokenFromBody}]`);
-    console.log(`🗝️  Token Esperado do .env: [${webhookSecret}]`);
-    
-    // Validação robusta com .trim() se encontramos token no body
-    if (receivedTokenFromBody && webhookSecret && receivedTokenFromBody.trim() === webhookSecret.trim()) {
-      console.log("✅ Validação de token do BODY BEM-SUCEDIDA. Prosseguindo...");
-    } else if (!kirvanoToken && !receivedTokenFromBody) {
-      console.error('❌ NENHUM TOKEN encontrado nem no header nem no body!');
-      console.error('❌ Headers disponíveis:', JSON.stringify([...request.headers.keys()]));
-      console.error('❌ Campos do body disponíveis:', Object.keys(webhookData));
-      return NextResponse.json(
-        { error: 'Unauthorized - No webhook token found in headers or body' },
-        { status: 401 }
-      )
-    } else if (kirvanoToken && webhookSecret && kirvanoToken.trim() === webhookSecret.trim()) {
-      console.log("✅ Validação de token do HEADER BEM-SUCEDIDA. Prosseguindo...");
-    } else {
-      console.error('❌ Validação de token falhou em AMBOS header e body!');
-      console.error(`   - Token do header: [${kirvanoToken}]`);
-      console.error(`   - Token do body (campo ${tokenFieldFound}): [${receivedTokenFromBody}]`);
-      console.error(`   - Token esperado: [${webhookSecret}]`);
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid webhook token in both header and body' },
-        { status: 401 }
-      )
-    }
+    console.log("� Webhook data recebido:", JSON.stringify(webhookData, null, 2));
 
     const { event, data } = webhookData
 
@@ -135,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔔 Webhook recebido da Kirvano - Evento: ${event}`, data)
 
-    // 3. Buscar ou criar o tenant baseado no evento
+    // 2. Buscar ou criar o tenant baseado no evento
     let tenant = await prisma.tenant.findUnique({
       where: {
         email: data.customer_email
@@ -153,7 +77,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Processar diferentes tipos de eventos
+    // 3. Processar diferentes tipos de eventos
     const isNewTenant = !tenant || tenant.createdAt > new Date(Date.now() - 60000) // Criado nos últimos 60 segundos
     
     switch (event.toLowerCase()) {
@@ -176,7 +100,7 @@ export async function POST(request: NextRequest) {
         break
     }
 
-    // 5. Sempre retornar sucesso para a Kirvano
+    // 4. Sempre retornar sucesso para a Kirvano
     return NextResponse.json(
       { 
         message: 'Webhook processed successfully',
