@@ -268,9 +268,11 @@ export default function SubscriptionPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-2">
-        <Crown className="h-8 w-8 text-yellow-600" />
-        <h1 className="text-3xl font-bold">Gerenciamento da Assinatura</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Gerenciamento da Assinatura</h1>
+          <p className="text-[#71717a]">Controle completo da sua assinatura e faturas</p>
+        </div>
       </div>
 
       {/* Status Alert */}
