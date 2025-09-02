@@ -141,8 +141,8 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-2 text-[#71717a]">Carregando dados...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Carregando dados...</p>
         </div>
       </div>
     )
@@ -175,28 +175,28 @@ export default function DashboardPage() {
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.summary.revenue) : 
         "R$ 0,00",
       icon: DollarSign,
-      color: "text-[#10b981]",
+      color: "text-foreground",
       sparklineData: sparklines.revenue
     },
     {
       title: "Clientes Ativos",
       value: dashboardData?.summary?.totalClients?.toString() || "0",
       icon: Users,
-      color: "text-[#10b981]",
+      color: "text-foreground",
       sparklineData: sparklines.clients
     },
     {
       title: "Agendamentos Hoje",
       value: (dashboardData?.todayAppointments?.length || 0).toString(),
       icon: Calendar,
-      color: "text-[#fbbf24]",
+      color: "text-foreground",
       sparklineData: sparklines.appointments
     },
     {
       title: "Taxa de Ocupação",
       value: `${Math.round(dashboardData?.summary?.occupancyRate || 0)}%`,
       icon: TrendingUp,
-      color: "text-[#3f3f46]",
+      color: "text-foreground",
       sparklineData: sparklines.appointments // Usar dados de agendamentos como proxy
     },
   ]
@@ -224,25 +224,25 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#ededed] mb-2">Olá, {businessData?.name || "Estabelecimento"}! 👋</h1>
-        <p className="text-[#a1a1aa] capitalize text-sm sm:text-base lg:text-lg">{today}</p>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Olá, {businessData?.name || "Estabelecimento"}! 👋</h1>
+        <p className="text-muted-foreground capitalize text-sm sm:text-base lg:text-lg">{today}</p>
       </div>
 
       {/* Stats Cards com Sparklines */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-4">
         {stats.map((stat, index) => (
-          <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#10b981]/30 transition-colors">
+          <Card key={index} className="bg-card border-border hover:border-primary/30 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-3 lg:p-3">
-              <CardTitle className="text-sm sm:text-sm lg:text-base font-medium text-[#a1a1aa] leading-tight">{stat.title}</CardTitle>
+              <CardTitle className="text-sm sm:text-sm lg:text-base font-medium text-muted-foreground leading-tight">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 sm:h-4 sm:w-4 lg:h-5 lg:w-5 ${stat.color} flex-shrink-0`} />
             </CardHeader>
             <CardContent className="p-3 sm:p-3 lg:p-3 pt-0">
               <div className="text-center space-y-2 sm:space-y-2 lg:space-y-2">
-                <div className="text-2xl sm:text-3xl lg:text-3xl font-bold text-[#ededed]">{stat.value}</div>
+                <div className="text-2xl sm:text-3xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
                 <div className="flex justify-center">
                   <Sparkline 
                     data={stat.sparklineData} 
-                    color={stat.color.includes('#10b981') ? '#10b981' : stat.color.includes('#fbbf24') ? '#fbbf24' : '#3f3f46'} 
+                    color="#FFFFFF" 
                     width={60} 
                     height={20}
                   />
@@ -402,7 +402,7 @@ export default function DashboardPage() {
                 </Button>
                 <Button 
                   size="sm" 
-                  className="bg-[#10b981] hover:bg-[#059669]"
+                  className="bg-primary hover:bg-primary/80 text-primary-foreground"
                   onClick={() => handleCompleteAppointment(nextAppointment)}
                   disabled={isCompletingAppointment}
                 >
@@ -419,11 +419,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Agenda de Hoje - 2 colunas */}
         <div className="lg:col-span-2">
-          <Card className="bg-[#18181b] border-[#27272a]">
+          <Card className="bg-card border-border">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-                <CardTitle className="text-[#a1a1aa] flex items-center gap-2 text-base sm:text-lg lg:text-xl">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-[#10b981]" />
+                <CardTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-foreground" />
                   Agenda de Hoje
                 </CardTitle>
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                     <h3 className="text-base sm:text-lg lg:text-xl font-medium text-[#ededed] mb-1">Nenhum agendamento para hoje</h3>
                     <p className="text-xs sm:text-sm lg:text-base">Que tal aproveitar para planejar o amanhã?</p>
                     <Button 
-                      className="mt-3 bg-[#10b981] hover:bg-[#059669] text-xs sm:text-sm lg:text-base px-3 sm:px-4"
+                      className="mt-3 bg-primary hover:bg-primary/80 text-primary-foreground text-xs sm:text-sm lg:text-base px-3 sm:px-4"
                       onClick={() => router.push('/dashboard/agenda')}
                     >
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -515,13 +515,13 @@ export default function DashboardPage() {
         {/* Painel Lateral */}
         <div className="space-y-6">
           {/* Taxa de Ocupação por Profissional */}
-          <Card className="bg-[#18181b] border-[#27272a]">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-[#a1a1aa] text-base lg:text-lg font-semibold flex items-center gap-2">
-                <Users className="w-4 h-4 lg:w-5 lg:h-5 text-[#10b981]" />
+              <CardTitle className="text-foreground text-base lg:text-lg font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 lg:w-5 lg:h-5 text-foreground" />
                 Ocupação por Profissional
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-xs lg:text-sm">Distribuição de agendamentos hoje</CardDescription>
+              <CardDescription className="text-muted-foreground text-xs lg:text-sm">Distribuição de agendamentos hoje</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -560,61 +560,61 @@ export default function DashboardPage() {
           </Card>
 
           {/* Ações Rápidas */}
-          <Card className="bg-[#18181b] border-[#27272a]">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[#a1a1aa] text-base lg:text-lg font-semibold flex items-center gap-2">
-                <Zap className="w-4 h-4 lg:w-5 lg:h-5 text-[#10b981]" />
+              <CardTitle className="text-foreground text-base lg:text-lg font-semibold flex items-center gap-2">
+                <Zap className="w-4 h-4 lg:w-5 lg:h-5 text-foreground" />
                 Ações Rápidas
               </CardTitle>
-              <CardDescription className="text-[#a1a1aa] text-xs lg:text-sm">Acesso rápido às principais funcionalidades</CardDescription>
+              <CardDescription className="text-muted-foreground text-xs lg:text-sm">Acesso rápido às principais funcionalidades</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={handleNewClient}
-                  className="group relative p-4 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105"
+                  className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
-                      <Users className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <Users className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Novo Cliente</p>
+                    <p className="text-xs lg:text-sm font-medium text-foreground">Novo Cliente</p>
                   </div>
                 </button>
                 
                 <button 
                   onClick={handleSchedule}
-                  className="group relative p-4 bg-gradient-to-br from-[#10b981]/10 to-[#10b981]/5 border border-[#10b981]/20 rounded-xl hover:from-[#10b981]/20 hover:to-[#10b981]/10 hover:border-[#10b981]/30 transition-all duration-300 hover:scale-105"
+                  className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
-                      <Calendar className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <Calendar className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#10b981] transition-colors">Agendar</p>
+                    <p className="text-xs lg:text-sm font-medium text-foreground">Agendar</p>
                   </div>
                 </button>
                 
                 <button 
                   onClick={handleFinancial}
-                  className="group relative p-4 bg-gradient-to-br from-[#fbbf24]/10 to-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl hover:from-[#fbbf24]/20 hover:to-[#fbbf24]/10 hover:border-[#fbbf24]/30 transition-all duration-300 hover:scale-105"
+                  className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
-                      <DollarSign className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <DollarSign className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#fbbf24] transition-colors">Financeiro</p>
+                    <p className="text-xs lg:text-sm font-medium text-foreground">Financeiro</p>
                   </div>
                 </button>
                 
                 <button 
                   onClick={handleReports}
-                  className="group relative p-4 bg-gradient-to-br from-[#3f3f46]/10 to-[#3f3f46]/5 border border-[#27272a] rounded-xl hover:from-[#3f3f46]/20 hover:to-[#3f3f46]/10 hover:border-[#3f3f46]/30 transition-all duration-300 hover:scale-105"
+                  className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#3f3f46] to-[#27272a] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
-                      <TrendingUp className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <TrendingUp className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <p className="text-xs lg:text-sm font-medium text-[#ededed] group-hover:text-[#3f3f46] transition-colors">Relatórios</p>
+                    <p className="text-xs lg:text-sm font-medium text-foreground">Relatórios</p>
                   </div>
                 </button>
               </div>
