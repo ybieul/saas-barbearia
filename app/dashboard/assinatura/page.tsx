@@ -266,7 +266,7 @@ export default function SubscriptionPage() {
   const currentPlanFeatures = planFeatures[subscription.plan as keyof typeof planFeatures] || planFeatures['FREE']
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
