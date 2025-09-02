@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 
 // Número de suporte fixo
-const SUPPORT_PHONE_NUMBER = '24999998888'
+const SUPPORT_PHONE_NUMBER = '24981757110'
 
 export default function SubscriptionPage() {
   const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
@@ -58,7 +58,8 @@ export default function SubscriptionPage() {
 
   // Função para abrir suporte no WhatsApp
   const handleSupportClick = () => {
-    const whatsappUrl = `https://wa.me/55${SUPPORT_PHONE_NUMBER}`
+    const message = 'Olá, preciso de ajuda com questões sobre minha assinatura.'
+    const whatsappUrl = `https://wa.me/55${SUPPORT_PHONE_NUMBER}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 
