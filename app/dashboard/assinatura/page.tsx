@@ -416,15 +416,15 @@ export default function SubscriptionPage() {
         <CardContent>
           <div className="space-y-4">
             <div className="space-y-2">
-              <h4 className="font-medium">Questões de Cobrança</h4>
-              <p className="text-sm text-muted-foreground">
-                Para dúvidas sobre pagamentos e faturas
-              </p>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  const supportNumber = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE || '24981757110';
+                  const supportNumber = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE;
+                  if (!supportNumber) {
+                    console.error('Número do suporte não configurado na variável de ambiente NEXT_PUBLIC_NUMERO_PARA_SUPORTE');
+                    return;
+                  }
                   const whatsappUrl = `https://wa.me/55${supportNumber}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
                   window.open(whatsappUrl, '_blank');
                 }}
