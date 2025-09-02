@@ -414,26 +414,9 @@ export default function SubscriptionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <h4 className="font-medium">Suporte Técnico</h4>
-              <p className="text-sm text-muted-foreground">
-                Para dúvidas sobre funcionalidades e uso do sistema
-              </p>
-              <Button variant="outline" size="sm">
-                Abrir Chat de Suporte
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">Questões de Cobrança</h4>
-              <p className="text-sm text-muted-foreground">
-                Para dúvidas sobre pagamentos e faturas
-              </p>
-              <Button variant="outline" size="sm">
-                Contatar Financeiro
-              </Button>
-            </div>
-          </div>
+          <Button variant="outline" size="sm">
+            Contatar Suporte
+          </Button>
         </CardContent>
       </Card>
     </div>
