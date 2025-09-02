@@ -7,7 +7,7 @@
 
 /* Configuração de fontes do sistema */
 body {
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-lufga), var(--font-inter), Inter, sans-serif;
 }
 
 @layer utilities {
@@ -22,6 +22,10 @@ body {
   
   .font-poppins {
     font-family: var(--font-poppins), Poppins, sans-serif;
+  }
+  
+  .font-lufga {
+    font-family: var(--font-lufga), sans-serif;
   }
 
   /* Scrollbar personalizada para menu mobile */

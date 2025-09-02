@@ -15,8 +15,18 @@ const config: Config = {
   		fontFamily: {
   			inter: ['var(--font-inter)', 'Inter', 'sans-serif'],
   			poppins: ['var(--font-poppins)', 'Poppins', 'sans-serif'],
+  			sans: ['var(--font-lufga)', 'sans-serif'],
   		},
   		colors: {
+  			// Nova identidade visual TymerBook
+  			'tymer-bg': '#111112',        // Fundo principal
+  			'tymer-card': '#18181A',      // Fundo dos cards
+  			'tymer-sidebar': '#212124',   // Fundo da barra lateral
+  			'tymer-primary': '#4700FF',   // Cor primária/acento (roxo)
+  			'tymer-text': '#FFFFFF',      // Texto principal
+  			'tymer-muted': '#888888',     // Textos secundários
+  			
+  			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
