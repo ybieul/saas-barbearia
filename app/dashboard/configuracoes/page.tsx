@@ -28,6 +28,7 @@ import { usePromotionTemplates } from "@/hooks/use-promotion-templates"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
 import { useSubscription } from "@/hooks/use-subscription"
+import { useAuth } from "@/hooks/use-auth"
 import { QrCodeModal } from "@/components/qr-code-modal"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -64,9 +65,20 @@ function ChangePasswordSection() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { token, isAuthenticated } = useAuth() // ✅ CORRIGIDO: Usar hook useAuth
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // ✅ CORRIGIDO: Verificar se está autenticado usando o hook
+    if (!isAuthenticated || !token) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para alterar a senha",
+        variant: "destructive",
+      })
+      return
+    }
     
     // Validações básicas
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -108,21 +120,12 @@ function ChangePasswordSection() {
     setIsLoading(true)
 
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado",
-          variant: "destructive",
-        })
-        return
-      }
-
+      // ✅ CORRIGIDO: Usar o token do hook useAuth em vez do localStorage
       const response = await fetch('/api/account/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // ✅ Token do hook useAuth
         },
         body: JSON.stringify({
           currentPassword,
