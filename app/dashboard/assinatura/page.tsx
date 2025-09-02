@@ -9,14 +9,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { APP_CONFIG } from '@/lib/config'
 
 export default function SubscriptionPage() {
   const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
   const [isManaging, setIsManaging] = useState(false)
   const { toast } = useToast()
 
-  // Definir número do suporte em tempo de build/runtime
-  const SUPPORT_NUMBER = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE || '24981757112'
+  // Referência estática à variável para garantir injeção pelo Next.js
+  // Esta linha força o Next.js a incluir a variável no bundle
+  const SUPPORT_NUMBER = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE
 
   // Função para gerenciar assinatura (abrir portal da Kirvano)
   const handleManageSubscription = async () => {
@@ -423,19 +425,21 @@ export default function SubscriptionPage() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  // Debug: Verificar todas as variáveis de ambiente disponíveis
-                  console.log('Variáveis NEXT_PUBLIC disponíveis:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC')));
-                  console.log('Valor da variável NEXT_PUBLIC_NUMERO_PARA_SUPORTE:', process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE);
-                  console.log('Número do suporte sendo usado:', SUPPORT_NUMBER);
+                  // Debug usando APP_CONFIG
+                  APP_CONFIG.debugSupportVar();
                   
-                  if (!SUPPORT_NUMBER) {
-                    console.error('❌ Número do suporte não configurado');
+                  // Usar número configurado
+                  const numeroFinal = APP_CONFIG.SUPPORT_PHONE;
+                  console.log('📱 Número final sendo usado:', numeroFinal);
+                  
+                  if (!numeroFinal) {
+                    console.error('❌ Nenhum número do suporte disponível');
                     alert('Número do suporte não configurado. Entre em contato com o administrador.');
                     return;
                   }
                   
-                  console.log('✅ Redirecionando para WhatsApp:', SUPPORT_NUMBER);
-                  const whatsappUrl = `https://wa.me/55${SUPPORT_NUMBER}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
+                  console.log('✅ Redirecionando para WhatsApp:', numeroFinal);
+                  const whatsappUrl = `https://wa.me/55${numeroFinal}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
                   window.open(whatsappUrl, '_blank');
                 }}
               >
