@@ -15,6 +15,9 @@ export default function SubscriptionPage() {
   const [isManaging, setIsManaging] = useState(false)
   const { toast } = useToast()
 
+  // Definir número do suporte em tempo de build/runtime
+  const SUPPORT_NUMBER = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE || '24981757112'
+
   // Função para gerenciar assinatura (abrir portal da Kirvano)
   const handleManageSubscription = async () => {
     if (!subscription?.isActive) {
@@ -420,12 +423,19 @@ export default function SubscriptionPage() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  const supportNumber = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE;
-                  if (!supportNumber) {
-                    console.error('Número do suporte não configurado na variável de ambiente NEXT_PUBLIC_NUMERO_PARA_SUPORTE');
+                  // Debug: Verificar todas as variáveis de ambiente disponíveis
+                  console.log('Variáveis NEXT_PUBLIC disponíveis:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC')));
+                  console.log('Valor da variável NEXT_PUBLIC_NUMERO_PARA_SUPORTE:', process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE);
+                  console.log('Número do suporte sendo usado:', SUPPORT_NUMBER);
+                  
+                  if (!SUPPORT_NUMBER) {
+                    console.error('❌ Número do suporte não configurado');
+                    alert('Número do suporte não configurado. Entre em contato com o administrador.');
                     return;
                   }
-                  const whatsappUrl = `https://wa.me/55${supportNumber}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
+                  
+                  console.log('✅ Redirecionando para WhatsApp:', SUPPORT_NUMBER);
+                  const whatsappUrl = `https://wa.me/55${SUPPORT_NUMBER}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
                   window.open(whatsappUrl, '_blank');
                 }}
               >
