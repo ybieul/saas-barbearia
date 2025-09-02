@@ -331,11 +331,6 @@ export default function SubscriptionPage() {
                 {subscription.plan !== 'FREE' && commonFeatures.map((feature, index) => (
                   <li key={`common-${index}`}>{feature}</li>
                 ))}
-                
-                {/* Recurso exclusivo do Premium/Ultra */}
-                {(subscription.plan === 'PREMIUM' || subscription.plan === 'ULTRA') && (
-                  <li>Acesso à API</li>
-                )}
               </ul>
             </div>
           </CardContent>
