@@ -22,12 +22,27 @@ interface KirvanoWebhookEvent {
   [key: string]: any // Para outros campos que possam vir
 }
 
-// Mapeamento de planos da Kirvano para nosso sistema
-const PLAN_MAPPING: { [key: string]: string } = {
-  'basico': 'BASIC',
-  'premium': 'PREMIUM',
-  'free': 'FREE',
-  'gratuito': 'FREE'
+// Função para mapear planos da Kirvano para nosso sistema
+function mapKirvanoPlanName(kirvanoPlanName: string): string {
+  const normalizedName = kirvanoPlanName.toLowerCase().trim()
+  
+  // Mapeamento baseado no nome exato do plano da Kirvano
+  if (normalizedName.includes('ultra')) {
+    return 'ULTRA'
+  }
+  if (normalizedName.includes('premium')) {
+    return 'PREMIUM'
+  }
+  if (normalizedName.includes('básico') || normalizedName.includes('basico')) {
+    return 'BASIC'
+  }
+  if (normalizedName.includes('free') || normalizedName.includes('gratuito')) {
+    return 'FREE'
+  }
+  
+  // Padrão: se não conseguir identificar, assumir BASIC
+  console.warn(`⚠️ Plano não reconhecido: "${kirvanoPlanName}", usando BASIC como padrão`)
+  return 'BASIC'
 }
 
 export async function POST(request: NextRequest, { params }: { params: { secret: string } }) {
@@ -132,7 +147,13 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       // TENANT EXISTENTE: Atualizar dados da assinatura
       console.log(`👤 Tenant existente encontrado: ${tenant.id}`)
       
-      const mappedPlan = PLAN_MAPPING[planName.toLowerCase()] || 'BASIC'
+      // ✅ CORRIGIDO: Extrair o nome do plano DIRETAMENTE do webhook
+      const planNameFromKirvano = webhookData.plan.name
+      const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+      
+      console.log(`📝 Nome do plano da Kirvano: "${planNameFromKirvano}"`)
+      console.log(`📝 Plano mapeado para o sistema: "${mappedPlan}"`)
+      
       let subscriptionEnd: Date | undefined
       
       if (subscriptionEndDate) {
@@ -145,7 +166,7 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       
       const updateData: any = {
         isActive: true,
-        businessPlan: mappedPlan,
+        businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
         updatedAt: new Date()
       }
@@ -171,8 +192,12 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       // 2. Fazer hash da senha
       const hashedPassword = await bcrypt.hash(temporaryPassword, 12)
       
-      // 3. Determinar plano
-      const mappedPlan = PLAN_MAPPING[planName.toLowerCase()] || 'BASIC'
+      // 3. Determinar plano - ✅ CORRIGIDO: Extrair o nome do plano DIRETAMENTE do webhook
+      const planNameFromKirvano = webhookData.plan.name
+      const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+      
+      console.log(`📝 Nome do plano da Kirvano: "${planNameFromKirvano}"`)
+      console.log(`📝 Plano mapeado para o sistema: "${mappedPlan}"`)
       
       // 4. Calcular data de expiração
       let subscriptionEnd: Date = new Date()
@@ -189,7 +214,7 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
         email: customerEmail,
         password: hashedPassword,
         isActive: true,
-        businessPlan: mappedPlan,
+        businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
         // Configurações padrão para novo negócio
         businessName: customerName || 'Meu Negócio',
