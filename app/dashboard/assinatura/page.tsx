@@ -10,6 +10,9 @@ import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock,
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 
+// Número de suporte fixo
+const SUPPORT_PHONE_NUMBER = '24999998888'
+
 export default function SubscriptionPage() {
   const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
   const [isManaging, setIsManaging] = useState(false)
@@ -51,6 +54,12 @@ export default function SubscriptionPage() {
     } finally {
       setIsManaging(false)
     }
+  }
+
+  // Função para abrir suporte no WhatsApp
+  const handleSupportClick = () => {
+    const whatsappUrl = `https://wa.me/55${SUPPORT_PHONE_NUMBER}`
+    window.open(whatsappUrl, '_blank')
   }
 
   if (loading) {
@@ -416,7 +425,7 @@ export default function SubscriptionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleSupportClick}>
             Contatar Suporte
           </Button>
         </CardContent>
