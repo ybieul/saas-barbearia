@@ -16,9 +16,11 @@ export default function SubscriptionPage() {
   const [isManaging, setIsManaging] = useState(false)
   const { toast } = useToast()
 
-  // Referência estática à variável para garantir injeção pelo Next.js
-  // Esta linha força o Next.js a incluir a variável no bundle
-  const SUPPORT_NUMBER = process.env.NEXT_PUBLIC_NUMERO_PARA_SUPORTE
+  // Configuração robusta para variável de suporte
+  const SUPPORT_VARIABLE_NAME = 'NEXT_PUBLIC_NUMERO_PARA_SUPORTE';
+  const supportNumberFromEnv = process.env[SUPPORT_VARIABLE_NAME];
+  const fallbackNumber = '24981757110'; // Número de fallback
+  const finalSupportNumber = supportNumberFromEnv || fallbackNumber;
 
   // Função para gerenciar assinatura (abrir portal da Kirvano)
   const handleManageSubscription = async () => {
@@ -424,22 +426,34 @@ export default function SubscriptionPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {
-                  // Debug usando APP_CONFIG
-                  APP_CONFIG.debugSupportVar();
+                onClick={async () => {
+                  // === DEBUG COMPLETO DE VARIÁVEIS DE AMBIENTE ===
+                  console.log('--- DEBUG VARIÁVEL DE SUPORTE ---');
+                  console.log(`Procurando por variável: "${SUPPORT_VARIABLE_NAME}"`);
+                  console.log(`Valor encontrado no process.env:`, supportNumberFromEnv);
+                  console.log(`Número final que será usado:`, finalSupportNumber);
+                  console.log('Todas as chaves NEXT_PUBLIC disponíveis:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
                   
-                  // Usar número configurado
-                  const numeroFinal = APP_CONFIG.SUPPORT_PHONE;
-                  console.log('📱 Número final sendo usado:', numeroFinal);
+                  // Fazer chamada para API de debug para comparar com servidor
+                  try {
+                    const debugResponse = await fetch('/api/debug-env');
+                    const debugData = await debugResponse.json();
+                    console.log('🔍 DEBUG DO SERVIDOR:', debugData);
+                    console.log('� Total de variáveis no servidor:', debugData.totalFound);
+                    console.log('🌍 NODE_ENV no servidor:', debugData.nodeEnv);
+                  } catch (error) {
+                    console.error('❌ Erro ao consultar API de debug:', error);
+                  }
                   
-                  if (!numeroFinal) {
+                  // Usar número final
+                  if (!finalSupportNumber) {
                     console.error('❌ Nenhum número do suporte disponível');
                     alert('Número do suporte não configurado. Entre em contato com o administrador.');
                     return;
                   }
                   
-                  console.log('✅ Redirecionando para WhatsApp:', numeroFinal);
-                  const whatsappUrl = `https://wa.me/55${numeroFinal}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
+                  console.log('✅ Redirecionando para WhatsApp:', finalSupportNumber);
+                  const whatsappUrl = `https://wa.me/55${finalSupportNumber}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
                   window.open(whatsappUrl, '_blank');
                 }}
               >
