@@ -62,7 +62,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="dark">
-      <body className={`${inter.variable} ${poppins.variable} ${lufga.variable} font-lufga bg-tymer-bg text-tymer-text antialiased`}>
+      <body className={`${inter.variable} ${poppins.variable} ${lufga.variable} font-lufga bg-background text-foreground antialiased`}>
         <AuthProvider>
           {children}
           <Toaster />

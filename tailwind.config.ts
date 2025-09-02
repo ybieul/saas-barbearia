@@ -28,13 +28,21 @@ const config: Config = {
   			'tymer-border': '#27272a',    // Bordas
   			'tymer-accent': '#10b981',    // Verde de sucesso (mantido para compatibilidade)
   			
-  			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
+  			// Cores semânticas padrão com valores fixos TymerBook
+  			background: '#111112',        // Fundo padrão (tymer-bg)
+  			foreground: '#FFFFFF',        // Texto padrão branco
   			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
+  				DEFAULT: '#18181A',         // Cards (tymer-card)
+  				foreground: '#FFFFFF'       // Texto nos cards - branco
   			},
+  			
+  			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
+  			// background: 'hsl(var(--background))',
+  			// foreground: 'hsl(var(--foreground))',
+  			// card: {
+  			// 	DEFAULT: 'hsl(var(--card))',
+  			// 	foreground: 'hsl(var(--card-foreground))'
+  			// },
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'
