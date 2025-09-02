@@ -9,14 +9,14 @@ RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 COPY .npmrc ./
 
+# Copia a pasta 'public' inteira (incluindo a subpasta 'fonts') do contexto original do build.
+COPY public ./public
+
 # Instala dependências (sem postinstall agora)
 RUN npm install --legacy-peer-deps
 
 # Copia o código fonte
 COPY . .
-
-# Copia a pasta de fontes públicas para a imagem final
-COPY --from builder /app/public/fonts ./public/fonts
 
 # Gera cliente Prisma
 RUN npx prisma generate
