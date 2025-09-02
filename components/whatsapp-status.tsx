@@ -49,9 +49,9 @@ export function WhatsAppStatus() {
       case "sent":
         return "bg-blue-500/20 text-blue-400 border-blue-500/30"
       case "delivered":
-        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+        return "bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30"
       case "read":
-        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+        return "bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30"
       case "failed":
         return "bg-red-500/20 text-red-400 border-red-500/30"
       default:
@@ -82,13 +82,13 @@ export function WhatsAppStatus() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-tymer-card/50 border-tymer-border">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-white">{stats.total}</div>
             <div className="text-xs text-gray-400">Total</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-tymer-card/50 border-tymer-border">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-400">{stats.sent}</div>
             <div className="text-xs text-gray-400">Enviadas</div>
@@ -97,10 +97,10 @@ export function WhatsAppStatus() {
       </div>
 
       {/* Messages List */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-tymer-card/50 border-tymer-border">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-emerald-400" />
+            <MessageCircle className="w-5 h-5 text-tymer-accent" />
             <span className="text-lg sm:text-xl">Mensagens Enviadas Recentemente</span>
           </CardTitle>
           <CardDescription className="text-gray-400 text-sm sm:text-base">
@@ -142,10 +142,10 @@ export function WhatsAppStatus() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-700"
+                  className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-tymer-card/30 rounded-lg border border-tymer-border"
                 >
                   <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-tymer-accent rounded-full flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
                       <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">

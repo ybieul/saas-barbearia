@@ -1273,28 +1273,28 @@ export default function FinanceiroPage() {
         <CardContent>
           {/* Summary Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
-            <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
             </div>
-            <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400 mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
-            <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-orange-400 mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Melhor Dia</p>
             </div>
-            <div className="text-center p-3 sm:p-3 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {bestDay?.fullDate || 'N/A'}

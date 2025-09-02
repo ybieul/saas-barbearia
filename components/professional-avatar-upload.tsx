@@ -196,8 +196,8 @@ export function ProfessionalAvatarUpload({
     <div className="space-y-4 sm:space-y-6">
       {/* Header com ícone e título */}
       <div className="text-center">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-green-500/30">
-          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-tymer-primary/20 to-tymer-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-tymer-primary/30">
+          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-tymer-primary" />
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Foto de Perfil</h2>
         <p className="text-[#71717a] text-xs sm:text-sm">
@@ -237,7 +237,7 @@ export function ProfessionalAvatarUpload({
             size="sm"
             onClick={handleSaveAvatar}
             disabled={disabled || isUploading}
-            className="bg-green-600 hover:bg-green-700 text-white border-0 min-h-[44px] touch-manipulation"
+            className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 min-h-[44px] touch-manipulation"
           >
             <Check className="w-4 h-4" />
             <span className="ml-2">Confirmar</span>

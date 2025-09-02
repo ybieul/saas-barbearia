@@ -247,7 +247,7 @@ export default function ServiceImageUpload({
             size="sm"
             onClick={handleConfirmImage}
             disabled={isUploading}
-            className="bg-green-600 hover:bg-green-700 text-white border-0 min-h-[44px] touch-manipulation"
+            className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 min-h-[44px] touch-manipulation"
           >
             <Check className="w-4 h-4" />
             <span className="ml-2">Confirmar</span>

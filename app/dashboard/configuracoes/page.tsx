@@ -1546,7 +1546,7 @@ export default function ConfiguracoesPage() {
                       {!limitsLoading && planLimits?.professionals && (
                         <div className="flex items-center gap-2 text-sm">
                           {planLimits.professionals.limit === -1 ? (
-                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                            <Badge variant="secondary" className="bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30">
                               Profissionais ilimitados
                             </Badge>
                           ) : (
@@ -1753,7 +1753,7 @@ export default function ConfiguracoesPage() {
                       professionals.map((professional) => (
                         <div
                           key={professional.id}
-                          className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                          className="p-3 sm:p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
                         >
                           {/* Header com avatar e ações - Mobile-friendly */}
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -2164,7 +2164,7 @@ export default function ConfiguracoesPage() {
                     dbServices.map((service) => (
                       <div
                         key={service.id}
-                        className="p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                        className="p-3 sm:p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
                       >
                         {/* Header com imagem e ações - Mobile-friendly */}
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -2785,7 +2785,7 @@ export default function ConfiguracoesPage() {
                       promotionTemplates.map((template) => (
                         <div
                           key={template.id}
-                          className="p-4 bg-gray-900/50 rounded-lg border border-[#52525b] hover:bg-gray-800/50 transition-colors"
+                          className="p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div>

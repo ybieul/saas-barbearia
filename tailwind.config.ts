@@ -25,6 +25,8 @@ const config: Config = {
   			'tymer-primary': '#4700FF',   // Cor primária/acento (roxo)
   			'tymer-text': '#FFFFFF',      // Texto principal
   			'tymer-muted': '#888888',     // Textos secundários
+  			'tymer-border': '#27272a',    // Bordas
+  			'tymer-accent': '#10b981',    // Verde de sucesso (mantido para compatibilidade)
   			
   			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			background: 'hsl(var(--background))',

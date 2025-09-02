@@ -279,7 +279,7 @@ export default function WhatsAppPage() {
               <Dialog>
                 <DialogTrigger asChild>
                   <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base w-full lg:w-auto"
+                    className="bg-tymer-primary hover:bg-tymer-primary/80 text-white text-sm sm:text-base w-full lg:w-auto"
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
                     Conectar WhatsApp
@@ -433,7 +433,7 @@ export default function WhatsAppPage() {
             <Button
               onClick={handleSendTestMessage}
               disabled={isSending}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white"
             >
               {isSending ? (
                 <>
@@ -452,7 +452,7 @@ export default function WhatsAppPage() {
               <div
                 className={`p-3 rounded-lg ${
                   testResult.success
-                    ? "bg-emerald-500/20 border border-emerald-500/30 text-[#10b981]"
+                    ? "bg-tymer-accent/20 border border-tymer-accent/30 text-tymer-accent"
                     : "bg-red-500/20 border border-red-500/30 text-red-400"
                 }`}
               >

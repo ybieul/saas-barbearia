@@ -107,7 +107,7 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-tymer-bg flex items-center justify-center">
         <div className="text-[#ededed]">Carregando...</div>
       </div>
     )
@@ -115,20 +115,20 @@ export default function DashboardLayout({
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex">
+      <div className="min-h-screen bg-tymer-bg text-tymer-text flex">
         {/* Sidebar */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#18181b]/95 backdrop-blur-xl border-r border-[#27272a] transform transition-transform duration-300 ease-in-out ${
+        <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-tymer-sidebar/95 backdrop-blur-xl border-r border-tymer-border transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}>
         
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-xl flex items-center justify-center shadow-lg shadow-[#10b981]/25">
+            <div className="w-10 h-10 bg-gradient-to-br from-tymer-accent to-tymer-accent/80 rounded-xl flex items-center justify-center shadow-lg shadow-tymer-accent/25">
               <Scissors className="w-6 h-6 text-white" />
             </div>
             <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-tymer-accent to-yellow-400 bg-clip-text text-transparent">
                 AgendaPro
               </span>
               <p className="text-xs text-[#a1a1aa]">Dashboard</p>
@@ -136,7 +136,7 @@ export default function DashboardLayout({
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 text-[#3f3f46] hover:text-[#ededed] hover:bg-[#27272a] rounded-lg transition-colors"
+            className="lg:hidden p-2 text-tymer-muted hover:text-tymer-text hover:bg-tymer-border rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -147,7 +147,7 @@ export default function DashboardLayout({
           {/* Perfil */}
           <div className="p-6 border-b border-[#27272a]">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#27272a] to-[#18181b] rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+              <div className="w-12 h-12 bg-gradient-to-br from-tymer-border to-tymer-card rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                 {businessInfo?.businessLogo ? (
                   <img 
                     src={businessInfo.businessLogo} 
@@ -166,7 +166,7 @@ export default function DashboardLayout({
                   {businessInfo?.email || 'email@estabelecimento.com'}
                 </p>
                 <div className="flex items-center mt-1">
-                  <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2"></div>
+                  <div className="w-2 h-2 bg-tymer-accent rounded-full mr-2"></div>
                   <span className="text-xs text-[#10b981]">Online</span>
                 </div>
               </div>
@@ -182,8 +182,8 @@ export default function DashboardLayout({
                   onClick={() => setSidebarOpen(false)}
                   className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     pathname === item.href
-                      ? 'bg-gradient-to-r from-[#10b981]/20 to-[#059669]/20 text-[#10b981] border border-[#10b981]/30 shadow-lg shadow-[#10b981]/10'
-                      : 'text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#27272a]/50'
+                      ? 'bg-gradient-to-r from-tymer-accent/20 to-tymer-accent/10 text-tymer-accent border border-tymer-accent/30 shadow-lg shadow-tymer-accent/10'
+                      : 'text-tymer-muted hover:text-tymer-text hover:bg-tymer-border/50'
                   }`}
                 >
                   <item.icon className={`mr-4 h-5 w-5 transition-colors ${
@@ -196,7 +196,7 @@ export default function DashboardLayout({
                     </div>
                   </div>
                   {pathname === item.href && (
-                    <div className="w-2 h-2 bg-[#10b981] rounded-full" />
+                    <div className="w-2 h-2 bg-tymer-accent rounded-full" />
                   )}
                 </Link>
               </div>
@@ -207,7 +207,7 @@ export default function DashboardLayout({
           <div className="p-4 border-t border-[#27272a] mt-4">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 text-sm font-medium text-[#a1a1aa] hover:text-[#ededed] hover:bg-red-500/10 hover:border-red-500/30 rounded-xl transition-all border border-transparent"
+              className="w-full flex items-center px-4 py-3 text-sm font-medium text-tymer-muted hover:text-tymer-text hover:bg-red-500/10 hover:border-red-500/30 rounded-xl transition-all border border-transparent"
             >
               <LogOut className="mr-4 h-5 w-5" />
               Sair da Conta
@@ -223,18 +223,18 @@ export default function DashboardLayout({
       {sidebarOpen && (
         <div 
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-tymer-bg/50 z-40 lg:hidden backdrop-blur-sm"
         />
       )}
 
       {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-[#18181b]/50 backdrop-blur-xl border-b border-[#27272a] h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+        <header className="bg-tymer-card/50 backdrop-blur-xl border-b border-tymer-border h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#27272a] rounded-lg transition-colors"
+              className="lg:hidden p-2 text-tymer-muted hover:text-tymer-text hover:bg-tymer-border rounded-lg transition-colors"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -253,7 +253,7 @@ export default function DashboardLayout({
             </div>
             
             {/* Avatar do Usuário */}
-            <div className="w-8 h-8 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg cursor-pointer">
+            <div className="w-8 h-8 bg-gradient-to-br from-tymer-accent to-tymer-accent/80 rounded-lg flex items-center justify-center shadow-lg cursor-pointer">
               <UserCircle className="w-5 h-5 text-white" />
             </div>
           </div>

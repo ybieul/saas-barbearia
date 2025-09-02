@@ -105,7 +105,7 @@ export default function LandingPage() {
       </section>
 
       {/* Problems Section */}
-      <section className="py-20 px-4 bg-gray-900/50">
+      <section className="py-20 px-4 bg-tymer-card/50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -116,7 +116,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-gray-800/50 border-gray-700 p-6">
+            <Card className="bg-tymer-card border-tymer-border p-6">
               <CardContent className="p-0">
                 <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
                   <Clock className="w-6 h-6 text-red-400" />
@@ -127,7 +127,7 @@ export default function LandingPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-700 p-6">
+            <Card className="bg-tymer-card border-tymer-border p-6">
               <CardContent className="p-0">
                 <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
                   <Calendar className="w-6 h-6 text-red-400" />
@@ -138,7 +138,7 @@ export default function LandingPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-700 p-6">
+            <Card className="bg-tymer-card border-tymer-border p-6">
               <CardContent className="p-0">
                 <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
                   <DollarSign className="w-6 h-6 text-red-400" />
@@ -169,10 +169,10 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 p-6">
+            <Card className="bg-gradient-to-br from-tymer-primary/10 to-tymer-primary/5 border-tymer-primary/20 p-6">
               <CardContent className="p-0">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
-                  <MessageCircle className="w-6 h-6 text-emerald-400" />
+                <div className="w-12 h-12 bg-tymer-primary/20 rounded-lg flex items-center justify-center mb-4">
+                  <MessageCircle className="w-6 h-6 text-tymer-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">Lembretes WhatsApp</h3>
                 <p className="text-gray-400">Confirmações e lembretes automáticos para reduzir faltas em 90%.</p>
@@ -214,11 +214,11 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-gray-900/50">
+      <section className="py-20 px-4 bg-tymer-card/50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Funcionalidades <span className="text-emerald-400">completas</span>
+              Funcionalidades <span className="text-tymer-primary">completas</span>
             </h2>
             <p className="text-gray-400 text-lg">
               Tudo que você precisa para gerenciar seu salão ou barbearia em um só lugar
@@ -233,10 +233,10 @@ export default function LandingPage() {
               { icon: MessageCircle, title: "WhatsApp Integrado", desc: "Confirmações e lembretes automáticos" },
               { icon: TrendingUp, title: "Relatórios Avançados", desc: "Gráficos e estatísticas detalhadas" },
             ].map((feature, index) => (
-              <Card key={index} className="bg-gray-800/30 border-gray-700 p-6 hover:bg-gray-800/50 transition-colors">
+              <Card key={index} className="bg-tymer-card/30 border-tymer-border p-6 hover:bg-tymer-card/50 transition-colors">
                 <CardContent className="p-0">
-                  <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-emerald-400" />
+                  <div className="w-12 h-12 bg-tymer-primary/20 rounded-lg flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-tymer-primary" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2 text-white">{feature.title}</h3>
                   <p className="text-gray-400">{feature.desc}</p>
@@ -277,7 +277,7 @@ export default function LandingPage() {
                 rating: 5,
               },
             ].map((testimonial, index) => (
-              <Card key={index} className="bg-gray-800/30 border-gray-700 p-6">
+              <Card key={index} className="bg-tymer-card/30 border-tymer-border p-6">
                 <CardContent className="p-0">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -325,14 +325,14 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-gray-900 border-t border-gray-800">
+      <footer className="py-12 px-4 bg-tymer-card border-t border-tymer-border">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-tymer-primary to-tymer-primary/80 rounded-lg flex items-center justify-center">
                 <Scissors className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-yellow-400 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-tymer-primary to-yellow-400 bg-clip-text text-transparent">
                 AgendaPro
               </span>
             </div>
