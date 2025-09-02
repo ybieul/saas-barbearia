@@ -136,6 +136,8 @@ export default function SubscriptionPage() {
         return 'bg-blue-100 text-blue-800'
       case 'PREMIUM':
         return 'bg-purple-100 text-purple-800'
+      case 'ULTRA':
+        return 'bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -150,6 +152,8 @@ export default function SubscriptionPage() {
         return <CheckCircle2 className="h-4 w-4" />
       case 'PREMIUM':
         return <Crown className="h-4 w-4" />
+      case 'ULTRA':
+        return <Crown className="h-4 w-4 text-yellow-600" />
       default:
         return <Shield className="h-4 w-4" />
     }
@@ -164,6 +168,8 @@ export default function SubscriptionPage() {
         return 'Básico'
       case 'PREMIUM':
         return 'Premium'
+      case 'ULTRA':
+        return 'Ultra'
       default:
         return plan
     }
@@ -213,6 +219,57 @@ export default function SubscriptionPage() {
   }
 
   const statusInfo = getStatusMessage()
+
+  // Estrutura centralizada de recursos dos planos
+  const planFeatures = {
+    'FREE': {
+      professionals: 'Até 1 profissional',
+      features: [
+        'Até 100 clientes',
+        'Até 500 agendamentos',
+        'Até 10 serviços',
+      ]
+    },
+    'BASIC': {
+      professionals: 'Até 1 profissional',
+      features: [
+        'Clientes ilimitados',
+        'Agendamentos ilimitados',
+        'Serviços ilimitados',
+        'Integração com WhatsApp',
+        'Relatórios personalizados',
+      ]
+    },
+    'PREMIUM': {
+      professionals: 'Até 3 profissionais',
+      features: [
+        'Clientes ilimitados',
+        'Agendamentos ilimitados',
+        'Serviços ilimitados',
+        'Integração com WhatsApp',
+        'Relatórios personalizados',
+      ]
+    },
+    'ULTRA': {
+      professionals: 'Profissionais ilimitados',
+      features: [
+        'Clientes ilimitados',
+        'Agendamentos ilimitados',
+        'Serviços ilimitados',
+        'Integração com WhatsApp',
+        'Relatórios personalizados',
+      ]
+    }
+  }
+
+  // Recursos comuns a todos os planos (exceto FREE)
+  const commonFeatures = [
+    'Integração WhatsApp',
+    'Relatórios personalizados',
+  ]
+
+  // Obter recursos do plano atual
+  const currentPlanFeatures = planFeatures[subscription.plan as keyof typeof planFeatures] || planFeatures['FREE']
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -268,33 +325,22 @@ export default function SubscriptionPage() {
                 <strong>Recursos inclusos:</strong>
               </p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                {subscription.plan === 'FREE' && (
-                  <>
-                    <li>Até 10 clientes</li>
-                    <li>Até 50 agendamentos</li>
-                    <li>Até 3 serviços</li>
-                    <li>1 profissional</li>
-                  </>
-                )}
-                {subscription.plan === 'BASIC' && (
-                  <>
-                    <li>Até 100 clientes</li>
-                    <li>Até 500 agendamentos</li>
-                    <li>Até 10 serviços</li>
-                    <li>Até 3 profissionais</li>
-                    <li>Integração WhatsApp</li>
-                  </>
-                )}
-                {subscription.plan === 'PREMIUM' && (
-                  <>
-                    <li>Clientes ilimitados</li>
-                    <li>Agendamentos ilimitados</li>
-                    <li>Serviços ilimitados</li>
-                    <li>Profissionais ilimitados</li>
-                    <li>Integração WhatsApp</li>
-                    <li>Relatórios personalizados</li>
-                    <li>Acesso à API</li>
-                  </>
+                {/* Recursos principais do plano */}
+                {currentPlanFeatures.features.map((feature, index) => (
+                  <li key={`feature-${index}`}>{feature}</li>
+                ))}
+                
+                {/* Número de profissionais */}
+                <li>{currentPlanFeatures.professionals}</li>
+                
+                {/* Recursos comuns (apenas para planos pagos) */}
+                {subscription.plan !== 'FREE' && commonFeatures.map((feature, index) => (
+                  <li key={`common-${index}`}>{feature}</li>
+                ))}
+                
+                {/* Recurso exclusivo do Premium/Ultra */}
+                {(subscription.plan === 'PREMIUM' || subscription.plan === 'ULTRA') && (
+                  <li>Acesso à API</li>
                 )}
               </ul>
             </div>
