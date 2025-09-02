@@ -236,8 +236,6 @@ export default function SubscriptionPage() {
         'Clientes ilimitados',
         'Agendamentos ilimitados',
         'Serviços ilimitados',
-        'Integração com WhatsApp',
-        'Relatórios personalizados',
       ]
     },
     'PREMIUM': {
@@ -246,8 +244,6 @@ export default function SubscriptionPage() {
         'Clientes ilimitados',
         'Agendamentos ilimitados',
         'Serviços ilimitados',
-        'Integração com WhatsApp',
-        'Relatórios personalizados',
       ]
     },
     'ULTRA': {
@@ -256,15 +252,13 @@ export default function SubscriptionPage() {
         'Clientes ilimitados',
         'Agendamentos ilimitados',
         'Serviços ilimitados',
-        'Integração com WhatsApp',
-        'Relatórios personalizados',
       ]
     }
   }
 
   // Recursos comuns a todos os planos (exceto FREE)
   const commonFeatures = [
-    'Integração WhatsApp',
+    'Integração com WhatsApp',
     'Relatórios personalizados',
   ]
 
