@@ -48,6 +48,10 @@ model Tenant {
   // Configurações da barbearia
   businessConfig    Json?     // Configurações personalizadas
   
+  // Password Reset (redefinição de senha)
+  passwordResetToken   String?   // Token para redefinição de senha
+  passwordResetExpires DateTime? // Data de expiração do token
+  
   // Relations - TODOS os dados pertencem ao tenant
   clients             EndUser[]
   appointments        Appointment[]

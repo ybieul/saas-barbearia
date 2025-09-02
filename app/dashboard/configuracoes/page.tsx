@@ -48,8 +48,221 @@ import {
   X,
   QrCode,
   Copy,
+  Lock,
+  Eye,
+  EyeOff,
   Check,
 } from "lucide-react"
+
+// Componente para alteração de senha
+function ChangePasswordSection() {
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validações básicas
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "Todos os campos são obrigatórios",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro", 
+        description: "A nova senha e a confirmação não coincidem",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (currentPassword === newPassword) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ser diferente da senha atual",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const response = await fetch('/api/account/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso",
+          description: data.message || "Senha alterada com sucesso!",
+        })
+        
+        // Limpar campos
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+      } else {
+        toast({
+          title: "Erro",
+          description: data.error || "Erro ao alterar senha",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error)
+      toast({
+        title: "Erro",
+        description: "Erro interno. Tente novamente mais tarde.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center">
+          <Lock className="w-5 h-5 text-[#10b981]" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-[#ededed]">Alterar Senha</h3>
+          <p className="text-sm text-[#71717a]">Mantenha sua conta segura alterando sua senha regularmente</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleChangePassword} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword" className="text-[#ededed]">
+              Senha Atual
+            </Label>
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrentPassword ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="bg-[#27272a] border-[#3f3f46] text-[#ededed] pr-10"
+                placeholder="Digite sua senha atual"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+              >
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newPassword" className="text-[#ededed]">
+              Nova Senha
+            </Label>
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-[#27272a] border-[#3f3f46] text-[#ededed] pr-10"
+                placeholder="Digite a nova senha"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+              >
+                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-[#71717a]">Mínimo de 6 caracteres</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className="text-[#ededed]">
+            Confirmar Nova Senha
+          </Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="bg-[#27272a] border-[#3f3f46] text-[#ededed] pr-10"
+              placeholder="Confirme a nova senha"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+            >
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0"
+          >
+            {isLoading ? "Alterando..." : "Alterar Senha"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
 
 export default function ConfiguracoesPage() {
   const { toast } = useToast()
@@ -1057,6 +1270,17 @@ export default function ConfiguracoesPage() {
             >
               <Percent className="w-4 h-4" />
               Promoções
+            </button>
+            <button
+              onClick={() => setActiveTab("conta")}
+              className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "conta"
+                  ? "border-[#10b981] text-[#10b981]"
+                  : "border-transparent text-[#71717a] hover:text-[#ededed]"
+              }`}
+            >
+              <User className="w-4 h-4" />
+              Conta
             </button>
           </div>
         </div>
@@ -2599,6 +2823,21 @@ export default function ConfiguracoesPage() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Conta Tab */}
+          {activeTab === "conta" && (
+            <Card className="bg-[#18181b] border-[#27272a]">
+              <CardHeader>
+                <CardTitle className="text-[#a1a1aa] text-lg sm:text-xl">Configurações da Conta</CardTitle>
+                <CardDescription className="text-[#71717a]">
+                  Gerencie as configurações de segurança da sua conta
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChangePasswordSection />
               </CardContent>
             </Card>
           )}

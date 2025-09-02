@@ -269,3 +269,186 @@ export async function testEmailConfiguration(): Promise<boolean> {
     return false
   }
 }
+
+// Template HTML para email de redefinição de senha
+function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha - TymerBook</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 20px;
+            line-height: 1.6;
+        }
+        .message {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background-color: #fef5e7;
+            border-left: 4px solid #f6ad55;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .footer {
+            background-color: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #718096;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔑 Redefinir Senha</h1>
+            <p>Solicitação de redefinição de senha</p>
+        </div>
+        
+        <div class="content">
+            <div class="message">
+                <p>Olá <strong>${name}</strong>,</p>
+                <p>Você solicitou a redefinição de sua senha no TymerBook. Clique no botão abaixo para criar uma nova senha:</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="${resetUrl}" class="cta-button">
+                    Redefinir Minha Senha
+                </a>
+            </div>
+            
+            <div class="warning-box">
+                <strong>⚠️ Importante:</strong>
+                <ul style="margin: 10px 0;">
+                    <li>Este link é válido por <strong>1 hora</strong> após o envio</li>
+                    <li>Se você não solicitou esta redefinição, ignore este email</li>
+                    <li>Por segurança, não compartilhe este link com ninguém</li>
+                </ul>
+            </div>
+            
+            <div class="message">
+                <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+                <p style="word-break: break-all; color: #667eea; background-color: #f7fafc; padding: 10px; border-radius: 4px;">
+                    ${resetUrl}
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Este é um email automático. Não responda diretamente.</p>
+            <p>
+                Precisa de ajuda? Entre em contato: 
+                <a href="mailto:suporte@tymerbook.com">suporte@tymerbook.com</a>
+            </p>
+            <p style="margin-top: 15px;">
+                © ${new Date().getFullYear()} TymerBook. Todos os direitos reservados.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+  `
+}
+
+// Função para enviar email de redefinição de senha
+export async function sendPasswordResetEmail(
+  name: string, 
+  email: string, 
+  resetToken: string
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter()
+    const resetUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/redefinir-senha?token=${resetToken}`
+    
+    const mailOptions = {
+      from: {
+        name: 'TymerBook',
+        address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'suporte@tymerbook.com'
+      },
+      to: email,
+      subject: '🔑 Redefinir Senha - TymerBook',
+      html: getPasswordResetEmailTemplate(name, resetUrl),
+      text: `
+Redefinir Senha - TymerBook
+
+Olá ${name},
+
+Você solicitou a redefinição de sua senha no TymerBook.
+
+Para redefinir sua senha, acesse o link abaixo:
+${resetUrl}
+
+IMPORTANTE:
+- Este link é válido por 1 hora
+- Se você não solicitou esta redefinição, ignore este email
+- Por segurança, não compartilhe este link
+
+Atenciosamente,
+Equipe TymerBook
+      `
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    
+    console.log('✅ Email de redefinição de senha enviado:', {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      to: email
+    })
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de redefinição:', error)
+    return false
+  }
+}
