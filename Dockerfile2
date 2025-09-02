@@ -16,7 +16,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Copia a pasta de fontes públicas para a imagem final
-COPY --from=builder /app/public/fonts ./public/fonts
+COPY --from builder /app/public/fonts ./public/fonts
 
 # Gera cliente Prisma
 RUN npx prisma generate
