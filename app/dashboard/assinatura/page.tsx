@@ -9,18 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { APP_CONFIG } from '@/lib/config'
 
 export default function SubscriptionPage() {
   const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
   const [isManaging, setIsManaging] = useState(false)
   const { toast } = useToast()
-
-  // Configuração robusta para variável de suporte
-  const SUPPORT_VARIABLE_NAME = 'NEXT_PUBLIC_NUMERO_PARA_SUPORTE';
-  const supportNumberFromEnv = process.env[SUPPORT_VARIABLE_NAME];
-  const fallbackNumber = '24981757110'; // Número de fallback
-  const finalSupportNumber = supportNumberFromEnv || fallbackNumber;
 
   // Função para gerenciar assinatura (abrir portal da Kirvano)
   const handleManageSubscription = async () => {
@@ -421,43 +414,23 @@ export default function SubscriptionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={async () => {
-                  // === DEBUG COMPLETO DE VARIÁVEIS DE AMBIENTE ===
-                  console.log('--- DEBUG VARIÁVEL DE SUPORTE ---');
-                  console.log(`Procurando por variável: "${SUPPORT_VARIABLE_NAME}"`);
-                  console.log(`Valor encontrado no process.env:`, supportNumberFromEnv);
-                  console.log(`Número final que será usado:`, finalSupportNumber);
-                  console.log('Todas as chaves NEXT_PUBLIC disponíveis:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
-                  
-                  // Fazer chamada para API de debug para comparar com servidor
-                  try {
-                    const debugResponse = await fetch('/api/debug-env');
-                    const debugData = await debugResponse.json();
-                    console.log('🔍 DEBUG DO SERVIDOR:', debugData);
-                    console.log('� Total de variáveis no servidor:', debugData.totalFound);
-                    console.log('🌍 NODE_ENV no servidor:', debugData.nodeEnv);
-                  } catch (error) {
-                    console.error('❌ Erro ao consultar API de debug:', error);
-                  }
-                  
-                  // Usar número final
-                  if (!finalSupportNumber) {
-                    console.error('❌ Nenhum número do suporte disponível');
-                    alert('Número do suporte não configurado. Entre em contato com o administrador.');
-                    return;
-                  }
-                  
-                  console.log('✅ Redirecionando para WhatsApp:', finalSupportNumber);
-                  const whatsappUrl = `https://wa.me/55${finalSupportNumber}?text=Olá, preciso de ajuda com questões sobre minha assinatura.`;
-                  window.open(whatsappUrl, '_blank');
-                }}
-              >
-                Contatar Suporte
+              <h4 className="font-medium">Suporte Técnico</h4>
+              <p className="text-sm text-muted-foreground">
+                Para dúvidas sobre funcionalidades e uso do sistema
+              </p>
+              <Button variant="outline" size="sm">
+                Abrir Chat de Suporte
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">Questões de Cobrança</h4>
+              <p className="text-sm text-muted-foreground">
+                Para dúvidas sobre pagamentos e faturas
+              </p>
+              <Button variant="outline" size="sm">
+                Contatar Financeiro
               </Button>
             </div>
           </div>
