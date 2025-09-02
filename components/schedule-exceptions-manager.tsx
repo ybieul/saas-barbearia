@@ -306,7 +306,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
               <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                 <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                   {/* Seção de Configuração do Bloqueio */}
-                  <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                  <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50 space-y-3 md:space-y-4">
                     <div className="flex items-center gap-2 mb-2 md:mb-3">
                       <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
                       <h3 className="text-[#ededed] font-medium text-sm md:text-base">Configuração do Bloqueio</h3>

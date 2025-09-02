@@ -243,7 +243,7 @@ export default function ClientesInativosPage() {
               {/* Conteúdo principal do modal - fora do DialogDescription */}
               <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Clientes Selecionados - responsiva */}
-                <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
+                <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
                     <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
                     <p className="text-[#ededed] font-medium text-sm md:text-base">
@@ -511,7 +511,7 @@ export default function ClientesInativosPage() {
             {/* Conteúdo principal do modal mobile - fora do DialogDescription */}
             <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
               {/* Seção de Clientes Selecionados - responsiva */}
-              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
+              <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
                   <p className="text-[#ededed] font-medium text-sm md:text-base">
@@ -759,8 +759,8 @@ export default function ClientesInativosPage() {
                   <div
                     className={`hidden md:flex items-center gap-4 p-4 rounded-lg transition-colors border ${
                       selectedClients.includes(client.id)
-                        ? 'bg-emerald-500/10 border-[#10b981]/30'
-                        : 'bg-[#18181b] border-[#27272a] hover:bg-gray-900/70'
+                        ? 'bg-tymer-accent/10 border-tymer-accent/30'
+                        : 'bg-tymer-card border-tymer-border hover:bg-tymer-card/70'
                     }`}
                   >
                     <Checkbox 
@@ -814,8 +814,8 @@ export default function ClientesInativosPage() {
                   <div 
                     className={`block md:hidden p-4 rounded-lg transition-colors border ${
                       selectedClients.includes(client.id)
-                        ? 'bg-emerald-500/10 border-[#10b981]/30'
-                        : 'bg-[#18181b] border-[#27272a] hover:bg-gray-900/70'
+                        ? 'bg-tymer-accent/10 border-tymer-accent/30'
+                        : 'bg-tymer-card border-tymer-border hover:bg-tymer-card/70'
                     }`}
                   >
                     <div className="space-y-3">

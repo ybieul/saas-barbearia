@@ -68,7 +68,7 @@ export function PaymentMethodModal({
         <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
           <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
             <div className="p-1.5 md:p-2 bg-gradient-to-br from-emerald-500/20 to-green-600/20 rounded-lg">
-              <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-emerald-500" />
+              <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-tymer-accent" />
             </div>
             Como foi pago?
           </DialogTitle>
@@ -82,9 +82,9 @@ export function PaymentMethodModal({
           <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
             {/* Seção de Resumo do Agendamento */}
             {appointmentData && (
-              <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+              <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50 space-y-3 md:space-y-4">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-emerald-500 rounded-full"></div>
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-accent rounded-full"></div>
                   <h3 className="text-[#ededed] font-medium text-sm md:text-base">Resumo do Atendimento</h3>
                 </div>
                 
@@ -110,12 +110,12 @@ export function PaymentMethodModal({
                     </span>
                     <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.time}</span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-emerald-500/20 md:border-[#27272a]">
+                  <div className="flex items-center justify-between pt-2 border-t border-tymer-accent/20 md:border-tymer-border">
                     <span className="text-xs md:text-sm font-medium text-[#a1a1aa] flex items-center gap-2">
                       <Receipt className="w-3 h-3 md:w-4 md:h-4" />
                       Total:
                     </span>
-                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs md:text-sm">
+                    <Badge className="bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30 text-xs md:text-sm">
                       {new Intl.NumberFormat('pt-BR', { 
                         style: 'currency', 
                         currency: 'BRL' 
