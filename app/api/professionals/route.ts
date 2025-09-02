@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         break
       case 'PREMIUM':  
       case 'Premium':
-        limit = 5
+        limit = 3 // 🔄 AJUSTADO: Plano Premium agora permite 3 profissionais (antes era 5)
         planDisplayName = 'Premium'
         break
       case 'ULTRA':

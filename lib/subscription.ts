@@ -25,7 +25,7 @@ const PLAN_FEATURES = {
     maxClients: -1, // Ilimitado (não há limite especificado)
     maxAppointments: -1, // Ilimitado (não há limite especificado)
     maxServices: -1, // Ilimitado (não há limite especificado)
-    maxProfessionals: 5, // Plano Premium: 5 profissionais
+    maxProfessionals: 3, // 🔄 AJUSTADO: Plano Premium: 3 profissionais (antes era 5)
     whatsappIntegration: true,
     customReports: true,
     apiAccess: false // ❌ Sistema privado - nenhum plano tem acesso à API

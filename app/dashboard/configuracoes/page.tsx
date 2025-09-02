@@ -1707,7 +1707,7 @@ export default function ConfiguracoesPage() {
                           <AlertDescription className="text-red-400">
                             <strong>Limite atingido!</strong> Você atingiu o limite de {planLimits.professionals.limit} profissionais para seu plano atual.
                             {planLimits.professionals.limit === 1 && (
-                              <span> Considere fazer upgrade para o plano Premium (5 profissionais) ou Ultra (ilimitado).</span>
+                              <span> Considere fazer upgrade para o plano Premium (3 profissionais) ou Ultra (ilimitado).</span>
                             )}
                             {planLimits.professionals.limit === 5 && (
                               <span> Considere fazer upgrade para o plano Ultra (profissionais ilimitados).</span>
