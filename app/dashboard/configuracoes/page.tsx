@@ -168,8 +168,8 @@ function ChangePasswordSection() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center">
-          <Lock className="w-5 h-5 text-[#10b981]" />
+        <div className="w-10 h-10 bg-tymer-primary/10 rounded-lg flex items-center justify-center border border-tymer-primary/30">
+          <Lock className="w-5 h-5 text-tymer-primary" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-[#ededed]">Alterar Senha</h3>
@@ -257,7 +257,7 @@ function ChangePasswordSection() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0"
+            className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0"
           >
             {isLoading ? "Alterando..." : "Alterar Senha"}
           </Button>
@@ -1219,66 +1219,66 @@ export default function ConfiguracoesPage() {
           </div>
           
           <div className="flex gap-4 sm:gap-8 overflow-x-auto pb-1 scrollbar-hide">
-            <button
+    <button
               onClick={() => setActiveTab("estabelecimento")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "estabelecimento"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <Building className="w-4 h-4" />
               Estabelecimento
             </button>
-            <button
+    <button
               onClick={() => setActiveTab("profissionais")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "profissionais"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <User className="w-4 h-4" />
               Profissionais
             </button>
-            <button
+    <button
               onClick={() => setActiveTab("servicos")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "servicos"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <Wrench className="w-4 h-4" />
               Serviços
             </button>
-            <button
+    <button
               onClick={() => setActiveTab("horarios")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "horarios"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <Clock className="w-4 h-4" />
               Horários
             </button>
-            <button
+    <button
               onClick={() => setActiveTab("promocoes")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "promocoes"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
               <Percent className="w-4 h-4" />
               Promoções
             </button>
-            <button
+    <button
               onClick={() => setActiveTab("conta")}
               className={`flex items-center gap-2 px-3 py-3 sm:px-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "conta"
-                  ? "border-[#10b981] text-[#10b981]"
+      ? "border-tymer-primary text-tymer-primary"
                   : "border-transparent text-[#71717a] hover:text-[#ededed]"
               }`}
             >
@@ -1477,22 +1477,22 @@ export default function ConfiguracoesPage() {
                   <Button 
                     onClick={handleSave} 
                     disabled={businessSaving}
-                    className="bg-[#10b981] hover:bg-[#059669] text-[#ededed] disabled:opacity-50 w-full sm:w-auto px-6 py-2.5"
+                    className="bg-tymer-primary hover:bg-tymer-primary/80 text-white disabled:opacity-50 w-full sm:w-auto px-6 py-2.5"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {businessSaving ? "Salvando..." : "Salvar Alterações"}
                   </Button>
                 </div>
 
-                <div className="p-4 bg-emerald-900/20 rounded-lg border border-emerald-700/50">
+                <div className="p-4 bg-tymer-primary/10 rounded-lg border border-tymer-primary/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <LinkIcon className="w-4 h-4 text-[#10b981]" />
-                    <span className="text-[#10b981] font-medium">Link Público do Agendamento</span>
+                    <LinkIcon className="w-4 h-4 text-tymer-primary" />
+                    <span className="text-tymer-primary font-medium">Link Público do Agendamento</span>
                   </div>
                   
                   {/* Container flexível para o link e botão copiar */}
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    <p className="text-emerald-300 text-sm flex-1 break-all">
+                    <p className="text-tymer-primary text-sm flex-1 break-all">
                       https://tymerbook.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}
                     </p>
                     <Button
@@ -1500,7 +1500,7 @@ export default function ConfiguracoesPage() {
                       disabled={copied || !businessData.customLink}
                       variant="outline"
                       size="sm"
-                      className="border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-200 transition-all duration-200 whitespace-nowrap"
+                      className="border-tymer-primary/50 text-tymer-primary hover:bg-tymer-primary/15 hover:text-white transition-all duration-200 whitespace-nowrap"
                     >
                       {copied ? (
                         <>
@@ -1520,7 +1520,7 @@ export default function ConfiguracoesPage() {
                   <Button 
                     onClick={() => setIsQrCodeModalOpen(true)}
                     disabled={!businessData.customLink}
-                    className="bg-[#10b981] hover:bg-[#059669] text-white w-full sm:w-auto"
+                    className="bg-tymer-primary hover:bg-tymer-primary/80 text-white w-full sm:w-auto"
                   >
                     <QrCode className="w-4 h-4 mr-2" />
                     Gerar QR Code para Impressão
@@ -1557,7 +1557,7 @@ export default function ConfiguracoesPage() {
                                   ? 'bg-red-500/20 text-red-400 border-red-500/30'
                                   : planLimits.professionals.current >= planLimits.professionals.limit * 0.8
                                   ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                  : 'bg-tymer-primary/20 text-tymer-primary border-tymer-primary/30'
                               }`}
                             >
                               {planLimits.professionals.current} de {planLimits.professionals.limit} profissionais
@@ -1570,7 +1570,7 @@ export default function ConfiguracoesPage() {
                     <Dialog open={isNewProfessionalOpen} onOpenChange={setIsNewProfessionalOpen}>
                       <DialogTrigger asChild>
                         <Button 
-                          className="bg-blue-500 hover:bg-blue-600 text-[#ededed] w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-tymer-primary hover:bg-tymer-primary/80 text-[#ededed] w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={
                             limitsLoading || 
                             (planLimits?.professionals && 
@@ -1586,8 +1586,8 @@ export default function ConfiguracoesPage() {
                         {/* Header fixo */}
                         <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                           <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                            <div className="p-1.5 md:p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg">
-                              <User className="w-4 h-4 md:w-5 md:h-5 text-blue-400 md:text-blue-500" />
+                            <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                              <User className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                             </div>
                             Novo Profissional
                           </DialogTitle>
@@ -1600,9 +1600,9 @@ export default function ConfiguracoesPage() {
                         <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                           <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                             {/* Seção de Informações Básicas */}
-                            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-3 md:p-4 rounded-lg border border-blue-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                            <div className="bg-tymer-primary/10 p-3 md:p-4 rounded-lg border border-tymer-primary/30 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
                               <div className="flex items-center gap-2 mb-2 md:mb-3">
-                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-400 md:bg-blue-500 rounded-full"></div>
+                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                                 <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
                               </div>
                               
@@ -1685,9 +1685,9 @@ export default function ConfiguracoesPage() {
                             >
                               Cancelar
                             </Button>
-                            <Button 
+                              <Button 
                               onClick={handleAddProfessional}
-                              className="bg-blue-500 hover:bg-blue-600 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
+                              className="bg-tymer-primary hover:bg-tymer-primary/80 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
                               disabled={professionalsLoading}
                             >
                               {professionalsLoading ? "Adicionando..." : "Adicionar"}
@@ -1728,7 +1728,7 @@ export default function ConfiguracoesPage() {
                     {professionalsLoading ? (
                       <div className="text-center py-8 text-[#71717a]">
                         <div className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-4 h-4 border-2 border-tymer-primary border-t-transparent rounded-full animate-spin"></div>
                           Carregando profissionais...
                         </div>
                       </div>
@@ -1848,8 +1848,8 @@ export default function ConfiguracoesPage() {
                   {/* Header fixo */}
                   <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                     <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                      <div className="p-1.5 md:p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg">
-                        <Edit className="w-4 h-4 md:w-5 md:h-5 text-blue-400 md:text-blue-500" />
+                      <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                        <Edit className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                       </div>
                       Editar Profissional
                     </DialogTitle>
@@ -1862,9 +1862,9 @@ export default function ConfiguracoesPage() {
                   <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                     <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                       {/* Seção de Informações Básicas */}
-                      <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-3 md:p-4 rounded-lg border border-blue-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                      <div className="bg-tymer-primary/10 p-3 md:p-4 rounded-lg border border-tymer-primary/30 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
                         <div className="flex items-center gap-2 mb-2 md:mb-3">
-                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-400 md:bg-blue-500 rounded-full"></div>
+                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                           <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
                         </div>
                         
@@ -1949,7 +1949,7 @@ export default function ConfiguracoesPage() {
                       </Button>
                       <Button 
                         onClick={handleUpdateProfessional}
-                        className="bg-blue-500 hover:bg-blue-600 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
+                        className="bg-tymer-primary hover:bg-tymer-primary/80 text-[#ededed] min-h-[48px] sm:min-h-[44px] px-6 touch-manipulation"
                         disabled={professionalsLoading}
                       >
                         {professionalsLoading ? "Salvando..." : "Salvar"}
@@ -1965,8 +1965,8 @@ export default function ConfiguracoesPage() {
                   {/* Header fixo */}
                   <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                     <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                      <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                        <Camera className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                      <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                        <Camera className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                       </div>
                       Foto de Perfil
                     </DialogTitle>
@@ -2440,7 +2440,7 @@ export default function ConfiguracoesPage() {
                   <CardContent>
                     {workingHoursLoading ? (
                       <div className="flex justify-center items-center py-8">
-                        <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-6 h-6 border-2 border-tymer-primary border-t-transparent rounded-full animate-spin"></div>
                         <span className="ml-3 text-[#71717a]">Carregando horários...</span>
                       </div>
                     ) : workingHoursError ? (
@@ -2550,11 +2550,11 @@ export default function ConfiguracoesPage() {
                         {/* Informações adicionais */}
                         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-900/10 rounded-lg border border-blue-700/30">
                           <div className="flex items-start gap-2 sm:gap-3">
-                            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-tymer-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                               <span className="text-white text-xs font-bold">ℹ</span>
                             </div>
                             <div className="space-y-1 sm:space-y-2">
-                              <h4 className="text-blue-400 font-medium text-sm sm:text-base">Informações Importantes</h4>
+                              <h4 className="text-tymer-primary font-medium text-sm sm:text-base">Informações Importantes</h4>
                               <ul className="text-blue-300 text-xs sm:text-sm space-y-0.5 sm:space-y-1">
                                 <li>• Os horários definidos aqui controlam quando novos agendamentos podem ser feitos</li>
                                 <li>• Agendamentos já existentes não são afetados pelas mudanças</li>

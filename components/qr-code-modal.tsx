@@ -85,8 +85,8 @@ export function QrCodeModal({ isOpen, onClose, customLink, businessName, busines
         {/* Header */}
         <DialogHeader className="border-b border-[#27272a] pb-4 flex-shrink-0">
           <DialogTitle className="text-[#ededed] text-xl font-semibold flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-              <QrCode className="w-5 h-5 text-[#10b981]" />
+            <div className="p-2 bg-tymer-primary/15 rounded-lg">
+              <QrCode className="w-5 h-5 text-tymer-primary" />
             </div>
             Gerar QR Code para Agendamento
           </DialogTitle>
@@ -162,11 +162,11 @@ export function QrCodeModal({ isOpen, onClose, customLink, businessName, busines
           </div>
 
           {/* Informações adicionais */}
-          <div className="bg-[#10b981]/10 border border-[#10b981]/30 rounded-lg p-4 mb-4">
+          <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
-              <QrCode className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" />
+              <QrCode className="w-5 h-5 text-tymer-primary mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-medium text-[#10b981] mb-1">Como usar:</h4>
+                <h4 className="font-medium text-white mb-1">Como usar:</h4>
                 <ul className="text-sm text-[#71717a] space-y-1">
                   <li>• Baixe o PDF e imprima o cartaz</li>
                   <li>• Cole em local visível no seu estabelecimento</li>
@@ -190,7 +190,7 @@ export function QrCodeModal({ isOpen, onClose, customLink, businessName, busines
           <Button 
             onClick={handleDownloadPdf}
             disabled={isGenerating}
-            className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white"
+            className="flex-1 bg-tymer-primary hover:bg-tymer-primary/80 text-white"
           >
             <Download className="w-4 h-4 mr-2" />
             {isGenerating ? 'Gerando PDF...' : 'Baixar PDF'}
