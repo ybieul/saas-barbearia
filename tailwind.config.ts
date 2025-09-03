@@ -27,6 +27,9 @@ const config: Config = {
   			'tymer-muted': '#888888',     // Textos secundários
   			'tymer-border': '#27272a',    // Bordas
   			'tymer-accent': '#10b981',    // Verde de sucesso (mantido para compatibilidade)
+			'tymer-icon': '#9d9d9d',      // Cinza para os ícones
+			'tymer-textgray': '#9d9d9d',  // Cinza para os ícones
+			'tymer-balon': '#373737',     // Cinza dos balões
   			
   			// Cores semânticas padrão com valores fixos TymerBook
   			background: '#111112',        // Fundo padrão (tymer-bg)
@@ -36,6 +39,8 @@ const config: Config = {
   				foreground: '#FFFFFF'       // Texto nos cards - branco
   			},
   			
+			// balon: bg-tymer-balon text-tymer-textgray border-tymer-textgray/30
+
   			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			// background: 'hsl(var(--background))',
   			// foreground: 'hsl(var(--foreground))',

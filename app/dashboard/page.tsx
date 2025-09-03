@@ -168,12 +168,12 @@ export default function DashboardPage() {
     dates: []
   }
 
-  // Paleta proposta: verde para faturamento, roxo primary para clientes, azul para agendamentos, laranja para ocupação
+  // Padronização: todos os ícones e sparklines usam cor neutra tymer-icon
   const colorMap = {
-    revenue: { icon: 'text-emerald-400', spark: '#34d399' },
-    clients: { icon: 'text-primary', spark: '#4700FF' },
-    appointments: { icon: 'text-sky-400', spark: '#38bdf8' },
-    occupancy: { icon: 'text-amber-400', spark: '#fbbf24' }
+    revenue: { icon: 'text-tymer-icon', spark: '#9d9d9d' },
+    clients: { icon: 'text-tymer-icon', spark: '#9d9d9d' },
+    appointments: { icon: 'text-tymer-icon', spark: '#9d9d9d' },
+    occupancy: { icon: 'text-tymer-icon', spark: '#9d9d9d' }
   } as const
 
   const stats = [
@@ -240,7 +240,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Olá, {businessData?.name || "Estabelecimento"}! 👋</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Olá, {businessData?.name || "Estabelecimento"}! </h1>
         <p className="text-muted-foreground capitalize text-sm sm:text-base lg:text-lg">{today}</p>
       </div>
 
@@ -279,11 +279,11 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                   <CardTitle className="text-foreground text-base sm:text-lg lg:text-xl">Próximos na Fila</CardTitle>
                 </div>
-                <Badge className="sm:hidden bg-primary/20 text-primary border-primary/30 text-xs">
+                <Badge className="sm:hidden bg-tymer-balon text-tymer-textgray border-tymer-textgray/30 text-xs">
                   {nextAppointmentsByProfessional.length} profissionais
                 </Badge>
               </div>
-              <Badge className="hidden sm:block bg-primary/20 text-primary border-primary/30 text-xs lg:text-sm">
+              <Badge className="hidden sm:block bg-tymer-balon text-tymer-textgray border-tymer-textgray/30 text-xs lg:text-sm">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
@@ -443,7 +443,7 @@ export default function DashboardPage() {
                   Agenda de Hoje
                 </CardTitle>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs lg:text-sm">
+                  <Badge className="bg-tymer-balon text-tymer-textgray border-tymer-textgray/30 text-xs lg:text-sm">
                     {todayAppointments.length} agendamentos
                   </Badge>
                   <Button 
