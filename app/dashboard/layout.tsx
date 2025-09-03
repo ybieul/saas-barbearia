@@ -187,7 +187,7 @@ export default function DashboardLayout({
                   }`}
                 >
                   <item.icon className={`mr-4 h-5 w-5 transition-colors ${
-                    pathname === item.href ? 'text-primary' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
+                    pathname === item.href ? 'text-foreground' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
                   }`} />
                   <div className="flex-1">
                     <div className={`font-medium ${pathname === item.href ? 'text-foreground' : 'text-tymer-muted group-hover:text-foreground'}`}>{item.label}</div>
