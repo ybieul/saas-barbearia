@@ -939,7 +939,7 @@ export default function AgendamentoPage() {
                 <DialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="mx-auto border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10 transition-all duration-300 hover:scale-105"
+                    className="mx-auto border-[#27272a] text-[#ededed] hover:border-tymer-primary hover:bg-tymer-primary/10 transition-all duration-300 hover:scale-105"
                   >
                     <MapPin className="h-4 w-4 mr-2" />
                     Ver Detalhes
@@ -950,7 +950,7 @@ export default function AgendamentoPage() {
                   <DialogHeader className="text-center pb-4">
                     {/* Logo da empresa (se disponível) */}
                     {businessData.businessLogo && (
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border-2 border-emerald-600/30 shadow-lg">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 border-2 border-tymer-primary/30 shadow-lg">
                         <img 
                           src={businessData.businessLogo} 
                           alt={businessData.businessName}
@@ -959,18 +959,18 @@ export default function AgendamentoPage() {
                       </div>
                     )}
                     
-                    <DialogTitle className="text-[#ededed] text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                    <DialogTitle className="text-[#ededed] text-xl font-bold bg-gradient-to-r from-tymer-primary to-tymer-primary/60 bg-clip-text text-transparent">
                       {businessData.businessName}
                     </DialogTitle>
                     
                     {/* Linha decorativa */}
-                    <div className="w-16 h-1 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full mx-auto mt-2"></div>
+                    <div className="w-16 h-1 bg-gradient-to-r from-tymer-primary to-tymer-primary/60 rounded-full mx-auto mt-2"></div>
                   </DialogHeader>
 
                   <div className="space-y-4 py-2">
                     {/* Card de Informações de Contato */}
                     <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 rounded-xl p-4 border border-[#3f3f46]/50 backdrop-blur-sm">
-                      <h4 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+                      <h4 className="text-tymer-primary font-semibold mb-3 flex items-center gap-2">
                         <Phone className="h-4 w-4" />
                         Informações de Contato
                       </h4>
@@ -978,8 +978,8 @@ export default function AgendamentoPage() {
                       <div className="space-y-3">
                         {businessData.businessPhone && (
                           <div className="flex items-center gap-3 p-2 rounded-lg bg-[#18181b]/60 border border-[#27272a]/50">
-                            <div className="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center">
-                              <Phone className="h-4 w-4 text-emerald-400" />
+                            <div className="w-8 h-8 rounded-full bg-tymer-primary/15 flex items-center justify-center">
+                              <Phone className="h-4 w-4 text-tymer-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[#ededed] font-medium text-sm break-all">
@@ -1076,9 +1076,9 @@ export default function AgendamentoPage() {
                   key={stepNumber}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
                     ${step === stepNumber 
-                      ? 'bg-emerald-600 text-white' 
+                      ? 'bg-tymer-primary text-white' 
                       : step > stepNumber 
-                        ? 'bg-emerald-600 text-white' 
+                        ? 'bg-tymer-primary text-white' 
                         : 'bg-[#27272a] text-[#71717a]'
                     }`}
                 >
@@ -1111,9 +1111,9 @@ export default function AgendamentoPage() {
                           {/* Card do Serviço */}
                           <div
                             onClick={() => handleSelectMainService(service.id)}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-tymer-primary
                               ${selectedServiceId === service.id 
-                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                ? 'border-tymer-primary bg-tymer-primary/10' 
                                 : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
                               }`}
                           >
@@ -1124,7 +1124,7 @@ export default function AgendamentoPage() {
                                     {service.name}
                                   </h4>
                                   {selectedServiceId === service.id && (
-                                    <div className="w-5 h-5 bg-emerald-600 rounded-full flex items-center justify-center">
+                                    <div className="w-5 h-5 bg-tymer-primary rounded-full flex items-center justify-center">
                                       <Check className="h-3 w-3 text-white" />
                                     </div>
                                   )}
@@ -1166,7 +1166,7 @@ export default function AgendamentoPage() {
               <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
                 <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[95vw] max-w-md mx-auto rounded-xl h-[85vh] max-h-[600px] flex flex-col">
                   <DialogHeader className="flex-shrink-0">
-                    <DialogTitle className="text-xl font-bold text-emerald-400 text-center">
+                    <DialogTitle className="text-xl font-bold text-tymer-primary text-center">
                       🎯 Monte seu pacote ideal
                     </DialogTitle>
                   </DialogHeader>
@@ -1177,17 +1177,17 @@ export default function AgendamentoPage() {
                     {(() => {
                       const mainService = getMainService()
                       return mainService && (
-                        <div className="bg-gradient-to-r from-emerald-600/15 to-emerald-500/10 border border-emerald-600/40 rounded-xl p-3 shadow-lg">
-                          <h4 className="font-semibold text-emerald-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
+                        <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/40 rounded-xl p-3 shadow-lg">
+                          <h4 className="font-semibold text-tymer-primary mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
                             ✅ Serviço Principal
                           </h4>
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-[#ededed] text-base truncate">{mainService.name}</p>
-                              <p className="text-emerald-300 text-xs font-medium">{mainService.duration} min</p>
+                              <p className="text-tymer-primary/80 text-xs font-medium">{mainService.duration} min</p>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
-                              <p className="font-bold text-xl text-emerald-400">{formatCurrency(mainService.price)}</p>
+                              <p className="font-bold text-xl text-tymer-primary">{formatCurrency(mainService.price)}</p>
                             </div>
                           </div>
                         </div>
@@ -1266,16 +1266,16 @@ export default function AgendamentoPage() {
                   {/* Footer fixo */}
                   <div className="flex-shrink-0 pt-3 border-t border-[#27272a]/50">
                     {/* Resumo Total */}
-                    <div className="bg-gradient-to-r from-emerald-600/25 to-blue-600/20 border-2 border-emerald-600/50 rounded-xl p-3 mb-3 shadow-xl">
+                    <div className="bg-gradient-to-r from-tymer-primary/20 to-tymer-primary/5 border-2 border-tymer-primary/40 rounded-xl p-3 mb-3 shadow-xl">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-lg text-emerald-300 flex items-center gap-2">
+                        <h4 className="font-bold text-lg text-tymer-primary/80 flex items-center gap-2">
                           💰 Total:
                         </h4>
                         <div className="text-right">
-                          <div className="font-bold text-2xl text-emerald-400 leading-tight">
+                          <div className="font-bold text-2xl text-tymer-primary leading-tight">
                             {formatCurrency(calculateTotals().totalPrice)}
                           </div>
-                          <div className="text-emerald-300 text-xs font-medium">
+                          <div className="text-tymer-primary/80 text-xs font-medium">
                             {calculateTotals().totalDuration} minutos
                           </div>
                         </div>
@@ -1296,7 +1296,7 @@ export default function AgendamentoPage() {
                           setShowUpsellModal(false)
                           setStep(2)
                         }}
-                        className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm"
+                        className="flex-1 bg-tymer-primary hover:bg-tymer-primary/80 text-white font-bold transition-all shadow-lg hover:shadow-tymer-primary/25 transform hover:scale-[1.02] text-sm"
                       >
                         Avançar →
                       </Button>
@@ -1334,9 +1334,9 @@ export default function AgendamentoPage() {
                         <div key={professional.id}>
                           <div
                             onClick={() => setSelectedProfessional(professional)}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-emerald-600
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-tymer-primary
                               ${selectedProfessional?.id === professional.id 
-                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                ? 'border-tymer-primary bg-tymer-primary/10' 
                                 : 'border-[#27272a] bg-[#27272a]/50 hover:bg-[#27272a]'
                               }`}
                           >
@@ -1349,7 +1349,7 @@ export default function AgendamentoPage() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 flex items-center justify-center">
+                                  <div className="w-full h-full bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 flex items-center justify-center">
                                     <span className="text-[#71717a] font-bold text-lg">
                                       {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                     </span>
@@ -1372,14 +1372,14 @@ export default function AgendamentoPage() {
                           {/* Botão contextual aparece logo após o profissional selecionado */}
                           {selectedProfessional?.id === professional.id && (
                             <div className="mt-3">
-                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                <p className="text-emerald-400 text-sm text-center">
+                              <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
+                                <p className="text-tymer-primary text-sm text-center">
                                   ✅ Profissional selecionado: <span className="font-semibold">{professional.name}</span>
                                 </p>
                               </div>
                               <Button
                                 onClick={() => setStep(3)}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                className="w-full bg-tymer-primary hover:bg-tymer-primary/80"
                               >
                                 Avançar
                               </Button>
@@ -1460,9 +1460,9 @@ export default function AgendamentoPage() {
                             disabled={!isAvailable || isLoading}
                             className={`w-full p-4 h-auto flex items-center justify-between transition-all duration-200
                               ${selectedDate === dateString 
-                                ? 'border-emerald-600 bg-emerald-600/10' 
+                                ? 'border-tymer-primary bg-tymer-primary/10' 
                                 : isAvailable 
-                                  ? 'border-[#27272a] bg-[#27272a]/50 hover:border-emerald-600 hover:bg-emerald-600/10' 
+                                  ? 'border-[#27272a] bg-[#27272a]/50 hover:border-tymer-primary hover:bg-tymer-primary/10' 
                                   : 'bg-red-600/20 border-red-600/50 cursor-not-allowed text-red-300'
                               } ${isLoading ? 'opacity-60' : ''}`}
                           >
@@ -1486,14 +1486,14 @@ export default function AgendamentoPage() {
                           {/* Botão contextual aparece logo após a data selecionada */}
                           {selectedDate === dateString && (
                             <div className="mt-3">
-                              <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                <p className="text-emerald-400 text-sm text-center">
+                              <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
+                                <p className="text-tymer-primary text-sm text-center">
                                   ✅ Data selecionada: <span className="font-semibold">{dayName}, {formatBrazilDate(date)}</span>
                                 </p>
                               </div>
                               <Button
                                 onClick={() => setStep(4)}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                className="w-full bg-tymer-primary hover:bg-tymer-primary/80"
                               >
                                 Avançar
                               </Button>
@@ -1617,10 +1617,10 @@ export default function AgendamentoPage() {
                                           className={`flex flex-col h-auto py-2 px-1 text-xs
                                             ${!slot.available
                                               ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-tymer-primary hover:bg-tymer-primary/10'
                                             }
                                             ${selectedTime === slot.time 
-                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              ? 'bg-tymer-primary/25 ring-2 ring-white border-tymer-primary' 
                                               : ''
                                             }
                                           `}
@@ -1632,14 +1632,14 @@ export default function AgendamentoPage() {
                                         {/* Botão contextual aparece logo após o horário selecionado */}
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'morning' && (
                                           <div className="col-span-3 mt-2">
-                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                              <p className="text-emerald-400 text-sm text-center">
+                                            <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
+                                              <p className="text-tymer-primary text-sm text-center">
                                                 ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
                                               onClick={() => setStep(5)}
-                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                              className="w-full bg-tymer-primary hover:bg-tymer-primary/80"
                                             >
                                               Avançar para próxima etapa
                                             </Button>
@@ -1711,10 +1711,10 @@ export default function AgendamentoPage() {
                                           className={`flex flex-col h-auto py-2 px-1 text-xs
                                             ${!slot.available
                                               ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-tymer-primary hover:bg-tymer-primary/10'
                                             }
                                             ${selectedTime === slot.time 
-                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              ? 'bg-tymer-primary/25 ring-2 ring-white border-tymer-primary' 
                                               : ''
                                             }
                                           `}
@@ -1726,14 +1726,14 @@ export default function AgendamentoPage() {
                                         {/* Botão contextual aparece logo após o horário selecionado */}
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'afternoon' && (
                                           <div className="col-span-3 mt-2">
-                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                              <p className="text-emerald-400 text-sm text-center">
+                                            <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
+                                              <p className="text-tymer-primary text-sm text-center">
                                                 ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
                                               onClick={() => setStep(5)}
-                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                              className="w-full bg-tymer-primary hover:bg-tymer-primary/80"
                                             >
                                               Avançar para próxima etapa
                                             </Button>
@@ -1805,10 +1805,10 @@ export default function AgendamentoPage() {
                                           className={`flex flex-col h-auto py-2 px-1 text-xs
                                             ${!slot.available
                                               ? 'bg-orange-600/20 border-orange-600 text-orange-300 cursor-not-allowed'
-                                              : 'border-[#27272a] text-[#ededed] hover:border-emerald-600 hover:bg-emerald-600/10'
+                                              : 'border-[#27272a] text-[#ededed] hover:border-tymer-primary hover:bg-tymer-primary/10'
                                             }
                                             ${selectedTime === slot.time 
-                                              ? 'bg-emerald-800 ring-2 ring-white border-emerald-600' 
+                                              ? 'bg-tymer-primary/25 ring-2 ring-white border-tymer-primary' 
                                               : ''
                                             }
                                           `}
@@ -1820,14 +1820,14 @@ export default function AgendamentoPage() {
                                         {/* Botão contextual aparece logo após o horário selecionado */}
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'night' && (
                                           <div className="col-span-3 mt-2">
-                                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-3 mb-3">
-                                              <p className="text-emerald-400 text-sm text-center">
+                                            <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
+                                              <p className="text-tymer-primary text-sm text-center">
                                                 ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
                                               onClick={() => setStep(5)}
-                                              className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                              className="w-full bg-tymer-primary hover:bg-tymer-primary/80"
                                             >
                                               Avançar para próxima etapa
                                             </Button>
