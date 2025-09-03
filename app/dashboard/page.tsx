@@ -168,36 +168,52 @@ export default function DashboardPage() {
     dates: []
   }
 
+  // Paleta proposta: verde para faturamento, roxo primary para clientes, azul para agendamentos, laranja para ocupação
+  const colorMap = {
+    revenue: { icon: 'text-emerald-400', spark: '#34d399' },
+    clients: { icon: 'text-primary', spark: '#4700FF' },
+    appointments: { icon: 'text-sky-400', spark: '#38bdf8' },
+    occupancy: { icon: 'text-amber-400', spark: '#fbbf24' }
+  } as const
+
   const stats = [
     {
+      key: 'revenue',
       title: "Faturamento Hoje",
-      value: dashboardData?.summary?.revenue ? 
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.summary.revenue) : 
+      value: dashboardData?.summary?.revenue ?
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.summary.revenue) :
         "R$ 0,00",
       icon: DollarSign,
-      color: "text-foreground",
-      sparklineData: sparklines.revenue
+      color: colorMap.revenue.icon,
+      sparklineData: sparklines.revenue,
+      sparkColor: colorMap.revenue.spark,
     },
     {
+      key: 'clients',
       title: "Clientes Ativos",
       value: dashboardData?.summary?.totalClients?.toString() || "0",
       icon: Users,
-      color: "text-foreground",
-      sparklineData: sparklines.clients
+      color: colorMap.clients.icon,
+      sparklineData: sparklines.clients,
+      sparkColor: colorMap.clients.spark,
     },
     {
+      key: 'appointments',
       title: "Agendamentos Hoje",
       value: (dashboardData?.todayAppointments?.length || 0).toString(),
       icon: Calendar,
-      color: "text-foreground",
-      sparklineData: sparklines.appointments
+      color: colorMap.appointments.icon,
+      sparklineData: sparklines.appointments,
+      sparkColor: colorMap.appointments.spark,
     },
     {
+      key: 'occupancy',
       title: "Taxa de Ocupação",
       value: `${Math.round(dashboardData?.summary?.occupancyRate || 0)}%`,
       icon: TrendingUp,
-      color: "text-foreground",
-      sparklineData: sparklines.appointments // Usar dados de agendamentos como proxy
+      color: colorMap.occupancy.icon,
+      sparklineData: sparklines.appointments,
+      sparkColor: colorMap.occupancy.spark,
     },
   ]
 
@@ -240,10 +256,10 @@ export default function DashboardPage() {
               <div className="text-center space-y-2 sm:space-y-2 lg:space-y-2">
                 <div className="text-2xl sm:text-3xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
                 <div className="flex justify-center">
-                  <Sparkline 
-                    data={stat.sparklineData} 
-                    color="#FFFFFF" 
-                    width={60} 
+                  <Sparkline
+                    data={stat.sparklineData}
+                    color={stat.sparkColor}
+                    width={60}
                     height={20}
                   />
                 </div>
