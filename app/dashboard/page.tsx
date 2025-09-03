@@ -32,7 +32,7 @@ export default function DashboardPage() {
     
     if (professional.avatar && !imageError) {
       return (
-        <div className={`${size} rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/80 flex-shrink-0`}>
+        <div className={`${size} rounded-full overflow-hidden bg-gradient-to-br from-[#10b981] to-[#059669] flex-shrink-0`}>
           <Image
             src={professional.avatar}
             alt={professional.name}
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     
     // Fallback para avatar genérico
     return (
-      <div className={`${size} bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center flex-shrink-0`}>
+      <div className={`${size} bg-gradient-to-br from-[#10b981] to-[#059669] rounded-full flex items-center justify-center flex-shrink-0`}>
         <User className="w-5 h-5 text-white" />
       </div>
     )
@@ -255,19 +255,19 @@ export default function DashboardPage() {
 
       {/* Próximos Agendamentos por Profissional */}
       {nextAppointmentsByProfessional.length > 0 && (
-        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center justify-between sm:justify-start gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
                   <CardTitle className="text-[#ededed] text-base sm:text-lg lg:text-xl">Próximos na Fila</CardTitle>
                 </div>
-                <Badge className="sm:hidden bg-primary/20 text-primary border-primary/30 text-xs">
+                <Badge className="sm:hidden bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs">
                   {nextAppointmentsByProfessional.length} profissionais
                 </Badge>
               </div>
-              <Badge className="hidden sm:block bg-primary/20 text-primary border-primary/30 text-xs lg:text-sm">
+              <Badge className="hidden sm:block bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
                 {nextAppointmentsByProfessional.length} profissionais
               </Badge>
             </div>
@@ -275,7 +275,7 @@ export default function DashboardPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {nextAppointmentsByProfessional.map((item: any) => (
-                <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-3 sm:p-4 border border-[#27272a] hover:border-primary/50 transition-colors">
+                <div key={item.professional.id} className="bg-[#0a0a0a]/50 rounded-lg p-3 sm:p-4 border border-[#27272a] hover:border-[#10b981]/50 transition-colors">
                   <div className="space-y-2 sm:space-y-3">
                     {/* Header do Profissional */}
                     <div className="flex items-center gap-3">
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-[#ededed] text-sm lg:text-base">{item.professional.name}</h4>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-primary" />
+                          <Clock className="w-3 h-3 text-[#10b981]" />
                           <span className="text-xs lg:text-sm text-[#a1a1aa]">Próximo</span>
                         </div>
                       </div>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
                     {/* Informações do Agendamento */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-base sm:text-lg lg:text-xl font-bold text-primary">{item.nextAppointment.time}</span>
+                        <span className="text-base sm:text-lg lg:text-xl font-bold text-[#10b981]">{item.nextAppointment.time}</span>
                         <Badge
                           className={`text-xs lg:text-sm ${
                             item.nextAppointment.status === "IN_PROGRESS"
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="flex-1 border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-xs lg:text-sm"
+                          className="flex-1 border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50 text-xs lg:text-sm"
                           onClick={() => router.push('/dashboard/clientes')}
                         >
                           <User className="w-3 h-3 mr-1" />
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                         </Button>
                         <Button 
                           size="sm" 
-                          className="flex-1 bg-primary hover:bg-primary/80 text-primary-foreground text-xs lg:text-sm"
+                          className="flex-1 bg-[#10b981] hover:bg-[#059669] text-xs lg:text-sm"
                           onClick={() => handleCompleteAppointment(item.nextAppointment)}
                           disabled={isCompletingAppointment}
                         >
@@ -361,26 +361,26 @@ export default function DashboardPage() {
 
       {/* Fallback: Próximo Agendamento Geral (caso não haja por profissional) */}
       {nextAppointmentsByProfessional.length === 0 && nextAppointment && (
-        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
+        <Card className="bg-gradient-to-r from-[#10b981]/10 to-[#10b981]/5 border-[#10b981]/30">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
                 <CardTitle className="text-[#ededed] text-lg">O que vem a seguir?</CardTitle>
               </div>
-              <Badge className="bg-primary/20 text-primary border-primary/30">
+              <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30">
                 Próximo
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
                 <Clock className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl font-bold text-primary">{nextAppointment.time}</span>
+                  <span className="text-xl font-bold text-[#10b981]">{nextAppointment.time}</span>
                   <span className="text-sm text-[#a1a1aa]">{nextAppointment.date}</span>
                 </div>
                 <p className="text-lg font-semibold text-[#ededed]">{nextAppointment.client}</p>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="border-primary/30 hover:bg-primary/10 hover:border-primary/50"
+                  className="border-[#10b981]/30 hover:bg-[#10b981]/10 hover:border-[#10b981]/50"
                   onClick={() => router.push('/dashboard/clientes')}
                 >
                   <User className="w-4 h-4 mr-1" />
@@ -427,7 +427,7 @@ export default function DashboardPage() {
                   Agenda de Hoje
                 </CardTitle>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs lg:text-sm">
+                  <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs lg:text-sm">
                     {todayAppointments.length} agendamentos
                   </Badge>
                   <Button 
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                   todayAppointments.slice(0, 6).map((appointment: any, index: number) => (
                     <div key={index} className="bg-[#0a0a0a]/50 rounded-lg p-3 sm:p-4 border border-[#27272a] hover:border-[#10b981]/30 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
                           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -459,7 +459,7 @@ export default function DashboardPage() {
                             <Badge
                               className={`text-xs lg:text-sm ${
                                 appointment.status === "COMPLETED"
-                                  ? "bg-primary/20 text-primary border-primary/30"
+                                  ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
                                   : appointment.status === "IN_PROGRESS"
                                   ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                                   : "bg-blue-500/20 text-blue-400 border-blue-500/30"
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                     <Button 
                       variant="ghost" 
                       onClick={() => router.push('/dashboard/agenda')}
-                      className="text-primary hover:bg-primary/10"
+                      className="text-[#10b981] hover:bg-[#10b981]/10"
                     >
                       Ver mais {todayAppointments.length - 6} agendamentos
                       <ChevronRight className="w-4 h-4 ml-1" />
@@ -532,7 +532,7 @@ export default function DashboardPage() {
                         <span className="text-[#ededed] font-medium">{prof.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[#a1a1aa]">{prof.appointmentsToday || 0} agend.</span>
-                          <span className="text-primary font-semibold">{prof.occupancyRate || 0}%</span>
+                          <span className="text-[#10b981] font-semibold">{prof.occupancyRate || 0}%</span>
                         </div>
                       </div>
                       <Progress 
