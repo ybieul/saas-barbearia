@@ -124,12 +124,12 @@ export default function DashboardLayout({
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-tymer-accent to-tymer-accent/80 rounded-xl flex items-center justify-center shadow-lg shadow-tymer-accent/25">
-              <Scissors className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 border border-primary/30">
+              <Scissors className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-tymer-accent to-yellow-400 bg-clip-text text-transparent">
-                AgendaPro
+              <span className="text-xl font-bold text-primary">
+                TymerBook
               </span>
               <p className="text-xs text-[#a1a1aa]">Dashboard</p>
             </div>
@@ -166,8 +166,8 @@ export default function DashboardLayout({
                   {businessInfo?.email || 'email@estabelecimento.com'}
                 </p>
                 <div className="flex items-center mt-1">
-                  <div className="w-2 h-2 bg-tymer-accent rounded-full mr-2"></div>
-                  <span className="text-xs text-[#10b981]">Online</span>
+                  <div className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs text-primary">Online</span>
                 </div>
               </div>
             </div>
@@ -182,12 +182,12 @@ export default function DashboardLayout({
                   onClick={() => setSidebarOpen(false)}
                   className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     pathname === item.href
-                      ? 'bg-gradient-to-r from-tymer-accent/20 to-tymer-accent/10 text-tymer-accent border border-tymer-accent/30 shadow-lg shadow-tymer-accent/10'
+                      ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary border border-primary/30 shadow-lg shadow-primary/10'
                       : 'text-tymer-muted hover:text-tymer-text hover:bg-tymer-border/50'
                   }`}
                 >
                   <item.icon className={`mr-4 h-5 w-5 transition-colors ${
-                    pathname === item.href ? 'text-[#10b981]' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
+                    pathname === item.href ? 'text-primary' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
                   }`} />
                   <div className="flex-1">
                     <div className="font-medium">{item.label}</div>
@@ -196,7 +196,7 @@ export default function DashboardLayout({
                     </div>
                   </div>
                   {pathname === item.href && (
-                    <div className="w-2 h-2 bg-tymer-accent rounded-full" />
+                    <div className="w-2 h-2 bg-primary rounded-full" />
                   )}
                 </Link>
               </div>
