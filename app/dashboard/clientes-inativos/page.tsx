@@ -221,7 +221,7 @@ export default function ClientesInativosPage() {
         <div className="hidden md:block w-full md:w-auto">
           <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full md:w-auto bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200">
+              <Button className="w-full md:w-auto bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200">
                 <Send className="w-4 h-4 mr-2" />
                 Enviar Promoção ({selectedClients.length})
               </Button>
@@ -230,8 +230,8 @@ export default function ClientesInativosPage() {
               {/* Header responsivo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
                 <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                  <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                    <Send className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                  <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                    <Send className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                   </div>
                   Enviar Promoção
                 </DialogTitle>
@@ -243,9 +243,9 @@ export default function ClientesInativosPage() {
               {/* Conteúdo principal do modal - fora do DialogDescription */}
               <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Clientes Selecionados - responsiva */}
-                <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50">
+                <div className="p-3 md:p-4 rounded-lg border bg-tymer-primary/10 border-tymer-primary/30 md:bg-tymer-primary/5">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                     <p className="text-[#ededed] font-medium text-sm md:text-base">
                       {selectedClients.length} cliente{selectedClients.length > 1 ? 's' : ''} selecionado{selectedClients.length > 1 ? 's' : ''}
                     </p>
@@ -255,7 +255,7 @@ export default function ClientesInativosPage() {
                       const client = filteredClients.find(c => c.id === clientId)
                       return (
                         <div key={clientId} className="flex items-center gap-2 text-xs md:text-sm text-[#d4d4d8] md:text-[#ededed]">
-                          <div className="w-1 h-1 bg-emerald-400 md:bg-[#10b981] rounded-full flex-shrink-0"></div>
+                          <div className="w-1 h-1 bg-tymer-primary rounded-full flex-shrink-0"></div>
                           <span className="font-medium">{client?.name}</span>
                           <span className="text-[#71717a]">•</span>
                           <span className="text-[#a1a1aa] md:text-[#71717a]">{client?.phone}</span>
@@ -285,7 +285,7 @@ export default function ClientesInativosPage() {
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{template.name}</span>
                             {template.title && (
-                              <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                              <span className="text-xs text-tymer-icon md:text-[#71717a]">{template.title}</span>
                             )}
                           </div>
                         </SelectItem>
@@ -312,11 +312,11 @@ export default function ClientesInativosPage() {
                       <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                       Prévia da Mensagem
                     </label>
-                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                    <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-tymer-primary/10 md:to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-tymer-primary/30 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
                       {getSelectedTemplateData()?.title && (
-                        <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
-                          <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
-                          <p className="text-emerald-400 md:text-[#10b981] text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
+                        <div className="flex items-start gap-2 md:bg-tymer-primary/15 md:rounded-lg md:px-3 md:py-2 md:mb-3">
+                          <div className="w-0.5 h-3 bg-tymer-primary rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
+                          <p className="text-tymer-primary text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
                             <span className="hidden md:inline">📢 </span>
                             {getSelectedTemplateData()?.title}
                           </p>
@@ -341,8 +341,8 @@ export default function ClientesInativosPage() {
                             // Um cliente - mostrar personalizada
                             return (
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                <div className="flex items-center gap-2 text-xs text-tymer-primary">
+                                  <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                                   <span>Personalizada para: {preview.clientName}</span>
                                 </div>
                                 <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
@@ -355,8 +355,8 @@ export default function ClientesInativosPage() {
                             // Múltiplos clientes - mostrar exemplos
                             return (
                               <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                                <div className="flex items-center gap-2 text-xs text-tymer-primary">
+                                  <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                                   <span>Será personalizada para cada cliente (exemplos):</span>
                                 </div>
                                 
@@ -390,12 +390,12 @@ export default function ClientesInativosPage() {
                         }
                       })()}
                       
-                      <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
-                        <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                      <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-tymer-primary/30">
+                        <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                         <span className="text-xs text-[#71717a]">
                           Será enviado via WhatsApp para {selectedClients.length} cliente(s)
                           {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
-                            <span className="text-emerald-400"> • Personalização automática ativada</span>
+                            <span className="text-tymer-primary"> • Personalização automática ativada</span>
                           )}
                         </span>
                       </div>
@@ -415,7 +415,7 @@ export default function ClientesInativosPage() {
                   <Button 
                     onClick={handleSendPromotion}
                     disabled={!selectedTemplate || selectedClients.length === 0}
-                    className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                    className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Enviar Promoção
@@ -436,7 +436,7 @@ export default function ClientesInativosPage() {
                 <p className="text-[#71717a] text-sm">Total Inativos</p>
                 <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">{stats.totalInactive}</p>
               </div>
-              <UserX className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-red-400" />
+              <UserX className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -448,7 +448,7 @@ export default function ClientesInativosPage() {
                 <p className="text-[#71717a] text-sm">Promoções Enviadas</p>
                 <p className="text-xl sm:text-2xl md:text-2xl font-bold text-[#ededed]">{stats.promotionsSent}</p>
               </div>
-              <Send className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-yellow-400" />
+              <Send className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -462,7 +462,7 @@ export default function ClientesInativosPage() {
                   {stats.promotionsSent > 0 ? Math.round((stats.returnRate / stats.promotionsSent) * 100) : 0}%
                 </p>
               </div>
-              <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-emerald-400" />
+              <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -479,7 +479,7 @@ export default function ClientesInativosPage() {
                   }).format(stats.potentialRevenue)}
                 </p>
               </div>
-              <Gift className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-emerald-400" />
+              <Gift className="w-6 h-6 sm:w-8 sm:h-8 md:w-8 md:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -489,7 +489,7 @@ export default function ClientesInativosPage() {
       <div className="block md:hidden">
         <Dialog open={isPromotionModalOpen} onOpenChange={setIsPromotionModalOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200">
+            <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200">
               <Send className="w-4 h-4 mr-2" />
               Enviar Promoção ({selectedClients.length})
             </Button>
@@ -498,8 +498,8 @@ export default function ClientesInativosPage() {
             {/* Header responsivo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 text-center md:text-center">
               <DialogTitle className="text-base md:text-xl font-semibold text-[#ededed] flex items-center justify-center gap-2">
-                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                  <Send className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                  <Send className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                 </div>
                 Enviar Promoção
               </DialogTitle>
@@ -511,9 +511,9 @@ export default function ClientesInativosPage() {
             {/* Conteúdo principal do modal mobile - fora do DialogDescription */}
             <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
               {/* Seção de Clientes Selecionados - responsiva */}
-              <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50">
+              <div className="p-3 md:p-4 rounded-lg border bg-tymer-primary/10 border-tymer-primary/30 md:bg-tymer-primary/5">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                   <p className="text-[#ededed] font-medium text-sm md:text-base">
                     {selectedClients.length} cliente{selectedClients.length > 1 ? 's' : ''} selecionado{selectedClients.length > 1 ? 's' : ''}
                   </p>
@@ -523,7 +523,7 @@ export default function ClientesInativosPage() {
                     const client = filteredClients.find(c => c.id === clientId)
                     return (
                       <div key={clientId} className="flex items-center gap-2 text-xs md:text-sm text-[#d4d4d8] md:text-[#ededed]">
-                        <div className="w-1 h-1 bg-emerald-400 md:bg-[#10b981] rounded-full flex-shrink-0"></div>
+                        <div className="w-1 h-1 bg-tymer-primary rounded-full flex-shrink-0"></div>
                         <span className="font-medium">{client?.name}</span>
                         <span className="text-[#71717a]">•</span>
                         <span className="text-[#a1a1aa] md:text-[#71717a]">{client?.phone}</span>
@@ -553,7 +553,7 @@ export default function ClientesInativosPage() {
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{template.name}</span>
                           {template.title && (
-                            <span className="text-xs text-emerald-400 md:text-[#71717a]">{template.title}</span>
+                            <span className="text-xs text-tymer-icon md:text-[#71717a]">{template.title}</span>
                           )}
                         </div>
                       </SelectItem>
@@ -580,11 +580,11 @@ export default function ClientesInativosPage() {
                     <div className="w-1 h-1 bg-purple-400 rounded-full md:hidden"></div>
                     Prévia da Mensagem
                   </label>
-                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-[#10b981]/10 md:to-[#059669]/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-[#10b981]/20 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
+                  <div className="bg-gradient-to-br from-[#27272a] to-[#1f1f23] md:from-tymer-primary/10 md:to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-[#3f3f46] md:border-tymer-primary/30 space-y-2 md:space-y-3 max-h-48 md:max-h-none overflow-y-auto md:overflow-y-visible">
                     {getSelectedTemplateData()?.title && (
-                      <div className="flex items-start gap-2 md:bg-[#10b981]/20 md:rounded-lg md:px-3 md:py-2 md:mb-3">
-                        <div className="w-0.5 h-3 bg-emerald-400 rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
-                        <p className="text-emerald-400 md:text-[#10b981] text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
+                      <div className="flex items-start gap-2 md:bg-tymer-primary/15 md:rounded-lg md:px-3 md:py-2 md:mb-3">
+                        <div className="w-0.5 h-3 bg-tymer-primary rounded-full flex-shrink-0 mt-0.5 md:hidden"></div>
+                        <p className="text-tymer-primary text-xs md:text-sm font-medium leading-relaxed md:font-semibold">
                           <span className="hidden md:inline">📢 </span>
                           {getSelectedTemplateData()?.title}
                         </p>
@@ -609,8 +609,8 @@ export default function ClientesInativosPage() {
                           // Um cliente - mostrar personalizada
                           return (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                              <div className="flex items-center gap-2 text-xs text-tymer-primary">
+                                <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                                 <span>Personalizada para: {preview.clientName}</span>
                               </div>
                               <div className="text-[#d4d4d8] md:text-[#ededed] text-xs md:text-sm whitespace-pre-line leading-relaxed pl-2 md:pl-0 border-l md:border-l-0 border-[#3f3f46]">
@@ -623,8 +623,8 @@ export default function ClientesInativosPage() {
                           // Múltiplos clientes - mostrar exemplos
                           return (
                             <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                              <div className="flex items-center gap-2 text-xs text-tymer-primary">
+                                <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                                 <span>Será personalizada para cada cliente (exemplos):</span>
                               </div>
                               
@@ -658,12 +658,12 @@ export default function ClientesInativosPage() {
                       }
                     })()}
                     
-                    <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-[#10b981]/20">
-                      <div className="w-1 h-1 bg-[#10b981] rounded-full"></div>
+                    <div className="hidden md:flex items-center gap-2 mt-3 pt-3 border-t border-tymer-primary/30">
+                      <div className="w-1 h-1 bg-tymer-primary rounded-full"></div>
                       <span className="text-xs text-[#71717a]">
                         Será enviado via WhatsApp para {selectedClients.length} cliente(s)
                         {hasPlaceholders(getSelectedTemplateData()?.message || '') && (
-                          <span className="text-emerald-400"> • Personalização automática ativada</span>
+                          <span className="text-tymer-primary"> • Personalização automática ativada</span>
                         )}
                       </span>
                     </div>
@@ -683,7 +683,7 @@ export default function ClientesInativosPage() {
                 <Button 
                   onClick={handleSendPromotion}
                   disabled={!selectedTemplate || selectedClients.length === 0}
-                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                  className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   Enviar Promoção
@@ -800,8 +800,8 @@ export default function ClientesInativosPage() {
                     </div>
                     
                     <div className="text-right">
-                      <p className="text-sm font-medium text-emerald-400">Potencial de receita</p>
-                      <p className="text-lg font-bold text-emerald-400">
+                      <p className="text-sm font-medium text-tymer-icon">Potencial de receita</p>
+                      <p className="text-lg font-bold text-[#ededed]">
                         {new Intl.NumberFormat('pt-BR', { 
                           style: 'currency', 
                           currency: 'BRL' 
@@ -861,10 +861,10 @@ export default function ClientesInativosPage() {
                         </div>
                         <div className="bg-[#27272a]/50 rounded-lg p-2">
                           <div className="flex items-center gap-1 mb-1">
-                            <Gift className="w-3 h-3 text-emerald-400" />
+                            <Gift className="w-3 h-3 text-tymer-icon" />
                             <span className="text-xs text-[#71717a]">Potencial</span>
                           </div>
-                          <div className="text-sm font-medium text-emerald-400">
+                          <div className="text-sm font-medium text-[#ededed]">
                             {new Intl.NumberFormat('pt-BR', { 
                               style: 'currency', 
                               currency: 'BRL',
