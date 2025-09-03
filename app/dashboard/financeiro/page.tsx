@@ -527,11 +527,12 @@ export default function FinanceiroPage() {
 
     // Converter para array com ícones e cores
     const methodConfig = {
-      'Dinheiro': { icon: Banknote, color: 'text-green-400', bgColor: 'bg-green-400' },
-      'Cartão': { icon: CreditCard, color: 'text-blue-400', bgColor: 'bg-blue-400' },
-      'PIX': { icon: DollarSign, color: 'text-purple-400', bgColor: 'bg-purple-400' },
-      'Não informado': { icon: HelpCircle, color: 'text-gray-400', bgColor: 'bg-gray-400' },
-      'Outros': { icon: DollarSign, color: 'text-orange-400', bgColor: 'bg-orange-400' }
+  // Ícones padronizados para cinza tymer-icon
+  'Dinheiro': { icon: Banknote, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+  'Cartão': { icon: CreditCard, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+  'PIX': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+  'Não informado': { icon: HelpCircle, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+  'Outros': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' }
     }
 
     return Object.entries(paymentGroups).map(([method, data]) => ({
@@ -1237,7 +1238,7 @@ export default function FinanceiroPage() {
           <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-[#10b981] flex-shrink-0" />
+              <stat.icon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
@@ -1261,7 +1262,7 @@ export default function FinanceiroPage() {
         <CardHeader>
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-[#10b981]" />
+              <TrendingUp className="w-5 h-5 text-tymer-icon" />
               <span className="text-lg sm:text-xl">Receita Diária</span>
             </div>
             <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">- Últimos 30 Dias</span>
@@ -1274,28 +1275,28 @@ export default function FinanceiroPage() {
           {/* Summary Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
-              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-1" />
+              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
-              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400 mx-auto mb-1" />
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
-              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-orange-400 mx-auto mb-1" />
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxDailyRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Melhor Dia</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
-              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 mx-auto mb-1" />
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {bestDay?.fullDate || 'N/A'}
               </p>
@@ -1344,7 +1345,7 @@ export default function FinanceiroPage() {
                         
                         {/* Day Info */}
                         <div className="text-center">
-                          <div className={`text-xs ${isWeekend ? 'text-orange-400' : 'text-[#71717a]'} font-medium mb-1`}>
+                          <div className={`text-xs ${isWeekend ? 'text-tymer-icon' : 'text-[#71717a]'} font-medium mb-1`}>
                             {day.dayName.slice(0, 3)}
                           </div>
                           <div className="text-xs text-gray-500 mb-1">
@@ -1422,7 +1423,7 @@ export default function FinanceiroPage() {
                       
                       {/* Day Label */}
                       <div className="mt-1 text-center">
-                        <div className={`text-xs ${isWeekend ? 'text-orange-400' : 'text-[#71717a]'} font-medium`}>
+                        <div className={`text-xs ${isWeekend ? 'text-tymer-icon' : 'text-[#71717a]'} font-medium`}>
                           {day.dayName}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -1456,7 +1457,7 @@ export default function FinanceiroPage() {
         <CardHeader>
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#10b981]" />
+              <Calendar className="w-5 h-5 text-tymer-icon" />
               <span className="text-lg sm:text-xl">Análise Mensal</span>
             </div>
             
@@ -1496,19 +1497,19 @@ export default function FinanceiroPage() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-[#10b981] mx-auto mb-2" />
+              <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedMonthData?.revenue || 0)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Faturamento Total</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400 mx-auto mb-2" />
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
               <p className="text-base sm:text-lg font-bold text-[#ededed]">{selectedMonthData?.appointmentCount || 0}</p>
               <p className="text-xs sm:text-sm text-[#71717a]">Agendamentos</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 mx-auto mb-2" />
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {selectedMonthData?.appointmentCount ? 
                   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedMonthData.revenue / selectedMonthData.appointmentCount)) : 
@@ -1518,7 +1519,7 @@ export default function FinanceiroPage() {
               <p className="text-xs sm:text-sm text-[#71717a]">Ticket Médio</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-orange-400 mx-auto mb-2" />
+              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
               <p className="text-base sm:text-lg font-bold text-[#ededed]">
                 {selectedMonthData?.appointmentCount ? Math.round(selectedMonthData.appointmentCount / 30) : 0}
               </p>
@@ -1639,7 +1640,7 @@ export default function FinanceiroPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-[#10b981]" />
+              <DollarSign className="w-5 h-5 text-tymer-icon" />
               Transações Recentes
             </CardTitle>
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">6 últimos atendimentos realizados hoje</CardDescription>
@@ -1658,8 +1659,8 @@ export default function FinanceiroPage() {
                 {recentTransactions.map((transaction) => (
                   <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#10b981]/20 rounded-full flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-[#10b981]" />
+                      <div className="w-10 h-10 bg-tymer-icon/20 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-tymer-icon" />
                       </div>
                       <div>
                         <p className="text-sm sm:text-base text-[#ededed] font-medium">{transaction.client}</p>
@@ -1686,7 +1687,7 @@ export default function FinanceiroPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-[#10b981]" />
+              <TrendingUp className="w-5 h-5 text-tymer-icon" />
               Serviços Mais Vendidos
             </CardTitle>
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Ranking dos serviços por quantidade de atendimentos</CardDescription>
@@ -1733,7 +1734,7 @@ export default function FinanceiroPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#10b981]" />
+              <Users className="w-5 h-5 text-tymer-icon" />
               Performance dos Profissionais
             </CardTitle>
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Desempenho individual por profissional</CardDescription>
@@ -1790,7 +1791,7 @@ export default function FinanceiroPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-              <Clock className="w-5 h-5 text-[#10b981]" />
+              <Clock className="w-5 h-5 text-tymer-icon" />
               Análise de Horários
             </CardTitle>
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Horários com maior movimento e ocupação</CardDescription>
@@ -1847,7 +1848,7 @@ export default function FinanceiroPage() {
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#10b981]" />
+            <CreditCard className="w-5 h-5 text-tymer-icon" />
             Formas de Pagamento
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">Distribuição dos pagamentos por método</CardDescription>
