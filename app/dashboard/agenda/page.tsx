@@ -1798,8 +1798,8 @@ export default function AgendaPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Agenda</h1>
-            <p className="text-sm md:text-base text-[#a1a1aa]">Gerencie seus agendamentos</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Agenda</h1>
+            <p className="text-sm md:text-base text-tymer-muted">Gerencie seus agendamentos</p>
             {lastUpdated && (
               <p className="text-xs text-[#71717a] mt-1">
                 Última atualização: {lastUpdated.toLocaleString('pt-BR')}
@@ -1814,7 +1814,7 @@ export default function AgendaPage() {
               disabled={isRefreshing}
               variant="outline"
               size="sm"
-              className="border-[#27272a] hover:bg-[#27272a] text-xs md:text-sm"
+              className="border-tymer-border hover:bg-tymer-border/50 text-xs md:text-sm text-foreground"
             >
               <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Atualizando...' : 'Atualizar'}
@@ -1822,7 +1822,7 @@ export default function AgendaPage() {
             
             <Button 
               onClick={() => setIsNewAppointmentOpen(true)}
-              className="bg-[#10b981] hover:bg-[#059669] text-xs md:text-sm"
+              className="bg-primary hover:bg-primary/90 text-xs md:text-sm text-white"
             >
               <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
               Novo Agendamento
@@ -1834,7 +1834,7 @@ export default function AgendaPage() {
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
               <Button 
                 onClick={() => setIsNewAppointmentOpen(true)}
-                className="bg-[#10b981] hover:bg-[#059669] text-sm w-full lg:w-auto flex items-center justify-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-sm w-full lg:w-auto flex items-center justify-center gap-2 text-white"
               >
                 <Plus className="w-4 h-4" />
                 Novo Agendamento
@@ -1845,7 +1845,7 @@ export default function AgendaPage() {
                 disabled={isRefreshing}
                 variant="outline"
                 size="sm"
-                className="border-[#27272a] hover:bg-[#27272a] text-sm w-full lg:w-auto flex items-center justify-center gap-2"
+                className="border-tymer-border hover:bg-tymer-border/50 text-sm w-full lg:w-auto flex items-center justify-center gap-2 text-foreground"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Atualizando...' : 'Atualizar'}
@@ -1857,106 +1857,106 @@ export default function AgendaPage() {
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
-        <Card className="bg-[#18181b] border-[#27272a]">
+    <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#10b981]/20 rounded-lg">
-                <Calendar className="w-5 h-5 text-[#10b981]" />
+        <div className="p-2 bg-primary/20 rounded-lg">
+        <Calendar className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm md:text-sm text-[#a1a1aa]">
+        <p className="text-sm md:text-sm text-tymer-muted">
                   Agendamentos Hoje
                   {selectedProfessional !== "todos" && (
-                    <span className="ml-1 text-xs text-[#10b981]">
+          <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
                     </span>
                   )}
                 </p>
-                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.appointmentsToday}</p>
+        <p className="text-xl md:text-2xl font-bold text-foreground">{dayStats.appointmentsToday}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#18181b] border-[#27272a]">
+    <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm md:text-sm text-[#a1a1aa]">
+        <p className="text-sm md:text-sm text-tymer-muted">
                   Concluídos
                   {selectedProfessional !== "todos" && (
-                    <span className="ml-1 text-xs text-[#10b981]">
+          <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
                     </span>
                   )}
                 </p>
-                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.completed}</p>
+        <p className="text-xl md:text-2xl font-bold text-foreground">{dayStats.completed}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#18181b] border-[#27272a]">
+    <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm md:text-sm text-[#a1a1aa]">
+        <p className="text-sm md:text-sm text-tymer-muted">
                   Pendentes
                   {selectedProfessional !== "todos" && (
-                    <span className="ml-1 text-xs text-[#10b981]">
+          <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
                     </span>
                   )}
                 </p>
-                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.pending}</p>
+        <p className="text-xl md:text-2xl font-bold text-foreground">{dayStats.pending}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#18181b] border-[#27272a]">
+    <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/20 rounded-lg">
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm md:text-sm text-[#a1a1aa]">
+        <p className="text-sm md:text-sm text-tymer-muted">
                   Taxa de Ocupação
                   {selectedProfessional !== "todos" && (
-                    <span className="ml-1 text-xs text-[#10b981]">
+          <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
                     </span>
                   )}
                 </p>
-                <p className="text-xl md:text-2xl font-bold text-[#ededed]">{dayStats.occupancyRate}%</p>
+        <p className="text-xl md:text-2xl font-bold text-foreground">{dayStats.occupancyRate}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#18181b] border-[#27272a]">
+    <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#10b981]/20 rounded-lg">
                 <span className="text-[#10b981] font-bold text-lg">R$</span>
               </div>
               <div>
-                <p className="text-sm md:text-sm text-[#a1a1aa]">
+        <p className="text-sm md:text-sm text-tymer-muted">
                   Receita Hoje
                   {selectedProfessional !== "todos" && (
-                    <span className="ml-1 text-xs text-[#10b981]">
+          <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
                     </span>
                   )}
                 </p>
-                <p className="text-xl md:text-2xl font-bold text-[#ededed]">
+        <p className="text-xl md:text-2xl font-bold text-foreground">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
@@ -1982,7 +1982,7 @@ export default function AgendaPage() {
           </Button>
           
           <div className="text-center">
-            <h2 className="text-base md:text-lg xl:text-xl font-semibold text-[#ededed] whitespace-nowrap">
+            <h2 className="text-base md:text-lg xl:text-xl font-semibold text-foreground whitespace-nowrap">
               {formatDate(currentDate)}
             </h2>
           </div>
@@ -2000,10 +2000,10 @@ export default function AgendaPage() {
         {/* Filtros - stack em mobile, inline em desktop */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-full md:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
+            <SelectTrigger className="w-full md:w-48 bg-tymer-card border-tymer-border text-foreground h-10 text-sm">
               <SelectValue placeholder="Filtrar por profissional" />
             </SelectTrigger>
-            <SelectContent className="bg-[#18181b] border-[#27272a]">
+            <SelectContent className="bg-tymer-card border-tymer-border text-foreground">
               <SelectItem value="todos">Todos os profissionais</SelectItem>
               {professionalsData?.map((professional) => (
               <SelectItem key={professional.id} value={professional.id}>
@@ -2014,10 +2014,10 @@ export default function AgendaPage() {
         </Select>
 
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-full md:w-48 bg-[#18181b] border-[#27272a] text-[#ededed] h-10 text-sm">
+          <SelectTrigger className="w-full md:w-48 bg-tymer-card border-tymer-border text-foreground h-10 text-sm">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
-          <SelectContent className="bg-[#18181b] border-[#27272a]">
+          <SelectContent className="bg-tymer-card border-tymer-border text-foreground">
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="CONFIRMED">Confirmado</SelectItem>
             <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
