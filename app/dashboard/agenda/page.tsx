@@ -1304,15 +1304,17 @@ export default function AgendaPage() {
 
   // Status do agendamento - melhorado
   const getStatusBadge = (status: string) => {
+    // Padronização de cores:
+    // Confirmado: azul (igual badge "Novo" e dashboard)
+    // Concluído: verde (igual dashboard)
     const statusMap = {
-      CONFIRMED: { label: "Confirmado", variant: "default" as const, color: "bg-[#10b981]" },
-      IN_PROGRESS: { label: "Em andamento", variant: "default" as const, color: "bg-yellow-500" },
-      COMPLETED: { label: "Concluído", variant: "secondary" as const, color: "bg-[#10b981]" },
-      CANCELLED: { label: "Cancelado", variant: "destructive" as const, color: "bg-red-500" },
-      NO_SHOW: { label: "Não compareceu", variant: "destructive" as const, color: "bg-red-500" },
+      CONFIRMED: { label: "Confirmado", variant: "default" as const, color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
+      IN_PROGRESS: { label: "Em andamento", variant: "default" as const, color: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" },
+      COMPLETED: { label: "Concluído", variant: "secondary" as const, color: "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30" },
+      CANCELLED: { label: "Cancelado", variant: "destructive" as const, color: "bg-red-500/20 text-red-400 border border-red-500/30" },
+      NO_SHOW: { label: "Não compareceu", variant: "destructive" as const, color: "bg-red-500/20 text-red-400 border border-red-500/30" },
     }
-    
-    return statusMap[status as keyof typeof statusMap] || { label: status, variant: "secondary" as const, color: "bg-gray-500" }
+    return statusMap[status as keyof typeof statusMap] || { label: status, variant: "secondary" as const, color: "bg-gray-500/20 text-gray-300 border border-gray-500/30" }
   }
 
   // Função para verificar se data/hora já passou
