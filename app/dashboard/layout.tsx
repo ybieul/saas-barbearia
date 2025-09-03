@@ -253,7 +253,7 @@ export default function DashboardLayout({
             </div>
             
             {/* Avatar do Usuário */}
-            <div className="w-8 h-8 bg-gradient-to-br from-tymer-accent to-tymer-accent/80 rounded-lg flex items-center justify-center shadow-lg cursor-pointer">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-lg cursor-pointer border border-primary/40">
               <UserCircle className="w-5 h-5 text-white" />
             </div>
           </div>
