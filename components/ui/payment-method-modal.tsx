@@ -35,21 +35,18 @@ export function PaymentMethodModal({
       id: "CASH",
       label: "Dinheiro",
       icon: DollarSign,
-      color: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       description: "Pagamento em espécie"
     },
     {
       id: "PIX",
       label: "PIX",
       icon: Smartphone,
-      color: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
       description: "Transferência instantânea"
     },
     {
       id: "CARD",
       label: "Cartão",
       icon: CreditCard,
-      color: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       description: "Débito ou crédito"
     }
   ]
@@ -138,16 +135,16 @@ export function PaymentMethodModal({
                       key={method.id}
                       onClick={() => handlePaymentSelect(method.id)}
                       disabled={isLoading}
-                      className={`${method.color} text-white h-auto p-3 md:p-4 justify-start gap-3 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] w-full`}
+                      className={`bg-tymer-balon/80 hover:bg-tymer-balon/60 border border-[#2a2a2d] text-[#ededed] h-auto p-3 md:p-4 justify-start gap-3 transition-colors duration-150 w-full`}
                     >
-                      <div className="bg-white/20 rounded-full p-1.5 md:p-2 flex-shrink-0">
-                        <IconComponent className="w-4 h-4 md:w-5 md:h-5" />
+                      <div className="bg-[#2d2d30] rounded-full p-1.5 md:p-2 flex-shrink-0 border border-[#3a3a3d]">
+                        <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-tymer-icon" />
                       </div>
                       <div className="text-left flex-1">
-                        <div className="font-semibold text-sm md:text-base flex items-center gap-2">
+                        <div className="font-semibold text-sm md:text-base flex items-center gap-2 text-[#ededed]">
                           {method.label}
                         </div>
-                        <div className="text-xs md:text-sm opacity-90">{method.description}</div>
+                        <div className="text-xs md:text-sm text-tymer-icon">{method.description}</div>
                       </div>
                     </Button>
                   )
