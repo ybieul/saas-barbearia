@@ -32,7 +32,7 @@ export function WhatsAppStatus() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "sent":
-        return <CheckCircle className="w-3 h-3 text-blue-400" />
+        return <CheckCircle className="w-3 h-3 text-tymer-icon" />
       case "delivered":
         return <CheckCircle className="w-3 h-3 text-emerald-400" />
       case "read":
@@ -40,14 +40,14 @@ export function WhatsAppStatus() {
       case "failed":
         return <XCircle className="w-3 h-3 text-red-400" />
       default:
-        return <Clock className="w-3 h-3 text-yellow-400" />
+        return <Clock className="w-3 h-3 text-tymer-icon" />
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "sent":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+        return "bg-tymer-icon/20 text-tymer-icon border-tymer-icon/30"
       case "delivered":
         return "bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30"
       case "read":
@@ -55,7 +55,7 @@ export function WhatsAppStatus() {
       case "failed":
         return "bg-red-500/20 text-red-400 border-red-500/30"
       default:
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+        return "bg-tymer-icon/20 text-tymer-icon border-tymer-icon/30"
     }
   }
 
@@ -82,7 +82,7 @@ export function WhatsAppStatus() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-tymer-card/50 border-tymer-border">
+    <Card className="bg-tymer-card/50 border-tymer-border">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-white">{stats.total}</div>
             <div className="text-xs text-gray-400">Total</div>
@@ -90,7 +90,7 @@ export function WhatsAppStatus() {
         </Card>
         <Card className="bg-tymer-card/50 border-tymer-border">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">{stats.sent}</div>
+      <div className="text-2xl font-bold text-tymer-icon">{stats.sent}</div>
             <div className="text-xs text-gray-400">Enviadas</div>
           </CardContent>
         </Card>
@@ -100,7 +100,7 @@ export function WhatsAppStatus() {
       <Card className="bg-tymer-card/50 border-tymer-border">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-tymer-accent" />
+            <MessageCircle className="w-5 h-5 text-tymer-icon" />
             <span className="text-lg sm:text-xl">Mensagens Enviadas Recentemente</span>
           </CardTitle>
           <CardDescription className="text-gray-400 text-sm sm:text-base">
@@ -110,7 +110,7 @@ export function WhatsAppStatus() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-6 sm:py-8">
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-blue-400 mr-2" />
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-tymer-icon mr-2" />
               <span className="text-gray-400 text-sm sm:text-base">Carregando mensagens...</span>
             </div>
           ) : error ? (
@@ -145,7 +145,7 @@ export function WhatsAppStatus() {
                   className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-tymer-card/30 rounded-lg border border-tymer-border"
                 >
                   <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-tymer-accent rounded-full flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-tymer-primary rounded-full flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
                       <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">

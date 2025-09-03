@@ -101,28 +101,28 @@ export default function WhatsAppPage() {
         value: whatsappStats.mensagensHoje.total.toString(),
         description: whatsappStats.mensagensHoje.descricao,
         icon: MessageCircle,
-        color: "text-blue-400",
+        color: "text-tymer-icon",
       },
       {
         title: "Taxa de Entrega",
         value: `${whatsappStats.taxaEntrega.taxa}%`,
         description: whatsappStats.taxaEntrega.descricao,
         icon: CheckCircle,
-        color: "text-[#10b981]",
+        color: "text-tymer-icon",
       },
       {
         title: "Redução de Faltas",
         value: `${whatsappStats.reducaoFaltas.taxa}%`,
         description: whatsappStats.reducaoFaltas.descricao,
         icon: Zap,
-        color: "text-yellow-400",
+        color: "text-tymer-icon",
       },
       {
         title: "Clientes Inativos",
         value: whatsappStats.clientesInativos.total.toString(),
         description: whatsappStats.clientesInativos.descricao,
         icon: Users,
-        color: "text-purple-400",
+        color: "text-tymer-icon",
       },
     ]
   } else {
@@ -161,28 +161,28 @@ export default function WhatsAppPage() {
         value: isLoadingStats ? "..." : totalMessages.toString(),
         description: isLoadingStats ? "Carregando..." : `${confirmationMessages} confirmações, ${reminderMessages} lembretes`,
         icon: MessageCircle,
-        color: "text-blue-400",
+        color: "text-tymer-icon",
       },
       {
         title: "Taxa de Entrega",
         value: isLoadingStats ? "..." : `${deliveryRate}%`,
         description: isLoadingStats ? "Carregando..." : `${deliveredCount} de ${totalMessages} entregues`,
         icon: CheckCircle,
-        color: "text-[#10b981]",
+        color: "text-tymer-icon",
       },
       {
         title: "Redução de Faltas",
         value: isLoadingStats ? "..." : `${Math.min(95, Math.max(70, 100 - (inactiveClients * 2)))}%`,
         description: isLoadingStats ? "Carregando..." : "Baseado em automações ativas",
         icon: Zap,
-        color: "text-yellow-400",
+        color: "text-tymer-icon",
       },
       {
         title: "Clientes Inativos",
         value: isLoadingStats ? "..." : inactiveClients.toString(),
         description: isLoadingStats ? "Carregando..." : "Clientes sem agendamentos",
         icon: Users,
-        color: "text-purple-400",
+        color: "text-tymer-icon",
       },
     ]
   }
@@ -358,7 +358,7 @@ export default function WhatsAppPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-              <TestTube className="w-5 h-5 text-blue-400" />
+              <TestTube className="w-5 h-5 text-tymer-icon" />
               Testar Mensagem
             </CardTitle>
             <CardDescription className="text-[#71717a]">
@@ -466,7 +466,7 @@ export default function WhatsAppPage() {
         <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-400" />
+              <Zap className="w-5 h-5 text-tymer-icon" />
               Mensagens Automáticas
             </CardTitle>
             <CardDescription className="text-[#71717a]">Configure mensagens automáticas</CardDescription>
