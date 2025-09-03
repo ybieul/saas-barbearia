@@ -280,7 +280,7 @@ export default function ClientesInativosPage() {
                         <SelectItem 
                           key={template.id} 
                           value={template.id}
-                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
+                          className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#3f3f46]/80 cursor-pointer"
                         >
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{template.name}</span>
@@ -548,7 +548,7 @@ export default function ClientesInativosPage() {
                       <SelectItem 
                         key={template.id} 
                         value={template.id}
-                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#10b981]/20 cursor-pointer"
+                        className="text-[#ededed] hover:bg-[#3f3f46] focus:bg-[#3f3f46] data-[highlighted]:bg-[#3f3f46] data-[state=checked]:bg-[#3f3f46]/80 cursor-pointer"
                       >
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{template.name}</span>
@@ -759,13 +759,14 @@ export default function ClientesInativosPage() {
                   <div
                     className={`hidden md:flex items-center gap-4 p-4 rounded-lg transition-colors border ${
                       selectedClients.includes(client.id)
-                        ? 'bg-tymer-accent/10 border-tymer-accent/30'
+                        ? 'bg-tymer-primary/10 border-tymer-primary/40'
                         : 'bg-tymer-card border-tymer-border hover:bg-tymer-card/70'
                     }`}
                   >
                     <Checkbox 
                       checked={selectedClients.includes(client.id)}
                       onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
+                      className={`${selectedClients.includes(client.id) ? 'data-[state=checked]:bg-tymer-primary data-[state=checked]:border-tymer-primary' : ''} border-[#52525b] text-white`} 
                     />
                     
                     <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
@@ -814,7 +815,7 @@ export default function ClientesInativosPage() {
                   <div 
                     className={`block md:hidden p-4 rounded-lg transition-colors border ${
                       selectedClients.includes(client.id)
-                        ? 'bg-tymer-accent/10 border-tymer-accent/30'
+                        ? 'bg-tymer-primary/10 border-tymer-primary/40'
                         : 'bg-tymer-card border-tymer-border hover:bg-tymer-card/70'
                     }`}
                   >
@@ -824,7 +825,7 @@ export default function ClientesInativosPage() {
                         <Checkbox 
                           checked={selectedClients.includes(client.id)}
                           onCheckedChange={(checked) => handleSelectClient(client.id, checked as boolean)}
-                          className="mt-1"
+                          className={`mt-1 border-[#52525b] text-white ${selectedClients.includes(client.id) ? 'data-[state=checked]:bg-tymer-primary data-[state=checked]:border-tymer-primary' : ''}`}
                         />
                         <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-bold text-[#ededed]">
