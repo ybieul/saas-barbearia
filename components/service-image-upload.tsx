@@ -200,8 +200,8 @@ export default function ServiceImageUpload({
     <div className="space-y-4 sm:space-y-6">
       {/* Header com ícone e título */}
       <div className="text-center">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-purple-500/30">
-          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-tymer-primary/30">
+          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-tymer-primary" />
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-[#ededed] mb-1 sm:mb-2">Imagem do Serviço</h2>
         <p className="text-[#71717a] text-xs sm:text-sm">
@@ -230,7 +230,7 @@ export default function ServiceImageUpload({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-tymer-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg sm:text-xl">
                   {getServiceInitials(serviceName)}
                 </span>
@@ -271,7 +271,7 @@ export default function ServiceImageUpload({
             <Button
               onClick={handleUploadClick}
               disabled={isUploading}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+              className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
               <Camera className="w-4 h-4 mr-2" />
               {preview ? 'Alterar Foto' : 'Adicionar Foto'}
