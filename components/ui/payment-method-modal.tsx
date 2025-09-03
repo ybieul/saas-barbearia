@@ -36,24 +36,21 @@ export function PaymentMethodModal({
       label: "Dinheiro",
       icon: DollarSign,
       color: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
-      description: "Pagamento em espécie",
-      emoji: "💵"
+      description: "Pagamento em espécie"
     },
     {
       id: "PIX",
       label: "PIX",
       icon: Smartphone,
       color: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
-      description: "Transferência instantânea",
-      emoji: "📱"
+      description: "Transferência instantânea"
     },
     {
       id: "CARD",
       label: "Cartão",
       icon: CreditCard,
       color: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
-      description: "Débito ou crédito",
-      emoji: "💳"
+      description: "Débito ou crédito"
     }
   ]
 
@@ -67,8 +64,8 @@ export function PaymentMethodModal({
         {/* Header fixo */}
         <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
           <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-            <div className="p-1.5 md:p-2 bg-gradient-to-br from-emerald-500/20 to-green-600/20 rounded-lg">
-              <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-tymer-accent" />
+            <div className="p-1.5 md:p-2 rounded-lg bg-tymer-primary/15 border border-tymer-primary/30">
+              <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
             </div>
             Como foi pago?
           </DialogTitle>
@@ -82,9 +79,9 @@ export function PaymentMethodModal({
           <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
             {/* Seção de Resumo do Agendamento */}
             {appointmentData && (
-              <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50 space-y-3 md:space-y-4">
+              <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-accent rounded-full"></div>
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                   <h3 className="text-[#ededed] font-medium text-sm md:text-base">Resumo do Atendimento</h3>
                 </div>
                 
@@ -110,12 +107,12 @@ export function PaymentMethodModal({
                     </span>
                     <span className="text-xs md:text-sm font-medium text-[#ededed]">{appointmentData.time}</span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-tymer-accent/20 md:border-tymer-border">
+                  <div className="flex items-center justify-between pt-2 border-t border-tymer-primary/25 md:border-tymer-border">
                     <span className="text-xs md:text-sm font-medium text-[#a1a1aa] flex items-center gap-2">
                       <Receipt className="w-3 h-3 md:w-4 md:h-4" />
                       Total:
                     </span>
-                    <Badge className="bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30 text-xs md:text-sm">
+                    <Badge className="bg-tymer-primary/20 text-tymer-primary border border-tymer-primary/30 text-xs md:text-sm">
                       {new Intl.NumberFormat('pt-BR', { 
                         style: 'currency', 
                         currency: 'BRL' 
@@ -148,7 +145,6 @@ export function PaymentMethodModal({
                       </div>
                       <div className="text-left flex-1">
                         <div className="font-semibold text-sm md:text-base flex items-center gap-2">
-                          <span className="text-base md:text-lg">{method.emoji}</span>
                           {method.label}
                         </div>
                         <div className="text-xs md:text-sm opacity-90">{method.description}</div>

@@ -2070,7 +2070,7 @@ export default function AgendaPage() {
                     {/* Hora com destaque mobile - ícone de relógio e separação visual */}
                     <div className="flex sm:block items-center justify-center sm:justify-start gap-2 sm:gap-0 w-full sm:w-16 sm:mt-1">
                       {/* Ícone de relógio apenas em mobile */}
-                      <Clock className="w-4 h-4 text-[#10b981] sm:hidden" />
+                      <Clock className="w-4 h-4 text-white sm:hidden" />
                       <div className="text-[#ededed] font-medium text-center sm:text-left text-base sm:text-sm md:text-lg">
                         {time}
                       </div>
@@ -2190,7 +2190,7 @@ export default function AgendaPage() {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-[#10b981]" />
+                          <Clock className="w-4 h-4 text-white" />
                           <span className="font-semibold text-[#ededed] text-lg md:text-base">{appointmentTime}</span>
                         </div>
                         {/* Badge de status padronizado com cores específicas (Confirmado azul, Concluído verde) */}
