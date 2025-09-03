@@ -128,10 +128,10 @@ export default function DashboardLayout({
               <Scissors className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <span className="text-xl font-bold text-primary">
+              <span className="text-xl font-bold text-foreground">
                 TymerBook
               </span>
-              <p className="text-xs text-[#a1a1aa]">Dashboard</p>
+              <p className="text-xs text-tymer-textgray">Painel Administrativo</p>
             </div>
           </div>
           <button
