@@ -2304,8 +2304,8 @@ export default function AgendaPage() {
             {/* Header responsivo */}
             <CardHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
               <CardTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                  <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-primary/20 border border-primary/30">
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 </div>
                 {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
               </CardTitle>
@@ -2326,9 +2326,9 @@ export default function AgendaPage() {
               )}
               
               {/* Seção de Cliente */}
-              <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50">
+              <div className="p-3 md:p-4 rounded-lg border border-primary/30 bg-primary/10">
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full"></div>
                   <h3 className="text-[#ededed] font-medium text-sm md:text-base">Cliente</h3>
                 </div>
                 
@@ -2357,9 +2357,9 @@ export default function AgendaPage() {
                     
                     {/* Cliente selecionado */}
                     {newAppointment.endUserId && (
-                      <div className="mt-2 flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg p-2">
+                      <div className="mt-2 flex items-center justify-between bg-primary/10 border border-primary/30 rounded-lg p-2">
                         <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-[#10b981]" />
+                          <Check className="h-4 w-4 text-primary" />
                           <span className="text-[#ededed] text-sm">
                             {clients.find(c => c.id === newAppointment.endUserId)?.name} - {clients.find(c => c.id === newAppointment.endUserId)?.phone}
                           </span>
@@ -2644,7 +2644,7 @@ export default function AgendaPage() {
                   isValidating ||
                   !getDateStatus().isOpen
                 }
-                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium flex items-center justify-center"
+                className="flex-1 bg-primary hover:bg-primary/80 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium flex items-center justify-center"
               >
                 <span className="text-center truncate">
                   {isCreating ? 
