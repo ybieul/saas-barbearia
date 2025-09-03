@@ -1,0 +1,12 @@
+width: 85%;
+height: 880px;
+display: block;
+-webkit-filter: blur(14px);
+filter: blur(14px);
+z-index: 0;
+aspect-ratio: 1.2 / 1;
+background-image: url(/* Hero bg.svg */);
+background-size: cover;
+background-repeat: no-repeat;
+background-position: center;
+border-radius: 0px 0px 0px 0px;

@@ -361,13 +361,16 @@ export default function DashboardPage() {
               <div className="mt-4 pt-4 border-t border-[#27272a]">
                 <p className="text-sm text-[#a1a1aa] mb-2">Profissionais livres:</p>
                 <div className="flex flex-wrap gap-2">
-                  {professionals
-                    .filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id))
-                    .map((prof: any) => (
-                      <Badge key={prof.id} variant="outline" className="border-[#27272a] text-[#a1a1aa]">
-                        {prof.name}
-                      </Badge>
-                    ))}
+                            {professionals
+                              .filter((prof: any) => !nextAppointmentsByProfessional.find((item: any) => item.professional.id === prof.id))
+                              .map((prof: any) => (
+                                <Badge
+                                  key={prof.id}
+                                  className="bg-tymer-balon text-tymer-textgray border-tymer-textgray/30 text-xs font-medium px-3 py-1 rounded-full"
+                                >
+                                  {prof.name}
+                                </Badge>
+                              ))}
                 </div>
               </div>
             )}
