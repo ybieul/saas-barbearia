@@ -40,6 +40,7 @@ const config: Config = {
   			},
   			
 			// balon: bg-tymer-balon text-tymer-textgray border-tymer-textgray/30
+			// balão de concluido: "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
 
   			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			// background: 'hsl(var(--background))',
