@@ -28,7 +28,7 @@ const config: Config = {
   			'tymer-border': '#27272a',    // Bordas
   			'tymer-accent': '#10b981',    // Verde de sucesso (mantido para compatibilidade)
 			'tymer-icon': '#9d9d9d',      // Cinza para os ícones
-			'tymer-textgray': '#9d9d9d',  // Cinza para os ícones
+			'tymer-textgray': '#9d9d9d',  // Cinza para os textos
 			'tymer-balon': '#373737',     // Cinza dos balões
   			
   			// Cores semânticas padrão com valores fixos TymerBook

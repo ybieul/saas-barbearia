@@ -1860,8 +1860,8 @@ export default function AgendaPage() {
     <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/20 rounded-lg">
-        <Calendar className="w-5 h-5 text-primary" />
+  <div className="p-2 bg-tymer-balon rounded-lg">
+  <Calendar className="w-5 h-5 text-tymer-icon" />
               </div>
               <div>
         <p className="text-sm md:text-sm text-tymer-muted">
@@ -1881,8 +1881,8 @@ export default function AgendaPage() {
     <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-tymer-balon rounded-lg">
+                <CheckCircle className="w-5 h-5 text-tymer-icon" />
               </div>
               <div>
         <p className="text-sm md:text-sm text-tymer-muted">
@@ -1902,8 +1902,8 @@ export default function AgendaPage() {
     <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-yellow-400" />
+              <div className="p-2 bg-tymer-balon rounded-lg">
+                <AlertCircle className="w-5 h-5 text-tymer-icon" />
               </div>
               <div>
         <p className="text-sm md:text-sm text-tymer-muted">
@@ -1923,8 +1923,8 @@ export default function AgendaPage() {
     <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Users className="w-5 h-5 text-purple-400" />
+              <div className="p-2 bg-tymer-balon rounded-lg">
+                <Users className="w-5 h-5 text-tymer-icon" />
               </div>
               <div>
         <p className="text-sm md:text-sm text-tymer-muted">
@@ -1944,8 +1944,8 @@ export default function AgendaPage() {
     <Card className="bg-tymer-card border-tymer-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#10b981]/20 rounded-lg">
-                <span className="text-[#10b981] font-bold text-lg">R$</span>
+              <div className="p-2 bg-tymer-balon rounded-lg">
+                <span className="text-tymer-icon font-bold text-lg">R$</span>
               </div>
               <div>
         <p className="text-sm md:text-sm text-tymer-muted">
