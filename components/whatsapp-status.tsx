@@ -32,7 +32,7 @@ export function WhatsAppStatus() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "sent":
-        return <CheckCircle className="w-3 h-3 text-tymer-icon" />
+        return <CheckCircle className="w-3 h-3 text-blue-400" />
       case "delivered":
         return <CheckCircle className="w-3 h-3 text-emerald-400" />
       case "read":
@@ -47,7 +47,7 @@ export function WhatsAppStatus() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "sent":
-        return "bg-tymer-icon/20 text-tymer-icon border-tymer-icon/30"
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30"
       case "delivered":
         return "bg-tymer-accent/20 text-tymer-accent border-tymer-accent/30"
       case "read":
