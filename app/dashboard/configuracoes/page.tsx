@@ -1600,7 +1600,7 @@ export default function ConfiguracoesPage() {
                         <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                           <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                             {/* Seção de Informações Básicas */}
-                            <div className="bg-tymer-primary p-3 md:p-4 rounded-lg border border-tymer-primary/60 space-y-3 md:space-y-4">
+                            <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                               <div className="flex items-center gap-2 mb-2 md:mb-3">
                                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                                 <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
@@ -1862,7 +1862,7 @@ export default function ConfiguracoesPage() {
                   <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                     <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                       {/* Seção de Informações Básicas */}
-                      <div className="bg-tymer-primary p-3 md:p-4 rounded-lg border border-tymer-primary/60 space-y-3 md:space-y-4">
+                      <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                         <div className="flex items-center gap-2 mb-2 md:mb-3">
                           <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                           <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
@@ -2013,7 +2013,7 @@ export default function ConfiguracoesPage() {
                   <CardTitle className="text-lg sm:text-xl text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
                   <Dialog open={isNewServiceOpen} onOpenChange={setIsNewServiceOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-purple-500 hover:bg-purple-600 text-[#ededed] w-full sm:w-auto">
+                      <Button className="bg-tymer-primary hover:bg-tymer-primary/80 text-white w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Novo Serviço
                       </Button>
@@ -2022,8 +2022,8 @@ export default function ConfiguracoesPage() {
                       {/* Header fixo */}
                       <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                         <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                          <div className="p-1.5 md:p-2 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg">
-                            <Wrench className="w-4 h-4 md:w-5 md:h-5 text-purple-400 md:text-purple-500" />
+                          <div className="p-1.5 md:p-2 rounded-lg bg-tymer-primary/15 border border-tymer-primary/30">
+                            <Wrench className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                           </div>
                           Novo Serviço
                         </DialogTitle>
@@ -2036,9 +2036,9 @@ export default function ConfiguracoesPage() {
                       <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                         <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                           {/* Seção de Informações Básicas */}
-                          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-3 md:p-4 rounded-lg border border-purple-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                          <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                             <div className="flex items-center gap-2 mb-2 md:mb-3">
-                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-400 md:bg-purple-500 rounded-full"></div>
+                              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                               <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações do Serviço</h3>
                             </div>
                             
@@ -2124,7 +2124,7 @@ export default function ConfiguracoesPage() {
                         </Button>
                         <Button 
                           onClick={handleAddService}
-                          className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-[#ededed] shadow-lg shadow-purple-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                          className="flex-1 bg-tymer-primary hover:bg-tymer-primary/80 text-white shadow-lg shadow-tymer-primary/20 transition-all duration-200 h-10 md:min-h-[44px]"
                           disabled={servicesLoading}
                         >
                           {servicesLoading ? "Adicionando..." : "Adicionar Serviço"}
