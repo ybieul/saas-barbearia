@@ -214,7 +214,7 @@ export default function ClientesPage() {
           <DialogTrigger asChild>
             <div className="flex justify-center lg:justify-start w-full lg:w-auto">
               <Button 
-                className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white w-full lg:w-auto"
+                className="bg-tymer-primary hover:bg-tymer-primary/90 text-white w-full lg:w-auto"
                 onClick={() => resetForm()}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -226,8 +226,8 @@ export default function ClientesPage() {
             {/* Header fixo */}
             <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
               <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                  <Plus className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-tymer-primary/15 border border-tymer-primary/30">
+                  <Plus className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                 </div>
                 {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
               </DialogTitle>
@@ -240,9 +240,9 @@ export default function ClientesPage() {
             <div className="overflow-y-auto flex-1 px-4 sm:px-6">
               <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Informações Básicas */}
-                <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                     <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
                   </div>
                   
@@ -343,7 +343,7 @@ export default function ClientesPage() {
               <Button 
                 type="submit" 
                 onClick={handleSubmit}
-                className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+                className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-white shadow-lg shadow-tymer-primary/20 transition-all duration-200 h-10 md:min-h-[44px]"
               >
                 {editingClient ? 'Salvar' : 'Criar Cliente'}
               </Button>
@@ -361,7 +361,7 @@ export default function ClientesPage() {
                 <p className="text-[#a1a1aa] text-sm">Total de Clientes</p>
                 <p className="text-xl sm:text-2xl font-bold text-[#ededed]">{clients.length}</p>
               </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -378,7 +378,7 @@ export default function ClientesPage() {
                   }).length}
                 </p>
               </div>
-              <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-[#10b981]" />
+              <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -391,7 +391,7 @@ export default function ClientesPage() {
                   {clients.filter(client => client.totalVisits > 0).length}
                 </p>
               </div>
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
@@ -412,7 +412,7 @@ export default function ClientesPage() {
                   )}
                 </p>
               </div>
-              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-tymer-icon" />
             </div>
           </CardContent>
         </Card>
