@@ -2193,7 +2193,13 @@ export default function AgendaPage() {
                           <Clock className="w-4 h-4 text-[#10b981]" />
                           <span className="font-semibold text-[#ededed] text-lg md:text-base">{appointmentTime}</span>
                         </div>
-                        <Badge variant={status.variant} className="w-fit text-xs">{status.label}</Badge>
+                        {/* Badge de status padronizado com cores específicas (Confirmado azul, Concluído verde) */}
+                        <Badge
+                          // Removido variant para evitar override do bg padrão; usamos classes customizadas
+                          className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${status.color}`}
+                        >
+                          {status.label}
+                        </Badge>
                       </div>
                       
                       <div className="space-y-2">
