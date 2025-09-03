@@ -313,7 +313,7 @@ export default function DashboardPage() {
                           className={`text-xs lg:text-sm ${
                             item.nextAppointment.status === "IN_PROGRESS"
                               ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                              : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              : "bg-tymer-balon text-tymer-textgray border-tymer-textgray/30"
                           }`}
                         >
                           {item.nextAppointment.status === "IN_PROGRESS" ? "Em andamento" : "Confirmado"}
@@ -478,7 +478,7 @@ export default function DashboardPage() {
                                   ? "bg-primary/20 text-primary border-primary/30"
                                   : appointment.status === "IN_PROGRESS"
                                   ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                  : "bg-tymer-balon text-tymer-textgray border-tymer-textgray/30"
                               }`}
                             >
                               {appointment.status === "COMPLETED"
