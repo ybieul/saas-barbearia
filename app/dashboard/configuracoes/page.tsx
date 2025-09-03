@@ -1486,13 +1486,13 @@ export default function ConfiguracoesPage() {
 
                 <div className="p-4 bg-tymer-primary/10 rounded-lg border border-tymer-primary/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <LinkIcon className="w-4 h-4 text-tymer-primary" />
-                    <span className="text-tymer-primary font-medium">Link Público do Agendamento</span>
+                    <LinkIcon className="w-4 h-4 text-white" />
+                    <span className="text-white font-medium">Link Público do Agendamento</span>
                   </div>
                   
                   {/* Container flexível para o link e botão copiar */}
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    <p className="text-tymer-primary text-sm flex-1 break-all">
+                    <p className="text-white text-sm flex-1 break-all">
                       https://tymerbook.com/agendamento/{businessData.customLink || 'seu-link-personalizado'}
                     </p>
                     <Button
@@ -1500,7 +1500,7 @@ export default function ConfiguracoesPage() {
                       disabled={copied || !businessData.customLink}
                       variant="outline"
                       size="sm"
-                      className="border-tymer-primary/50 text-tymer-primary hover:bg-tymer-primary/15 hover:text-white transition-all duration-200 whitespace-nowrap"
+                      className="border-tymer-primary/50 text-white hover:bg-tymer-primary/20 hover:text-white transition-all duration-200 whitespace-nowrap"
                     >
                       {copied ? (
                         <>
@@ -1600,7 +1600,7 @@ export default function ConfiguracoesPage() {
                         <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                           <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                             {/* Seção de Informações Básicas */}
-                            <div className="bg-tymer-primary/10 p-3 md:p-4 rounded-lg border border-tymer-primary/30 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                            <div className="bg-tymer-primary p-3 md:p-4 rounded-lg border border-tymer-primary/60 space-y-3 md:space-y-4">
                               <div className="flex items-center gap-2 mb-2 md:mb-3">
                                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                                 <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
@@ -1862,7 +1862,7 @@ export default function ConfiguracoesPage() {
                   <div className="overflow-y-auto flex-1 px-4 sm:px-6">
                     <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                       {/* Seção de Informações Básicas */}
-                      <div className="bg-tymer-primary/10 p-3 md:p-4 rounded-lg border border-tymer-primary/30 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                      <div className="bg-tymer-primary p-3 md:p-4 rounded-lg border border-tymer-primary/60 space-y-3 md:space-y-4">
                         <div className="flex items-center gap-2 mb-2 md:mb-3">
                           <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                           <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>

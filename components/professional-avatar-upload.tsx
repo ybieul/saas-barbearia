@@ -211,7 +211,7 @@ export function ProfessionalAvatarUpload({
           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-4 border-[#27272a] overflow-hidden bg-[#18181b] flex items-center justify-center">
             {isUploading ? (
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tymer-primary"></div>
               </div>
             ) : previewAvatar ? (
               <img 
@@ -220,7 +220,7 @@ export function ProfessionalAvatarUpload({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-tymer-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg sm:text-xl">
                   {getInitials(professionalName)}
                 </span>
@@ -257,11 +257,11 @@ export function ProfessionalAvatarUpload({
 
       {/* Botões de ação principais */}
       {!hasChanges && (
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+    <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || isUploading}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
+      className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 px-6 py-2.5 w-full sm:w-auto min-h-[44px] touch-manipulation"
             >
               <Camera className="w-4 h-4 mr-2" />
               {previewAvatar ? 'Alterar Foto' : 'Adicionar Foto'}
