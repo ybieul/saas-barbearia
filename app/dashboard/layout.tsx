@@ -166,8 +166,8 @@ export default function DashboardLayout({
                   {businessInfo?.email || 'email@estabelecimento.com'}
                 </p>
                 <div className="flex items-center mt-1">
-                  <div className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></div>
-                  <span className="text-xs text-primary">Online</span>
+                  <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs text-[#10b981]">Online</span>
                 </div>
               </div>
             </div>
@@ -182,16 +182,16 @@ export default function DashboardLayout({
                   onClick={() => setSidebarOpen(false)}
                   className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     pathname === item.href
-                      ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary border border-primary/30 shadow-lg shadow-primary/10'
-                      : 'text-tymer-muted hover:text-tymer-text hover:bg-tymer-border/50'
+                      ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 shadow-lg shadow-primary/10'
+                      : 'hover:bg-tymer-border/50'
                   }`}
                 >
                   <item.icon className={`mr-4 h-5 w-5 transition-colors ${
                     pathname === item.href ? 'text-primary' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
                   }`} />
                   <div className="flex-1">
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-[#71717a] group-hover:text-[#ededed]/70">
+                    <div className={`font-medium ${pathname === item.href ? 'text-foreground' : 'text-tymer-muted group-hover:text-foreground'}`}>{item.label}</div>
+                    <div className={`text-xs group-hover:text-[#ededed]/70 ${pathname === item.href ? 'text-[#a1a1aa]' : 'text-[#71717a]' }`}>
                       {item.description}
                     </div>
                   </div>
