@@ -690,8 +690,8 @@ export default function ClientesPage() {
           {/* Header fixo */}
           <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
             <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-              <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+              <div className="p-1.5 md:p-2 rounded-lg bg-tymer-primary/15 border border-tymer-primary/30">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
               </div>
               Detalhes do Cliente
             </DialogTitle>
@@ -705,9 +705,9 @@ export default function ClientesPage() {
             {selectedClient && (
               <div className="space-y-4 md:space-y-6 mt-3 md:mt-4">
                 {/* Seção de Informações Básicas */}
-                <div className="bg-gradient-to-br from-[#10b981]/10 to-[#059669]/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:border-[#27272a] md:bg-[#0a0a0a]/50 space-y-3 md:space-y-4">
+                <div className="bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 p-3 md:p-4 rounded-lg border border-tymer-primary/25 md:bg-tymer-card/50 space-y-3 md:space-y-4">
                   <div className="flex items-center gap-2 mb-2 md:mb-3">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                     <h3 className="text-[#ededed] font-medium text-sm md:text-base">Informações Básicas</h3>
                   </div>
                   
@@ -831,42 +831,42 @@ export default function ClientesPage() {
                 {/* Seção de Estatísticas */}
                 <div className="space-y-3 md:space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-400 md:bg-yellow-500 rounded-full"></div>
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                     <h3 className="text-[#ededed] font-medium text-sm md:text-base">Estatísticas</h3>
                   </div>
                   
                   {/* Layout mobile otimizado */}
                   <div className="block md:hidden space-y-2">
                     {/* Primeiro card - Agendamentos (destaque) */}
-                    <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-lg p-3 text-center">
-                      <div className="text-xl font-bold text-emerald-400 mb-1">
+                    <div className="bg-[#27272a]/50 border border-[#3f3f46] rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-white mb-1">
                         {calculateClientStats(selectedClient).totalAppointments}
                       </div>
-                      <div className="text-xs text-emerald-300">Total de Agendamentos</div>
+                      <div className="text-xs text-tymer-icon">Total de Agendamentos</div>
                     </div>
                     
                     {/* Cards secundários em grid 2x1 */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-[#27272a]/50 border border-[#3f3f46] rounded-lg p-3 text-center">
-                        <div className="text-base font-bold text-[#10b981] mb-1 leading-tight">
+                        <div className="text-base font-bold text-white mb-1 leading-tight">
                           {new Intl.NumberFormat('pt-BR', { 
                             style: 'currency', 
                             currency: 'BRL',
                             maximumFractionDigits: 0
                           }).format(calculateClientStats(selectedClient).totalSpent)}
                         </div>
-                        <div className="text-xs text-[#71717a] leading-tight">Total Gasto</div>
+                        <div className="text-xs text-tymer-icon leading-tight">Total Gasto</div>
                       </div>
                       
                       <div className="bg-[#27272a]/50 border border-[#3f3f46] rounded-lg p-3 text-center">
-                        <div className="text-base font-bold text-[#10b981] mb-1 leading-tight">
+                        <div className="text-base font-bold text-white mb-1 leading-tight">
                           {new Intl.NumberFormat('pt-BR', { 
                             style: 'currency', 
                             currency: 'BRL',
                             maximumFractionDigits: 0
                           }).format(calculateClientStats(selectedClient).averageTicket)}
                         </div>
-                        <div className="text-xs text-[#71717a] leading-tight">Ticket Médio</div>
+                        <div className="text-xs text-tymer-icon leading-tight">Ticket Médio</div>
                       </div>
                     </div>
                   </div>
@@ -874,32 +874,32 @@ export default function ClientesPage() {
                   {/* Layout desktop (3 colunas) */}
                   <div className="hidden md:grid grid-cols-3 gap-4">
                     <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-[#10b981] mb-1">
+                      <div className="text-2xl font-bold text-white mb-1">
                         {calculateClientStats(selectedClient).totalAppointments}
                       </div>
-                      <div className="text-sm text-[#71717a]">Agendamentos</div>
+                      <div className="text-sm text-tymer-icon">Agendamentos</div>
                     </div>
                     
                     <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-[#10b981] mb-1">
+                      <div className="text-2xl font-bold text-white mb-1">
                         {new Intl.NumberFormat('pt-BR', { 
                           style: 'currency', 
                           currency: 'BRL',
                           maximumFractionDigits: 0
                         }).format(calculateClientStats(selectedClient).totalSpent)}
                       </div>
-                      <div className="text-sm text-[#71717a]">Total Gasto</div>
+                      <div className="text-sm text-tymer-icon">Total Gasto</div>
                     </div>
                     
                     <div className="bg-[#27272a] border border-[#3f3f46] rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-[#10b981] mb-1">
+                      <div className="text-2xl font-bold text-white mb-1">
                         {new Intl.NumberFormat('pt-BR', { 
                           style: 'currency', 
                           currency: 'BRL',
                           maximumFractionDigits: 0
                         }).format(calculateClientStats(selectedClient).averageTicket)}
                       </div>
-                      <div className="text-sm text-[#71717a]">Ticket Médio</div>
+                      <div className="text-sm text-tymer-icon">Ticket Médio</div>
                     </div>
                   </div>
                 </div>
@@ -924,7 +924,7 @@ export default function ClientesPage() {
                   window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank')
                 }
               }}
-              className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-10 md:min-h-[44px]"
+              className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-white shadow-lg shadow-tymer-primary/20 transition-all duration-200 h-10 md:min-h-[44px]"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Enviar WhatsApp
