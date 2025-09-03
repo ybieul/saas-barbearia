@@ -2448,7 +2448,7 @@ export default function AgendaPage() {
 
                   <div>
                     <Label htmlFor="professional" className="text-[#ededed] text-sm font-medium">
-                      Profissional
+                      Profissional *
                     </Label>
                     <Select 
                       value={newAppointment.professionalId} 
@@ -2457,7 +2457,7 @@ export default function AgendaPage() {
                       }}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm mt-2">
-                        <SelectValue placeholder="Selecione um profissional (opcional)" />
+                        <SelectValue placeholder="Selecione um profissional" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
                         {professionalsData?.map((professional) => (
@@ -2531,12 +2531,13 @@ export default function AgendaPage() {
                       onValueChange={(value) => {
                         setNewAppointment(prev => ({...prev, time: value}))
                       }}
-                      disabled={!newAppointment.date || !newAppointment.serviceId || !getDateStatus().isOpen}
+                      disabled={!newAppointment.date || !newAppointment.serviceId || !newAppointment.professionalId || !getDateStatus().isOpen}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm w-full min-w-0">
                         <SelectValue placeholder={
                           !newAppointment.date ? "Data primeiro" :
                           !newAppointment.serviceId ? "Serviço primeiro" :
+                          !newAppointment.professionalId ? "Profissional primeiro" :
                           !getDateStatus().isOpen ? "Fechado" :
                           "Selecione horário"
                         } />
@@ -2638,6 +2639,7 @@ export default function AgendaPage() {
                 disabled={
                   !newAppointment.endUserId || 
                   !newAppointment.serviceId || 
+                  !newAppointment.professionalId || 
                   !newAppointment.date || 
                   !newAppointment.time || 
                   isCreating || 
