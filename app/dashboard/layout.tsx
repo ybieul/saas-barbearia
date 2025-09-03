@@ -125,7 +125,7 @@ export default function DashboardLayout({
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 border border-primary/30">
-              <Scissors className="w-6 h-6 text-primary" />
+              <Calendar className="w-6 h-6 text-primary" />
             </div>
             <div>
               <span className="text-xl font-bold text-foreground">
