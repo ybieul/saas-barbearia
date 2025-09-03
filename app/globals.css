@@ -112,8 +112,9 @@ body {
     --card-foreground: 210 40% 93%; /* #ededed */
     --popover: 220 13% 9.1%; /* #18181b */
     --popover-foreground: 210 40% 93%; /* #ededed */
-    --primary: 168 76% 36.3%; /* #10b981 */
-    --primary-foreground: 0 0% 98%;
+  /* TymerBook Primary (Roxo) */
+  --primary: 258 100% 50%; /* #4700FF */
+  --primary-foreground: 0 0% 100%;
     --secondary: 215 27.9% 16.9%; /* #27272a */
     --secondary-foreground: 210 40% 93%; /* #ededed */
     --muted: 217.2 32.6% 17.5%; /* #3f3f46 */
@@ -124,20 +125,21 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 215 27.9% 16.9%; /* #27272a */
     --input: 217.2 32.6% 17.5%; /* #3f3f46 */
-    --ring: 168 76% 36.3%; /* #10b981 */
-    --chart-1: 168 76% 36.3%; /* #10b981 - emerald */
-    --chart-2: 45 93% 47.1%; /* #fbbf24 - gold */
-    --chart-3: 45 97% 54.9%; /* #f59e0b - dark gold */
-    --chart-4: 158 64% 52%; /* #059669 - dark emerald */
-    --chart-5: 151 55% 41.5%; /* #047857 - deeper emerald */
+  --ring: 258 100% 50%; /* #4700FF */
+  /* Charts recolored to TymerBook palette (monocromático + acentos) */
+  --chart-1: 258 100% 50%; /* primary */
+  --chart-2: 258 90% 60%; /* lighter primary */
+  --chart-3: 258 80% 40%; /* darker primary */
+  --chart-4: 220 13% 30%; /* neutral accent */
+  --chart-5: 45 93% 47.1%; /* gold accent para contraste */
     --sidebar-background: 220 13% 9.1%; /* #18181b */
     --sidebar-foreground: 210 40% 93%; /* #ededed */
-    --sidebar-primary: 168 76% 36.3%; /* #10b981 */
+  --sidebar-primary: 258 100% 50%; /* #4700FF */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 27.9% 16.9%; /* #27272a */
     --sidebar-accent-foreground: 210 40% 93%; /* #ededed */
     --sidebar-border: 215 27.9% 16.9%; /* #27272a */
-    --sidebar-ring: 168 76% 36.3%; /* #10b981 */
+  --sidebar-ring: 258 100% 50%; /* #4700FF */
   }
 }
 
