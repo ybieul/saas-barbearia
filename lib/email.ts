@@ -114,7 +114,7 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
         .cta-button {
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            color: #ffffff !important;
             text-decoration: none;
             padding: 15px 30px;
             border-radius: 6px;
