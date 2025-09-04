@@ -44,6 +44,7 @@ const config: Config = {
 			// balão de confirmado: "bg-blue-500/10 text-blue-400 border-blue-500/20"
 
 			// gradiente cinza para containers: "bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 space-y-3 shadow-lg">
+			// gradiente roxo para containers: bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600"
 
   			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			// background: 'hsl(var(--background))',

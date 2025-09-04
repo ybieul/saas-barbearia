@@ -86,9 +86,9 @@ export default function RecuperarSenhaPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-6">
-              <div className="bg-[#065f46]/10 border border-[#10b981]/20 rounded-lg p-4">
-                <h3 className="text-[#ededed] font-medium mb-2">Próximos passos:</h3>
-                <ul className="text-sm text-[#71717a] space-y-2 text-left">
+              <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
+                <h3 className="text-[#ededed] font-medium mb-4">Próximos passos:</h3>
+                <ul className="text-sm text-[#a1a1aa] space-y-2">
                   <li>• Verifique sua caixa de entrada</li>
                   <li>• Clique no link recebido no email</li>
                   <li>• Defina uma nova senha</li>
@@ -111,8 +111,7 @@ export default function RecuperarSenhaPage() {
               </div>
               
               <Link href="/login">
-                <Button className="w-full bg-[#3f3f46] hover:bg-[#52525b] text-[#ededed] border-[#52525b]">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold transition-colors">
                   Voltar para o Login
                 </Button>
               </Link>
