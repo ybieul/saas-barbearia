@@ -1,3 +1,29 @@
+import { 
+  Check,
+  Loader2,
+  ChevronLeft,
+  Calendar,
+  Scissors,
+  User,
+  Clock,
+  Wallet,
+  Info,
+  Target,
+  Smartphone,
+  PartyPopper,
+  ChevronRight,
+  Users,
+  MapPin,
+  Phone,
+  Star,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Briefcase,
+  Layers,
+  Lightbulb
+} from "lucide-react"
 "use client"
 
 import { useState, useEffect } from "react"
@@ -17,27 +43,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Calendar,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  MapPin,
-  Phone,
-  Star,
-  Check,
-  Plus,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  X,
-  Target,
-  Briefcase,
-  Layers,
-  Lightbulb,
-  Wallet
-} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { 
   utcToBrazil, 
@@ -1910,7 +1915,7 @@ export default function AgendamentoPage() {
                       
                       {/* Feedback da busca */}
                       {clientFound === true && (
-                        <p className="text-sm text-tymer-primary mt-1">
+                        <p className="text-sm text-emerald-400 mt-1">
                           ✓ Cliente encontrado! Dados preenchidos automaticamente.
                         </p>
                       )}
@@ -2025,7 +2030,7 @@ export default function AgendamentoPage() {
                   
                   <div className="space-y-4">
                     {/* Resumo do agendamento */}
-                    <div className="bg-[#27272a] rounded-lg p-4 space-y-3">
+                    <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 space-y-3 shadow-lg">
                       <div className="flex justify-between">
                         <span className="text-[#a1a1aa]">Serviços:</span>
                         <div className="text-right">
@@ -2075,7 +2080,7 @@ export default function AgendamentoPage() {
                     </div>
 
                     {/* Dados do cliente */}
-                    <div className="bg-[#27272a] rounded-lg p-4 space-y-2">
+                    <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 space-y-2 shadow-lg">
                       <h4 className="font-medium text-[#ededed] mb-2">Seus dados:</h4>
                       <p className="text-sm text-[#a1a1aa]">
                         <strong className="text-[#ededed]">Nome:</strong> {customerData.name}
@@ -2119,39 +2124,47 @@ export default function AgendamentoPage() {
               {/* Etapa 7: Página de Sucesso */}
               {step === 7 && (
                 <div className="text-center py-8">
-                  {/* Animação de sucesso */}
+                  {/* Animação de sucesso (emerald mantido) */}
                   <div className="relative animate-bounce-in">
-                    <div className="w-20 h-20 bg-tymer-primary rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Check className="h-10 w-10 text-white" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-tymer-primary rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-600 rounded-full animate-ping opacity-75"></div>
                   </div>
-                  
-                  <h2 className="text-2xl font-bold mb-3 text-[#ededed] animate-fade-in animate-delay-200">
-                    🎉 Agendamento Confirmado!
+
+                  <h2 className="text-2xl font-bold mb-3 text-[#ededed] animate-fade-in animate-delay-200 flex items-center justify-center gap-2">
+                    <PartyPopper className="h-6 w-6 text-tymer-icon" />
+                    Agendamento Confirmado!
                   </h2>
-                  
+
                   <p className="text-[#a1a1aa] mb-6 text-lg animate-fade-in animate-delay-400">
-                    Seu agendamento foi realizado com <span className="text-tymer-primary font-semibold">sucesso</span>!<br />
+                    Seu agendamento foi realizado com <span className="font-semibold text-emerald-500">sucesso</span>!<br />
                     Você receberá uma confirmação via WhatsApp em breve.
                   </p>
-                  
+
                   {/* Card com detalhes do agendamento */}
                   <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
-                    <h3 className="text-lg font-semibold text-tymer-primary mb-4 text-center">
-                      📅 Detalhes do Agendamento
+                    <h3 className="text-lg font-semibold text-[#ededed] mb-4 text-center flex items-center justify-center gap-2">
+                      <Calendar className="h-5 w-5 text-tymer-icon" />
+                      Detalhes do Agendamento
                     </h3>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">📅 Data e horário:</span>
+                        <div className="flex items-center gap-2 text-[#a1a1aa] font-medium">
+                          <Calendar className="h-4 w-4 text-tymer-icon" />
+                          <span>Data e horário:</span>
+                        </div>
                         <span className="text-[#ededed] font-bold">
                           {formatBrazilDate(parseDate(selectedDate))} às {selectedTime}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">✂️ Serviços:</span>
+                        <div className="flex items-center gap-2 text-[#a1a1aa] font-medium">
+                          <Scissors className="h-4 w-4 text-tymer-icon" />
+                          <span>Serviços:</span>
+                        </div>
                         <div className="text-right">
                           {(() => {
                             const mainService = getMainService()
@@ -2165,21 +2178,30 @@ export default function AgendamentoPage() {
                           })()}
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">👨‍💼 Profissional:</span>
+                        <div className="flex items-center gap-2 text-[#a1a1aa] font-medium">
+                          <User className="h-4 w-4 text-tymer-icon" />
+                          <span>Profissional:</span>
+                        </div>
                         <span className="text-[#ededed] font-bold">
                           {selectedProfessional?.name || "Qualquer profissional"}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 bg-[#27272a]/50 rounded-lg">
-                        <span className="text-[#a1a1aa] font-medium">⏱️ Duração Total:</span>
+                        <div className="flex items-center gap-2 text-[#a1a1aa] font-medium">
+                          <Clock className="h-4 w-4 text-tymer-icon" />
+                          <span>Duração Total:</span>
+                        </div>
                         <span className="text-[#ededed] font-bold">{calculateTotals().totalDuration} minutos</span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 bg-tymer-primary/20 border border-tymer-primary/40 rounded-lg">
-                        <span className="text-tymer-primary font-bold">💰 Valor Total:</span>
+                        <div className="flex items-center gap-2 text-tymer-primary font-bold">
+                          <Wallet className="h-4 w-4 text-tymer-icon" />
+                          <span>Valor Total:</span>
+                        </div>
                         <span className="text-tymer-primary font-bold text-xl">
                           {formatCurrency(calculateTotals().totalPrice)}
                         </span>
@@ -2188,11 +2210,12 @@ export default function AgendamentoPage() {
                   </div>
 
                   {/* Informações importantes */}
-                  <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mb-6 animate-slide-up animate-delay-600">
-                    <h4 className="text-blue-400 font-semibold mb-2 flex items-center justify-center gap-2">
-                      ℹ️ Informações Importantes
+                  <div className="bg-tymer-primary rounded-lg p-4 mb-6 animate-slide-up animate-delay-600">
+                    <h4 className="text-white font-semibold mb-2 flex items-center justify-center gap-2">
+                      <Info className="h-4 w-4 text-tymer-icon" />
+                      Informações Importantes
                     </h4>
-                    <div className="text-sm text-[#a1a1aa] space-y-1">
+                    <div className="text-sm text-[#ededed] space-y-1 text-left">
                       <p>• Você receberá lembretes antes do agendamento</p>
                       <p>• Em caso de cancelamento, avise com antecedência</p>
                       <p>• Chegue com 10 minutos de antecedência</p>
@@ -2219,11 +2242,12 @@ export default function AgendamentoPage() {
                           setPhoneDebounceTimer(null)
                         }
                       }}
-                      className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold py-3 transition-all duration-300 hover:scale-105"
+                      className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold py-3 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
                     >
-                      🎯 Fazer Novo Agendamento
+                      <Target className="h-5 w-5 text-tymer-icon" />
+                      Fazer Novo Agendamento
                     </Button>
-                    
+
                     <Button
                       onClick={() => {
                         // Compartilhar no WhatsApp
@@ -2235,9 +2259,10 @@ export default function AgendamentoPage() {
                         window.open(whatsappUrl, '_blank')
                       }}
                       variant="outline"
-                      className="w-full border-tymer-primary text-tymer-primary hover:bg-tymer-primary/10 font-semibold py-3 transition-all duration-300 hover:scale-105"
+                      className="w-full border-tymer-primary text-white hover:bg-tymer-primary/10 font-semibold py-3 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
                     >
-                      📱 Compartilhar no WhatsApp
+                      <Smartphone className="h-5 w-5 text-tymer-icon" />
+                      Compartilhar no WhatsApp
                     </Button>
                   </div>
                 </div>

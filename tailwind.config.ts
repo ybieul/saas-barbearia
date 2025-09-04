@@ -43,6 +43,8 @@ const config: Config = {
 			// balão de concluido: "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
 			// balão de confirmado: "bg-blue-500/10 text-blue-400 border-blue-500/20"
 
+			// gradiente cinza para containers: "bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 space-y-3 shadow-lg">
+
   			// Cores padrão do shadcn/ui (mantidas para compatibilidade)
   			// background: 'hsl(var(--background))',
   			// foreground: 'hsl(var(--foreground))',
