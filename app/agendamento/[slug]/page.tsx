@@ -1,3 +1,5 @@
+"use client"
+
 import { 
   Check,
   Loader2,
@@ -24,7 +26,6 @@ import {
   Layers,
   Lightbulb
 } from "lucide-react"
-"use client"
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
