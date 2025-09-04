@@ -31,7 +31,12 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  X
+  X,
+  Target,
+  Briefcase,
+  Layers,
+  Lightbulb,
+  Wallet
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -59,8 +64,12 @@ interface BusinessData {
   businessAddress?: string
   businessLogo?: string
   businessInstagram?: string
+  name: string
+  avatar?: string
+  specialty?: string
 }
 
+// Interface mínima para profissionais usada nesta página
 interface Professional {
   id: string
   name: string
@@ -1166,8 +1175,9 @@ export default function AgendamentoPage() {
               <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
                 <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[95vw] max-w-md mx-auto rounded-xl h-[85vh] max-h-[600px] flex flex-col">
                   <DialogHeader className="flex-shrink-0">
-                    <DialogTitle className="text-xl font-bold text-tymer-primary text-center">
-                      🎯 Monte seu pacote ideal
+                    <DialogTitle className="text-xl font-bold text-[#ededed] text-center flex items-center justify-center gap-2">
+                      <Target className="h-5 w-5 text-tymer-icon" />
+                      Monte seu pacote ideal
                     </DialogTitle>
                   </DialogHeader>
                   
@@ -1178,16 +1188,16 @@ export default function AgendamentoPage() {
                       const mainService = getMainService()
                       return mainService && (
                         <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/40 rounded-xl p-3 shadow-lg">
-                          <h4 className="font-semibold text-tymer-primary mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
-                            ✅ Serviço Principal
+                          <h4 className="font-semibold text-[#ededed] mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
+                            <Briefcase className="h-4 w-4 text-tymer-icon" /> Serviço Principal
                           </h4>
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-[#ededed] text-base truncate">{mainService.name}</p>
-                              <p className="text-tymer-primary/80 text-xs font-medium">{mainService.duration} min</p>
+                              <p className="text-[#a1a1aa] text-xs font-medium">{mainService.duration} min</p>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
-                              <p className="font-bold text-xl text-tymer-primary">{formatCurrency(mainService.price)}</p>
+                              <p className="font-bold text-xl text-[#ededed]">{formatCurrency(mainService.price)}</p>
                             </div>
                           </div>
                         </div>
@@ -1196,19 +1206,19 @@ export default function AgendamentoPage() {
 
                     {/* Complementos Adicionados */}
                     {addedUpsells.length > 0 && (
-                      <div className="bg-gradient-to-r from-blue-600/15 to-cyan-500/10 border border-blue-600/40 rounded-xl p-3 shadow-lg">
-                        <h4 className="font-semibold text-blue-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
-                          🌟 Complementos Selecionados
+                      <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-xl p-3 shadow-lg">
+                        <h4 className="font-semibold text-[#ededed] mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
+                          <Layers className="h-4 w-4 text-tymer-icon" /> Complementos Selecionados
                         </h4>
                         <div className="space-y-2 max-h-32 overflow-y-auto">
                           {addedUpsells.map((upsell) => (
-                            <div key={upsell.id} className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-blue-600/20 hover:border-blue-600/40 transition-all">
+                            <div key={upsell.id} className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-[#3f3f46]/50 hover:border-tymer-primary/40 transition-all">
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-[#ededed] text-sm truncate">{upsell.name}</p>
-                                <p className="text-blue-300 text-xs">{upsell.duration} min</p>
+                                <p className="text-[#a1a1aa] text-xs">{upsell.duration} min</p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                <span className="font-bold text-blue-400 text-sm">{formatCurrency(upsell.price)}</span>
+                                <span className="font-bold text-[#ededed] text-sm">{formatCurrency(upsell.price)}</span>
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -1228,30 +1238,30 @@ export default function AgendamentoPage() {
                     {(() => {
                       const upsellOptions = selectedServiceId ? getUpsellOptions(selectedServiceId) : []
                       return upsellOptions.length > 0 && (
-                        <div className="bg-gradient-to-r from-orange-600/15 to-amber-500/10 border border-orange-600/40 rounded-xl p-3 shadow-lg">
-                          <h4 className="font-semibold text-orange-400 mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
-                            💡 Que tal adicionar?
+                        <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-xl p-3 shadow-lg">
+                          <h4 className="font-semibold text-[#ededed] mb-2 flex items-center gap-2 text-xs uppercase tracking-wide">
+                            <Lightbulb className="h-4 w-4 text-tymer-icon" /> Que tal adicionar?
                           </h4>
                           <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                             {upsellOptions.map((upsellService) => (
                               <div
                                 key={upsellService.id}
-                                className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-orange-600/20 hover:border-orange-600/60 transition-all cursor-pointer group hover:bg-[#3f3f46]/50"
+                                className="flex items-center justify-between p-2 bg-[#27272a]/60 rounded-lg border border-[#3f3f46]/50 hover:border-tymer-primary/40 transition-all cursor-pointer group hover:bg-[#3f3f46]/50"
                                 onClick={() => handleAddUpsell(upsellService)}
                               >
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-[#ededed] group-hover:text-orange-300 transition-colors text-sm truncate">
+                                  <p className="font-semibold text-[#ededed] group-hover:text-tymer-primary transition-colors text-sm truncate">
                                     {upsellService.name}
                                   </p>
                                   <div className="flex items-center gap-3 text-xs">
-                                    <span className="text-orange-300">{upsellService.duration} min</span>
-                                    <span className="font-bold text-orange-400">{formatCurrency(upsellService.price)}</span>
+                                    <span className="text-[#a1a1aa] group-hover:text-tymer-primary/80">{upsellService.duration} min</span>
+                                    <span className="font-bold text-[#ededed] group-hover:text-tymer-primary">{formatCurrency(upsellService.price)}</span>
                                   </div>
                                 </div>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="border-orange-600/50 text-orange-400 hover:bg-orange-600/20 hover:border-orange-400 h-8 w-8 p-0 rounded-full group-hover:scale-110 transition-all shadow-lg flex-shrink-0 ml-2"
+                                  className="border-[#3f3f46]/60 text-tymer-icon hover:bg-tymer-primary/20 hover:border-tymer-primary h-8 w-8 p-0 rounded-full group-hover:scale-110 transition-all shadow-lg flex-shrink-0 ml-2"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
@@ -1266,16 +1276,16 @@ export default function AgendamentoPage() {
                   {/* Footer fixo */}
                   <div className="flex-shrink-0 pt-3 border-t border-[#27272a]/50">
                     {/* Resumo Total */}
-                    <div className="bg-gradient-to-r from-tymer-primary/20 to-tymer-primary/5 border-2 border-tymer-primary/40 rounded-xl p-3 mb-3 shadow-xl">
+                    <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border-2 border-tymer-primary/40 rounded-xl p-3 mb-3 shadow-xl">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-lg text-tymer-primary/80 flex items-center gap-2">
-                          💰 Total:
+                        <h4 className="font-bold text-lg text-[#ededed] flex items-center gap-2">
+                          <Wallet className="h-5 w-5 text-tymer-icon" /> Total:
                         </h4>
                         <div className="text-right">
-                          <div className="font-bold text-2xl text-tymer-primary leading-tight">
+                          <div className="font-bold text-2xl text-[#ededed] leading-tight">
                             {formatCurrency(calculateTotals().totalPrice)}
                           </div>
-                          <div className="text-tymer-primary/80 text-xs font-medium">
+                          <div className="text-[#a1a1aa] text-xs font-medium">
                             {calculateTotals().totalDuration} minutos
                           </div>
                         </div>
@@ -1351,7 +1361,7 @@ export default function AgendamentoPage() {
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-br from-tymer-primary/15 to-tymer-primary/5 flex items-center justify-center">
                                     <span className="text-[#71717a] font-bold text-lg">
-                                      {professional.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                      {professional.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                                     </span>
                                   </div>
                                 )}
