@@ -385,21 +385,7 @@ export default function SubscriptionPage() {
               </div>
             )}
 
-            <Button 
-              className="w-full" 
-              variant="outline" 
-              onClick={handleOpenManageModal}
-            >
-              <Crown className="h-4 w-4 mr-2" />
-              {subscription?.isActive && !subscription?.isExpired ? 'Gerenciar Assinatura' : 'Renovar / Gerenciar'}
-              <ExternalLink className="h-3 w-3 ml-2" />
-            </Button>
-
-            {(!subscription?.isActive || subscription?.isExpired) && (
-              <p className="text-xs text-muted-foreground text-center">
-                Use o botão acima para renovar ou reativar sua assinatura na plataforma de cobrança.
-              </p>
-            )}
+            {/* Botão removido desta seção conforme solicitação */}
           </CardContent>
         </Card>
 
@@ -454,7 +440,7 @@ export default function SubscriptionPage() {
             </Button>
             {(!subscription?.isActive || subscription?.isExpired) && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Você pode renovar ou alterar seu método de pagamento.
+                Use o botão acima para renovar ou reativar sua assinatura na plataforma de cobrança.
               </p>
             )}
           </CardContent>
