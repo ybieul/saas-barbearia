@@ -241,9 +241,11 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       try {
         const emailSent = await sendWelcomeEmail(
           newTenant.name,
-          newTenant.email,
-          temporaryPassword
-        )
+            newTenant.email,
+            temporaryPassword,
+            mappedPlan,
+            subscriptionEnd
+          )
         
         if (emailSent) {
           console.log(`✅ Email de boas-vindas enviado para: ${newTenant.email}`)

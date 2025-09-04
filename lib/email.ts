@@ -38,8 +38,32 @@ export function generateSecurePassword(length: number = 12): string {
   return password.split('').sort(() => Math.random() - 0.5).join('')
 }
 
-// Template HTML para email de boas-vindas
-function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword: string) {
+// Utilitário para formatar nome de plano em português amigável
+function formatPlanName(plan?: string): string {
+    if (!plan) return 'Básico'
+    const p = plan.toUpperCase()
+    switch (p) {
+        case 'PREMIUM': return 'Premium'
+        case 'ULTRA': return 'Ultra'
+        case 'BASIC': return 'Básico'
+        case 'FREE': return 'Gratuito'
+        default: return p.charAt(0) + p.slice(1).toLowerCase()
+    }
+}
+
+function formatBrazilianDate(date?: Date): string | null {
+    if (!date) return null
+    try {
+        return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    } catch {
+        return date.toISOString().split('T')[0]
+    }
+}
+
+// Template HTML para email de boas-vindas (agora inclui plano e expiração)
+function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword: string, plan?: string, subscriptionEnd?: Date) {
+        const planDisplay = formatPlanName(plan)
+        const expiryDisplay = formatBrazilianDate(subscriptionEnd)
     // Template com layout baseado em tabelas + botão bulletproof para maior compatibilidade (incluindo Outlook)
     return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -109,6 +133,14 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
                                                     <td style="padding:6px 0; font-size:13px; color:#374151; font-weight:600;">Senha temporária:</td>
                                                     <td style="padding:6px 0; font-size:13px; color:#4b5563; font-family:Consolas, 'Courier New', monospace;">${temporaryPassword}</td>
                                                 </tr>
+                                                <tr>
+                                                    <td style="padding:6px 0; font-size:13px; color:#374151; font-weight:600;">Plano contratado:</td>
+                                                    <td style="padding:6px 0; font-size:13px; color:#4b5563;">${planDisplay}</td>
+                                                </tr>
+                                                ${expiryDisplay ? `<tr>
+                                                    <td style=\"padding:6px 0; font-size:13px; color:#374151; font-weight:600;\">Expira em:</td>
+                                                    <td style=\"padding:6px 0; font-size:13px; color:#4b5563;\">${expiryDisplay}</td>
+                                                </tr>` : ''}
                                             </table>
                                             <p style="margin:12px 0 0; font-size:12px; color:#6b7280;">Altere sua senha assim que acessar o painel.</p>
                                         </td>
@@ -172,12 +204,16 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
 
 // Função para enviar email de boas-vindas
 export async function sendWelcomeEmail(
-  name: string, 
-  email: string, 
-  temporaryPassword: string
+    name: string, 
+    email: string, 
+    temporaryPassword: string,
+    plan?: string,
+    subscriptionEnd?: Date
 ): Promise<boolean> {
   try {
     const transporter = createTransporter()
+        const planDisplay = formatPlanName(plan)
+        const expiryDisplay = formatBrazilianDate(subscriptionEnd)
     
     const mailOptions = {
       from: {
@@ -186,7 +222,7 @@ export async function sendWelcomeEmail(
       },
       to: email,
       subject: '🎉 Bem-vindo ao TymerBook - Sua conta foi criada!',
-      html: getWelcomeEmailTemplate(name, email, temporaryPassword),
+            html: getWelcomeEmailTemplate(name, email, temporaryPassword, plan, subscriptionEnd),
       text: `
 Bem-vindo ao TymerBook!
 
@@ -197,6 +233,8 @@ Sua assinatura foi ativada e sua conta foi criada automaticamente!
 Credenciais de acesso:
 - Email: ${email}
 - Senha temporária: ${temporaryPassword}
+ - Plano contratado: ${planDisplay}
+${expiryDisplay ? ` - Expira em: ${expiryDisplay}` : ''}
 
 Faça login em: ${process.env.NEXTAUTH_URL || 'https://app.tymerbook.com'}/login
 
