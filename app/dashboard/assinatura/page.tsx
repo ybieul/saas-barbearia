@@ -402,7 +402,7 @@ export default function SubscriptionPage() {
       </Card>
       {/* Modal de instruções Kirvano */}
       <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-lg">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-md mx-auto rounded-xl">
           <DialogHeader>
             <DialogTitle>Gerenciar sua Assinatura</DialogTitle>
             <DialogDescription asChild>
@@ -433,7 +433,7 @@ export default function SubscriptionPage() {
           <DialogFooter className="pt-4">
             <a href="https://app.kirvano.com" target="_blank" rel="noopener noreferrer" className="w-full">
               <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white" onClick={() => setIsManageModalOpen(false)}>
-                Aceder à Kirvano
+                Acessar a Kirvano
               </Button>
             </a>
           </DialogFooter>
