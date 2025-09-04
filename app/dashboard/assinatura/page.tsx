@@ -60,14 +60,7 @@ export default function SubscriptionPage() {
 
   // Abrir modal de instruções (mantendo validação de assinatura ativa)
   const handleOpenManageModal = () => {
-    if (!subscription?.isActive || subscription?.isExpired) {
-      toast({
-        title: 'Assinatura inativa',
-        description: 'Renove ou ative sua assinatura para gerenciar.',
-        variant: 'destructive'
-      })
-      return
-    }
+    // Agora sempre permite abrir o modal para possibilitar renovação na Kirvano
     setIsManageModalOpen(true)
   }
 
@@ -383,18 +376,29 @@ export default function SubscriptionPage() {
                 </ul>
               </div>
             )}
+
             {!subscription.isActive && (
-              <div className="rounded-md border border-dashed border-red-600/40 bg-red-950/40 p-4 text-sm text-red-200 space-y-2">
-                <p className="font-medium text-red-300 flex items-center gap-2">
-                  <XCircle className="h-4 w-4" /> Assinatura inativa
-                </p>
+              <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  Nenhum recurso disponível enquanto a assinatura estiver inativa. Renove para reativar todos os recursos do seu plano anterior.
+                  <strong>Assinatura inativa.</strong> Renove para voltar a utilizar todos os recursos.
                 </p>
-                <Button size="sm" variant="outline" className="border-red-400/40 text-red-200 hover:bg-red-900/40" onClick={handleOpenManageModal}>
-                  Renovar assinatura
-                </Button>
               </div>
+            )}
+
+            <Button 
+              className="w-full" 
+              variant="outline" 
+              onClick={handleOpenManageModal}
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              {subscription?.isActive && !subscription?.isExpired ? 'Gerenciar Assinatura' : 'Renovar / Gerenciar'}
+              <ExternalLink className="h-3 w-3 ml-2" />
+            </Button>
+
+            {(!subscription?.isActive || subscription?.isExpired) && (
+              <p className="text-xs text-muted-foreground text-center">
+                Use o botão acima para renovar ou reativar sua assinatura na plataforma de cobrança.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -443,16 +447,14 @@ export default function SubscriptionPage() {
               className="w-full" 
               variant="outline" 
               onClick={handleOpenManageModal}
-              disabled={!subscription?.isActive || subscription?.isExpired}
             >
               <Crown className="h-4 w-4 mr-2" />
-              Gerenciar Assinatura
+              {subscription?.isActive && !subscription?.isExpired ? 'Gerenciar Assinatura' : 'Renovar / Gerenciar'}
               <ExternalLink className="h-3 w-3 ml-2" />
             </Button>
-            
             {(!subscription?.isActive || subscription?.isExpired) && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Apenas assinaturas ativas podem ser gerenciadas
+                Você pode renovar ou alterar seu método de pagamento.
               </p>
             )}
           </CardContent>
