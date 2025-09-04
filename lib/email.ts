@@ -275,6 +275,90 @@ export async function testEmailConfiguration(): Promise<boolean> {
   }
 }
 
+// Template para aviso de assinatura expirada (1 dia após)
+function getSubscriptionExpiredEmailTemplate(name: string, plan?: string, expiredOn?: Date) {
+    const expiredDisplay = expiredOn ? formatBrazilianDate(expiredOn) : 'data anterior'
+    const planDisplay = formatPlanName(plan)
+    const portalUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Assinatura Expirada - TymerBook</title><style>body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}table,td{mso-table-lspace:0pt;mso-table-rspace:0pt}img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none}table{border-collapse:collapse!important}body{margin:0;padding:0;width:100%!important;background-color:#f5f5f5;font-family:Segoe UI,Arial,sans-serif}a{text-decoration:none}.force-white{color:#ffffff!important}@media screen and (max-width:600px){.container{width:100%!important}}</style></head><body><center style="width:100%;background:#f5f5f5;padding:30px 10px"><table role="presentation" width="600" class="container" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden" cellpadding="0" cellspacing="0"><tr><td style="background:#4700FF;background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%);padding:30px 24px;text-align:center"><h1 style="margin:0;font-size:22px;color:#fff;font-weight:600">Assinatura Expirada</h1><p style="margin:8px 0 0;font-size:14px;color:#e5e5e5">Precisamos da sua atenção</p></td></tr><tr><td style="padding:28px 28px 8px;font-size:15px;line-height:1.55;color:#374151"><p style="margin:0 0 16px;">Olá <strong style="color:#111827">${name}</strong>,</p><p style="margin:0 0 16px;">Sua assinatura <strong>${planDisplay}</strong> expirou em <strong>${expiredDisplay}</strong> e já passou o período de tolerância de 1 dia.</p><p style="margin:0 0 16px;">Para voltar a ter acesso completo à plataforma, finalize a renovação agora mesmo.</p></td></tr><tr><td align="center" style="padding:12px 28px 4px"><a href="${portalUrl}" style="display:inline-block;background:#4700FF;background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%);color:#ffffff;font-size:16px;font-weight:600;line-height:46px;text-align:center;width:260px;border-radius:6px">Renovar Assinatura</a></td></tr><tr><td style="padding:24px 28px 8px;font-size:13px;color:#374151"><p style="margin:0 0 6px;font-weight:600;color:#111827">O que acontece enquanto não renovar?</p><ul style="margin:6px 0 0;padding:0 0 0 18px;font-size:13px;line-height:1.5;color:#374151"><li>Acesso ao painel restrito à página de assinatura</li><li>Automação e recursos ficam suspensos</li><li>Profissionais não conseguem operar agendas</li></ul></td></tr><tr><td style="background:#f7fafc;padding:22px 20px;text-align:center"><p style="margin:0 0 8px;font-size:12px;color:#6b7280">Este é um email automático. Não responda.</p><p style="margin:0 0 8px;font-size:12px;color:#6b7280">Suporte: <a href="mailto:suporte@tymerbook.com" style="color:#4700FF;font-weight:500">suporte@tymerbook.com</a></p><p style="margin:12px 0 0;font-size:11px;color:#9ca3af">© ${new Date().getFullYear()} TymerBook.</p></td></tr></table></center></body></html>`
+}
+
+export async function sendSubscriptionExpiredEmail(name: string, email: string, plan?: string, expiredOn?: Date): Promise<boolean> {
+    try {
+        const transporter = createTransporter()
+        const html = getSubscriptionExpiredEmailTemplate(name, plan, expiredOn)
+        const mailOptions = {
+            from: { name: 'TymerBook', address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com' },
+            to: email,
+            subject: '⚠️ Sua assinatura expirou - ação necessária',
+            html,
+            text: `Sua assinatura expirou em ${expiredOn?.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}. Acesse o painel para renová-la.`
+        }
+        const info = await transporter.sendMail(mailOptions)
+        console.log('📧 Email de assinatura expirada enviado:', { to: email, messageId: info.messageId })
+        return true
+    } catch (e) {
+        console.error('❌ Erro ao enviar email de assinatura expirada:', e)
+        return false
+    }
+}
+
+function buildSimpleNoticeTemplate({
+    title,
+    subtitle,
+    bodyHtml,
+    ctaText,
+    ctaUrl
+}: {title: string; subtitle: string; bodyHtml: string; ctaText: string; ctaUrl: string}) {
+    return `<!DOCTYPE html><html lang=pt-BR><head><meta charset=UTF-8 /><meta name=viewport content="width=device-width,initial-scale=1"/><title>${title}</title><style>body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}table,td{mso-table-lspace:0pt;mso-table-rspace:0pt}img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none}table{border-collapse:collapse!important}body{margin:0;padding:0;width:100%!important;background-color:#f5f5f5;font-family:Segoe UI,Arial,sans-serif}a{text-decoration:none}@media screen and (max-width:600px){.container{width:100%!important}}</style></head><body style="background:#f5f5f5;margin:0;padding:26px 10px"><center style="width:100%"><table role=presentation width=600 class=container style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden" cellpadding=0 cellspacing=0><tr><td style="background:#4700FF;background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%);padding:28px 22px;text-align:center"><h1 style="margin:0;font-size:22px;color:#fff;font-weight:600">${title}</h1><p style="margin:6px 0 0;font-size:14px;color:#e5e5e5">${subtitle}</p></td></tr><tr><td style="padding:26px 28px 10px;font-size:15px;line-height:1.55;color:#374151">${bodyHtml}</td></tr><tr><td align=center style="padding:10px 28px 6px"><a href="${ctaUrl}" style="display:inline-block;background:#4700FF;background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%);color:#ffffff;font-size:16px;font-weight:600;line-height:46px;text-align:center;width:240px;border-radius:6px">${ctaText}</a></td></tr><tr><td style="background:#f7fafc;padding:20px 18px;text-align:center"><p style="margin:0 0 6px;font-size:12px;color:#6b7280">Este é um email automático. Não responda.</p><p style="margin:0 0 6px;font-size:12px;color:#6b7280">Suporte: <a href="mailto:suporte@tymerbook.com" style="color:#4700FF;font-weight:500">suporte@tymerbook.com</a></p><p style="margin:10px 0 0;font-size:11px;color:#9ca3af">© ${new Date().getFullYear()} TymerBook.</p></td></tr></table></center></body></html>`
+}
+
+async function sendGenericNoticeEmail({
+    email,
+    name,
+    plan,
+    subject,
+    title,
+    subtitle,
+    body,
+    ctaText,
+    ctaUrl
+}: {email:string; name:string; plan?:string; subject:string; title:string; subtitle:string; body:string; ctaText:string; ctaUrl:string}) {
+    try {
+        const transporter = createTransporter()
+        const html = buildSimpleNoticeTemplate({ title, subtitle, bodyHtml: body, ctaText, ctaUrl })
+        const info = await transporter.sendMail({
+            from: { name: 'TymerBook', address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'suporte@tymerbook.com' },
+            to: email,
+            subject,
+            html,
+            text: body.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()
+        })
+        console.log('📧 Email disparado:', { type: subject, to: email, id: info.messageId })
+        return true
+    } catch (e) {
+        console.error('❌ Erro ao enviar email genérico:', e)
+        return false
+    }
+}
+
+export async function sendSubscriptionPreExpireEmail(name: string, email: string, plan?: string, daysLeft?: number) {
+    const portalUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+    const planDisplay = formatPlanName(plan)
+    const subject = daysLeft === 1 ? '⏰ Sua assinatura expira amanhã' : '⚠️ Sua assinatura expira em 3 dias'
+    const title = daysLeft === 1 ? 'Expira Amanhã' : 'Expira em Breve'
+    const subtitle = daysLeft === 1 ? 'Último dia antes de bloquear' : 'Hora de renovar'
+    const body = `<p>Olá <strong>${name}</strong>,</p><p>Sua assinatura <strong>${planDisplay}</strong> expira em <strong>${daysLeft} dia${daysLeft===1?'':'s'}</strong>.</p><p>Renove agora para evitar qualquer interrupção no acesso.</p>`
+    return sendGenericNoticeEmail({ email, name, plan, subject, title, subtitle, body, ctaText: 'Renovar agora', ctaUrl: portalUrl })
+}
+
+export async function sendSubscriptionCanceledEmail(name: string, email: string, plan?: string) {
+    const portalUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+    const planDisplay = formatPlanName(plan)
+    const body = `<p>Olá <strong>${name}</strong>,</p><p>Recebemos a informação de cancelamento da sua assinatura <strong>${planDisplay}</strong>.</p><p>Enquanto não renovar, o acesso ficará restrito. Se foi engano, você pode reativar a qualquer momento.</p>`
+    return sendGenericNoticeEmail({ email, name, plan, subject: '🔔 Assinatura cancelada', title: 'Assinatura Cancelada', subtitle: 'Acesso restrito', body, ctaText: 'Reativar assinatura', ctaUrl: portalUrl })
+}
+
 // Template HTML para email de redefinição de senha
 function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
     return `<!DOCTYPE html>

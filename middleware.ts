@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
+import { getBrazilNow } from '@/lib/timezone'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -25,10 +26,11 @@ export async function middleware(request: NextRequest) {
   const { payload } = await jwtVerify(token, secret)
   const isActive = (payload as any).isActive
   const subscriptionEndIso = (payload as any).subscriptionEnd as string | undefined
-      const subscriptionEndDate = subscriptionEndIso ? new Date(subscriptionEndIso) : null
-      const now = new Date()
-      const notExpired = subscriptionEndDate ? subscriptionEndDate.getTime() > now.getTime() : true
-      const isSubscriptionActive = !!isActive && notExpired
+  const subscriptionEndDate = subscriptionEndIso ? new Date(subscriptionEndIso) : null
+  const now = getBrazilNow() // alinhado com lib/subscription
+  // Se não houver subscriptionEnd, considerar expirado forçando renovação
+  const notExpired = subscriptionEndDate ? subscriptionEndDate.getTime() > now.getTime() : false
+  const isSubscriptionActive = !!isActive && notExpired
 
       const isOnBillingPage = pathname.startsWith('/dashboard/assinatura')
 

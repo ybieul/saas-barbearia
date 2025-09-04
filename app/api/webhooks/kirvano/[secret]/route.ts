@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { generateSecurePassword, sendWelcomeEmail } from '@/lib/email'
+import { generateSecurePassword, sendWelcomeEmail, sendSubscriptionCanceledEmail } from '@/lib/email'
 
 // Tipos para os eventos da Kirvano (estrutura oficial)
 interface KirvanoWebhookEvent {
@@ -177,7 +177,10 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       
       await prisma.tenant.update({
         where: { id: tenant.id },
-        data: updateData
+        data: {
+          ...updateData,
+          webhookExpiredProcessed: false, // reset caso tenha sido marcado antes
+        }
       })
       
       console.log(`✅ Assinatura atualizada para tenant existente ${tenant.id} - Plano: ${mappedPlan}`)
@@ -232,7 +235,10 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       }
       
       const newTenant = await prisma.tenant.create({
-        data: tenantData
+        data: {
+          ...tenantData,
+          lastSubscriptionEmailType: 'WELCOME'
+        }
       })
       
       console.log(`✅ Novo tenant criado com ID: ${newTenant.id}`)
@@ -293,9 +299,16 @@ async function handleSubscriptionCanceledOrExpired(webhookData: KirvanoWebhookEv
       where: { id: tenant.id },
       data: {
         isActive: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        webhookExpiredProcessed: true,
+        lastSubscriptionEmailType: eventType === 'SUBSCRIPTION_EXPIRED' ? 'EXPIRED_WEBHOOK' : 'CANCELED'
       }
     })
+    try {
+      await sendSubscriptionCanceledEmail(tenant.name || tenant.email, tenant.email, tenant.businessPlan)
+    } catch (e) {
+      console.error('✉️ Erro ao enviar email de cancelamento:', e)
+    }
     
     console.log(`✅ Assinatura ${eventType.toLowerCase()} para tenant ${tenant.id} - Marcado inativo (sem downgrade para FREE)`) 
     
@@ -344,7 +357,8 @@ async function handleSubscriptionRenewed(webhookData: KirvanoWebhookEvent) {
       data: {
         isActive: true, // Garantir que está ativo
         subscriptionEnd,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        webhookExpiredProcessed: false
       }
     })
     

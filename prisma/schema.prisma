@@ -41,6 +41,9 @@ model Tenant {
   isActive             Boolean   @default(false)
   kirvanoCustomerId    String?   @unique // ID do cliente na Kirvano
   kirvanoSubscriptionId String?  @unique // ID da assinatura na Kirvano
+  // Auditoria de emails de assinatura / origem de expiração
+  lastSubscriptionEmailType SubscriptionEmailType? // Controle para evitar emails duplicados
+  webhookExpiredProcessed   Boolean @default(false) // True se expiração/cancelamento veio via webhook
   
   // WhatsApp Evolution API
   whatsapp_instance_name String? @unique // Nome da instância da Evolution API
@@ -463,6 +466,18 @@ enum WhatsAppStatus {
   DELIVERED // Entregue
   READ      // Lida
   FAILED    // Falhou
+}
+
+// ============================================
+// AUDITORIA DE ASSINATURA / EMAILS
+// ============================================
+enum SubscriptionEmailType {
+  WELCOME          // Email de boas-vindas
+  PRE_EXPIRE_3D    // Aviso 3 dias antes
+  PRE_EXPIRE_1D    // Aviso 1 dia antes
+  CANCELED         // Assinatura cancelada (webhook)
+  EXPIRED_WEBHOOK  // Expirada diretamente via webhook
+  EXPIRED_GRACE    // Expirada via cron após período de graça
 }
 
 // ============================================
