@@ -18,7 +18,12 @@ interface WhatsAppConnectionData {
   error?: string
 }
 
-export function WhatsAppConnection() {
+interface WhatsAppConnectionProps {
+  onConnected?: () => void
+  onDisconnected?: () => void
+}
+
+export function WhatsAppConnection({ onConnected, onDisconnected }: WhatsAppConnectionProps) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
   const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(null)
   const [instanceName, setInstanceName] = useState<string | null>(null)
@@ -96,6 +101,7 @@ export function WhatsAppConnection() {
       if (data.connected) {
         setConnectionStatus('connected')
         setInstanceName(data.instanceName)
+        onConnected && onConnected()
       } else {
         setConnectionStatus('disconnected')
       }
@@ -123,9 +129,10 @@ export function WhatsAppConnection() {
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ [Frontend] WhatsApp conectado detectado - parando polling')
         }
-        setConnectionStatus('connected')
-        setQrCodeBase64(null)
-        setInstanceName(data.instanceName)
+  setConnectionStatus('connected')
+  setQrCodeBase64(null)
+  setInstanceName(data.instanceName)
+  onConnected && onConnected()
         
         // Parar o polling PRIMEIRO antes de mostrar toast
         if (pollingInterval) {
@@ -171,9 +178,10 @@ export function WhatsAppConnection() {
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ [Frontend] WhatsApp já estava conectado')
         }
-        setConnectionStatus('connected')
-        setInstanceName(response.instanceName)
-        setQrCodeBase64(null)
+  setConnectionStatus('connected')
+  setInstanceName(response.instanceName)
+  setQrCodeBase64(null)
+  onConnected && onConnected()
         
         toast({
           title: "WhatsApp Já Conectado!",
@@ -238,9 +246,10 @@ export function WhatsAppConnection() {
       })
 
       // Limpar estado
-      setConnectionStatus('disconnected')
-      setQrCodeBase64(null)
-      setInstanceName(null)
+  setConnectionStatus('disconnected')
+  setQrCodeBase64(null)
+  setInstanceName(null)
+  onDisconnected && onDisconnected()
       
       // Parar polling se estiver ativo
       if (pollingInterval) {
@@ -369,6 +378,7 @@ export function WhatsAppConnection() {
                     clearInterval(pollingInterval)
                     setPollingInterval(null)
                   }
+                  onDisconnected && onDisconnected()
                 }}
                 className="w-full"
               >

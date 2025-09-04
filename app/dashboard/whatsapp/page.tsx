@@ -81,7 +81,7 @@ export default function WhatsAppPage() {
   const { stats: whatsappStats, isLoading: isLoadingStats, error: statsError, refetch: refetchStats } = useWhatsAppStats()
 
   // Hook para status da conexão WhatsApp
-  const { connectionStatus, isConnected, isLoading: isLoadingStatus } = useWhatsAppStatus()
+  const { connectionStatus, isConnected, isLoading: isLoadingStatus, refetch: refetchStatus } = useWhatsAppStatus()
 
   useEffect(() => {
     fetchAppointments()
@@ -296,7 +296,14 @@ export default function WhatsAppPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="mt-4">
-                    <WhatsAppConnection />
+                    <WhatsAppConnection 
+                      onConnected={() => {
+                        refetchStatus()
+                      }}
+                      onDisconnected={() => {
+                        refetchStatus()
+                      }}
+                    />
                   </div>
                 </DialogContent>
               </Dialog>

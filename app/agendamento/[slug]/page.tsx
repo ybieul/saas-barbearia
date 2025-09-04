@@ -1606,7 +1606,7 @@ export default function AgendamentoPage() {
                                     <p className={`text-sm ${
                                       currentExpandedState.morning ? 'text-orange-200' : 'text-[#a1a1aa]'
                                     }`}>
-                                      {groupedSlots.morning.length} horários disponíveis
+                                      Horários disponíveis
                                     </p>
                                   </div>
                                 </div>
@@ -1701,7 +1701,7 @@ export default function AgendamentoPage() {
                                     <p className={`text-sm ${
                                       currentExpandedState.afternoon ? 'text-blue-200' : 'text-[#a1a1aa]'
                                     }`}>
-                                      {groupedSlots.afternoon.length} horários disponíveis
+                                      Horários disponíveis
                                     </p>
                                   </div>
                                 </div>
@@ -1796,7 +1796,7 @@ export default function AgendamentoPage() {
                                     <p className={`text-sm ${
                                       currentExpandedState.night ? 'text-purple-200' : 'text-[#a1a1aa]'
                                     }`}>
-                                      {groupedSlots.night.length} horários disponíveis
+                                      Horários disponíveis
                                     </p>
                                   </div>
                                 </div>
