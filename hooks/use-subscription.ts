@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './use-auth'
 
 export interface SubscriptionInfo {
@@ -26,7 +26,7 @@ export function useSubscription() {
   const [error, setError] = useState<string | null>(null)
 
   // Buscar informações da assinatura
-  const fetchSubscriptionInfo = async () => {
+  const fetchSubscriptionInfo = useCallback(async () => {
     if (!user?.id) return
 
     try {
@@ -59,10 +59,10 @@ export function useSubscription() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   // Buscar limites do plano
-  const fetchPlanLimits = async () => {
+  const fetchPlanLimits = useCallback(async () => {
     if (!user?.id) return
 
     try {
@@ -89,7 +89,7 @@ export function useSubscription() {
     } catch (err) {
       console.error('Erro ao buscar limites do plano:', err)
     }
-  }
+  }, [user?.id])
 
   // Verificar se pode acessar uma funcionalidade
   const canAccessFeature = (feature: string): boolean => {
@@ -171,18 +171,19 @@ export function useSubscription() {
   }
 
   // Atualizar dados
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await Promise.all([
       fetchSubscriptionInfo(),
       fetchPlanLimits()
     ])
-  }
+  }, [fetchSubscriptionInfo, fetchPlanLimits])
 
   useEffect(() => {
     if (user?.id) {
+      // chamada inicial
       refresh()
     }
-  }, [user?.id])
+  }, [user?.id, refresh])
 
   return {
     subscriptionInfo,

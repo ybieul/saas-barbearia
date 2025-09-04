@@ -32,24 +32,29 @@ export default function SubscriptionPage() {
   // Se houver reason, tentar atualizar token para sincronizar estado mais recente
   useEffect(() => {
     if (!reason) return
+    let cancelled = false
     const sync = async () => {
       try {
         setRefreshingToken(true)
         const res = await fetch('/api/auth/refresh-token')
         if (res.ok) {
           const data = await res.json()
-          // atualizar localStorage para manter coerência com AuthProvider
-            localStorage.setItem('auth_token', data.token)
-          // Forçar refresh das infos de assinatura
+          localStorage.setItem('auth_token', data.token)
           await refresh()
         }
+        // Após sincronizar uma vez, remover o parâmetro para evitar loops
+        const url = new URL(window.location.href)
+        url.searchParams.delete('reason')
+        window.history.replaceState({}, '', url.toString())
+        if (!cancelled) setReason(null)
       } catch (e) {
         console.error('Erro ao atualizar token pós-redirecionamento', e)
       } finally {
-        setRefreshingToken(false)
+        if (!cancelled) setRefreshingToken(false)
       }
     }
     sync()
+    return () => { cancelled = true }
   }, [reason, refresh])
   const { user } = useAuth()
 

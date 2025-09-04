@@ -34,10 +34,15 @@ export async function middleware(request: NextRequest) {
 
       const isOnBillingPage = pathname.startsWith('/dashboard/assinatura')
 
-      if (!isSubscriptionActive && !isOnBillingPage) {
-        const url = new URL('/dashboard/assinatura', request.url)
-        url.searchParams.set('reason', !isActive ? 'inativa' : 'expirada')
-        return NextResponse.redirect(url)
+      if (!isSubscriptionActive) {
+        if (!isOnBillingPage) {
+          const url = new URL('/dashboard/assinatura', request.url)
+          if (!url.searchParams.get('reason')) {
+            url.searchParams.set('reason', !isActive ? 'inativa' : 'expirada')
+          }
+          return NextResponse.redirect(url)
+        }
+        // Já está na página de assinatura: não fazer nada para evitar loop; token será sincronizado client-side
       }
     } catch (e) {
       // Token inválido => redirecionar login
