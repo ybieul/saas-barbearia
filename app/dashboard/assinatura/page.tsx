@@ -244,10 +244,17 @@ export default function SubscriptionPage() {
     }
   }
 
-  // Recursos comuns a todos os planos (exceto FREE)
+  // Recursos comuns a todos os planos pagos
   const commonFeatures = [
     'Integração com WhatsApp',
+  ]
+  // Recursos avançados apenas para PREMIUM e ULTRA
+  const advancedFeatures = [
     'Relatórios personalizados',
+  ]
+  // Exclusivos do ULTRA
+  const ultraExclusive = [
+    'Suporte Prioritário'
   ]
 
   // Obter recursos do plano atual
@@ -317,9 +324,17 @@ export default function SubscriptionPage() {
                 {/* Número de profissionais */}
                 <li>{currentPlanFeatures.professionals}</li>
                 
-                {/* Recursos comuns (apenas para planos pagos) */}
+                {/* Recursos comuns (planos pagos) */}
                 {subscription.plan !== 'FREE' && commonFeatures.map((feature, index) => (
                   <li key={`common-${index}`}>{feature}</li>
+                ))}
+                {/* Recursos avançados apenas PREMIUM e ULTRA */}
+                {['PREMIUM','ULTRA'].includes(subscription.plan) && advancedFeatures.map((feature, index) => (
+                  <li key={`adv-${index}`}>{feature}</li>
+                ))}
+                {/* Exclusivos ULTRA */}
+                {subscription.plan === 'ULTRA' && ultraExclusive.map((feature, index) => (
+                  <li key={`ultra-${index}`}>{feature}</li>
                 ))}
               </ul>
             </div>
