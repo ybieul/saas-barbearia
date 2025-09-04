@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Scissors, Eye, EyeOff } from "lucide-react"
+import { Calendar, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
@@ -81,15 +81,15 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-            <Scissors className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
+            <Calendar className="w-5 h-5 text-tymer-primary" />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-            AgendaPro
+          <span className="text-2xl font-bold text-white">
+            TymerBook
           </span>
         </div>
 
-        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+  <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Bem-vindo de volta</CardTitle>
             <CardDescription className="text-[#71717a]">Entre na sua conta para acessar o painel</CardDescription>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981]"
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
                   required
                 />
               </div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                     placeholder="Sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                     required
                   />
                   <button
@@ -143,7 +143,7 @@ export default function LoginPage() {
               
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
+                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? "Entrando..." : "Entrar"}
@@ -153,7 +153,7 @@ export default function LoginPage() {
               <div className="text-center">
                 <Link 
                   href="/recuperar-senha" 
-                  className="text-sm text-[#71717a] hover:text-[#10b981] transition-colors"
+                  className="text-sm text-[#71717a] hover:text-tymer-primary transition-colors"
                 >
                   Esqueceu sua senha?
                 </Link>
