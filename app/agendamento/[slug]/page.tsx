@@ -959,7 +959,7 @@ export default function AgendamentoPage() {
                       </div>
                     )}
                     
-                    <DialogTitle className="text-[#ededed] text-xl font-bold bg-gradient-to-r from-tymer-primary to-tymer-primary/60 bg-clip-text text-transparent">
+                    <DialogTitle className="text-[#ededed] text-xl font-bold text-center">
                       {businessData.businessName}
                     </DialogTitle>
                     
@@ -970,16 +970,16 @@ export default function AgendamentoPage() {
                   <div className="space-y-4 py-2">
                     {/* Card de Informações de Contato */}
                     <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 rounded-xl p-4 border border-[#3f3f46]/50 backdrop-blur-sm">
-                      <h4 className="text-tymer-primary font-semibold mb-3 flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
+                      <h4 className="text-[#ededed] font-semibold mb-3 flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-tymer-icon" />
                         Informações de Contato
                       </h4>
                       
                       <div className="space-y-3">
                         {businessData.businessPhone && (
                           <div className="flex items-center gap-3 p-2 rounded-lg bg-[#18181b]/60 border border-[#27272a]/50">
-                            <div className="w-8 h-8 rounded-full bg-tymer-primary/15 flex items-center justify-center">
-                              <Phone className="h-4 w-4 text-tymer-primary" />
+                            <div className="w-8 h-8 rounded-full bg-[#27272a]/60 flex items-center justify-center">
+                              <Phone className="h-4 w-4 text-tymer-icon" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[#ededed] font-medium text-sm break-all">
@@ -992,8 +992,8 @@ export default function AgendamentoPage() {
                         
                         {businessData.businessAddress && (
                           <div className="flex items-start gap-3 p-2 rounded-lg bg-[#18181b]/60 border border-[#27272a]/50">
-                            <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <MapPin className="h-4 w-4 text-blue-400" />
+                            <div className="w-8 h-8 rounded-full bg-[#27272a]/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <MapPin className="h-4 w-4 text-tymer-icon" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[#ededed] font-medium text-sm leading-relaxed break-words">
@@ -1008,8 +1008,8 @@ export default function AgendamentoPage() {
                     
                     {/* Card de Ações Rápidas */}
                     <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 rounded-xl p-4 border border-[#3f3f46]/50 backdrop-blur-sm">
-                      <h4 className="text-cyan-400 font-semibold mb-3 flex items-center gap-2">
-                        <Star className="h-4 w-4" />
+                      <h4 className="text-[#ededed] font-semibold mb-3 flex items-center gap-2">
+                        <Star className="h-4 w-4 text-tymer-icon" />
                         Ações Rápidas
                       </h4>
                       
