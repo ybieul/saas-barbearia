@@ -60,6 +60,13 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
         .ExternalClass { width:100%; }
         .ExternalClass * { line-height:120%; }
         .apple-link a { color:inherit !important; text-decoration:none !important; }
+    :root { color-scheme: light; supported-color-schemes: light; }
+    /* Forçar textos brancos em dark-mode/Outlook.com */
+    .force-white, .force-white a, .force-white span { color:#ffffff !important; }
+    [data-ogsc] .force-white, [data-ogsc] .force-white a, [data-ogsc] .force-white span { color:#ffffff !important; }
+    /* Subheading cinza claro sempre legível */
+    .force-light { color:#e5e5e5 !important; }
+    [data-ogsc] .force-light { color:#e5e5e5 !important; }
         @media screen and (max-width:600px){
             .container { width:100% !important; }
             .p-sm { padding:20px !important; }
@@ -74,9 +81,9 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width:600px; max-width:600px; background:#ffffff; border-radius:8px; overflow:hidden;">
                         <!-- Cabeçalho -->
                         <tr>
-                            <td style="background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;">
-                                <h1 style="margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif;">Bem-vindo ao TymerBook</h1>
-                                <p style="margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif;">Sua conta foi criada com sucesso</p>
+                            <td bgcolor="#4700FF" style="background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;">
+                                <h1 class="force-white" style="margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif; mso-line-height-rule:exactly;"><span style="color:#ffffff !important;">Bem-vindo ao TymerBook</span></h1>
+                                <p class="force-light" style="margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif; mso-line-height-rule:exactly;"><span style="color:#e5e5e5 !important;">Sua conta foi criada com sucesso</span></p>
                             </td>
                         </tr>
                         <!-- Conteúdo -->
@@ -119,7 +126,7 @@ function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword:
                                 </v:roundrect>
                                 <![endif]-->
                                 <!--[if !mso]><!-- -->
-                                <a href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" style="display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;">Fazer Login Agora</a>
+                                <a href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" style="display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;" class="force-white"><span style="color:#ffffff !important;">Fazer Login Agora</span></a>
                                 <!--<![endif]-->
                             </td>
                         </tr>
@@ -248,6 +255,11 @@ function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
         a { text-decoration:none; }
         .ExternalClass { width:100%; }
         .ExternalClass * { line-height:120%; }
+    :root { color-scheme: light; supported-color-schemes: light; }
+    .force-white, .force-white a, .force-white span { color:#ffffff !important; }
+    [data-ogsc] .force-white, [data-ogsc] .force-white a, [data-ogsc] .force-white span { color:#ffffff !important; }
+    .force-light { color:#e5e5e5 !important; }
+    [data-ogsc] .force-light { color:#e5e5e5 !important; }
         @media screen and (max-width:600px){ .container { width:100% !important; } }
     </style>
 </head>
@@ -258,9 +270,9 @@ function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
                 <td align=\"center\" style=\"padding:30px 10px;\"> 
                     <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"600\" class=\"container\" style=\"width:600px; max-width:600px; background:#ffffff; border-radius:8px; overflow:hidden;\"> 
                         <tr>
-                            <td style=\"background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;\">
-                                <h1 style=\"margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif;\">Redefinir Senha</h1>
-                                <p style=\"margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif;\">Solicitação de redefinição</p>
+                            <td bgcolor=\"#4700FF\" style=\"background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;\">
+                                <h1 class=\"force-white\" style=\"margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif; mso-line-height-rule:exactly;\"><span style=\"color:#ffffff !important;\">Redefinir Senha</span></h1>
+                                <p class=\"force-light\" style=\"margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif; mso-line-height-rule:exactly;\"><span style=\"color:#e5e5e5 !important;\">Solicitação de redefinição</span></p>
                             </td>
                         </tr>
                         <tr>
@@ -278,7 +290,7 @@ function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
                                 </v:roundrect>
                                 <![endif]-->
                                 <!--[if !mso]><!-- -->
-                                <a href=\"${resetUrl}\" style=\"display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;\">Redefinir Minha Senha</a>
+                                <a href=\"${resetUrl}\" style=\"display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;\" class=\"force-white\"><span style=\"color:#ffffff !important;\">Redefinir Minha Senha</span></a>
                                 <!--<![endif]-->
                             </td>
                         </tr>
