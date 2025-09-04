@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { replaceTemplatePlaceholders } from '@/lib/template-helpers'
 import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
-import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
+import { getTenantWhatsAppConfig } from '@/lib/whatsapp-tenant-helper'
 
 // 🚀 POST MULTI-TENANT - Enviar promoção para clientes inativos
 export async function POST(request: NextRequest) {
@@ -44,20 +44,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ [PROMOTIONS] Instância WhatsApp encontrada: ${tenantConfig.instanceName}`)
 
-    // ✅ VERIFICAÇÃO MULTI-TENANT 2: Verificar se automação de reativação está ativa
-    const automationEnabled = await isAutomationEnabled(user.tenantId, 'reactivation')
-    
-    if (!automationEnabled) {
-      console.log(`⚠️ [PROMOTIONS] Automação de reativação desabilitada para tenant: ${user.tenantId}`)
-      
-      return NextResponse.json({
-        success: false,
-        message: 'Automação de reativação não está ativa. Ative nas configurações de mensagens automáticas.',
-        code: 'AUTOMATION_DISABLED'
-      }, { status: 400 })
-    }
-
-    console.log(`✅ [PROMOTIONS] Automação de reativação ativa`)
+  // ❌ Removido: verificação de automação de reativação (sempre permitido após usuário acionar manualmente)
 
     // Verificar se todos os clientes pertencem ao tenant
     const clients = await prisma.endUser.findMany({
