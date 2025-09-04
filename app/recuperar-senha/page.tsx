@@ -99,8 +99,8 @@ export default function RecuperarSenhaPage() {
                 Enviamos as instruções para redefinir sua senha para <strong className="text-[#10b981]">{email}</strong>
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center space-y-6">
-              <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
+            <CardContent className="text-center flex flex-col space-y-8">
+              <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 text-left animate-slide-up animate-delay-600">
                 <h3 className="text-[#ededed] font-medium mb-4">Próximos passos:</h3>
                 <ul className="text-sm text-[#a1a1aa] space-y-2">
                   <li>• Verifique sua caixa de entrada</li>
@@ -124,11 +124,13 @@ export default function RecuperarSenhaPage() {
                 </button>
               </div>
               
-              <Link href="/login">
-                <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold transition-colors">
-                  Voltar para o Login
-                </Button>
-              </Link>
+              <div>
+                <Link href="/login">
+                  <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold transition-colors">
+                    Voltar para o Login
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>
