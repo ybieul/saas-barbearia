@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rotas públicas que não precisam de autenticação
@@ -21,9 +21,10 @@ export function middleware(request: NextRequest) {
     }
 
     try {
-      const decoded: any = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret')
-      const isActive = decoded.isActive
-      const subscriptionEndIso = decoded.subscriptionEnd
+  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || 'fallback-secret')
+  const { payload } = await jwtVerify(token, secret)
+  const isActive = (payload as any).isActive
+  const subscriptionEndIso = (payload as any).subscriptionEnd as string | undefined
       const subscriptionEndDate = subscriptionEndIso ? new Date(subscriptionEndIso) : null
       const now = new Date()
       const notExpired = subscriptionEndDate ? subscriptionEndDate.getTime() > now.getTime() : true
