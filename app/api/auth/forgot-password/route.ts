@@ -31,21 +31,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // IMPORTANTE: Sempre retornar sucesso, mesmo se o email não existir
-    // Isso previne ataques de enumeração de emails
+    // Nova regra: informar explicitamente quando o email não existe ou está inativo
     if (!tenant) {
       console.log(`⚠️ Email não encontrado: ${normalizedEmail}`)
-      return NextResponse.json({
-        message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.'
-      })
+      return NextResponse.json(
+        { error: 'Email não encontrado. Verifique e tente novamente.' },
+        { status: 404 }
+      )
     }
 
-    // Verificar se a conta está ativa
     if (!tenant.isActive) {
-      console.log(`⚠️ Tentativa de redefinição para conta inativa: ${normalizedEmail}`)
-      return NextResponse.json({
-        message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.'
-      })
+      console.log(`⚠️ Conta inativa para: ${normalizedEmail}`)
+      return NextResponse.json(
+        { error: 'Conta inativa. Entre em contato com o suporte.' },
+        { status: 403 }
+      )
     }
 
     // Gerar token seguro
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     console.log(`✅ Email de redefinição enviado para: ${normalizedEmail}`)
 
     return NextResponse.json({
-      message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.'
+      message: 'Email de redefinição enviado com sucesso.'
     })
 
   } catch (error) {

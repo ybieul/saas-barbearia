@@ -40,12 +40,26 @@ export default function RecuperarSenhaPage() {
           title: "Email enviado!",
           description: "Verifique sua caixa de entrada para redefinir sua senha.",
         })
+      } else if (response.status === 404) {
+        setErrorMessage('Email não encontrado. Verifique e tente novamente.')
+        toast({
+          title: 'Email não encontrado',
+          description: 'Verifique se digitou corretamente.',
+          variant: 'destructive'
+        })
+      } else if (response.status === 403) {
+        setErrorMessage('Conta inativa. Entre em contato com o suporte.')
+        toast({
+          title: 'Conta inativa',
+          description: 'Entre em contato com o suporte para reativação.',
+          variant: 'destructive'
+        })
       } else {
         setErrorMessage(data.error || 'Erro ao enviar email')
         toast({
-          title: "Erro",
+          title: 'Erro',
           description: data.error || 'Erro ao enviar email',
-          variant: "destructive",
+          variant: 'destructive'
         })
       }
     } catch (error) {

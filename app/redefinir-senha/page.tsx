@@ -127,7 +127,7 @@ function RedefinirSenhaContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-6">
-              <div className="bg-[#065f46]/10 border border-[#10b981]/20 rounded-lg p-4">
+              <div className="bg-[#065f46]/10 border border-[#10b981]/20 rounded-lg p-4 mb-4">
                 <p className="text-[#ededed] font-medium">Senha redefinida com sucesso.</p>
                 <p className="text-sm text-[#71717a] mt-2">Clique no botão abaixo para acessar o login.</p>
               </div>
