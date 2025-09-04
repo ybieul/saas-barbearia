@@ -9,9 +9,8 @@ export interface SubscriptionInfo {
   canAccessFeature: (feature: string) => boolean
 }
 
-// Recursos por plano - ATUALIZADO conforme novos requisitos
+// Recursos por plano (sem plano FREE)
 const PLAN_FEATURES = {
-  // Removido plano FREE - usuários devem ter assinatura ativa
   BASIC: {
     maxClients: -1, // Ilimitado (não há limite especificado)
     maxAppointments: -1, // Ilimitado (não há limite especificado)
@@ -64,7 +63,7 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
 
     // Se expirou ou não ativo, usuario não pode usar o sistema
     const isActiveSubscription = tenant.isActive && !isExpired
-    const effectivePlan = isActiveSubscription ? tenant.businessPlan : 'INACTIVE'
+  const effectivePlan = isActiveSubscription ? tenant.businessPlan : 'INACTIVE'
     
     // Só buscar features se a assinatura estiver ativa
     const planFeatures = isActiveSubscription 

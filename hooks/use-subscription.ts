@@ -126,7 +126,8 @@ export function useSubscription() {
       isActive: subscriptionInfo.isActive,
       isExpired: subscriptionInfo.isExpired,
       daysUntilExpiry: subscriptionInfo.daysUntilExpiry,
-      needsUpgrade: subscriptionInfo.plan === 'FREE'
+      // Upgrade recomendado se plano BASIC (para upsell) ou assinatura perto de expirar
+      needsUpgrade: subscriptionInfo.plan === 'BASIC' || (!!subscriptionInfo.daysUntilExpiry && subscriptionInfo.daysUntilExpiry <= 7)
     }
   }
 

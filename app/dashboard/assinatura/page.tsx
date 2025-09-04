@@ -150,14 +150,14 @@ export default function SubscriptionPage() {
   // Função para obter cor do plano
   const getPlanColor = (plan: string) => {
     switch (plan) {
-      case 'FREE':
-        return 'bg-gray-100 text-gray-800'
       case 'BASIC':
         return 'bg-blue-100 text-blue-800'
       case 'PREMIUM':
         return 'bg-purple-100 text-purple-800'
       case 'ULTRA':
         return 'bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800'
+      case 'INACTIVE':
+        return 'bg-red-100 text-red-700'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -166,14 +166,14 @@ export default function SubscriptionPage() {
   // Função para obter ícone do plano
   const getPlanIcon = (plan: string) => {
     switch (plan) {
-      case 'FREE':
-        return <Shield className="h-4 w-4" />
       case 'BASIC':
         return <CheckCircle2 className="h-4 w-4" />
       case 'PREMIUM':
         return <Crown className="h-4 w-4" />
       case 'ULTRA':
         return <Crown className="h-4 w-4 text-yellow-600" />
+      case 'INACTIVE':
+        return <XCircle className="h-4 w-4 text-red-600" />
       default:
         return <Shield className="h-4 w-4" />
     }
@@ -182,14 +182,14 @@ export default function SubscriptionPage() {
   // Função para formatear nome do plano
   const getPlanDisplayName = (plan: string) => {
     switch (plan) {
-      case 'FREE':
-        return 'Gratuito'
       case 'BASIC':
         return 'Básico'
       case 'PREMIUM':
         return 'Premium'
       case 'ULTRA':
         return 'Ultra'
+      case 'INACTIVE':
+        return 'Inativa'
       default:
         return plan
     }
@@ -242,14 +242,6 @@ export default function SubscriptionPage() {
 
   // Estrutura centralizada de recursos dos planos
   const planFeatures = {
-    'FREE': {
-      professionals: 'Até 1 profissional',
-      features: [
-        'Até 100 clientes',
-        'Até 500 agendamentos',
-        'Até 10 serviços',
-      ]
-    },
     'BASIC': {
       professionals: 'Até 1 profissional',
       features: [
@@ -277,9 +269,7 @@ export default function SubscriptionPage() {
   }
 
   // Recursos comuns a todos os planos pagos
-  const commonFeatures = [
-    'Integração com WhatsApp',
-  ]
+  const commonFeatures = [ 'Integração com WhatsApp' ]
   // Recursos avançados apenas para PREMIUM e ULTRA
   const advancedFeatures = [
     'Relatórios de Desempenho por Profissional',
@@ -290,10 +280,12 @@ export default function SubscriptionPage() {
   ]
 
   // Obter recursos do plano atual
-  const currentPlanFeatures = planFeatures[subscription.plan as keyof typeof planFeatures] || planFeatures['FREE']
+  const currentPlanFeatures = subscription.isActive && ['BASIC','PREMIUM','ULTRA'].includes(subscription.plan)
+    ? planFeatures[subscription.plan as keyof typeof planFeatures]
+    : null
 
   return (
-    <div className="space-y-8 pb-28"> {/* padding extra para não ficar escondido atrás do banner fixo */}
+    <div className="space-y-8"> 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -319,8 +311,18 @@ export default function SubscriptionPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Assinatura expirada!</strong> Sua assinatura expirou há {Math.abs(subscription.daysUntilExpiry || 0)} dias. 
-            Renove sua assinatura para continuar aproveitando todos os recursos.
+            <div className="space-y-3">
+              <p>
+                <strong>Assinatura expirada!</strong> Sua assinatura expirou há {Math.abs(subscription.daysUntilExpiry || 0)} dias. Renove para recuperar o acesso completo a todos os recursos.
+              </p>
+              <Button
+                size="sm"
+                className="bg-white text-red-600 hover:bg-red-50"
+                onClick={handleOpenManageModal}
+              >
+                Renovar agora
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -345,7 +347,7 @@ export default function SubscriptionPage() {
               <span>Plano Atual</span>
             </CardTitle>
             <CardDescription>
-              Seu plano de assinatura ativo no momento
+              {subscription.isActive ? 'Seu plano de assinatura ativo no momento' : 'Assinatura atualmente inativa'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -354,34 +356,41 @@ export default function SubscriptionPage() {
                 {getPlanDisplayName(subscription.plan)}
               </Badge>
             </div>
-            
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                <strong>Recursos inclusos:</strong>
-              </p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                {/* Recursos principais do plano */}
-                {currentPlanFeatures.features.map((feature, index) => (
-                  <li key={`feature-${index}`}>{feature}</li>
-                ))}
-                
-                {/* Número de profissionais */}
-                <li>{currentPlanFeatures.professionals}</li>
-                
-                {/* Recursos comuns (planos pagos) */}
-                {subscription.plan !== 'FREE' && commonFeatures.map((feature, index) => (
-                  <li key={`common-${index}`}>{feature}</li>
-                ))}
-                {/* Recursos avançados apenas PREMIUM e ULTRA */}
-                {['PREMIUM','ULTRA'].includes(subscription.plan) && advancedFeatures.map((feature, index) => (
-                  <li key={`adv-${index}`}>{feature}</li>
-                ))}
-                {/* Exclusivos ULTRA */}
-                {subscription.plan === 'ULTRA' && ultraExclusive.map((feature, index) => (
-                  <li key={`ultra-${index}`}>{feature}</li>
-                ))}
-              </ul>
-            </div>
+            {subscription.isActive && currentPlanFeatures && (
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  <strong>Recursos inclusos:</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  {currentPlanFeatures.features.map((feature, index) => (
+                    <li key={`feature-${index}`}>{feature}</li>
+                  ))}
+                  <li>{currentPlanFeatures.professionals}</li>
+                  {commonFeatures.map((feature, index) => (
+                    <li key={`common-${index}`}>{feature}</li>
+                  ))}
+                  {['PREMIUM','ULTRA'].includes(subscription.plan) && advancedFeatures.map((feature, index) => (
+                    <li key={`adv-${index}`}>{feature}</li>
+                  ))}
+                  {subscription.plan === 'ULTRA' && ultraExclusive.map((feature, index) => (
+                    <li key={`ultra-${index}`}>{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {!subscription.isActive && (
+              <div className="rounded-md border border-dashed border-red-600/40 bg-red-950/40 p-4 text-sm text-red-200 space-y-2">
+                <p className="font-medium text-red-300 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" /> Assinatura inativa
+                </p>
+                <p>
+                  Nenhum recurso disponível enquanto a assinatura estiver inativa. Renove para reativar todos os recursos do seu plano anterior.
+                </p>
+                <Button size="sm" variant="outline" className="border-red-400/40 text-red-200 hover:bg-red-900/40" onClick={handleOpenManageModal}>
+                  Renovar assinatura
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -499,113 +508,6 @@ export default function SubscriptionPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Banner Persistente (fixo) */}
-  <div className="fixed inset-x-0 bottom-0 z-50 px-3 sm:px-4 pb-4">
-        <div
-          className={[
-            'mx-auto max-w-6xl rounded-lg shadow-lg border backdrop-blur supports-[backdrop-filter]:bg-opacity-90 transition-colors',
-            'p-3 sm:p-4',
-            subscription.isExpired || !subscription.isActive
-              ? 'bg-red-600/90 border-red-500/60 text-white'
-              : subscription.plan === 'FREE'
-                ? 'bg-gradient-to-r from-gray-800 via-gray-800 to-gray-900 border-gray-700 text-gray-100'
-                : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7)
-                  ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border-amber-400/60'
-                  : 'bg-[#18181b]/90 border-[#27272a] text-[#ededed]'
-          ].join(' ')}
-        >
-          <div className="flex flex-col gap-3 sm:gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-1 text-sm leading-tight">
-              {/* Linha principal */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {subscription.isExpired || !subscription.isActive ? (
-                  <>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
-                      <XCircle className="h-4 w-4" /> Assinatura {subscription.isExpired ? 'expirada' : 'inativa'}
-                    </span>
-                    <span className="hidden sm:inline opacity-70">|</span>
-                    <span className="font-medium">
-                      Renove para recuperar o acesso completo.
-                    </span>
-                  </>
-                ) : subscription.plan === 'FREE' ? (
-                  <>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
-                      <Shield className="h-4 w-4" /> Plano Gratuito
-                    </span>
-                    <span className="hidden sm:inline opacity-70">|</span>
-                    <span className="font-medium">Desbloqueie mais recursos atualizando seu plano.</span>
-                  </>
-                ) : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7) ? (
-                  <>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
-                      <Clock className="h-4 w-4" /> Expira em breve
-                    </span>
-                    <span className="hidden sm:inline opacity-70">|</span>
-                    <span className="font-medium">Renova em {subscription.daysUntilExpiry === 0 ? 'hoje' : `${subscription.daysUntilExpiry} dias`}.</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
-                      <CheckCircle2 className="h-4 w-4" /> Assinatura ativa
-                    </span>
-                    <span className="hidden sm:inline opacity-70">|</span>
-                    <span className="font-medium">Plano {getPlanDisplayName(subscription.plan)}{subscription.daysUntilExpiry ? ` · renova em ${subscription.daysUntilExpiry} dias` : ''}</span>
-                  </>
-                )}
-              </div>
-              {/* Linha secundária opcional */}
-              {(subscription.isExpired || !subscription.isActive) && subscription.daysUntilExpiry !== undefined && (
-                <span className="text-xs opacity-80">
-                  {subscription.daysUntilExpiry < 0
-                    ? `Expirada há ${Math.abs(subscription.daysUntilExpiry)} dias`
-                    : subscription.daysUntilExpiry === 0
-                      ? 'Expira hoje'
-                      : `Expira em ${subscription.daysUntilExpiry} dias`}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end w-full sm:w-auto">
-              {subscription.isExpired || !subscription.isActive ? (
-                <Button
-                  size="sm"
-                  className="w-full sm:w-auto bg-white text-red-600 hover:bg-red-50"
-                  onClick={handleOpenManageModal}
-                >
-                  Renovar agora
-                </Button>
-              ) : subscription.plan === 'FREE' ? (
-                <Button
-                  size="sm"
-                  className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80 text-white"
-                  onClick={handleOpenManageModal}
-                >
-                  Ver planos
-                </Button>
-              ) : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7) ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                  onClick={handleOpenManageModal}
-                >
-                  Renovar assinatura
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  onClick={handleOpenManageModal}
-                >
-                  Gerenciar
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
