@@ -21,6 +21,8 @@ export default function ClientesInativosPage() {
   const [selectedClients, setSelectedClients] = useState<string[]>([])
   const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState("")
+  const [sendingBulk, setSendingBulk] = useState(false)
+  const [lastSendReport, setLastSendReport] = useState<null | { sent: number; failed: number; errors?: Array<{clientId:string; message:string}> }>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [daysThreshold, setDaysThreshold] = useState(15)
   
@@ -76,8 +78,9 @@ export default function ClientesInativosPage() {
     }
 
     try {
-      // Mostrar toast de loading
-      notification.info("Enviando promoções...")
+      setSendingBulk(true)
+      setLastSendReport(null)
+      notification.info({ title: "Enviando", description: `Disparando mensagens para ${selectedClients.length} cliente(s)...` })
       
       // Obter token de autenticação
       const token = localStorage.getItem('auth_token')
@@ -103,19 +106,35 @@ export default function ClientesInativosPage() {
       const result = await response.json()
 
       if (!response.ok) {
+        // Se a API retornar lista de falhas
+        const failed = result.failed?.length || 0
+        setLastSendReport({ sent: 0, failed, errors: result.failed || [] })
         throw new Error(result.message || 'Erro ao enviar promoções')
       }
 
-      // Sucesso real
-      notification.success({
-        title: "Promoção enviada!",
-        description: `Template "${selectedTemplateData?.name}" enviado para ${result.sentCount} cliente(s)!`
-      })
+      const sentCount = result.sentCount ?? result.sent ?? selectedClients.length
+      const failedCount = result.failed?.length || 0
+      setLastSendReport({ sent: sentCount, failed: failedCount, errors: result.failed || [] })
+
+      if (failedCount === 0) {
+        notification.success({
+          title: "Promoções enviadas!",
+          description: `Template "${selectedTemplateData?.name}" enviado para ${sentCount} cliente(s).`
+        })
+      } else {
+        notification.warning({
+          title: "Parcialmente enviado",
+          description: `${sentCount} enviado(s), ${failedCount} falhou(aram). Ver detalhes abaixo.`
+        })
+      }
       
       // Limpar seleções
       setSelectedClients([])
       setSelectedTemplate("")
-      setIsPromotionModalOpen(false)
+      // Mantém modal aberto se houve falhas para inspeção
+      if (failedCount === 0) {
+        setIsPromotionModalOpen(false)
+      }
       
     } catch (error) {
       console.error('Erro ao enviar promoção:', error)
@@ -123,6 +142,8 @@ export default function ClientesInativosPage() {
         title: "Erro ao enviar promoção",
         description: error instanceof Error ? error.message : "Erro desconhecido"
       })
+    } finally {
+      setSendingBulk(false)
     }
   }
 
@@ -414,13 +435,30 @@ export default function ClientesInativosPage() {
                   </Button>
                   <Button 
                     onClick={handleSendPromotion}
-                    disabled={!selectedTemplate || selectedClients.length === 0}
-                    className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                    disabled={sendingBulk || !selectedTemplate || selectedClients.length === 0}
+                    className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation relative"
                   >
-                    <Send className="w-4 h-4 mr-2" />
-                    Enviar Promoção
+                    {sendingBulk && <span className="absolute left-3 h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {!sendingBulk && <Send className="w-4 h-4 mr-2" />}
+                    {sendingBulk ? 'Enviando...' : 'Enviar Promoção'}
                   </Button>
                 </div>
+                {lastSendReport && (
+                  <div className="mt-4 text-xs rounded-md border border-[#3f3f46] bg-[#1f1f23] p-3 space-y-2 max-h-40 overflow-y-auto">
+                    <p className="font-medium text-[#ededed]">Relatório de envio</p>
+                    <p className="text-[#d4d4d8]">Enviados: <span className="text-green-400">{lastSendReport.sent}</span> | Falhas: <span className={lastSendReport.failed ? 'text-red-400' : 'text-green-400'}>{lastSendReport.failed}</span></p>
+                    {lastSendReport.errors && lastSendReport.errors.length > 0 && (
+                      <ul className="space-y-1">
+                        {lastSendReport.errors.map((e, idx) => (
+                          <li key={idx} className="text-red-400/80 truncate">• {e.clientId}: {e.message}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {lastSendReport.failed > 0 && (
+                      <p className="text-[#71717a]">Você pode tentar reenviar selecionando apenas os que falharam.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -682,13 +720,30 @@ export default function ClientesInativosPage() {
                 </Button>
                 <Button 
                   onClick={handleSendPromotion}
-                  disabled={!selectedTemplate || selectedClients.length === 0}
-                  className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation"
+                  disabled={sendingBulk || !selectedTemplate || selectedClients.length === 0}
+                  className="flex-1 bg-tymer-primary hover:bg-tymer-primary/90 text-[#ededed] shadow-lg shadow-tymer-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 md:min-h-[44px] md:touch-manipulation relative"
                 >
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar Promoção
+                  {sendingBulk && <span className="absolute left-3 h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {!sendingBulk && <Send className="w-4 h-4 mr-2" />}
+                  {sendingBulk ? 'Enviando...' : 'Enviar Promoção'}
                 </Button>
               </div>
+              {lastSendReport && (
+                <div className="mt-4 text-xs rounded-md border border-[#3f3f46] bg-[#1f1f23] p-3 space-y-2 max-h-40 overflow-y-auto">
+                  <p className="font-medium text-[#ededed]">Relatório de envio</p>
+                  <p className="text-[#d4d4d8]">Enviados: <span className="text-green-400">{lastSendReport.sent}</span> | Falhas: <span className={lastSendReport.failed ? 'text-red-400' : 'text-green-400'}>{lastSendReport.failed}</span></p>
+                  {lastSendReport.errors && lastSendReport.errors.length > 0 && (
+                    <ul className="space-y-1">
+                      {lastSendReport.errors.map((e, idx) => (
+                        <li key={idx} className="text-red-400/80 truncate">• {e.clientId}: {e.message}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {lastSendReport.failed > 0 && (
+                    <p className="text-[#71717a]">Você pode tentar reenviar selecionando apenas os que falharam.</p>
+                  )}
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
