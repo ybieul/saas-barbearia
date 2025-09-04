@@ -1498,8 +1498,9 @@ export default function AgendamentoPage() {
                           {selectedDate === dateString && (
                             <div className="mt-3">
                               <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
-                                <p className="text-tymer-primary text-sm text-center">
-                                  ✅ Data selecionada: <span className="font-semibold">{dayName}, {formatBrazilDate(date)}</span>
+                                <p className="text-[#ededed] text-sm text-center flex items-center justify-center gap-2">
+                                  <Check className="h-4 w-4 text-tymer-icon" />
+                                  <span>Data selecionada:</span> <span className="font-semibold">{dayName}, {formatBrazilDate(date)}</span>
                                 </p>
                               </div>
                               <Button
@@ -1644,8 +1645,9 @@ export default function AgendamentoPage() {
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'morning' && (
                                           <div className="col-span-3 mt-2">
                                             <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
-                                              <p className="text-tymer-primary text-sm text-center">
-                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              <p className="text-[#ededed] text-sm text-center flex items-center justify-center gap-2">
+                                                <Check className="h-4 w-4 text-tymer-icon" />
+                                                <span>Horário selecionado:</span> <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
@@ -1738,8 +1740,9 @@ export default function AgendamentoPage() {
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'afternoon' && (
                                           <div className="col-span-3 mt-2">
                                             <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
-                                              <p className="text-tymer-primary text-sm text-center">
-                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              <p className="text-[#ededed] text-sm text-center flex items-center justify-center gap-2">
+                                                <Check className="h-4 w-4 text-tymer-icon" />
+                                                <span>Horário selecionado:</span> <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
@@ -1832,8 +1835,9 @@ export default function AgendamentoPage() {
                                         {selectedTime === slot.time && getSelectedTimePeriod(selectedTime) === 'night' && (
                                           <div className="col-span-3 mt-2">
                                             <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
-                                              <p className="text-tymer-primary text-sm text-center">
-                                                ✅ Horário selecionado: <span className="font-semibold">{selectedTime}</span>
+                                              <p className="text-[#ededed] text-sm text-center flex items-center justify-center gap-2">
+                                                <Check className="h-4 w-4 text-tymer-icon" />
+                                                <span>Horário selecionado:</span> <span className="font-semibold">{selectedTime}</span>
                                               </p>
                                             </div>
                                             <Button
@@ -1906,7 +1910,7 @@ export default function AgendamentoPage() {
                       
                       {/* Feedback da busca */}
                       {clientFound === true && (
-                        <p className="text-sm text-emerald-400 mt-1">
+                        <p className="text-sm text-tymer-primary mt-1">
                           ✓ Cliente encontrado! Dados preenchidos automaticamente.
                         </p>
                       )}
@@ -1992,7 +1996,7 @@ export default function AgendamentoPage() {
                     <Button
                       onClick={() => setStep(6)}
                       disabled={!showClientForm || !customerData.name.trim() || !customerData.phone.trim() || !customerData.email.trim()}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                      className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white disabled:opacity-50"
                     >
                       Avançar
                     </Button>
@@ -2097,7 +2101,7 @@ export default function AgendamentoPage() {
                     <Button
                       onClick={handleCreateAppointment}
                       disabled={isSubmitting}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                      className="w-full bg-tymer-primary hover:bg-tymer-primary/80 disabled:opacity-50 text-white"
                     >
                       {isSubmitting ? (
                         <>
@@ -2117,10 +2121,10 @@ export default function AgendamentoPage() {
                 <div className="text-center py-8">
                   {/* Animação de sucesso */}
                   <div className="relative animate-bounce-in">
-                    <div className="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-tymer-primary rounded-full flex items-center justify-center mx-auto mb-6">
                       <Check className="h-10 w-10 text-white" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-tymer-primary rounded-full animate-ping opacity-75"></div>
                   </div>
                   
                   <h2 className="text-2xl font-bold mb-3 text-[#ededed] animate-fade-in animate-delay-200">
@@ -2128,13 +2132,13 @@ export default function AgendamentoPage() {
                   </h2>
                   
                   <p className="text-[#a1a1aa] mb-6 text-lg animate-fade-in animate-delay-400">
-                    Seu agendamento foi realizado com <span className="text-emerald-400 font-semibold">sucesso</span>!<br />
+                    Seu agendamento foi realizado com <span className="text-tymer-primary font-semibold">sucesso</span>!<br />
                     Você receberá uma confirmação via WhatsApp em breve.
                   </p>
                   
                   {/* Card com detalhes do agendamento */}
-                  <div className="bg-gradient-to-r from-emerald-600/10 to-emerald-700/10 border border-emerald-600/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
-                    <h3 className="text-lg font-semibold text-emerald-400 mb-4 text-center">
+                  <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 mb-6 text-left animate-slide-up animate-delay-600">
+                    <h3 className="text-lg font-semibold text-tymer-primary mb-4 text-center">
                       📅 Detalhes do Agendamento
                     </h3>
                     
@@ -2174,9 +2178,9 @@ export default function AgendamentoPage() {
                         <span className="text-[#ededed] font-bold">{calculateTotals().totalDuration} minutos</span>
                       </div>
                       
-                      <div className="flex items-center justify-between p-3 bg-emerald-600/20 border border-emerald-600/40 rounded-lg">
-                        <span className="text-emerald-300 font-bold">💰 Valor Total:</span>
-                        <span className="text-emerald-300 font-bold text-xl">
+                      <div className="flex items-center justify-between p-3 bg-tymer-primary/20 border border-tymer-primary/40 rounded-lg">
+                        <span className="text-tymer-primary font-bold">💰 Valor Total:</span>
+                        <span className="text-tymer-primary font-bold text-xl">
                           {formatCurrency(calculateTotals().totalPrice)}
                         </span>
                       </div>
@@ -2215,7 +2219,7 @@ export default function AgendamentoPage() {
                           setPhoneDebounceTimer(null)
                         }
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 transition-all duration-300 hover:scale-105"
+                      className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold py-3 transition-all duration-300 hover:scale-105"
                     >
                       🎯 Fazer Novo Agendamento
                     </Button>
@@ -2231,7 +2235,7 @@ export default function AgendamentoPage() {
                         window.open(whatsappUrl, '_blank')
                       }}
                       variant="outline"
-                      className="w-full border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 font-semibold py-3 transition-all duration-300 hover:scale-105"
+                      className="w-full border-tymer-primary text-tymer-primary hover:bg-tymer-primary/10 font-semibold py-3 transition-all duration-300 hover:scale-105"
                     >
                       📱 Compartilhar no WhatsApp
                     </Button>
