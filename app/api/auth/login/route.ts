@@ -44,13 +44,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se tenant está ativo
-    if (!tenant.isActive) {
-      return NextResponse.json(
-        { message: 'Conta inativa. Entre em contato com o suporte.' },
-        { status: 403 }
-      )
-    }
+    // NÃO bloquear login para conta inativa/expirada: apenas marcar status para o frontend redirecionar
+    const now = new Date()
+    const isExpired = tenant.subscriptionEnd ? tenant.subscriptionEnd < now : false
+    const subscriptionStatus = !tenant.isActive
+      ? 'inactive'
+      : isExpired
+        ? 'expired'
+        : 'active'
 
     // Gerar JWT token enriquecido com estado de assinatura
     const token = jwt.sign(
@@ -59,9 +60,10 @@ export async function POST(request: NextRequest) {
         tenantId: tenant.id, // multi-tenant
         email: tenant.email,
         role: tenant.role,
-        isActive: tenant.isActive,
+        isActive: tenant.isActive, // ainda carrega isActive (false se inativa)
         businessPlan: tenant.businessPlan,
-        subscriptionEnd: tenant.subscriptionEnd ? tenant.subscriptionEnd.toISOString() : null
+        subscriptionEnd: tenant.subscriptionEnd ? tenant.subscriptionEnd.toISOString() : null,
+        subscriptionStatus
       },
       process.env.NEXTAUTH_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
@@ -83,7 +85,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: userResponse,
       token,
-      message: 'Login realizado com sucesso'
+      subscriptionStatus,
+      message: subscriptionStatus === 'active' 
+        ? 'Login realizado com sucesso' 
+        : subscriptionStatus === 'expired'
+          ? 'Login realizado. Assinatura expirada.'
+          : 'Login realizado. Conta inativa.'
     })
   } catch (error) {
     console.error('Erro no login:', error)
