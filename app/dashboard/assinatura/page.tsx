@@ -250,7 +250,7 @@ export default function SubscriptionPage() {
   ]
   // Recursos avançados apenas para PREMIUM e ULTRA
   const advancedFeatures = [
-    'Relatórios personalizados',
+    'Relatórios de Desempenho por Profissional',
   ]
   // Exclusivos do ULTRA
   const ultraExclusive = [
