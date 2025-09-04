@@ -113,6 +113,27 @@ export default function DashboardLayout({
     )
   }
 
+  // Determinar se assinatura está bloqueada (token enriquecido pode não estar no contexto; usar businessInfo se tiver ou fallback user)
+  // Como não temos diretamente isActive aqui via contexto enriquecido, assumimos que logout/middleware já tratam.
+  // Para reforço: considerar custom claim armazenado no localStorage.
+  const isSubscriptionBlocked = typeof window !== 'undefined' && !localStorage.getItem('auth_token') ? false : false
+
+  // Bloqueio de navegação: ler token para extrair isActive (operação leve client-side)
+  let tokenIsActive: boolean | null = null
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('auth_token')
+      if (raw) {
+        const payloadBase64 = raw.split('.')[1]
+        const decoded = JSON.parse(atob(payloadBase64))
+        tokenIsActive = decoded.isActive
+      }
+    } catch {
+      tokenIsActive = null
+    }
+  }
+  const navigationLocked = tokenIsActive === false
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-tymer-bg text-tymer-text flex">
@@ -175,32 +196,47 @@ export default function DashboardLayout({
 
           {/* Navegação */}
           <nav className="p-4 space-y-2">
-            {menuItems.map((item) => (
-              <div key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    pathname === item.href
-                      ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 shadow-lg shadow-primary/10'
-                      : 'hover:bg-tymer-border/50'
-                  }`}
-                >
-                  <item.icon className={`mr-4 h-5 w-5 transition-colors ${
-                    pathname === item.href ? 'text-foreground' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
-                  }`} />
-                  <div className="flex-1">
-                    <div className={`font-medium ${pathname === item.href ? 'text-foreground' : 'text-tymer-muted group-hover:text-foreground'}`}>{item.label}</div>
-                    <div className={`text-xs group-hover:text-[#ededed]/70 ${pathname === item.href ? 'text-[#a1a1aa]' : 'text-[#71717a]' }`}>
-                      {item.description}
+            {menuItems.map((item) => {
+              const disabledByPlan = navigationLocked && item.href !== '/dashboard/assinatura'
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={disabledByPlan ? '/dashboard/assinatura' : item.href}
+                    onClick={(e) => {
+                      if (disabledByPlan) {
+                        e.preventDefault()
+                        router.push('/dashboard/assinatura?reason=' + (tokenIsActive === false ? 'inativa' : 'expirada'))
+                        setSidebarOpen(false)
+                        return
+                      }
+                      setSidebarOpen(false)
+                    }}
+                    className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      pathname === item.href
+                        ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 shadow-lg shadow-primary/10'
+                        : disabledByPlan
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'hover:bg-tymer-border/50'
+                    }`}
+                    aria-disabled={disabledByPlan}
+                    tabIndex={disabledByPlan ? -1 : 0}
+                  >
+                    <item.icon className={`mr-4 h-5 w-5 transition-colors ${
+                      pathname === item.href ? 'text-foreground' : 'text-[#a1a1aa] group-hover:text-[#ededed]'
+                    }`} />
+                    <div className="flex-1">
+                      <div className={`font-medium ${pathname === item.href ? 'text-foreground' : 'text-tymer-muted group-hover:text-foreground'}`}>{item.label}</div>
+                      <div className={`text-xs group-hover:text-[#ededed]/70 ${pathname === item.href ? 'text-[#a1a1aa]' : 'text-[#71717a]' }`}>
+                        {disabledByPlan ? 'Bloqueado - assinatura inativa' : item.description}
+                      </div>
                     </div>
-                  </div>
-                  {pathname === item.href && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </Link>
-              </div>
-            ))}
+                    {pathname === item.href && (
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                    )}
+                  </Link>
+                </div>
+              )
+            })}
           </nav>
 
           {/* Logout */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSubscription } from '@/hooks/use-subscription'
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,9 +16,41 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 const SUPPORT_PHONE_NUMBER = '24981757110'
 
 export default function SubscriptionPage() {
-  const { subscriptionInfo: subscription, loading, error } = useSubscription()
+  const { subscriptionInfo: subscription, loading, error, refresh } = useSubscription()
   const [isManageModalOpen, setIsManageModalOpen] = useState(false)
   const { toast } = useToast()
+  const [reason, setReason] = useState<string | null>(null)
+  const [refreshingToken, setRefreshingToken] = useState(false)
+
+  // Ler query param reason (inativa | expirada)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const r = params.get('reason')
+    if (r) setReason(r)
+  }, [])
+
+  // Se houver reason, tentar atualizar token para sincronizar estado mais recente
+  useEffect(() => {
+    if (!reason) return
+    const sync = async () => {
+      try {
+        setRefreshingToken(true)
+        const res = await fetch('/api/auth/refresh-token')
+        if (res.ok) {
+          const data = await res.json()
+          // atualizar localStorage para manter coerência com AuthProvider
+            localStorage.setItem('auth_token', data.token)
+          // Forçar refresh das infos de assinatura
+          await refresh()
+        }
+      } catch (e) {
+        console.error('Erro ao atualizar token pós-redirecionamento', e)
+      } finally {
+        setRefreshingToken(false)
+      }
+    }
+    sync()
+  }, [reason, refresh])
   const { user } = useAuth()
 
   // Abrir modal de instruções (mantendo validação de assinatura ativa)
@@ -261,7 +293,7 @@ export default function SubscriptionPage() {
   const currentPlanFeatures = planFeatures[subscription.plan as keyof typeof planFeatures] || planFeatures['FREE']
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-28"> {/* padding extra para não ficar escondido atrás do banner fixo */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -269,6 +301,18 @@ export default function SubscriptionPage() {
           <p className="text-[#71717a]">Controle completo da sua assinatura e faturas</p>
         </div>
       </div>
+
+      {/* Alertas de bloqueio vindos do middleware */}
+      {reason && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {reason === 'inativa' && 'Sua assinatura está inativa. Renove para recuperar o acesso completo.'}
+            {reason === 'expirada' && 'Sua assinatura expirou. Renove para continuar utilizando a plataforma.'}
+            {refreshingToken && <span className="ml-2 text-xs opacity-80">Sincronizando status...</span>}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Status Alert */}
       {subscription.isExpired && (
@@ -454,6 +498,114 @@ export default function SubscriptionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Banner Persistente (fixo) */}
+  <div className="fixed inset-x-0 bottom-0 z-50 px-3 sm:px-4 pb-4">
+        <div
+          className={[
+            'mx-auto max-w-6xl rounded-lg shadow-lg border backdrop-blur supports-[backdrop-filter]:bg-opacity-90 transition-colors',
+            'p-3 sm:p-4',
+            subscription.isExpired || !subscription.isActive
+              ? 'bg-red-600/90 border-red-500/60 text-white'
+              : subscription.plan === 'FREE'
+                ? 'bg-gradient-to-r from-gray-800 via-gray-800 to-gray-900 border-gray-700 text-gray-100'
+                : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7)
+                  ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border-amber-400/60'
+                  : 'bg-[#18181b]/90 border-[#27272a] text-[#ededed]'
+          ].join(' ')}
+        >
+          <div className="flex flex-col gap-3 sm:gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1 text-sm leading-tight">
+              {/* Linha principal */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {subscription.isExpired || !subscription.isActive ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
+                      <XCircle className="h-4 w-4" /> Assinatura {subscription.isExpired ? 'expirada' : 'inativa'}
+                    </span>
+                    <span className="hidden sm:inline opacity-70">|</span>
+                    <span className="font-medium">
+                      Renove para recuperar o acesso completo.
+                    </span>
+                  </>
+                ) : subscription.plan === 'FREE' ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
+                      <Shield className="h-4 w-4" /> Plano Gratuito
+                    </span>
+                    <span className="hidden sm:inline opacity-70">|</span>
+                    <span className="font-medium">Desbloqueie mais recursos atualizando seu plano.</span>
+                  </>
+                ) : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7) ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
+                      <Clock className="h-4 w-4" /> Expira em breve
+                    </span>
+                    <span className="hidden sm:inline opacity-70">|</span>
+                    <span className="font-medium">Renova em {subscription.daysUntilExpiry === 0 ? 'hoje' : `${subscription.daysUntilExpiry} dias`}.</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide">
+                      <CheckCircle2 className="h-4 w-4" /> Assinatura ativa
+                    </span>
+                    <span className="hidden sm:inline opacity-70">|</span>
+                    <span className="font-medium">Plano {getPlanDisplayName(subscription.plan)}{subscription.daysUntilExpiry ? ` · renova em ${subscription.daysUntilExpiry} dias` : ''}</span>
+                  </>
+                )}
+              </div>
+              {/* Linha secundária opcional */}
+              {(subscription.isExpired || !subscription.isActive) && subscription.daysUntilExpiry !== undefined && (
+                <span className="text-xs opacity-80">
+                  {subscription.daysUntilExpiry < 0
+                    ? `Expirada há ${Math.abs(subscription.daysUntilExpiry)} dias`
+                    : subscription.daysUntilExpiry === 0
+                      ? 'Expira hoje'
+                      : `Expira em ${subscription.daysUntilExpiry} dias`}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end w-full sm:w-auto">
+              {subscription.isExpired || !subscription.isActive ? (
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto bg-white text-red-600 hover:bg-red-50"
+                  onClick={handleOpenManageModal}
+                >
+                  Renovar agora
+                </Button>
+              ) : subscription.plan === 'FREE' ? (
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80 text-white"
+                  onClick={handleOpenManageModal}
+                >
+                  Ver planos
+                </Button>
+              ) : (subscription.daysUntilExpiry && subscription.daysUntilExpiry <= 7) ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={handleOpenManageModal}
+                >
+                  Renovar assinatura
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={handleOpenManageModal}
+                >
+                  Gerenciar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

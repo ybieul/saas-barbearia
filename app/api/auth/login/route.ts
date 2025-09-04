@@ -52,13 +52,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Gerar JWT token com tenantId
+    // Gerar JWT token enriquecido com estado de assinatura
     const token = jwt.sign(
       { 
         userId: tenant.id, 
-        tenantId: tenant.id, // Incluir tenantId para multi-tenant
+        tenantId: tenant.id, // multi-tenant
         email: tenant.email,
-        role: tenant.role 
+        role: tenant.role,
+        isActive: tenant.isActive,
+        businessPlan: tenant.businessPlan,
+        subscriptionEnd: tenant.subscriptionEnd ? tenant.subscriptionEnd.toISOString() : null
       },
       process.env.NEXTAUTH_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
@@ -71,7 +74,10 @@ export async function POST(request: NextRequest) {
       businessName: tenant.businessName,
       avatar: tenant.avatar,
       role: tenant.role,
-      tenantId: tenant.id
+      tenantId: tenant.id,
+      isActive: tenant.isActive,
+      businessPlan: tenant.businessPlan,
+      subscriptionEnd: tenant.subscriptionEnd
     }
 
     return NextResponse.json({

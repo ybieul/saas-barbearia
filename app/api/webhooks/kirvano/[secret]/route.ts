@@ -293,13 +293,11 @@ async function handleSubscriptionCanceledOrExpired(webhookData: KirvanoWebhookEv
       where: { id: tenant.id },
       data: {
         isActive: false,
-        businessPlan: 'FREE', // Voltar para plano gratuito
         updatedAt: new Date()
-        // Mantemos subscriptionEnd e outros dados da Kirvano para histórico
       }
     })
     
-    console.log(`✅ Assinatura ${eventType.toLowerCase()} para tenant ${tenant.id} - Plano alterado para FREE`)
+    console.log(`✅ Assinatura ${eventType.toLowerCase()} para tenant ${tenant.id} - Marcado inativo (sem downgrade para FREE)`) 
     
   } catch (error) {
     console.error(`❌ Erro ao processar ${webhookData.event}:`, error)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import jwt from 'jsonwebtoken'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -12,12 +13,31 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Para rotas do dashboard, verificar se há token
+  // Para rotas do dashboard, verificar token e estado da assinatura
   if (pathname.startsWith('/dashboard')) {
     const token = request.cookies.get('auth_token')?.value
-    
     if (!token) {
-      // Redirecionar para login se não há token
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    try {
+      const decoded: any = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret')
+      const isActive = decoded.isActive
+      const subscriptionEndIso = decoded.subscriptionEnd
+      const subscriptionEndDate = subscriptionEndIso ? new Date(subscriptionEndIso) : null
+      const now = new Date()
+      const notExpired = subscriptionEndDate ? subscriptionEndDate.getTime() > now.getTime() : true
+      const isSubscriptionActive = !!isActive && notExpired
+
+      const isOnBillingPage = pathname.startsWith('/dashboard/assinatura')
+
+      if (!isSubscriptionActive && !isOnBillingPage) {
+        const url = new URL('/dashboard/assinatura', request.url)
+        url.searchParams.set('reason', !isActive ? 'inativa' : 'expirada')
+        return NextResponse.redirect(url)
+      }
+    } catch (e) {
+      // Token inválido => redirecionar login
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
