@@ -2,58 +2,36 @@
 
 import { useState } from 'react'
 import { useSubscription } from '@/hooks/use-subscription'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink, Loader2 } from 'lucide-react'
+import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 // Número de suporte fixo
 const SUPPORT_PHONE_NUMBER = '24981757110'
 
 export default function SubscriptionPage() {
-  const { subscriptionInfo: subscription, loading, error, manageSubscription } = useSubscription()
-  const [isManaging, setIsManaging] = useState(false)
+  const { subscriptionInfo: subscription, loading, error } = useSubscription()
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuth()
 
-  // Função para gerenciar assinatura (abrir portal da Kirvano)
-  const handleManageSubscription = async () => {
-    if (!subscription?.isActive) {
+  // Abrir modal de instruções (mantendo validação de assinatura ativa)
+  const handleOpenManageModal = () => {
+    if (!subscription?.isActive || subscription?.isExpired) {
       toast({
         title: 'Assinatura inativa',
-        description: 'Apenas assinaturas ativas podem ser gerenciadas.',
+        description: 'Renove ou ative sua assinatura para gerenciar.',
         variant: 'destructive'
       })
       return
     }
-
-    try {
-      setIsManaging(true)
-      
-      // Chamar API para obter link do portal
-      const portalUrl = await manageSubscription()
-      
-      // Abrir portal em nova aba
-      window.open(portalUrl, '_blank', 'noopener,noreferrer')
-      
-      toast({
-        title: 'Portal aberto',
-        description: 'O portal de gerenciamento foi aberto em uma nova aba.'
-      })
-      
-    } catch (error) {
-      console.error('Erro ao abrir portal:', error)
-      
-      toast({
-        title: 'Erro ao abrir portal',
-        description: error instanceof Error ? error.message : 'Erro desconhecido. Tente novamente.',
-        variant: 'destructive'
-      })
-    } finally {
-      setIsManaging(false)
-    }
+    setIsManageModalOpen(true)
   }
 
   // Função para abrir suporte no WhatsApp
@@ -391,21 +369,12 @@ export default function SubscriptionPage() {
             <Button 
               className="w-full" 
               variant="outline" 
-              onClick={handleManageSubscription}
-              disabled={isManaging || !subscription?.isActive || subscription?.isExpired}
+              onClick={handleOpenManageModal}
+              disabled={!subscription?.isActive || subscription?.isExpired}
             >
-              {isManaging ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Abrindo portal...
-                </>
-              ) : (
-                <>
-                  <Crown className="h-4 w-4 mr-2" />
-                  Gerenciar Assinatura
-                  <ExternalLink className="h-3 w-3 ml-2" />
-                </>
-              )}
+              <Crown className="h-4 w-4 mr-2" />
+              Gerenciar Assinatura
+              <ExternalLink className="h-3 w-3 ml-2" />
             </Button>
             
             {(!subscription?.isActive || subscription?.isExpired) && (
@@ -431,6 +400,45 @@ export default function SubscriptionPage() {
           </Button>
         </CardContent>
       </Card>
+      {/* Modal de instruções Kirvano */}
+      <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gerenciar sua Assinatura</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-4 pt-4 text-left text-sm leading-relaxed">
+                <p>
+                  Para alterar sua forma de pagamento, ver suas faturas ou cancelar sua assinatura, você precisa acessar seu painel na plataforma de pagamentos Kirvano.
+                </p>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>
+                    Acesse{' '}
+                    <a href="https://app.kirvano.com" target="_blank" rel="noopener noreferrer" className="text-tymer-primary underline hover:opacity-80">
+                      app.kirvano.com
+                    </a>
+                  </li>
+                  <li>
+                    Faça login com o e-mail: <span className="font-semibold">{user?.email || 'seu-email@exemplo.com'}</span>
+                  </li>
+                  <li>
+                    Se for seu primeiro acesso, use a opção "Esqueci minha senha" para criar uma senha.
+                  </li>
+                  <li>
+                    No painel da Kirvano, vá em <span className="font-semibold">Minhas Compras</span> para gerir sua assinatura.
+                  </li>
+                </ol>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <a href="https://app.kirvano.com" target="_blank" rel="noopener noreferrer" className="w-full">
+              <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white" onClick={() => setIsManageModalOpen(false)}>
+                Aceder à Kirvano
+              </Button>
+            </a>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
