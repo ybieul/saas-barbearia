@@ -40,167 +40,127 @@ export function generateSecurePassword(length: number = 12): string {
 
 // Template HTML para email de boas-vindas
 function getWelcomeEmailTemplate(name: string, email: string, temporaryPassword: string) {
-  return `
-<!DOCTYPE html>
+    // Template com layout baseado em tabelas + botão bulletproof para maior compatibilidade (incluindo Outlook)
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Bem-vindo ao TymerBook</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 30px 20px;
-            line-height: 1.6;
-        }
-        .welcome-message {
-            font-size: 18px;
-            color: #4a5568;
-            margin-bottom: 20px;
-        }
-        .credentials-box {
-            background-color: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .credential-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .credential-row:last-child {
-            border-bottom: none;
-        }
-        .credential-label {
-            font-weight: 600;
-            color: #2d3748;
-        }
-        .credential-value {
-            color: #4a5568;
-            font-family: monospace;
-            background-color: #edf2f7;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .warning-box {
-            background-color: #fef5e7;
-            border-left: 4px solid #f6ad55;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 0 6px 6px 0;
-        }
-        .footer {
-            background-color: #f7fafc;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #718096;
-        }
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <style type="text/css">
+        /* Resets básicos */
+        body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+        table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+        img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+        table { border-collapse:collapse !important; }
+        body { margin:0; padding:0; width:100% !important; background-color:#f5f5f5; }
+        a { text-decoration:none; }
+        /* Outlook força fontes: garantir fallback */
+        .ExternalClass { width:100%; }
+        .ExternalClass * { line-height:120%; }
+        .apple-link a { color:inherit !important; text-decoration:none !important; }
+        @media screen and (max-width:600px){
+            .container { width:100% !important; }
+            .p-sm { padding:20px !important; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🎉 Bem-vindo ao TymerBook!</h1>
-            <p>Sua conta foi criada com sucesso</p>
-        </div>
-        
-        <div class="content">
-            <div class="welcome-message">
-                <p>Olá <strong>${name}</strong>,</p>
-                <p>Sua assinatura foi ativada e sua conta no TymerBook foi criada automaticamente! Agora você pode começar a usar nossa plataforma para gerenciar seus agendamentos.</p>
-            </div>
-            
-            <div class="credentials-box">
-                <h3 style="margin-top: 0; color: #2d3748;">Suas credenciais de acesso:</h3>
-                <div class="credential-row">
-                    <span class="credential-label">Email:</span>
-                    <span class="credential-value">${email}</span>
-                </div>
-                <div class="credential-row">
-                    <span class="credential-label">Senha temporária:</span>
-                    <span class="credential-value">${temporaryPassword}</span>
-                </div>
-            </div>
-            
-            <div style="text-align: center;">
-                <a href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" class="cta-button">
-                    Fazer Login Agora
-                </a>
-            </div>
-            
-            <div class="warning-box">
-                <strong>⚠️ Importante:</strong> Por motivos de segurança, recomendamos que você faça login e altere sua senha assim que possível. Vá em Configurações → Alterar Senha após o primeiro acesso.
-            </div>
-            
-            <h3>🚀 Próximos passos:</h3>
-            <ul style="color: #4a5568;">
-                <li><strong>Faça login</strong> com as credenciais acima</li>
-                <li><strong>Altere sua senha</strong> para uma de sua preferência</li>
-                <li><strong>Configure seu negócio</strong> nas configurações</li>
-                <li><strong>Adicione seus serviços</strong> e profissionais</li>
-                <li><strong>Comece a receber agendamentos</strong>!</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p>Este é um email automático. Não responda diretamente.</p>
-            <p>
-                Precisa de ajuda? Entre em contato: 
-                <a href="mailto:suporte@tymerbook.com">suporte@tymerbook.com</a>
-            </p>
-            <p style="margin-top: 15px;">
-                © ${new Date().getFullYear()} TymerBook. Todos os direitos reservados.
-            </p>
-        </div>
-    </div>
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Segoe UI, Arial, sans-serif;">
+    <center style="width:100%; background-color:#f5f5f5;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td align="center" style="padding:30px 10px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width:600px; max-width:600px; background:#ffffff; border-radius:8px; overflow:hidden;">
+                        <!-- Cabeçalho -->
+                        <tr>
+                            <td style="background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;">
+                                <h1 style="margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif;">Bem-vindo ao TymerBook</h1>
+                                <p style="margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif;">Sua conta foi criada com sucesso</p>
+                            </td>
+                        </tr>
+                        <!-- Conteúdo -->
+                        <tr>
+                            <td style="padding:32px 28px 8px; font-size:15px; line-height:1.55; color:#374151; font-family:Segoe UI, Arial, sans-serif;">
+                                <p style="margin:0 0 16px;">Olá <strong style="color:#111827;">${name}</strong>,</p>
+                                <p style="margin:0 0 16px;">Sua assinatura foi ativada e sua conta no TymerBook foi criada automaticamente. Abaixo estão suas credenciais temporárias de acesso:</p>
+                            </td>
+                        </tr>
+                        <!-- Credenciais -->
+                        <tr>
+                            <td style="padding:0 28px 8px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7fafc; border:1px solid #e2e8f0; border-radius:6px;">
+                                    <tr>
+                                        <td style="padding:16px 20px; font-family:Segoe UI, Arial, sans-serif;">
+                                            <p style="margin:0 0 12px; font-size:14px; color:#1f2937; font-weight:600;">Credenciais de acesso</p>
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                <tr>
+                                                    <td style="padding:6px 0; font-size:13px; color:#374151; width:140px; font-weight:600;">Email:</td>
+                                                    <td style="padding:6px 0; font-size:13px; color:#4b5563;">${email}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:6px 0; font-size:13px; color:#374151; font-weight:600;">Senha temporária:</td>
+                                                    <td style="padding:6px 0; font-size:13px; color:#4b5563; font-family:Consolas, 'Courier New', monospace;">${temporaryPassword}</td>
+                                                </tr>
+                                            </table>
+                                            <p style="margin:12px 0 0; font-size:12px; color:#6b7280;">Altere sua senha assim que acessar o painel.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <!-- Botão -->
+                        <tr>
+                            <td align="center" style="padding:24px 28px 4px;">
+                                <!--[if mso]>
+                                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="10%" fillcolor="#4700FF" stroke="f">
+                                    <w:anchorlock/>
+                                    <center style="color:#ffffff;font-family:Arial, sans-serif;font-size:16px;font-weight:600;">Fazer Login Agora</center>
+                                </v:roundrect>
+                                <![endif]-->
+                                <!--[if !mso]><!-- -->
+                                <a href="${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login" style="display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;">Fazer Login Agora</a>
+                                <!--<![endif]-->
+                            </td>
+                        </tr>
+                        <!-- Próximos passos -->
+                        <tr>
+                            <td style="padding:28px 28px 8px; font-family:Segoe UI, Arial, sans-serif;">
+                                <p style="margin:0 0 12px; font-size:15px; color:#111827; font-weight:600;">Próximos passos</p>
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size:13px; color:#374151; line-height:1.5;">
+                                    <tr><td style="padding:4px 0;">1. Faça login com as credenciais acima</td></tr>
+                                    <tr><td style="padding:4px 0;">2. Altere sua senha nas configurações</td></tr>
+                                    <tr><td style="padding:4px 0;">3. Complete as informações do seu negócio</td></tr>
+                                    <tr><td style="padding:4px 0;">4. Adicione serviços e profissionais</td></tr>
+                                    <tr><td style="padding:4px 0;">5. Comece a receber agendamentos</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <!-- Aviso -->
+                        <tr>
+                            <td style="padding:20px 28px 8px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fef5e7; border-left:4px solid #f6ad55; border-radius:4px;">
+                                    <tr>
+                                        <td style="padding:12px 16px; font-size:12px; color:#8a6d3b; font-family:Segoe UI, Arial, sans-serif;">Por segurança, não compartilhe estas credenciais. O link deste email é exclusivo para você.</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <!-- Rodapé -->
+                        <tr>
+                            <td style="background:#f7fafc; padding:24px 20px; text-align:center; font-family:Segoe UI, Arial, sans-serif;">
+                                <p style="margin:0 0 8px; font-size:12px; color:#6b7280;">Este é um email automático. Não responda.</p>
+                                <p style="margin:0 0 8px; font-size:12px; color:#6b7280;">Suporte: <a href="mailto:suporte@tymerbook.com" style="color:#4700FF; font-weight:500;">suporte@tymerbook.com</a></p>
+                                <p style="margin:12px 0 0; font-size:11px; color:#9ca3af;">© ${new Date().getFullYear()} TymerBook. Todos os direitos reservados.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </center>
 </body>
-</html>
-  `
+</html>`
 }
 
 // Função para enviar email de boas-vindas
@@ -272,130 +232,88 @@ export async function testEmailConfiguration(): Promise<boolean> {
 
 // Template HTML para email de redefinição de senha
 function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
+    return `<!DOCTYPE html>
+<html lang=\"pt-BR\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>
     <title>Redefinir Senha - TymerBook</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 30px 20px;
-            line-height: 1.6;
-        }
-        .message {
-            font-size: 16px;
-            color: #4a5568;
-            margin-bottom: 20px;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .warning-box {
-            background-color: #fef5e7;
-            border-left: 4px solid #f6ad55;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 0 6px 6px 0;
-        }
-        .footer {
-            background-color: #f7fafc;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #718096;
-        }
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
+    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" />
+    <style type=\"text/css\">
+        body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+        table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+        img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+        table { border-collapse:collapse !important; }
+        body { margin:0; padding:0; width:100% !important; background-color:#f5f5f5; }
+        a { text-decoration:none; }
+        .ExternalClass { width:100%; }
+        .ExternalClass * { line-height:120%; }
+        @media screen and (max-width:600px){ .container { width:100% !important; } }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔑 Redefinir Senha</h1>
-            <p>Solicitação de redefinição de senha</p>
-        </div>
-        
-        <div class="content">
-            <div class="message">
-                <p>Olá <strong>${name}</strong>,</p>
-                <p>Você solicitou a redefinição de sua senha no TymerBook. Clique no botão abaixo para criar uma nova senha:</p>
-            </div>
-            
-            <div style="text-align: center;">
-                <a href="${resetUrl}" class="cta-button">
-                    Redefinir Minha Senha
-                </a>
-            </div>
-            
-            <div class="warning-box">
-                <strong>⚠️ Importante:</strong>
-                <ul style="margin: 10px 0;">
-                    <li>Este link é válido por <strong>1 hora</strong> após o envio</li>
-                    <li>Se você não solicitou esta redefinição, ignore este email</li>
-                    <li>Por segurança, não compartilhe este link com ninguém</li>
-                </ul>
-            </div>
-            
-            <div class="message">
-                <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
-                <p style="word-break: break-all; color: #667eea; background-color: #f7fafc; padding: 10px; border-radius: 4px;">
-                    ${resetUrl}
-                </p>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>Este é um email automático. Não responda diretamente.</p>
-            <p>
-                Precisa de ajuda? Entre em contato: 
-                <a href="mailto:suporte@tymerbook.com">suporte@tymerbook.com</a>
-            </p>
-            <p style="margin-top: 15px;">
-                © ${new Date().getFullYear()} TymerBook. Todos os direitos reservados.
-            </p>
-        </div>
-    </div>
+<body style=\"margin:0; padding:0; background-color:#f5f5f5; font-family:Segoe UI, Arial, sans-serif;\">
+    <center style=\"width:100%; background-color:#f5f5f5;\">
+        <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\"> 
+            <tr>
+                <td align=\"center\" style=\"padding:30px 10px;\"> 
+                    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"600\" class=\"container\" style=\"width:600px; max-width:600px; background:#ffffff; border-radius:8px; overflow:hidden;\"> 
+                        <tr>
+                            <td style=\"background:#4700FF; background:linear-gradient(90deg,#4700FF 0%, #6a32ff 100%); padding:32px 24px; text-align:center;\">
+                                <h1 style=\"margin:0; font-size:24px; line-height:1.3; color:#ffffff; font-weight:600; font-family:Segoe UI, Arial, sans-serif;\">Redefinir Senha</h1>
+                                <p style=\"margin:8px 0 0; font-size:14px; color:#e5e5e5; font-family:Segoe UI, Arial, sans-serif;\">Solicitação de redefinição</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style=\"padding:32px 28px 8px; font-size:15px; line-height:1.55; color:#374151; font-family:Segoe UI, Arial, sans-serif;\">
+                                <p style=\"margin:0 0 16px;\">Olá <strong style=\"color:#111827;\">${name}</strong>,</p>
+                                <p style=\"margin:0 0 16px;\">Recebemos uma solicitação para redefinir sua senha no TymerBook. Se foi você, continue abaixo; caso contrário, ignore este email.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align=\"center\" style=\"padding:16px 28px 4px;\">
+                                <!--[if mso]>
+                                <v:roundrect xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" href=\"${resetUrl}\" style=\"height:48px;v-text-anchor:middle;width:260px;\" arcsize=\"10%\" fillcolor=\"#4700FF\" stroke=\"f\"> 
+                                    <w:anchorlock/>
+                                    <center style=\"color:#ffffff;font-family:Arial, sans-serif;font-size:16px;font-weight:600;\">Redefinir Minha Senha</center>
+                                </v:roundrect>
+                                <![endif]-->
+                                <!--[if !mso]><!-- -->
+                                <a href=\"${resetUrl}\" style=\"display:inline-block; background:#4700FF; background:linear-gradient(90deg,#4700FF 0%,#6a32ff 100%); color:#ffffff; font-family:Segoe UI, Arial, sans-serif; font-size:16px; font-weight:600; line-height:48px; text-align:center; text-decoration:none; width:260px; border-radius:6px; -webkit-text-size-adjust:none; mso-hide:all;\">Redefinir Minha Senha</a>
+                                <!--<![endif]-->
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style=\"padding:28px 28px 4px; font-family:Segoe UI, Arial, sans-serif;\">
+                                <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:#fef5e7; border-left:4px solid #f6ad55; border-radius:4px;\"> 
+                                    <tr>
+                                        <td style=\"padding:14px 16px; font-size:12px; line-height:1.45; color:#8a6d3b;\">
+                                            <strong style=\"display:block; margin-bottom:4px;\">Importante:</strong>
+                                            O link expira em 1 hora. Caso não tenha solicitado, nenhuma ação é necessária.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style=\"padding:24px 28px 8px; font-size:13px; font-family:Segoe UI, Arial, sans-serif; color:#374151;\">
+                                <p style=\"margin:0 0 8px; font-weight:600; color:#111827;\">Link alternativo</p>
+                                <p style=\"margin:0; word-break:break-all; background:#f7fafc; padding:10px 12px; border-radius:4px; font-size:12px; line-height:1.4; color:#4700FF;\">${resetUrl}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style=\"background:#f7fafc; padding:24px 20px; text-align:center; font-family:Segoe UI, Arial, sans-serif;\">
+                                <p style=\"margin:0 0 8px; font-size:12px; color:#6b7280;\">Este é um email automático. Não responda.</p>
+                                <p style=\"margin:0 0 8px; font-size:12px; color:#6b7280;\">Suporte: <a href=\"mailto:suporte@tymerbook.com\" style=\"color:#4700FF; font-weight:500;\">suporte@tymerbook.com</a></p>
+                                <p style=\"margin:12px 0 0; font-size:11px; color:#9ca3af;\">© ${new Date().getFullYear()} TymerBook. Todos os direitos reservados.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </center>
 </body>
-</html>
-  `
+</html>`
 }
 
 // Função para enviar email de redefinição de senha
