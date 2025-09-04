@@ -1383,8 +1383,9 @@ export default function AgendamentoPage() {
                           {selectedProfessional?.id === professional.id && (
                             <div className="mt-3">
                               <div className="bg-tymer-primary/10 border border-tymer-primary/30 rounded-lg p-3 mb-3">
-                                <p className="text-tymer-primary text-sm text-center">
-                                  ✅ Profissional selecionado: <span className="font-semibold">{professional.name}</span>
+                                <p className="text-[#ededed] text-sm text-center flex items-center justify-center gap-2">
+                                  <Check className="h-4 w-4 text-tymer-icon" />
+                                  <span>Profissional selecionado:</span> <span className="font-semibold">{professional.name}</span>
                                 </p>
                               </div>
                               <Button
