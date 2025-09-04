@@ -2199,11 +2199,11 @@ export default function AgendamentoPage() {
                       </div>
 
                       <div className="flex items-center justify-between p-3 bg-tymer-primary/20 border border-tymer-primary/40 rounded-lg">
-                        <div className="flex items-center gap-2 text-tymer-primary font-bold">
+                        <div className="flex items-center gap-2 text-[#ededed] font-bold">
                           <Wallet className="h-4 w-4 text-tymer-icon" />
                           <span>Valor Total:</span>
                         </div>
-                        <span className="text-tymer-primary font-bold text-xl">
+                        <span className="text-[#ededed] font-bold text-xl">
                           {formatCurrency(calculateTotals().totalPrice)}
                         </span>
                       </div>
@@ -2211,7 +2211,7 @@ export default function AgendamentoPage() {
                   </div>
 
                   {/* Informações importantes */}
-                  <div className="bg-tymer-primary rounded-lg p-4 mb-6 animate-slide-up animate-delay-600">
+                  <div className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 space-y-3 shadow-lg mb-6 animate-slide-up animate-delay-600">
                     <h4 className="text-white font-semibold mb-2 flex items-center justify-center gap-2">
                       <Info className="h-4 w-4 text-tymer-icon" />
                       Informações Importantes
