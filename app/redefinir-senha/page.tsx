@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Scissors, Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { Calendar, Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -79,13 +79,8 @@ function RedefinirSenhaContent() {
         setSuccessMessage(data.message)
         toast({
           title: "Senha redefinida!",
-          description: "Sua senha foi alterada com sucesso. Você já pode fazer login.",
+          description: "Sua senha foi alterada com sucesso. Clique em 'Ir para o Login' para acessar sua conta.",
         })
-        
-        // Redirecionar para login após 3 segundos
-        setTimeout(() => {
-          router.push('/login')
-        }, 3000)
       } else {
         setErrorMessage(data.error || 'Erro ao redefinir senha')
         toast({
@@ -111,13 +106,13 @@ function RedefinirSenhaContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo */}
+          {/* Logo (padronizado com login) */}
           <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-              <Scissors className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
+              <Calendar className="w-5 h-5 text-tymer-primary" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-              AgendaPro
+            <span className="text-2xl font-bold text-white">
+              TymerBook
             </span>
           </div>
 
@@ -133,12 +128,12 @@ function RedefinirSenhaContent() {
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <div className="bg-[#065f46]/10 border border-[#10b981]/20 rounded-lg p-4">
-                <p className="text-[#ededed] font-medium">Redirecionando para o login...</p>
-                <p className="text-sm text-[#71717a] mt-2">Você já pode fazer login com sua nova senha</p>
+                <p className="text-[#ededed] font-medium">Senha redefinida com sucesso.</p>
+                <p className="text-sm text-[#71717a] mt-2">Clique no botão abaixo para acessar o login.</p>
               </div>
               
               <Link href="/login">
-                <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white">
+                <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white">
                   Ir para o Login
                 </Button>
               </Link>
@@ -152,20 +147,20 @@ function RedefinirSenhaContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
+        {/* Logo (padronizado com login) */}
         <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-            <Scissors className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
+            <Calendar className="w-5 h-5 text-tymer-primary" />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-            AgendaPro
+          <span className="text-2xl font-bold text-white">
+            TymerBook
           </span>
         </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-[#10b981]/10 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-[#10b981]" />
+            <div className="mx-auto w-16 h-16 bg-tymer-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8 text-tymer-primary" />
             </div>
             <CardTitle className="text-2xl font-bold text-[#ededed]">Nova Senha</CardTitle>
             <CardDescription className="text-[#71717a]">
@@ -198,7 +193,7 @@ function RedefinirSenhaContent() {
                       placeholder="Digite sua nova senha"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                       required
                     />
                     <button
@@ -223,7 +218,7 @@ function RedefinirSenhaContent() {
                       placeholder="Confirme sua nova senha"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                       required
                     />
                     <button
@@ -245,7 +240,7 @@ function RedefinirSenhaContent() {
                 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
+                  className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? "Redefinindo..." : "Redefinir Senha"}
@@ -254,7 +249,7 @@ function RedefinirSenhaContent() {
             )}
 
             <div className="mt-6 text-center">
-              <Link href="/login" className="text-[#71717a] hover:text-[#10b981] text-sm transition-colors">
+              <Link href="/login" className="text-[#71717a] hover:text-white text-sm transition-colors">
                 Voltar para o Login
               </Link>
             </div>
@@ -271,11 +266,11 @@ export default function RedefinirSenhaPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-              <Scissors className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
+              <Calendar className="w-5 h-5 text-tymer-primary" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-              AgendaPro
+            <span className="text-2xl font-bold text-white">
+              TymerBook
             </span>
           </div>
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
