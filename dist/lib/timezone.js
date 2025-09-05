@@ -28,6 +28,12 @@ exports.formatBrazilDateOnly = formatBrazilDateOnly;
 exports.parseBirthDate = parseBirthDate;
 exports.addTimeToBrazilDate = addTimeToBrazilDate;
 exports.getBrazilNow = getBrazilNow;
+exports.startOfBrazilDay = startOfBrazilDay;
+exports.endOfBrazilDay = endOfBrazilDay;
+exports.getBrazilDateParts = getBrazilDateParts;
+exports.brazilDateTimeToUtc = brazilDateTimeToUtc;
+exports.diffBrazilDays = diffBrazilDays;
+exports.normalizeSubscriptionEnd = normalizeSubscriptionEnd;
 exports.formatBrazilDate = formatBrazilDate;
 exports.toBrazilDateString = toBrazilDateString;
 exports.parseDate = parseDate;
@@ -319,31 +325,106 @@ function addTimeToBrazilDate(brazilDate, hours, minutes = 0) {
  * @returns Date object representando agora no Brasil
  */
 function getBrazilNow() {
-    // ✅ CORREÇÃO: Usar date-fns-tz para timezone handling confiável
-    const now = new Date();
-    // Obter horário brasileiro usando método mais confiável
-    const brazilTime = new Date(now.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }));
-    // Debug para monitoramento
-    if (process.env.NODE_ENV === 'development') {
-        console.log('🕐 getBrazilNow() - UTC time:', now.toISOString());
-        console.log('🕐 getBrazilNow() - Brazil time:', brazilTime.toISOString());
-        console.log('🕐 getBrazilNow() - Brazil local:', brazilTime.toLocaleString('pt-BR', {
-            timeZone: 'America/Sao_Paulo',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }));
-        console.log('🕐 getBrazilNow() - Validation:', {
-            hours: brazilTime.getHours(),
-            minutes: brazilTime.getMinutes(),
-            date: brazilTime.getDate(),
-            month: brazilTime.getMonth() + 1,
-            year: brazilTime.getFullYear()
-        });
+    var _a;
+    // Implementação robusta usando Intl sem conversão string->Date ambígua.
+    // Estratégia: pegar components do horário Brasil e construir Date UTC correta.
+    const nowUtc = new Date();
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+    });
+    const parts = fmt.formatToParts(nowUtc).reduce((acc, p) => { if (p.type !== 'literal')
+        acc[p.type] = p.value; return acc; }, {});
+    const year = Number(parts.year);
+    const month = Number(parts.month);
+    const day = Number(parts.day);
+    const hour = Number(parts.hour);
+    const minute = Number(parts.minute);
+    const second = Number(parts.second);
+    // Construir como se fosse em UTC os componentes Brasil e depois ajustar offset Brasil para gerar Date equivalente (truque invariant).
+    // Simples: criar Date ISO string explícita com 'T' e 'Z' removendo offset? Melhor: usar Date.UTC e depois subtrair diferença entre hora UTC real e hora Brasil derivada.
+    // Mais direto: criar Date a partir de template `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}` e depois considerar que isso está em timezone Brasil; precisamos converter para UTC mantendo o clock Brasil.
+    // Calcular offset atual Brasil vs UTC usando comparação de horas entre nowUtc e partes extraídas.
+    const brazilApprox = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    // Esse objeto representa aquele horário com os mesmos componentes em UTC; precisamos aplicar o offset de fuso (UTC-3 ou UTC-2 no horário de verão se existisse).
+    // Offset real = (brazilApprox.getUTCHours() - hour) em horas? Na verdade brazilApprox já está em UTC com mesma hora; diferença entre nowUtc e brazilApprox pode variar.
+    // Abordagem mais simples e precisa: usar date-fns-tz se disponível (está em dependencies) para converter.
+    try {
+        // Lazy import para evitar peso em edge se tree-shakeado
+        // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-unsafe-assignment
+        const tz = require('date-fns-tz');
+        const zonedTimeToUtc = tz.zonedTimeToUtc || ((_a = tz.default) === null || _a === void 0 ? void 0 : _a.zonedTimeToUtc) || tz['zonedTimeToUtc'];
+        const isoLocal = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+        const utcDate = zonedTimeToUtc ? zonedTimeToUtc(isoLocal, 'America/Sao_Paulo') : brazilApprox;
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🕐 getBrazilNow() parts=', parts, '=>', utcDate.toISOString());
+        }
+        return utcDate;
     }
-    return brazilTime;
+    catch (e) {
+        if (process.env.NODE_ENV === 'development') {
+            console.warn('Fallback getBrazilNow sem date-fns-tz, possível imprecisão.', e);
+        }
+        return brazilApprox;
+    }
+}
+/**
+ * Normaliza uma data (no fuso Brasil) para o início do dia (00:00:00.000) em horário Brasil.
+ * Retorna um Date em UTC que representa esse instante.
+ */
+function startOfBrazilDay(d) {
+    const b = getBrazilDateParts(d);
+    return brazilDateTimeToUtc(b.year, b.month, b.day, 0, 0, 0, 0);
+}
+/** Fim do dia (23:59:59.999) Brasil para a data fornecida. */
+function endOfBrazilDay(d) {
+    const b = getBrazilDateParts(d);
+    return brazilDateTimeToUtc(b.year, b.month, b.day, 23, 59, 59, 999);
+}
+/** Extrai componentes da data no fuso Brasil. */
+function getBrazilDateParts(d) {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+    });
+    const parts = fmt.formatToParts(d).reduce((acc, p) => { if (p.type !== 'literal')
+        acc[p.type] = p.value; return acc; }, {});
+    return {
+        year: Number(parts.year),
+        month: Number(parts.month),
+        day: Number(parts.day),
+        hour: Number(parts.hour),
+        minute: Number(parts.minute),
+        second: Number(parts.second)
+    };
+}
+/** Constrói um Date UTC a partir de componentes interpretados em horário Brasil. */
+function brazilDateTimeToUtc(year, month, day, hour, minute, second, ms = 0) {
+    var _a;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-unsafe-assignment
+        const tz = require('date-fns-tz');
+        const zonedTimeToUtc = tz.zonedTimeToUtc || ((_a = tz.default) === null || _a === void 0 ? void 0 : _a.zonedTimeToUtc) || tz['zonedTimeToUtc'];
+        const isoLocal = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        return zonedTimeToUtc ? zonedTimeToUtc(isoLocal, 'America/Sao_Paulo') : new Date(Date.UTC(year, month - 1, day, hour + 3, minute, second, ms));
+    }
+    catch (_b) {
+        return new Date(Date.UTC(year, month - 1, day, hour + 3, minute, second, ms)); // fallback assumindo UTC-3
+    }
+}
+/** Diferença inteira de dias (endDay - startDay) considerando somente a parte de data Brasil. */
+function diffBrazilDays(from, to) {
+    const a = startOfBrazilDay(from).getTime();
+    const b = startOfBrazilDay(to).getTime();
+    return Math.round((b - a) / 86400000);
+}
+/** Normaliza uma data de expiração de assinatura para o fim do dia Brasil (23:59:59.999). */
+function normalizeSubscriptionEnd(date) {
+    return endOfBrazilDay(date);
 }
 /**
  * 🇧🇷 Formata data para padrão brasileiro (dd/MM/yyyy)
