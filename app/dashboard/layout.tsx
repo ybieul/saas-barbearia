@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   BarChart3,
-  Calendar,
   DollarSign,
   Users,
   Settings,
@@ -19,6 +18,7 @@ import {
   UserCircle,
   Clock,
   Crown,
+  Calendar,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -145,15 +145,12 @@ export default function DashboardLayout({
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 border border-primary/30">
-              <Calendar className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <span className="text-xl font-bold text-foreground">
-                TymerBook
-              </span>
-              <p className="text-xs text-tymer-textgray">Painel Administrativo</p>
-            </div>
+            {/* Apenas símbolo */}
+            <img
+              src="/img/simbolo-tymerbook.png"
+              alt="TymerBook"
+              className="h-10 w-10 object-contain"
+            />
           </div>
           <button
             onClick={() => setSidebarOpen(false)}

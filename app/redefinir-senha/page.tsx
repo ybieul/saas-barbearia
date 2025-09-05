@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -106,14 +106,9 @@ function RedefinirSenhaContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo (padronizado com login) */}
-          <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
-              <Calendar className="w-5 h-5 text-tymer-primary" />
-            </div>
-            <span className="text-2xl font-bold text-white">
-              TymerBook
-            </span>
+          {/* Logo completa */}
+          <div className="flex justify-center mb-8">
+            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
           </div>
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -147,14 +142,9 @@ function RedefinirSenhaContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo (padronizado com login) */}
-        <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
-            <Calendar className="w-5 h-5 text-tymer-primary" />
-          </div>
-          <span className="text-2xl font-bold text-white">
-            TymerBook
-          </span>
+        {/* Logo completa */}
+        <div className="flex justify-center mb-8">
+          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
         </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -265,13 +255,8 @@ export default function RedefinirSenhaPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
-              <Calendar className="w-5 h-5 text-tymer-primary" />
-            </div>
-            <span className="text-2xl font-bold text-white">
-              TymerBook
-            </span>
+          <div className="flex justify-center mb-8">
+            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
           </div>
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardContent className="p-8 text-center">
