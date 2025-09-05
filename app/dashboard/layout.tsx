@@ -145,12 +145,17 @@ export default function DashboardLayout({
         {/* Header da Sidebar */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-[#27272a] flex-shrink-0">
           <div className="flex items-center space-x-3">
-            {/* Apenas símbolo */}
-            <img
-              src="/img/simbolo-tymerbook.png"
-              alt="TymerBook"
-              className="h-10 w-10 object-contain"
-            />
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 border border-primary/30 shadow-lg shadow-primary/20 overflow-hidden">
+              <img
+                src="/img/simbolo-tymerbook.png"
+                alt="TymerBook"
+                className="h-8 w-8 object-contain"
+              />
+            </div>
+            <div>
+              <span className="text-xl font-bold text-foreground">TymerBook</span>
+              <p className="text-xs text-tymer-textgray">Painel Administrativo</p>
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
