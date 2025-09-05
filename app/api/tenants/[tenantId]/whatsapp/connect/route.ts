@@ -1,71 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { authenticate, AuthError } from '@/lib/auth'
 
-interface AuthUser {
-  userId: string
-  tenantId: string
-  email: string
-  role: string
-}
-
-function verifyToken(request: NextRequest): AuthUser {
-  console.log("--- INICIANDO VERIFICAÇÃO DE PERMISSÃO (CONNECT) ---")
-  
-  // Tentar obter token do header Authorization
-  let token = request.headers.get('authorization')?.replace('Bearer ', '')
-  console.log("1. Token do Authorization header:", token ? "✅ Encontrado" : "❌ Não encontrado")
-  
-  // Se não tiver no header, tentar obter do cookie
-  if (!token) {
-    token = request.cookies.get('token')?.value
-    console.log("1.1. Token do cookie:", token ? "✅ Encontrado" : "❌ Não encontrado")
-  }
-  
-  // Se ainda não tiver, tentar obter do header x-auth-token
-  if (!token) {
-    token = request.headers.get('x-auth-token') || undefined
-    console.log("1.2. Token do x-auth-token header:", token ? "✅ Encontrado" : "❌ Não encontrado")
-  }
-
-  console.log("2. Token final obtido:", token ? `✅ ${token.substring(0, 20)}...` : "❌ Nenhum token")
-
-  if (!token) {
-    console.log("❌ ERRO: Token não fornecido")
-    throw new Error('Token não fornecido')
-  }
-
-  try {
-    console.log("3. Tentando decodificar token...")
-    console.log("3.1. NEXTAUTH_SECRET existe:", process.env.NEXTAUTH_SECRET ? "✅ Sim" : "❌ Não")
-    
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as {
-      userId: string
-      tenantId: string
-      email: string
-      role: string
-    }
-    
-    console.log("4. ✅ Token decodificado com sucesso:")
-    console.log("4.1. userId:", decoded.userId)
-    console.log("4.2. tenantId:", decoded.tenantId) 
-    console.log("4.3. email:", decoded.email)
-    console.log("4.4. role:", decoded.role)
-    
-    return {
-      userId: decoded.userId,
-      tenantId: decoded.tenantId,
-      email: decoded.email,
-      role: decoded.role
-    }
-  } catch (error: any) {
-    console.error("❌ ERRO na validação do token:")
-    console.error("5.1. Tipo do erro:", error.name)
-    console.error("5.2. Mensagem:", error.message)
-    console.error("5.3. Stack:", error.stack)
-    throw new Error('Token inválido')
-  }
-}
+// Autenticação agora centralizada em lib/auth (verifyToken + requireTenantAccess)
 
 // Função utilitária para gerar nome da instância baseado no nome do estabelecimento
 function generateInstanceName(businessName: string | null, tenantId: string): string {
@@ -135,22 +72,9 @@ export async function POST(
     console.log("=== ROTA POST CONNECT INICIADA ===")
     
     // 1. Autenticação: Verificar se o usuário tem permissão
-    const user = verifyToken(request)
+  const user = authenticate(request, params.tenantId)
     
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      )
-    }
-
-    // Verificar se o tenantId corresponde ao usuário logado
-    if (user.tenantId !== params.tenantId) {
-      return NextResponse.json(
-        { error: 'Sem permissão para acessar este tenant' },
-        { status: 403 }
-      )
-    }
+  // A verificação de tenant já é realizada em authenticate()
 
     const { tenantId } = params
 
@@ -331,25 +255,11 @@ export async function POST(
     })
 
   } catch (error: any) {
-    console.error("❌ ERRO na rota POST connect:", error.message)
-    
-    // Se o erro for de autenticação, retornar 401
-    if (error.message?.includes('Token não fornecido') || error.message?.includes('Token inválido')) {
-      return NextResponse.json(
-        { 
-          error: 'Token de autenticação inválido ou expirado',
-          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-        },
-        { status: 401 }
-      )
+    const dev = process.env.NODE_ENV === 'development'
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
     }
-    
-    return NextResponse.json(
-      { 
-        error: 'Erro interno do servidor ao conectar WhatsApp',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-      },
-      { status: 500 }
-    )
+    console.error('❌ [CONNECT] Erro inesperado:', error?.message || error)
+    return NextResponse.json({ error: 'Erro interno do servidor ao conectar WhatsApp', details: dev ? error?.message : undefined }, { status: 500 })
   }
 }
