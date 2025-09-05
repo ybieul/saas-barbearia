@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { generateSecurePassword, sendWelcomeEmail, sendSubscriptionCanceledEmail } from '@/lib/email'
+import { getBrazilNow } from '@/lib/timezone'
 
 // Tipos para os eventos da Kirvano (estrutura oficial)
 interface KirvanoWebhookEvent {
@@ -43,6 +44,16 @@ function mapKirvanoPlanName(kirvanoPlanName: string): string {
   // Padrão: se não conseguir identificar, assumir BASIC
   console.warn(`⚠️ Plano não reconhecido: "${kirvanoPlanName}", usando BASIC como padrão`)
   return 'BASIC'
+}
+
+// Normaliza uma data para 23:59:59.999 (fim do dia) no fuso de São Paulo garantindo acesso até o final do dia.
+function normalizeToBrazilEndOfDay(date: Date): Date {
+  const clone = new Date(date)
+  // Garantir correção de fuso capturando data no timezone BR (caso servidor esteja em UTC)
+  const brazilRef = new Date(getBrazilNow().toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }))
+  // Mantemos apenas Y/M/D do parâmetro original e setamos para 23:59:59.999
+  clone.setHours(23,59,59,999)
+  return clone
 }
 
 export async function POST(request: NextRequest, { params }: { params: { secret: string } }) {
@@ -155,13 +166,12 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       console.log(`📝 Plano mapeado para o sistema: "${mappedPlan}"`)
       
       let subscriptionEnd: Date | undefined
-      
       if (subscriptionEndDate) {
-        subscriptionEnd = new Date(subscriptionEndDate)
+        subscriptionEnd = normalizeToBrazilEndOfDay(new Date(subscriptionEndDate))
       } else {
-        // Padrão: 1 mês a partir de agora
         subscriptionEnd = new Date()
         subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+        subscriptionEnd = normalizeToBrazilEndOfDay(subscriptionEnd)
       }
       
       const updateData: any = {
@@ -175,11 +185,11 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
         updateData.kirvanoSubscriptionId = kirvanoSubscriptionId
       }
       
-      await prisma.tenant.update({
+  await prisma.tenant.update({
         where: { id: tenant.id },
         data: {
           ...updateData,
-          webhookExpiredProcessed: false, // reset caso tenha sido marcado antes
+      webhookExpiredProcessed: false, // reset caso tenha sido marcado antes
         }
       })
       
@@ -205,10 +215,11 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       // 4. Calcular data de expiração
       let subscriptionEnd: Date = new Date()
       if (subscriptionEndDate) {
-        subscriptionEnd = new Date(subscriptionEndDate)
+        subscriptionEnd = normalizeToBrazilEndOfDay(new Date(subscriptionEndDate))
       } else {
         // Padrão: 1 mês a partir de agora
         subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+        subscriptionEnd = normalizeToBrazilEndOfDay(subscriptionEnd)
       }
       
       // 5. Criar novo tenant no banco
@@ -295,12 +306,12 @@ async function handleSubscriptionCanceledOrExpired(webhookData: KirvanoWebhookEv
     }
     
     // 3. Atualizar o tenant para desativar a assinatura
-    await prisma.tenant.update({
+  await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
         isActive: false,
         updatedAt: new Date(),
-        webhookExpiredProcessed: true,
+    webhookExpiredProcessed: true,
         lastSubscriptionEmailType: eventType === 'SUBSCRIPTION_EXPIRED' ? 'EXPIRED_WEBHOOK' : 'CANCELED'
       }
     })
@@ -345,20 +356,20 @@ async function handleSubscriptionRenewed(webhookData: KirvanoWebhookEvent) {
     // 3. Atualizar a data de expiração
     let subscriptionEnd: Date | undefined
     if (newExpirationDate) {
-      subscriptionEnd = new Date(newExpirationDate)
+      subscriptionEnd = normalizeToBrazilEndOfDay(new Date(newExpirationDate))
     } else {
-      // Se não vier a data, assumir 1 mês a partir de agora
       subscriptionEnd = new Date()
       subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+      subscriptionEnd = normalizeToBrazilEndOfDay(subscriptionEnd)
     }
     
-    await prisma.tenant.update({
+  await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
         isActive: true, // Garantir que está ativo
         subscriptionEnd,
         updatedAt: new Date(),
-        webhookExpiredProcessed: false
+    webhookExpiredProcessed: false
       }
     })
     
