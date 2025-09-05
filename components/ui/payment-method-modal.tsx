@@ -135,6 +135,8 @@ export function PaymentMethodModal({
                       key={method.id}
                       onClick={() => handlePaymentSelect(method.id)}
                       disabled={isLoading}
+                      variant="ghost"
+                      type="button"
                       className={`bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 shadow-lg text-[#ededed] w-full h-auto justify-start gap-3`}
                     >
                       <div className="bg-[#2d2d30] rounded-full p-1.5 md:p-2 flex-shrink-0 border border-[#3a3a3d]">
