@@ -37,7 +37,7 @@ const DEFAULT_END_TIME = '18:00'
 
 export function ProfessionalScheduleManager({ professionalId, professionalName }: ProfessionalScheduleManagerProps) {
   const { toast } = useToast()
-  const { getSchedule, updateSchedule, isLoading, error } = useProfessionalSchedule(professionalId)
+  const { getSchedule, updateSchedule, isLoading, isUpdating, error } = useProfessionalSchedule(professionalId)
   const [schedules, setSchedules] = useState<DaySchedule[]>([])
 
   // Inicializar horários padrão
@@ -209,10 +209,8 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
   // Função de auto-save (similar à handleWorkingHoursChange)
   const handleAutoSave = async (schedulesToSave: DaySchedule[], action: string) => {
     try {
-      // Prevenir múltiplas chamadas simultâneas
-      if (isLoading) {
-        return
-      }
+      // Prevenir múltiplas chamadas simultâneas de update
+      if (isUpdating) return
 
       // Preparar dados apenas dos dias ativos
       const activeSchedules: ProfessionalScheduleData[] = schedulesToSave
@@ -227,11 +225,14 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       const success = await updateSchedule(activeSchedules, professionalId)
       
       if (success) {
-        toast({
-          title: "Horário atualizado!",
-          description: `O ${action} foi salvo automaticamente.`,
-          variant: "default"
-        })
+        // Feedback discreto: evitar spam de toasts a cada ajuste de minuto
+        if (!action.includes('atualizado') || action.includes('ativado') || action.includes('desativado')) {
+          toast({
+            title: "Horário salvo",
+            description: `Alterações salvas automaticamente (${action}).`,
+            variant: "default"
+          })
+        }
       }
     } catch (err: any) {
       console.error('Erro no auto-save:', err)
@@ -272,6 +273,12 @@ export function ProfessionalScheduleManager({ professionalId, professionalName }
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {isUpdating && (
+            <div className="text-xs text-[#71717a] mb-1 flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin" />
+              Salvando alterações...
+            </div>
+          )}
           {schedules.map((schedule) => (
             <div 
               key={schedule.dayOfWeek} 

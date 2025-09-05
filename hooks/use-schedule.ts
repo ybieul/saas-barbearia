@@ -25,6 +25,7 @@ export interface ProfessionalScheduleResponse {
 export function useProfessionalSchedule(professionalId?: string) {
   const { request } = useApi()
   const [isLoading, setIsLoading] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Buscar horários padrão do profissional
@@ -53,8 +54,8 @@ export function useProfessionalSchedule(professionalId?: string) {
   ): Promise<boolean> => {
     const targetId = id || professionalId
     if (!targetId) return false
-
-    setIsLoading(true)
+  // Não reutilizar indicador global de carregamento inicial para evitar flicker na UI
+  setIsUpdating(true)
     setError(null)
 
     try {
@@ -62,11 +63,11 @@ export function useProfessionalSchedule(professionalId?: string) {
         method: 'PUT',
         body: JSON.stringify(schedules)
       })
-      setIsLoading(false)
+      setIsUpdating(false)
       return true
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar horários')
-      setIsLoading(false)
+      setIsUpdating(false)
       return false
     }
   }, [professionalId, request])
@@ -75,6 +76,7 @@ export function useProfessionalSchedule(professionalId?: string) {
     getSchedule,
     updateSchedule,
     isLoading,
+    isUpdating,
     error
   }
 }

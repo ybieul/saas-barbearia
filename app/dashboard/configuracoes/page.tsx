@@ -265,6 +265,7 @@ function ChangePasswordSection() {
       </form>
     </div>
   )
+
 }
 
 export default function ConfiguracoesPage() {
@@ -353,7 +354,7 @@ export default function ConfiguracoesPage() {
   } = useProfessionals()
 
   // Hook para limites de assinatura
-  const { planLimits, loading: limitsLoading } = useSubscription()
+  const { planLimits, loading: limitsLoading, refresh: refreshSubscription } = useSubscription()
 
   // Hook para gerenciar serviços com banco de dados
   const {
@@ -722,6 +723,8 @@ export default function ConfiguracoesPage() {
         })
         // Recarrega os dados dos profissionais
         await fetchProfessionals()
+        // Atualiza limites imediatamente para refletir novo count e eventualmente desabilitar botão
+        await refreshSubscription()
       }
     } catch (error: any) {
       // Tratamento específico para erro de limite de plano
@@ -816,6 +819,8 @@ export default function ConfiguracoesPage() {
       await updateProfessionalAvatar(professionalId, avatarBase64)
       // Recarregar a lista de profissionais para mostrar a nova foto
       await fetchProfessionals()
+  // Avatar não altera contagem, então refresh de limites não é estritamente necessário, mas garante sincronização
+  await refreshSubscription()
       // Mostrar feedback de sucesso
       toast({
         title: "Foto atualizada!",
@@ -902,6 +907,8 @@ export default function ConfiguracoesPage() {
         
         // Recarregar a lista
         await fetchProfessionals()
+  // Atualizar limites para refletir nova contagem e talvez reabilitar botão
+  await refreshSubscription()
         
         // Mostrar sucesso
         toast({
