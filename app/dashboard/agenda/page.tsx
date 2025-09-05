@@ -1632,6 +1632,53 @@ export default function AgendaPage() {
             }
           }
         }
+
+        // ✅ NOVO: Expandir lista com horários que só conflitam com o próprio agendamento original
+        try {
+          const serviceDuration = (selectedService.duration || 30)
+          const professionalForCheck = newAppointment.professionalId || professionalId
+          if (editingAppointment.dateTime) {
+            const originalStart = parseDatabaseDateTime(editingAppointment.dateTime)
+            const originalDuration = editingAppointment.duration || serviceDuration
+            const originalEnd = new Date(originalStart.getTime() + originalDuration * 60000)
+
+            const [year, month, day] = newAppointment.date.split('-').map(Number)
+            const dateObj = new Date(year, month - 1, day)
+            const daySlots = generateTimeSlotsForDate(dateObj)
+
+            // Candidatos: todos os slots cujo intervalo [t, t+duracao) toca o intervalo original
+            const timeToMinutes = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m }
+            const originalStartM = originalStart.getHours()*60 + originalStart.getMinutes()
+            const originalEndM = originalEnd.getHours()*60 + originalEnd.getMinutes()
+
+            const candidateSlots = daySlots.filter(t => {
+              const startM = timeToMinutes(t)
+              const endM = startM + serviceDuration
+              return (startM < originalEndM) && (endM > originalStartM) // sobrepõe original
+            })
+
+            let added = 0
+            for (const slot of candidateSlots) {
+              if (availableSlots.includes(slot)) continue
+              // Validar ignorando o próprio agendamento
+              const ok = canScheduleService(slot, serviceDuration, professionalForCheck, editingAppointment.id)
+              if (ok) {
+                availableSlots.push(slot)
+                added++
+              }
+            }
+            if (added > 0) {
+              availableSlots.sort()
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`🔄 Slots adicionais habilitados na edição (sobrepondo original): +${added}`, candidateSlots.slice(0,10))
+              }
+            }
+          }
+        } catch (e) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ Falha ao expandir slots de edição:', e)
+          }
+        }
       }
 
       return availableSlots
@@ -1773,6 +1820,29 @@ export default function AgendaPage() {
             }
           }
         }
+
+        // ✅ NOVO: Expandir opções perto do horário original (sobreposição apenas com ele)
+        try {
+          if (editingAppointment.dateTime) {
+            const originalStart = parseDatabaseDateTime(editingAppointment.dateTime)
+            const duration = editingAppointment.duration || (services.find(s => s.id === newAppointment.serviceId)?.duration) || 30
+            const originalEnd = new Date(originalStart.getTime() + duration * 60000)
+            const timeToMinutes = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m }
+            const origStartM = originalStart.getHours()*60 + originalStart.getMinutes()
+            const origEndM = originalEnd.getHours()*60 + originalEnd.getMinutes()
+            const candidateSlots = allAvailableSlots.filter(t => {
+              const startM = timeToMinutes(t); const endM = startM + duration; return (startM < origEndM) && (endM > origStartM)
+            })
+            let added = 0
+            for (const slot of candidateSlots) {
+              if (availableSlots.includes(slot)) continue
+              if (canScheduleService(slot, duration, newAppointment.professionalId || undefined, excludeAppointmentId)) {
+                availableSlots.push(slot); added++
+              }
+            }
+            if (added>0) { availableSlots.sort(); if (process.env.NODE_ENV==='development') console.log(`🔄 Slots adicionais (fallback edição): +${added}`) }
+          }
+        } catch (e) { if (process.env.NODE_ENV==='development') console.warn('⚠️ Falha expandindo slots fallback edição:', e) }
       }
       
       if (process.env.NODE_ENV === 'development') {
