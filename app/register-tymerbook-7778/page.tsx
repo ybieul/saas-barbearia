@@ -87,8 +87,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo completa */}
-        <div className="flex justify-center mb-8">
-          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
+        <div className="flex justify-center mb-10">
+          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-14 md:h-16 w-auto" />
         </div>
 
         <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">

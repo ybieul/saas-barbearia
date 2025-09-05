@@ -107,8 +107,8 @@ function RedefinirSenhaContent() {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo completa */}
-          <div className="flex justify-center mb-8">
-            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
+          <div className="flex justify-center mb-10">
+            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-14 md:h-16 w-auto" />
           </div>
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -143,8 +143,8 @@ function RedefinirSenhaContent() {
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo completa */}
-        <div className="flex justify-center mb-8">
-          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
+        <div className="flex justify-center mb-10">
+          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-14 md:h-16 w-auto" />
         </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -255,8 +255,8 @@ export default function RedefinirSenhaPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="flex justify-center mb-8">
-            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-10 w-auto" />
+          <div className="flex justify-center mb-10">
+            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-14 md:h-16 w-auto" />
           </div>
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardContent className="p-8 text-center">
