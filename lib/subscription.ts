@@ -62,8 +62,16 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       : undefined
 
     // Se expirou ou não ativo, usuario não pode usar o sistema
-    const isActiveSubscription = tenant.isActive && !isExpired
-  const effectivePlan = isActiveSubscription ? tenant.businessPlan : 'INACTIVE'
+  const isActiveSubscription = tenant.isActive && !isExpired
+  // ✅ Normalizar plano para suportar variantes anuais (ex: 'BASIC Anual', 'PREMIUM Anual')
+  let rawPlan = tenant.businessPlan || ''
+  const lower = rawPlan.toLowerCase()
+  if (lower.includes('basic')) rawPlan = 'BASIC'
+  else if (lower.includes('básico')) rawPlan = 'BASIC'
+  else if (lower.includes('premium')) rawPlan = 'PREMIUM'
+  else if (lower.includes('ultra')) rawPlan = 'ULTRA'
+
+  const effectivePlan = isActiveSubscription ? rawPlan : 'INACTIVE'
     
     // Só buscar features se a assinatura estiver ativa
     const planFeatures = isActiveSubscription 

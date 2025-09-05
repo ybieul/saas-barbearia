@@ -187,26 +187,26 @@ export async function POST(request: NextRequest) {
     let limit = 0
     let planDisplayName = ''
     
-    switch (tenant.businessPlan) {
-      case 'BASIC':
-      case 'Básico':
-        limit = 1
-        planDisplayName = 'Básico'
-        break
-      case 'PREMIUM':  
-      case 'Premium':
-        limit = 3 // 🔄 AJUSTADO: Plano Premium agora permite 3 profissionais (antes era 5)
-        planDisplayName = 'Premium'
-        break
-      case 'ULTRA':
-      case 'Ultra':
-        limit = Infinity // Ilimitado
-        planDisplayName = 'Ultra'
-        break
-      default:
-        // Plano não reconhecido - tratar como básico por segurança
-        limit = 1
-        planDisplayName = tenant.businessPlan || 'Básico'
+    // ✅ SUPORTE A PLANOS ANUAIS: tratar variantes "<Plano> Anual" como equivalentes
+    const rawPlan = tenant.businessPlan || ''
+    const normalizedPlan = rawPlan.toLowerCase()
+    const isBasic = ['basic', 'básico', 'básico anual', 'basic anual'].includes(normalizedPlan)
+    const isPremium = ['premium', 'premium anual'].includes(normalizedPlan)
+    const isUltra = ['ultra', 'ultra anual'].includes(normalizedPlan)
+
+    if (isBasic) {
+      limit = 1
+      planDisplayName = rawPlan.includes('Anual') ? 'Básico (Anual)' : 'Básico'
+    } else if (isPremium) {
+      limit = 3
+      planDisplayName = rawPlan.includes('Anual') ? 'Premium (Anual)' : 'Premium'
+    } else if (isUltra) {
+      limit = Infinity
+      planDisplayName = rawPlan.includes('Anual') ? 'Ultra (Anual)' : 'Ultra'
+    } else {
+      // Plano não reconhecido - fallback seguro
+      limit = 1
+      planDisplayName = rawPlan || 'Básico'
     }
 
     console.log('📊 [Professionals API] Contagem atual:', {
