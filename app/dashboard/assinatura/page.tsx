@@ -402,7 +402,7 @@ export default function SubscriptionPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Status Badge */}
-            <div className={`flex items-center space-x-2 p-3 rounded-lg border ${statusInfo.bgColor}`}>
+            <div className={`flex items-center space-x-2 p-3 rounded-lg border justify-center md:justify-start text-center md:text-left ${statusInfo.bgColor}`}>
               <div className={statusInfo.color}>
                 {statusInfo.icon}
               </div>
