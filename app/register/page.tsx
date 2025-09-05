@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Scissors, Eye, EyeOff } from "lucide-react"
+import { Calendar, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useNotification } from "@/hooks/use-notification"
@@ -88,15 +88,15 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-            <Scissors className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-tymer-primary/15 border border-tymer-primary/40 shadow-lg shadow-tymer-primary/20">
+            <Calendar className="w-5 h-5 text-tymer-primary" />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-            AgendaPro
+          <span className="text-2xl font-bold text-white">
+            TymerBook
           </span>
         </div>
 
-        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+        <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Crie sua conta</CardTitle>
             <CardDescription className="text-[#71717a]">Comece a transformar seu negócio hoje mesmo</CardDescription>
@@ -113,7 +113,7 @@ export default function RegisterPage() {
                   placeholder="Ex: Barbearia do João"
                   value={formData.businessName}
                   onChange={(e) => handleInputChange("businessName", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981]"
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
                   required
                 />
               </div>
@@ -127,7 +127,7 @@ export default function RegisterPage() {
                   placeholder="seu@email.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981]"
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
                   required
                 />
               </div>
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                     placeholder="Mínimo 6 caracteres"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                     minLength={6}
                     required
                   />
@@ -166,7 +166,7 @@ export default function RegisterPage() {
                     placeholder="Digite a senha novamente"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                     required
                   />
                   <button
@@ -180,7 +180,7 @@ export default function RegisterPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
+                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? "Criando conta..." : "Criar Conta"}
