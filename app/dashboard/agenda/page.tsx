@@ -1574,6 +1574,47 @@ export default function AgendaPage() {
         })
       }
 
+      // 🔧 AJUSTE: Garantir que, ao editar um agendamento, o horário original apareça como opção
+      if (editingAppointment && newAppointment.time) {
+        const currentTime = newAppointment.time
+        if (!availableSlots.includes(currentTime)) {
+          try {
+            const serviceDuration = (selectedService.duration || 30)
+            // Verificar se o horário ainda é válido (excluindo o próprio agendamento da checagem de conflito)
+            const professionalForCheck = newAppointment.professionalId || professionalId
+            const canKeepTime = canScheduleService(
+              currentTime,
+              serviceDuration,
+              professionalForCheck,
+              editingAppointment.id
+            )
+
+            // Verificar se o horário pertence aos slots do dia (respeitando horário de funcionamento)
+            const [year, month, day] = newAppointment.date.split('-').map(Number)
+            const dateObj = new Date(year, month - 1, day)
+            const daySlots = generateTimeSlotsForDate(dateObj)
+
+            if (canKeepTime && daySlots.includes(currentTime)) {
+              availableSlots.push(currentTime)
+              availableSlots.sort()
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`🛠️ Horário original '${currentTime}' reinserido na lista (edição).`)
+              }
+            } else if (process.env.NODE_ENV === 'development') {
+              console.log('⛔ Horário original não reinserido (conflito ou fora do horário de funcionamento)', {
+                currentTime,
+                canKeepTime,
+                inDaySlots: daySlots.includes(currentTime)
+              })
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('⚠️ Falha ao tentar reinserir horário original na edição:', e)
+            }
+          }
+        }
+      }
+
       return availableSlots
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
