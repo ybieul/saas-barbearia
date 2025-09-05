@@ -80,13 +80,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo completa */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mb-12">
           <div className="flex items-center justify-center rounded-lg">
             <img
               src="/img/logo-tymerbook.png"
               alt="TymerBook"
-              className="h-14 md:h-16 w-auto drop-shadow-[0_0_10px_rgba(139,92,246,0.35)] transition-all"
+              className="h-16 sm:h-20 lg:h-24 w-auto drop-shadow-[0_0_14px_rgba(139,92,246,0.35)] transition-all"
               loading="eager"
+              decoding="async"
             />
           </div>
         </div>
