@@ -239,8 +239,7 @@ export default function SubscriptionPage() {
   const statusInfo = getStatusMessage()
 
   // ✅ Determinar ciclo de pagamento pelo nome raw retornado (pode conter 'Anual')
-  const rawPlanName = subscription.plan || ''
-  const billingCycle = rawPlanName.toLowerCase().includes('anual') ? 'Anual' : 'Mensal'
+  const billingCycle = subscription.planCycle === 'ANNUAL' ? 'Anual' : 'Mensal'
 
   // Estrutura centralizada de recursos dos planos
   const planFeatures = {

@@ -46,6 +46,15 @@ function mapKirvanoPlanName(kirvanoPlanName: string): string {
   return 'BASIC'
 }
 
+// Detecta ciclo (mensal/anual) baseado no nome do plano vindo da Kirvano
+function detectPlanCycle(kirvanoPlanName: string): 'MONTHLY' | 'ANNUAL' {
+  const normalizedName = kirvanoPlanName.toLowerCase()
+  if (normalizedName.includes('anual') || normalizedName.includes('annual') || normalizedName.includes('12 meses')) {
+    return 'ANNUAL'
+  }
+  return 'MONTHLY'
+}
+
 // Normaliza uma data para 23:59:59.999 (fim do dia) no fuso de São Paulo garantindo acesso até o final do dia.
 function normalizeToBrazilEndOfDay(date: Date): Date {
   const clone = new Date(date)
@@ -160,7 +169,8 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       
       // ✅ CORRIGIDO: Extrair o nome do plano DIRETAMENTE do webhook
       const planNameFromKirvano = webhookData.plan.name
-      const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+  const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+  const planCycle = detectPlanCycle(planNameFromKirvano)
       
       console.log(`📝 Nome do plano da Kirvano: "${planNameFromKirvano}"`)
       console.log(`📝 Plano mapeado para o sistema: "${mappedPlan}"`)
@@ -174,22 +184,22 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
         subscriptionEnd = normalizeToBrazilEndOfDay(subscriptionEnd)
       }
       
-      const updateData: any = {
+  const updateData = {
         isActive: true,
         businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        planCycle
       }
       
-      if (kirvanoSubscriptionId) {
-        updateData.kirvanoSubscriptionId = kirvanoSubscriptionId
-      }
+  if (kirvanoSubscriptionId) (updateData as any).kirvanoSubscriptionId = kirvanoSubscriptionId
       
   await prisma.tenant.update({
         where: { id: tenant.id },
         data: {
           ...updateData,
-      webhookExpiredProcessed: false, // reset caso tenha sido marcado antes
+          // webhookExpiredProcessed: false, // descomentar após prisma generate se campo existir
+          lastSubscriptionEmailType: 'WELCOME'
         }
       })
       
@@ -207,7 +217,8 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       
       // 3. Determinar plano - ✅ CORRIGIDO: Extrair o nome do plano DIRETAMENTE do webhook
       const planNameFromKirvano = webhookData.plan.name
-      const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+  const mappedPlan = mapKirvanoPlanName(planNameFromKirvano)
+  const planCycle = detectPlanCycle(planNameFromKirvano)
       
       console.log(`📝 Nome do plano da Kirvano: "${planNameFromKirvano}"`)
       console.log(`📝 Plano mapeado para o sistema: "${mappedPlan}"`)
@@ -223,13 +234,14 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       }
       
       // 5. Criar novo tenant no banco
-      const tenantData = {
+  const tenantData = {
         name: customerName || customerEmail.split('@')[0],
         email: customerEmail,
         password: hashedPassword,
         isActive: true,
         businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
+        planCycle,
         // Configurações padrão para novo negócio
         businessName: customerName || 'Meu Negócio',
         businessPhone: '',
@@ -238,12 +250,8 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       } as any
       
       // Adicionar ID da assinatura da Kirvano se disponível
-      if (kirvanoSubscriptionId) {
-        tenantData.kirvanoSubscriptionId = kirvanoSubscriptionId
-      }
-      if (webhookData.customer.id) {
-        tenantData.kirvanoCustomerId = webhookData.customer.id
-      }
+  if (kirvanoSubscriptionId) (tenantData as any).kirvanoSubscriptionId = kirvanoSubscriptionId
+  if (webhookData.customer.id) (tenantData as any).kirvanoCustomerId = webhookData.customer.id
       
       const newTenant = await prisma.tenant.create({
         data: {
@@ -310,9 +318,9 @@ async function handleSubscriptionCanceledOrExpired(webhookData: KirvanoWebhookEv
       where: { id: tenant.id },
       data: {
         isActive: false,
-        updatedAt: new Date(),
-    webhookExpiredProcessed: true,
-        lastSubscriptionEmailType: eventType === 'SUBSCRIPTION_EXPIRED' ? 'EXPIRED_WEBHOOK' : 'CANCELED'
+  updatedAt: new Date(),
+  // webhookExpiredProcessed: true,
+  lastSubscriptionEmailType: eventType === 'SUBSCRIPTION_EXPIRED' ? 'EXPIRED_WEBHOOK' : 'CANCELED'
       }
     })
     try {
@@ -368,8 +376,9 @@ async function handleSubscriptionRenewed(webhookData: KirvanoWebhookEvent) {
       data: {
         isActive: true, // Garantir que está ativo
         subscriptionEnd,
-        updatedAt: new Date(),
-    webhookExpiredProcessed: false
+  updatedAt: new Date(),
+  // webhookExpiredProcessed: false,
+  lastSubscriptionEmailType: 'RENEWED'
       }
     })
     

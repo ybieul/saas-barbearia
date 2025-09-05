@@ -7,6 +7,8 @@ export interface SubscriptionInfo {
   isExpired: boolean
   daysUntilExpiry?: number
   canAccessFeature: (feature: string) => boolean
+  planCycle?: 'MONTHLY' | 'ANNUAL'
+  originalPlanName?: string
 }
 
 // Recursos por plano (sem plano FREE)
@@ -47,7 +49,8 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       select: {
         businessPlan: true,
         isActive: true,
-        subscriptionEnd: true
+  subscriptionEnd: true,
+  planCycle: true
       }
     })
 
@@ -83,6 +86,8 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       plan: effectivePlan,
       isExpired,
       daysUntilExpiry: daysUntilExpiry || undefined,
+  planCycle: tenant.planCycle || 'MONTHLY',
+      originalPlanName: tenant.businessPlan,
       canAccessFeature: (feature: string) => {
         if (!planFeatures) return false
         return planFeatures[feature as keyof typeof planFeatures] === true
@@ -95,6 +100,8 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       isActive: false,
       plan: 'INACTIVE',
       isExpired: true,
+      planCycle: 'MONTHLY',
+      originalPlanName: undefined,
       canAccessFeature: () => false
     }
   }

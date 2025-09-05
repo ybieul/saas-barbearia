@@ -32,7 +32,8 @@ model Tenant {
   businessPhone     String?
   businessLogo      String?
   businessCnpj      String?   // CNPJ da empresa
-  businessPlan      String    @default("BASIC") // Plano contratado
+  businessPlan      String    @default("BASIC") // Plano contratado (nível)
+  planCycle         PlanCycle @default(MONTHLY) // Ciclo: MONTHLY ou ANNUAL
   subscriptionStart DateTime  @default(now())
   subscriptionEnd   DateTime?
   isActive          Boolean   @default(true)
@@ -52,6 +53,11 @@ model Tenant {
   financialRecords    FinancialRecord[]
 
   @@map("tenants")
+}
+
+enum PlanCycle {
+  MONTHLY
+  ANNUAL
 }
 
 // Tabela: CLIENTES FINAIS (clientes das barbearias)

@@ -35,7 +35,8 @@ model Tenant {
   businessInstagram String?   // URL do Instagram
   
   // Subscription and billing (assinaturas e cobrança)
-  businessPlan         String    @default("FREE") // FREE, BASIC, PREMIUM
+  businessPlan         String    @default("FREE") // FREE, BASIC, PREMIUM (nível)
+  planCycle            PlanCycle @default(MONTHLY) // Ciclo de cobrança
   subscriptionStart    DateTime  @default(now())
   subscriptionEnd      DateTime?
   isActive             Boolean   @default(false)
@@ -69,6 +70,12 @@ model Tenant {
   workingHours        WorkingHours[]
 
   @@map("tenants")
+}
+
+// Enum de ciclo de plano
+enum PlanCycle {
+  MONTHLY
+  ANNUAL
 }
 
 // Tabela: CLIENTES FINAIS (clientes das barbearias)

@@ -9,6 +9,8 @@ export interface SubscriptionInfo {
   isExpired: boolean
   daysUntilExpiry?: number
   canAccessFeature: (feature: string) => boolean
+  planCycle?: 'MONTHLY' | 'ANNUAL'
+  originalPlanName?: string
 }
 
 export interface PlanLimits {
@@ -126,6 +128,7 @@ export function useSubscription() {
       isActive: subscriptionInfo.isActive,
       isExpired: subscriptionInfo.isExpired,
       daysUntilExpiry: subscriptionInfo.daysUntilExpiry,
+  planCycle: subscriptionInfo.planCycle,
       // Upgrade recomendado se plano BASIC (para upsell) ou assinatura perto de expirar
       needsUpgrade: subscriptionInfo.plan === 'BASIC' || (!!subscriptionInfo.daysUntilExpiry && subscriptionInfo.daysUntilExpiry <= 7)
     }
