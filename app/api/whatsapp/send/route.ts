@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { formatPhoneNumber } from '@/lib/whatsapp'
 import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
 import { getTenantWhatsAppConfig } from '@/lib/whatsapp-tenant-helper'
-import jwt from 'jsonwebtoken'
 
 interface AuthUser {
   userId: string
@@ -11,58 +10,13 @@ interface AuthUser {
   role: string
 }
 
-function verifyToken(request: NextRequest): AuthUser {
-  // Tentar obter token do header Authorization
-  let token = request.headers.get('authorization')?.replace('Bearer ', '')
-  
-  // Se não tiver no header, tentar obter do cookie
-  if (!token) {
-    token = request.cookies.get('token')?.value
-  }
-  
-  // Se ainda não tiver, tentar obter do header x-auth-token
-  if (!token) {
-    token = request.headers.get('x-auth-token') || undefined
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 [API] Verificando token:', token ? '✅ Token encontrado' : '❌ Token não encontrado')
-  }
-
-  if (!token) {
-    throw new Error('Token não fornecido')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
-    
-    if (!decoded.tenantId) {
-      throw new Error('Token inválido: tenantId não encontrado')
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ [API] Token válido para usuário:', decoded.email)
-    }
-
-    return {
-      userId: decoded.userId,
-      tenantId: decoded.tenantId,
-      email: decoded.email,
-      role: decoded.role
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('❌ [API] Erro ao verificar token:', error)
-    }
-    throw new Error('Token inválido')
-  }
-}
+import { verifyToken, AuthError } from '@/lib/auth'
 
 // 🚀 POST MULTI-TENANT - Enviar mensagem de teste
 export async function POST(req: NextRequest) {
   try {
     // Verificar autenticação JWT
-    const user = verifyToken(req)
+  const user = verifyToken(req)
     
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ [TEST-MESSAGE] Usuário autenticado:', user.email)
