@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { generateSecurePassword, sendWelcomeEmail, sendSubscriptionCanceledEmail } from '@/lib/email'
+import { generateSecurePassword, sendWelcomeEmail, sendSubscriptionCanceledEmail, sendGenericNoticeEmail } from '@/lib/email'
 import { getBrazilNow } from '@/lib/timezone'
 
 // Tipos para os eventos da Kirvano (estrutura oficial)
@@ -110,6 +110,13 @@ export async function POST(request: NextRequest, { params }: { params: { secret:
 
       case 'SUBSCRIPTION_RENEWED':
         await handleSubscriptionRenewed(webhookData)
+        break
+
+      // Eventos de reembolso (nomes potenciais) – ajustar se documentação oficial diferir
+      case 'SALE_REFUNDED':
+      case 'REFUND':
+      case 'SALE_REFUND':
+        await handleSubscriptionRefunded(webhookData)
         break
 
       default:
@@ -386,6 +393,61 @@ async function handleSubscriptionRenewed(webhookData: KirvanoWebhookEvent) {
     
   } catch (error) {
     console.error('❌ Erro ao processar SUBSCRIPTION_RENEWED:', error)
+    throw error
+  }
+}
+
+// Função para processar reembolso de venda/assinatura
+async function handleSubscriptionRefunded(webhookData: KirvanoWebhookEvent) {
+  try {
+    console.log('💸 Processando evento de reembolso (refund) da Kirvano')
+    const customerEmail = webhookData.customer?.email
+    if (!customerEmail) {
+      console.error('❌ Webhook de reembolso sem email de cliente')
+      return
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { email: customerEmail } })
+    if (!tenant) {
+      console.warn(`⚠️ Tenant não encontrado para reembolso: ${customerEmail}`)
+      return
+    }
+
+    const now = new Date()
+    const updated = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        isActive: false,
+        businessPlan: 'Reembolsado', // Marca claramente o motivo
+        subscriptionEnd: now,
+        updatedAt: now,
+        // Opcional: poderíamos marcar lastSubscriptionEmailType como 'CANCELED' para reutilizar enum existente
+        lastSubscriptionEmailType: 'CANCELED'
+        // webhookExpiredProcessed deixado de fora (não é expiração, é reembolso)
+      }
+    })
+
+    console.log(`✅ Reembolso processado: tenant ${tenant.id} (${customerEmail}) desativado.`)
+
+    // Enviar email de notificação de reembolso
+    try {
+      const portalUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+      await sendGenericNoticeEmail({
+        email: tenant.email,
+        name: tenant.name || tenant.email,
+        plan: tenant.businessPlan,
+        subject: '💸 Reembolso processado',
+        title: 'Reembolso Confirmado',
+        subtitle: 'Acesso desativado',
+        body: `<p>Olá <strong>${tenant.name || tenant.email}</strong>,</p><p>O reembolso da sua assinatura foi processado e o acesso foi desativado.</p><p>Se desejar voltar, você pode reativar uma nova assinatura quando quiser.</p>`,
+        ctaText: 'Gerenciar Assinatura',
+        ctaUrl: portalUrl
+      })
+    } catch (emailErr) {
+      console.error('✉️ Erro ao enviar email de reembolso:', emailErr)
+    }
+  } catch (error) {
+    console.error('❌ Erro ao processar reembolso:', error)
     throw error
   }
 }
