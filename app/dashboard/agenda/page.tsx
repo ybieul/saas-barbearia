@@ -542,22 +542,41 @@ export default function AgendaPage() {
       const [hours, minutes] = timeStr.split(':').map(Number)
       return hours * 60 + minutes
     }
-    
+
     const startMinutes = timeToMinutes(time)
     const endMinutes = startMinutes + serviceDuration
-    
-    // Verificar se todos os slots de 5min necessários estão livres
     const slots = generateTimeSlots()
+
+    // Se estamos editando um agendamento, permitir que o novo horário caia totalmente dentro
+    // da janela original (mesmo que os slots internos estejam "ocupados" pelo próprio agendamento)
+    let originalWindow: { start: number; end: number } | null = null
+    if (editingAppointment && excludeAppointmentId && editingAppointment.id === excludeAppointmentId && editingAppointment.dateTime) {
+      try {
+        const originalStart = parseDatabaseDateTime(editingAppointment.dateTime)
+        const originalDuration = editingAppointment.duration || serviceDuration
+        const originalEnd = new Date(originalStart.getTime() + originalDuration * 60000)
+        originalWindow = {
+          start: originalStart.getHours() * 60 + originalStart.getMinutes(),
+          end: originalEnd.getHours() * 60 + originalEnd.getMinutes()
+        }
+      } catch {}
+    }
+
     for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
       const hours = Math.floor(currentMinutes / 60)
       const minutes = currentMinutes % 60
       const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-      
+
+      // Se slot pertence ao intervalo original do agendamento sendo editado, ignorar conflito
+      if (originalWindow && currentMinutes >= originalWindow.start && currentMinutes < originalWindow.end) {
+        continue
+      }
+
       if (slots.includes(slotTime) && isTimeSlotOccupied(slotTime, professionalId, excludeAppointmentId)) {
         return false
       }
     }
-    
+
     return true
   }
 
