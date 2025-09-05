@@ -7,7 +7,7 @@ config()
 
 const prisma = new PrismaClient()
 
-async function run() {
+export async function runPreExpireCron() {
   const now = getBrazilNow()
   if (process.env.NODE_ENV === 'development') {
     console.log('🕒 [PRE-EXPIRE] Iniciando execução em', now.toISOString())
@@ -73,4 +73,9 @@ async function run() {
   }
 }
 
-run().then(()=>{ console.log('✅ preexpire finalizado'); process.exit(0) }).catch(e=>{ console.error(e); process.exit(1) })
+// Execução direta somente quando chamado via CLI (não quando importado pelo scheduler)
+if (require.main === module) {
+  runPreExpireCron()
+    .then(()=>{ console.log('✅ preexpire finalizado'); process.exit(0) })
+    .catch(e=>{ console.error(e); process.exit(1) })
+}

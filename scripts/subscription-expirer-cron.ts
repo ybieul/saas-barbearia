@@ -6,7 +6,7 @@ import { sendSubscriptionExpiredEmail } from '../lib/email'
 
 const prisma = new PrismaClient()
 
-async function expireSubscriptions() {
+export async function runExpireCron() {
   const now = getBrazilNow()
   console.log(`🚀 [SUBSCRIPTION-EXPIRER] Iniciando verificação ${now.toISOString()}`)
   // Limite: assinaturas com subscriptionEnd < (now - 1 dia)
@@ -63,10 +63,8 @@ async function expireSubscriptions() {
   }
 }
 
-expireSubscriptions().then(() => {
-  console.log('🏁 Finalizado.')
-  process.exit(0)
-}).catch(err => {
-  console.error('Erro geral:', err)
-  process.exit(1)
-})
+if (require.main === module) {
+  runExpireCron()
+    .then(() => { console.log('🏁 Finalizado.'); process.exit(0) })
+    .catch(err => { console.error('Erro geral:', err); process.exit(1) })
+}

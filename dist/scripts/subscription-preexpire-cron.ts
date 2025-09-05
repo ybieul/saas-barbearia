@@ -2,14 +2,22 @@
 import { PrismaClient } from '@prisma/client'
 import { getBrazilNow } from '../lib/timezone'
 import { sendSubscriptionPreExpireEmail } from '../lib/email'
+import { config } from 'dotenv'
+config()
 
 const prisma = new PrismaClient()
 
-async function run() {
+export async function runPreExpireCron() {
   const now = getBrazilNow()
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🕒 [PRE-EXPIRE] Iniciando execução em', now.toISOString())
+  }
   // Normalizar para meia-noite Brasil (comparação por dia)
   const today = new Date(now)
   today.setHours(0,0,0,0)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📅 [PRE-EXPIRE] Hoje (midnight BR):', today.toISOString())
+  }
 
   const in3 = new Date(today); in3.setDate(in3.getDate() + 3)
   const in1 = new Date(today); in1.setDate(in1.getDate() + 1)
@@ -20,23 +28,54 @@ async function run() {
       isActive: true,
       subscriptionEnd: { not: null }
     },
-    select: { id:true, name:true, email:true, subscriptionEnd:true, businessPlan:true }
+    select: { id:true, name:true, email:true, subscriptionEnd:true, businessPlan:true, lastSubscriptionEmailType:true }
   })
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 [PRE-EXPIRE] Tenants candidatos: ${targets.length}`)
+  }
 
   for (const t of targets) {
     if (!t.subscriptionEnd) continue
     const end = new Date(t.subscriptionEnd)
     const endDay = new Date(end); endDay.setHours(0,0,0,0)
     const diffDays = Math.round((endDay.getTime() - today.getTime()) / 86400000)
-    if (diffDays === 3 || diffDays === 1) {
-      try {
-        await sendSubscriptionPreExpireEmail(t.name || t.email, t.email, t.businessPlan, diffDays)
-        console.log(`📧 Pré-expiração (${diffDays}d) enviada para ${t.email}`)
-      } catch (e) {
-        console.error('Erro ao enviar pré-expiração para', t.email, e)
+  const lastType = t.lastSubscriptionEmailType
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`➡️  [PRE-EXPIRE] Tenant ${t.email} expira em ${end.toISOString()} (diffDays=${diffDays}) lastEmail=${lastType}`)
+    }
+    if (diffDays === 3) {
+      if (lastType !== 'PRE_EXPIRE_3D') {
+        try {
+          await sendSubscriptionPreExpireEmail(t.name || t.email, t.email, t.businessPlan, diffDays)
+          await prisma.tenant.update({ where:{id:t.id}, data:{ lastSubscriptionEmailType: 'PRE_EXPIRE_3D' } })
+          console.log(`📧 Pré-expiração (3d) enviada para ${t.email}`)
+        } catch (e) {
+          console.error('Erro ao enviar pré-expiração 3d para', t.email, e)
+        }
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log(`⏩ [PRE-EXPIRE] 3d já enviado anteriormente para ${t.email}`)
       }
+    } else if (diffDays === 1) {
+      if (lastType !== 'PRE_EXPIRE_1D') {
+        try {
+          await sendSubscriptionPreExpireEmail(t.name || t.email, t.email, t.businessPlan, diffDays)
+          await prisma.tenant.update({ where:{id:t.id}, data:{ lastSubscriptionEmailType: 'PRE_EXPIRE_1D' } })
+          console.log(`📧 Pré-expiração (1d) enviada para ${t.email}`)
+        } catch (e) {
+          console.error('Erro ao enviar pré-expiração 1d para', t.email, e)
+        }
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log(`⏩ [PRE-EXPIRE] 1d já enviado anteriormente para ${t.email}`)
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      console.log(`ℹ️  [PRE-EXPIRE] diffDays=${diffDays} (nenhuma ação) para ${t.email}`)
     }
   }
 }
 
-run().then(()=>{ console.log('✅ preexpire finalizado'); process.exit(0) }).catch(e=>{ console.error(e); process.exit(1) })
+// Execução direta somente quando chamado via CLI (não quando importado pelo scheduler)
+if (require.main === module) {
+  runPreExpireCron()
+    .then(()=>{ console.log('✅ preexpire finalizado'); process.exit(0) })
+    .catch(e=>{ console.error(e); process.exit(1) })
+}
