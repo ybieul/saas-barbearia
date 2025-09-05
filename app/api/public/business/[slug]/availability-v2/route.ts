@@ -215,7 +215,8 @@ export async function GET(
       targetDate: targetDate.toISOString(),
       startOfTargetDay: startOfTargetDay.toISOString(),
       endOfTargetDay: endOfTargetDay.toISOString(),
-      statusFilter: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+      // ✅ INCLUSÃO: considerar COMPLETED para bloquear retroagendamentos sobre horários já utilizados
+      statusFilter: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED']
     })
 
     // 🔧 DIAGNÓSTICO: Primeiro, buscar TODOS os agendamentos do dia SEM filtros
@@ -269,8 +270,9 @@ export async function GET(
           gte: startOfTargetDay,
           lte: endOfTargetDay
         },
+        // ✅ INCLUSÃO COMPLETED: evita exibir slots ocupados por atendimentos concluídos ao permitir horários passados
         status: {
-          in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']
+          in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED']
         }
       },
       select: {
@@ -282,7 +284,7 @@ export async function GET(
     })
 
     // 🔍 DEBUG: Log dos agendamentos encontrados com filtros
-    console.log('🔍 [AVAILABILITY-V2] Agendamentos COM filtros:', {
+    console.log('🔍 [AVAILABILITY-V2] Agendamentos COM filtros (inclui COMPLETED):', {
       count: existingAppointments.length,
       appointments: existingAppointments.map(apt => ({
         id: apt.id,
