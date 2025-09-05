@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { authenticate, AuthError } from '@/lib/auth'
 
 // Função utilitária para gerar nome da instância baseado no nome do estabelecimento
 function generateInstanceName(businessName: string | null, tenantId: string): string {
@@ -21,83 +21,7 @@ function generateInstanceName(businessName: string | null, tenantId: string): st
   return `${cleanBusinessName}_${tenantId}`
 }
 
-interface AuthUser {
-  userId: string
-  tenantId: string
-  email: string
-  role: string
-}
-
-function verifyToken(request: NextRequest): AuthUser {
-  if (process.env.NODE_ENV === 'development') {
-    console.log("--- INICIANDO VERIFICAÇÃO DE PERMISSÃO (STATUS) ---")
-  }
-  
-  // Tentar obter token do header Authorization
-  let token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (process.env.NODE_ENV === 'development') {
-    console.log("1. Token do Authorization header:", token ? "✅ Encontrado" : "❌ Não encontrado")
-  }
-  
-  // Se não tiver no header, tentar obter do cookie
-  if (!token) {
-    token = request.cookies.get('token')?.value
-    if (process.env.NODE_ENV === 'development') {
-      console.log("1.1. Token do cookie:", token ? "✅ Encontrado" : "❌ Não encontrado")
-    }
-  }
-  
-  // Se ainda não tiver, tentar obter do header x-auth-token
-  if (!token) {
-    token = request.headers.get('x-auth-token') || undefined
-    if (process.env.NODE_ENV === 'development') {
-      console.log("1.2. Token do x-auth-token header:", token ? "✅ Encontrado" : "❌ Não encontrado")
-    }
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log("2. Token final obtido:", token ? `✅ ${token.substring(0, 20)}...` : "❌ Nenhum token")
-  }
-
-  if (!token) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("❌ ERRO: Token não fornecido")
-    }
-    throw new Error('Token não fornecido')
-  }
-
-  try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("3. Tentando decodificar token...")
-      console.log("3.1. NEXTAUTH_SECRET existe:", process.env.NEXTAUTH_SECRET ? "✅ Sim" : "❌ Não")
-    }
-    
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log("4. ✅ Token decodificado com sucesso:")
-      console.log("4.1. userId:", decoded.userId)
-      console.log("4.2. tenantId:", decoded.tenantId) 
-      console.log("4.3. email:", decoded.email)
-      console.log("4.4. role:", decoded.role)
-    }
-    
-    return {
-      userId: decoded.userId,
-      tenantId: decoded.tenantId,
-      email: decoded.email,
-      role: decoded.role
-    }
-  } catch (error: any) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error("❌ ERRO na validação do token:")
-      console.error("5.1. Tipo do erro:", error.name)
-      console.error("5.2. Mensagem:", error.message)
-      console.error("5.3. Stack:", error.stack)
-    }
-    throw new Error('Token inválido')
-  }
-}
+// Autenticação centralizada removendo duplicação de verifyToken
 
 export async function GET(
   request: NextRequest,
@@ -108,35 +32,11 @@ export async function GET(
       console.log("=== ROTA GET STATUS INICIADA ===")
     }
     
-    // Autenticação
+    // Autentica e garante acesso ao tenant
+    const user = authenticate(request, params.tenantId)
     if (process.env.NODE_ENV === 'development') {
-      console.log("6. Iniciando verificação de token...")
+      console.log('✅ [STATUS] Autenticação e autorização concluídas para usuário', user.userId)
     }
-    const user = verifyToken(request)
-    if (process.env.NODE_ENV === 'development') {
-      console.log("7. ✅ Token verificado com sucesso")
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log("8. Verificando permissão para tenant...")
-      console.log("8.1. Tenant ID da URL:", params.tenantId)
-      console.log("8.2. Tenant ID do token:", user.tenantId)
-    }
-    
-    if (!user || user.tenantId !== params.tenantId) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("❌ ERRO 403: Permissão negada")
-        console.log("8.3. User existe:", !!user)
-        console.log("8.4. IDs correspondem:", user?.tenantId === params.tenantId)
-      }
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      )
-    }
-    
-    console.log("9. ✅ Permissão verificada - usuário autorizado")
-    console.log("--- VERIFICAÇÃO DE PERMISSÃO BEM-SUCEDIDA ---")
 
     const { tenantId } = params
     
@@ -260,64 +160,28 @@ export async function GET(
     })
 
   } catch (error: any) {
-    console.error("❌ ERRO GERAL na rota GET status:")
-    console.error("10.1. Nome do erro:", error.name)
-    console.error("10.2. Mensagem:", error.message)
-    console.error("10.3. Stack completo:", error.stack)
-    
-    // Se o erro for de autenticação, retornar 401
-    if (error.message?.includes('Token não fornecido') || error.message?.includes('Token inválido')) {
-      console.log("10.4. ❌ Retornando 401 - Erro de autenticação")
-      return NextResponse.json(
-        { 
-          error: 'Token de autenticação inválido ou expirado',
-          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-        },
-        { status: 401 }
-      )
+    const dev = process.env.NODE_ENV === 'development'
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
     }
-    
-    // Se o erro for de timeout ou rede, tratar como "desconectado" também
-    if (error.name === 'TimeoutError' || error.message?.includes('timeout') || error.message?.includes('fetch')) {
-      console.log("10.5. ⚠️  Timeout/erro de rede - interpretando como desconectado")
-      
-      // Buscar businessName para fallback
-      let fallbackInstanceName = `tenant_${params.tenantId}` // padrão antigo como fallback
+    console.error('❌ [STATUS] Erro geral:', error?.message || error)
+    // Timeout ou falha de rede: considerar desconectado
+    if (error?.name === 'TimeoutError' || error?.message?.includes('timeout') || error?.message?.includes('fetch')) {
+      let fallbackInstanceName = `tenant_${params.tenantId}`
       try {
-        const fallbackTenant = await prisma.tenant.findFirst({
-          where: { id: params.tenantId },
-          select: { businessName: true }
-        })
+        const fallbackTenant = await prisma.tenant.findFirst({ where: { id: params.tenantId }, select: { businessName: true } })
         if (fallbackTenant) {
           fallbackInstanceName = generateInstanceName(fallbackTenant.businessName, params.tenantId)
         }
-      } catch (e) {
-        console.warn('⚠️  Erro ao buscar tenant para fallback, usando padrão antigo')
-      }
-      
+      } catch {}
       return NextResponse.json({
         connected: false,
         instanceName: fallbackInstanceName,
         status: 'close',
         error: 'Timeout na comunicação com Evolution API - interpretado como desconectado',
-        data: {
-          tenantId: params.tenantId,
-          instanceName: fallbackInstanceName,
-          lastCheck: new Date().toISOString()
-        }
+        data: { tenantId: params.tenantId, instanceName: fallbackInstanceName, lastCheck: new Date().toISOString() }
       })
     }
-    
-    console.log("10.6. ❌ Retornando 500 - Erro interno")
-    console.error('❌ [API] Erro ao verificar status WhatsApp:', error)
-    
-    return NextResponse.json(
-      { 
-        connected: false,
-        error: 'Erro interno ao verificar status da conexão WhatsApp',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ connected: false, error: 'Erro interno ao verificar status da conexão WhatsApp', details: dev ? error?.message : undefined }, { status: 500 })
   }
 }

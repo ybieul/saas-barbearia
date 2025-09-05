@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { authenticate, AuthError } from '@/lib/auth'
 
 // Função utilitária para gerar nome da instância baseado no nome do estabelecimento
 function generateInstanceName(businessName: string | null, tenantId: string): string {
@@ -21,55 +21,15 @@ function generateInstanceName(businessName: string | null, tenantId: string): st
   return `${cleanBusinessName}_${tenantId}`
 }
 
-interface AuthUser {
-  userId: string
-  tenantId: string
-  email: string
-  role: string
-}
-
-function verifyToken(request: NextRequest): AuthUser {
-  let token = request.headers.get('authorization')?.replace('Bearer ', '')
-  
-  if (!token) {
-    token = request.cookies.get('token')?.value
-  }
-  
-  if (!token) {
-    token = request.headers.get('x-auth-token') || undefined
-  }
-
-  if (!token) {
-    throw new Error('Token não fornecido')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
-    return {
-      userId: decoded.userId,
-      tenantId: decoded.tenantId,
-      email: decoded.email,
-      role: decoded.role
-    }
-  } catch (error) {
-    throw new Error('Token inválido')
-  }
-}
+// Autenticação centralizada em lib/auth
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { tenantId: string } }
 ) {
   try {
-    // Autenticação
-    const user = verifyToken(request)
-    
-    if (!user || user.tenantId !== params.tenantId) {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      )
-    }
+  // Autentica e valida tenant
+  const user = authenticate(request, params.tenantId)
 
     const { tenantId } = params
     
@@ -169,14 +129,11 @@ export async function DELETE(
     })
 
   } catch (error: any) {
-    console.error('❌ [API] Erro ao desconectar WhatsApp:', error)
-    
-    return NextResponse.json(
-      { 
-        error: 'Erro interno do servidor ao desconectar WhatsApp',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-      },
-      { status: 500 }
-    )
+    const dev = process.env.NODE_ENV === 'development'
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
+    }
+    console.error('❌ [API] Erro ao desconectar WhatsApp:', error?.message || error)
+    return NextResponse.json({ error: 'Erro interno do servidor ao desconectar WhatsApp', details: dev ? error?.message : undefined }, { status: 500 })
   }
 }
