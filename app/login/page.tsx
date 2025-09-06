@@ -77,22 +77,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo completa */}
-        <div className="flex justify-center mb-16">
-          <div className="flex items-center justify-center rounded-lg">
-            <img
-              src="/img/logo-tymerbook.png"
-              alt="TymerBook"
-              className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%] drop-shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all"
-              loading="eager"
-              decoding="async"
-            />
-          </div>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+      
+      {/* Container da Logo - Independente do formulário */}
+      <div className="mb-8">
+        <img
+          src="/img/logo-tymerbook.png"
+          alt="TymerBook"
+          className="h-20 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all"
+          loading="eager"
+          decoding="async"
+        />
+      </div>
 
-  <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
+      {/* Container do Formulário - Sempre centralizado */}
+      <div className="w-full max-w-md">
+        <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Bem-vindo de volta</CardTitle>
             <CardDescription className="text-[#71717a]">Entre na sua conta para acessar o painel</CardDescription>
@@ -165,6 +165,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
+        {/* Link voltar ao site */}
         <div className="mt-8 text-center">
           <Link href="/" className="text-[#71717a] hover:text-[#ededed] text-sm transition-colors">
             ← Voltar para o site
