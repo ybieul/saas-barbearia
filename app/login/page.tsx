@@ -81,8 +81,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
 
-      {/* Logo padronizada */}
-      <div className="mb-8">
+  {/* Logo padronizada - espaçamento ajustado */}
+  <div className="mb-4">
         <AuthLogo className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" sizePreset="default" />
       </div>
 
