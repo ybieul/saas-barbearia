@@ -80,8 +80,8 @@ export default function RecuperarSenhaPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo completa */}
-          <div className="flex justify-center mb-14">
-            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-24 sm:h-32 lg:h-40 2xl:h-48 w-auto max-w-[90%]" decoding="async" />
+          <div className="flex justify-center mb-16">
+            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%]" decoding="async" />
           </div>
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -137,8 +137,8 @@ export default function RecuperarSenhaPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo completa */}
-        <div className="flex justify-center mb-14">
-          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-24 sm:h-32 lg:h-40 2xl:h-48 w-auto max-w-[90%]" decoding="async" />
+        <div className="flex justify-center mb-16">
+          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%]" decoding="async" />
         </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
