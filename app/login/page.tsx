@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import Image from "next/image" // (pode ser removido futuramente se não usado em outro lugar)
+import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,16 +80,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
-      
-      {/* Container da Logo - Independente do formulário */}
+
+      {/* Logo padronizada */}
       <div className="mb-8">
-        <img
-          src="/img/logo-tymerbook.png"
-          alt="TymerBook"
-          className="h-20 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all"
-          loading="eager"
-          decoding="async"
-        />
+        <AuthLogo className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" sizePreset="default" />
       </div>
 
       {/* Container do Formulário - Sempre centralizado */}

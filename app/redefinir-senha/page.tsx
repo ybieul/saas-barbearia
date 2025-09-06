@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect, Suspense } from "react"
+import Image from "next/image" // pode ser removido se não houver mais usos diretos
+import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -106,9 +108,9 @@ function RedefinirSenhaContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo completa */}
+          {/* Logo padronizada */}
           <div className="flex justify-center mb-16">
-            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%]" decoding="async" />
+            <AuthLogo />
           </div>
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -142,9 +144,9 @@ function RedefinirSenhaContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo completa */}
+        {/* Logo padronizada */}
         <div className="flex justify-center mb-16">
-          <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%]" decoding="async" />
+          <AuthLogo />
         </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
@@ -256,7 +258,7 @@ export default function RedefinirSenhaPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-16">
-            <img src="/img/logo-tymerbook.png" alt="TymerBook" className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto max-w-[95%]" decoding="async" />
+            <AuthLogo />
           </div>
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardContent className="p-8 text-center">
