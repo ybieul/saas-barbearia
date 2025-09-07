@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import Image from "next/image" // (pode ser removido futuramente se não usado em outro lugar)
+import Image from "next/image" // (não utilizado; pode ser removido em limpeza futura)
 import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,20 +80,17 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
-      <div className="w-full max-w-sm">
-        {/* Linha da logo */}
-        <div className="flex justify-center">
-          <div className="w-56 mb-6 drop-shadow-[0_0_20px_rgba(139,92,246,0.35)]">
-            <AuthLogo sizePreset="default" className="w-full" />
-          </div>
-        </div>
-        {/* Linha do formulário */}
+      <div className="flex w-full max-w-sm flex-col items-center gap-4">
+        {/* Logo (controle direto de largura sem wrapper extra) */}
+        <AuthLogo sizePreset="default" className="w-56 sm:w-60 drop-shadow-[0_0_20px_rgba(139,92,246,0.35)]" />
+
+        {/* Card do formulário */}
         <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-          <CardHeader className="text-center pb-4">
+          <CardHeader className="text-center pb-3 pt-6">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Bem-vindo de volta</CardTitle>
             <CardDescription className="text-[#71717a]">Entre na sua conta para acessar o painel</CardDescription>
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent className="pt-0 pb-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[#ededed]">Email</Label>
@@ -146,8 +143,9 @@ export default function LoginPage() {
             </form>
           </CardContent>
         </Card>
-        {/* Linha do link voltar */}
-        <div className="mt-6 text-center text-sm text-[#71717a]">
+
+        {/* Link inferior */}
+        <div className="pt-1 text-center text-sm text-[#71717a]">
           <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
         </div>
       </div>
