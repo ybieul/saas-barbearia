@@ -20,9 +20,9 @@ export function AuthLogo({
   priority = true,
 }: AuthLogoProps) {
   const presetMap: Record<string, string> = {
-    default: "w-56 sm:w-64 md:w-72 lg:w-80 xl:w-88 2xl:w-96",
-    lg: "w-64 sm:w-72 md:w-80 lg:w-88 xl:w-96 2xl:w-104",
-    xl: "w-72 sm:w-80 md:w-88 lg:w-96 xl:w-104 2xl:w-112",
+    default: "w-56 sm:w-64 md:w-64 lg:w-68 xl:w-72 2xl:w-80",
+    lg: "w-64 sm:w-72 md:w-72 lg:w-76 xl:w-80 2xl:w-88",
+    xl: "w-72 sm:w-80 md:w-80 lg:w-84 xl:w-88 2xl:w-96",
   }
 
   return (
