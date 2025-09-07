@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, Suspense } from "react"
+import Image from "next/image" // pode ser removido se não houver mais usos diretos
 import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -105,71 +106,147 @@ function RedefinirSenhaContent() {
 
   if (successMessage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="flex w-full max-w-sm flex-col">
-          <div className="mb-6 flex justify-center"><AuthLogo sizePreset="default" /></div>
-          <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-            <CardHeader className="pb-4 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-900/20"><CheckCircle className="h-8 w-8 text-[#10b981]" /></div>
-              <CardTitle className="text-2xl font-bold text-[#ededed]">Senha Redefinida!</CardTitle>
-              <CardDescription className="text-center text-[#71717a]">{successMessage}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-2 text-center">
-              <div className="mb-2 rounded-lg border border-[#10b981]/20 bg-[#065f46]/10 p-4">
-                <p className="font-medium text-[#ededed]">Senha redefinida com sucesso.</p>
-                <p className="mt-2 text-sm text-[#71717a]">Clique no botão abaixo para acessar o login.</p>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo padronizada - espaçamento ajustado */}
+          <div className="flex justify-center mb-8">
+            <AuthLogo />
+          </div>
+
+          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-[#10b981]" />
               </div>
-              <Link href="/login"><Button className="w-full bg-tymer-primary text-white hover:bg-tymer-primary/80">Ir para o Login</Button></Link>
+              <CardTitle className="text-2xl font-bold text-[#ededed]">Senha Redefinida!</CardTitle>
+              <CardDescription className="text-[#71717a] text-center">
+                {successMessage}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-6">
+              <div className="bg-[#065f46]/10 border border-[#10b981]/20 rounded-lg p-4 mb-4">
+                <p className="text-[#ededed] font-medium">Senha redefinida com sucesso.</p>
+                <p className="text-sm text-[#71717a] mt-2">Clique no botão abaixo para acessar o login.</p>
+              </div>
+              
+              <Link href="/login">
+                <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white">
+                  Ir para o Login
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-          <div className="mt-6 text-center text-sm text-muted-foreground"><Link href="/" className="hover:text-primary">← Voltar para o site</Link></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="flex w-full max-w-sm flex-col">
-        <div className="mb-6 flex justify-center"><AuthLogo sizePreset="default" /></div>
-        <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-          <CardHeader className="pb-4 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-tymer-primary/10"><Lock className="h-8 w-8 text-tymer-primary" /></div>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+  {/* Logo padronizada - espaçamento ajustado */}
+  <div className="flex justify-center mb-8">
+          <AuthLogo />
+        </div>
+
+        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-tymer-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8 text-tymer-primary" />
+            </div>
             <CardTitle className="text-2xl font-bold text-[#ededed]">Nova Senha</CardTitle>
-            <CardDescription className="text-[#71717a]">Digite sua nova senha abaixo</CardDescription>
+            <CardDescription className="text-[#71717a]">
+              Digite sua nova senha abaixo
+            </CardDescription>
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent>
             {!token ? (
-              <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/20"><AlertCircle className="h-8 w-8 text-red-400" /></div>
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-red-400" />
+                </div>
                 <p className="text-red-400">Token de redefinição inválido ou expirado</p>
-                <Link href="/recuperar-senha"><Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] text-white hover:from-[#059669] hover:to-[#047857]">Solicitar Nova Redefinição</Button></Link>
+                <Link href="/recuperar-senha">
+                  <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white">
+                    Solicitar Nova Redefinição
+                  </Button>
+                </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-[#ededed]">Nova Senha</Label>
+                  <Label htmlFor="newPassword" className="text-[#ededed]">
+                    Nova Senha
+                  </Label>
                   <div className="relative">
-                    <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} placeholder="Digite sua nova senha" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10" required />
-                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]">{showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Digite sua nova senha"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                   <p className="text-xs text-[#71717a]">Mínimo de 6 caracteres</p>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-[#ededed]">Confirmar Nova Senha</Label>
+                  <Label htmlFor="confirmPassword" className="text-[#ededed]">
+                    Confirmar Nova Senha
+                  </Label>
                   <div className="relative">
-                    <Input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirme sua nova senha" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10" required />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirme sua nova senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
-                {errorMessage && <div className="rounded-md border border-red-600/30 bg-red-900/20 px-4 py-3 text-sm text-red-400">{errorMessage}</div>}
-                <Button type="submit" className="w-full bg-tymer-primary text-white transition-all duration-200 hover:bg-tymer-primary/80" disabled={isLoading}>{isLoading ? 'Redefinindo...' : 'Redefinir Senha'}</Button>
+                
+                {/* Mensagem de erro */}
+                {errorMessage && (
+                  <div className="bg-red-900/20 border border-red-600/30 text-red-400 px-4 py-3 rounded-md text-sm">
+                    {errorMessage}
+                  </div>
+                )}
+                
+                <Button
+                  type="submit"
+                  className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Redefinindo..." : "Redefinir Senha"}
+                </Button>
               </form>
             )}
-            <div className="mt-6 text-center"><Link href="/login" className="text-sm text-[#71717a] transition-colors hover:text-tymer-primary">Voltar para o Login</Link></div>
+
+            <div className="mt-6 text-center">
+              <Link href="/login" className="text-[#71717a] hover:text-white text-sm transition-colors">
+                Voltar para o Login
+              </Link>
+            </div>
           </CardContent>
         </Card>
-        <div className="mt-6 text-center text-sm text-muted-foreground"><Link href="/" className="hover:text-primary">← Voltar para o site</Link></div>
       </div>
     </div>
   )
@@ -178,11 +255,16 @@ function RedefinirSenhaContent() {
 export default function RedefinirSenhaPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="flex w-full max-w-sm flex-col">
-          <div className="mb-6 flex justify-center"><AuthLogo sizePreset="default" /></div>
-          <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg"><CardContent className="p-8 text-center"><p className="text-[#71717a]">Carregando...</p></CardContent></Card>
-          <div className="mt-6 text-center text-sm text-muted-foreground"><Link href="/" className="hover:text-primary">← Voltar para o site</Link></div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-8">
+            <AuthLogo />
+          </div>
+          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+            <CardContent className="p-8 text-center">
+              <p className="text-[#71717a]">Carregando...</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     }>

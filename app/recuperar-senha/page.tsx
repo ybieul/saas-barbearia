@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import Image from "next/image" // manter se usado em outro local
 import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,30 +24,54 @@ export default function RecuperarSenhaPage() {
     e.preventDefault()
     setIsLoading(true)
     setErrorMessage("")
+
     try {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email }),
       })
+
       const data = await response.json()
+
       if (response.ok) {
         setEmailSent(true)
-        toast({ title: 'Email enviado!', description: 'Verifique sua caixa de entrada para redefinir sua senha.' })
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        })
       } else if (response.status === 404) {
         setErrorMessage('Email não encontrado. Verifique e tente novamente.')
-        toast({ title: 'Email não encontrado', description: 'Verifique se digitou corretamente.', variant: 'destructive' })
+        toast({
+          title: 'Email não encontrado',
+          description: 'Verifique se digitou corretamente.',
+          variant: 'destructive'
+        })
       } else if (response.status === 403) {
         setErrorMessage('Conta inativa. Entre em contato com o suporte.')
-        toast({ title: 'Conta inativa', description: 'Entre em contato com o suporte para reativação.', variant: 'destructive' })
+        toast({
+          title: 'Conta inativa',
+          description: 'Entre em contato com o suporte para reativação.',
+          variant: 'destructive'
+        })
       } else {
         setErrorMessage(data.error || 'Erro ao enviar email')
-        toast({ title: 'Erro', description: data.error || 'Erro ao enviar email', variant: 'destructive' })
+        toast({
+          title: 'Erro',
+          description: data.error || 'Erro ao enviar email',
+          variant: 'destructive'
+        })
       }
     } catch (error) {
       console.error('Erro ao solicitar redefinição:', error)
       setErrorMessage('Erro interno. Tente novamente mais tarde.')
-      toast({ title: 'Erro', description: 'Erro interno. Tente novamente mais tarde.', variant: 'destructive' })
+      toast({
+        title: "Erro",
+        description: "Erro interno. Tente novamente mais tarde.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -54,63 +79,121 @@ export default function RecuperarSenhaPage() {
 
   if (emailSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="flex w-full max-w-sm flex-col">
-          <div className="mb-6 flex justify-center"><AuthLogo sizePreset="default" /></div>
-          <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-            <CardHeader className="pb-4 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-900/20"><CheckCircle className="h-8 w-8 text-[#10b981]" /></div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo padronizada - espaçamento ajustado */}
+          <div className="flex justify-center mb-8">
+            <AuthLogo />
+          </div>
+
+          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-[#10b981]" />
+              </div>
               <CardTitle className="text-2xl font-bold text-[#ededed]">Email Enviado!</CardTitle>
-              <CardDescription className="text-center text-[#71717a]">Enviamos as instruções para redefinir sua senha para <strong className="text-[#10b981]">{email}</strong></CardDescription>
+              <CardDescription className="text-[#71717a] text-center">
+                Enviamos as instruções para redefinir sua senha para <strong className="text-[#10b981]">{email}</strong>
+              </CardDescription>
             </CardHeader>
-            <CardContent className="pt-2 text-center space-y-6">
-              <div className="rounded-xl border border-tymer-primary/30 bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 p-6 text-left">
-                <h3 className="mb-4 font-medium text-[#ededed]">Próximos passos:</h3>
-                <ul className="space-y-2 text-sm text-[#a1a1aa]">
+            <CardContent className="text-center flex flex-col space-y-8">
+              <div className="bg-gradient-to-r from-tymer-primary/15 to-tymer-primary/5 border border-tymer-primary/30 rounded-xl p-6 text-left animate-slide-up animate-delay-600">
+                <h3 className="text-[#ededed] font-medium mb-4">Próximos passos:</h3>
+                <ul className="text-sm text-[#a1a1aa] space-y-2">
                   <li>• Verifique sua caixa de entrada</li>
                   <li>• Clique no link recebido no email</li>
                   <li>• Defina uma nova senha</li>
                   <li>• Faça login com a nova senha</li>
                 </ul>
               </div>
+              
               <div className="text-sm text-[#71717a]">
                 <p>Não recebeu o email?</p>
-                <p>Verifique sua pasta de spam ou <button onClick={() => { setEmailSent(false); setEmail('') }} className="font-medium text-[#10b981] transition-colors hover:text-[#059669]">tente novamente</button></p>
+                <p>Verifique sua pasta de spam ou</p>
+                <button
+                  onClick={() => {
+                    setEmailSent(false)
+                    setEmail("")
+                  }}
+                  className="text-[#10b981] hover:text-[#059669] font-medium transition-colors"
+                >
+                  tente novamente
+                </button>
               </div>
-              <Link href="/login"><Button className="w-full bg-tymer-primary text-white transition-colors hover:bg-tymer-primary/80">Voltar para o Login</Button></Link>
+              
+              <div>
+                <Link href="/login">
+                  <Button className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white font-semibold transition-colors">
+                    Voltar para o Login
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
-          <div className="mt-6 text-center text-sm text-muted-foreground"><Link href="/" className="hover:text-primary">← Voltar para o site</Link></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="flex w-full max-w-sm flex-col">
-        <div className="mb-6 flex justify-center"><AuthLogo sizePreset="default" /></div>
-        <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-          <CardHeader className="pb-4 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-tymer-primary/10"><Mail className="h-8 w-8 text-tymer-primary" /></div>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+  {/* Logo padronizada - espaçamento ajustado */}
+  <div className="flex justify-center mb-8">
+          <AuthLogo />
+        </div>
+
+        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-tymer-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-tymer-primary" />
+            </div>
             <CardTitle className="text-2xl font-bold text-[#ededed]">Redefinir Senha</CardTitle>
-            <CardDescription className="text-[#71717a]">Digite seu email para receber as instruções de redefinição</CardDescription>
+            <CardDescription className="text-[#71717a]">
+              Digite seu email para receber as instruções de redefinição
+            </CardDescription>
           </CardHeader>
-            <CardContent className="pt-2">
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#ededed]">Email</Label>
-                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary" required />
+                <Label htmlFor="email" className="text-[#ededed]">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
+                  required
+                />
               </div>
-              {errorMessage && <div className="rounded-md border border-red-600/30 bg-red-900/20 px-4 py-3 text-sm text-red-400">{errorMessage}</div>}
-              <Button type="submit" className="w-full bg-tymer-primary text-white transition-all duration-200 hover:bg-tymer-primary/80" disabled={isLoading}>{isLoading ? 'Enviando...' : 'Enviar Link de Redefinição'}</Button>
+              
+              {/* Mensagem de erro */}
+              {errorMessage && (
+                <div className="bg-red-900/20 border border-red-600/30 text-red-400 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
+              
+              <Button
+                type="submit"
+                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
+                disabled={isLoading}
+              >
+                {isLoading ? "Enviando..." : "Enviar Link de Redefinição"}
+              </Button>
             </form>
+
             <div className="mt-6 text-center">
-              <Link href="/login" className="flex items-center justify-center gap-2 text-sm text-[#71717a] transition-colors hover:text-tymer-primary"><ArrowLeft className="h-4 w-4" />Voltar para o Login</Link>
+              <Link href="/login" className="text-[#71717a] hover:text-white text-sm transition-colors flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar para o Login
+              </Link>
             </div>
           </CardContent>
         </Card>
-        <div className="mt-6 text-center text-sm text-muted-foreground"><Link href="/" className="hover:text-primary">← Voltar para o site</Link></div>
       </div>
     </div>
   )

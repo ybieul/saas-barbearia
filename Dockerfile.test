@@ -1,10 +1,7 @@
-# Dockerfile ultra-simples para testes (agora usando alpine para consistência)
-FROM node:20-alpine
+# Dockerfile ultra-simples para testes
+FROM node:20
 
 WORKDIR /app
-
-# Dependências de sistema necessárias (openssl, compatibilidade glibc)
-RUN apk add --no-cache openssl libc6-compat
 
 # Copia tudo
 COPY . .
