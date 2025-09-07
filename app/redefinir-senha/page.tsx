@@ -1,7 +1,9 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect, Suspense } from "react"
+import Image from "next/image" // pode ser removido se não houver mais usos diretos
 import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -104,14 +106,14 @@ function RedefinirSenhaContent() {
 
   if (successMessage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
-        {/* Container centralizador */}
-        <div className="flex w-full max-w-sm flex-col items-center">
-          {/* Logo */}
-          <div className="mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo padronizada - espaçamento ajustado */}
+          <div className="flex justify-center mb-8">
             <AuthLogo />
           </div>
-          <Card className="w-full bg-[#18181b] border-[#27272a] shadow-2xl">
+
+          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-[#10b981]" />
@@ -134,25 +136,20 @@ function RedefinirSenhaContent() {
               </Link>
             </CardContent>
           </Card>
-          {/* Link inferior */}
-          <div className="mt-6 text-center text-sm text-[#71717a]">
-            <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
-          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
-      {/* Container centralizador */}
-      <div className="flex w-full max-w-sm flex-col items-center">
-        {/* Logo */}
-        <div className="mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+  {/* Logo padronizada - espaçamento ajustado */}
+  <div className="flex justify-center mb-8">
           <AuthLogo />
         </div>
 
-        <Card className="w-full bg-[#18181b] border-[#27272a] shadow-2xl">
+        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-tymer-primary/10 rounded-full flex items-center justify-center mb-4">
               <Lock className="w-8 h-8 text-tymer-primary" />
@@ -250,10 +247,6 @@ function RedefinirSenhaContent() {
             </div>
           </CardContent>
         </Card>
-        {/* Link inferior */}
-        <div className="mt-6 text-center text-sm text-[#71717a]">
-          <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
-        </div>
       </div>
     </div>
   )
@@ -262,13 +255,13 @@ function RedefinirSenhaContent() {
 export default function RedefinirSenhaPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
-        <div className="flex w-full max-w-sm flex-col items-center">
-          <div className="mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-8">
             <AuthLogo />
           </div>
-          <Card className="w-full bg-[#18181b] border-[#27272a] shadow-2xl">
-            <CardContent className="p-6">
+          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+            <CardContent className="p-8 text-center">
               <p className="text-[#71717a]">Carregando...</p>
             </CardContent>
           </Card>
