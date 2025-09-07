@@ -79,17 +79,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
       
-      {/* Layout com espaçamento distribuído */}
-      <div className="flex min-h-screen flex-col items-center">
-        
-        {/* Espaço superior flexível */}
-        <div className="flex-1 flex items-end justify-center pb-4">
-          <AuthLogo className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" sizePreset="default" />
-        </div>
-
-        {/* Container do Formulário - Centralizado */}
+      {/* Logo posicionada absolutamente - não afeta o fluxo do layout */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
+        <AuthLogo className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" sizePreset="default" />
+      </div>
+      
+      {/* Container do Formulário - Centralizado na tela toda */}
+      <div className="flex min-h-screen items-center justify-center">
         <div className="w-full max-w-md">
         <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
@@ -171,10 +169,6 @@ export default function LoginPage() {
           </Link>
         </div>
         </div>
-        
-        {/* Espaço inferior flexível */}
-        <div className="flex-1"></div>
-        
       </div>
     </div>
   )
