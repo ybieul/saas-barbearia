@@ -86,12 +86,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo padronizada */}
-        <div className="flex justify-center mb-16">
-          <AuthLogo />
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+      
+      {/* Logo posicionada absolutamente */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
+        <AuthLogo />
+      </div>
+      
+      {/* Container do Formulário - Centralizado */}
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md">
 
         <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
@@ -199,6 +203,7 @@ export default function RegisterPage() {
           <Link href="/" className="text-[#71717a] hover:text-[#ededed] text-sm transition-colors">
             ← Voltar para o site
           </Link>
+        </div>
         </div>
       </div>
     </div>

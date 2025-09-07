@@ -79,12 +79,16 @@ export default function RecuperarSenhaPage() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo padronizada */}
-          <div className="flex justify-center mb-16">
-            <AuthLogo />
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+        
+        {/* Logo posicionada absolutamente */}
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
+          <AuthLogo />
+        </div>
+        
+        {/* Container do Formulário - Centralizado */}
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="w-full max-w-md">
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardHeader className="text-center">
@@ -130,18 +134,23 @@ export default function RecuperarSenhaPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo padronizada */}
-        <div className="flex justify-center mb-16">
-          <AuthLogo />
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+      
+      {/* Logo posicionada absolutamente */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
+        <AuthLogo />
+      </div>
+      
+      {/* Container do Formulário - Centralizado */}
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md">
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
           <CardHeader className="text-center">
@@ -194,6 +203,7 @@ export default function RecuperarSenhaPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   )
