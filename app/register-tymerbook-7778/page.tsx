@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import Image from "next/image" // mantido se houver uso futuro
 import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,25 +28,19 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (formData.password !== formData.confirmPassword) {
       notification.error("As senhas não coincidem!")
       return
     }
-
     if (formData.password.length < 6) {
       notification.error("A senha deve ter pelo menos 6 caracteres!")
       return
     }
-
     setIsLoading(true)
-
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.businessName,
           email: formData.email,
@@ -55,20 +48,12 @@ export default function RegisterPage() {
           businessName: formData.businessName,
         }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
-        // Usar os mesmos nomes que o AuthProvider usa
         localStorage.setItem('auth_token', data.token)
         localStorage.setItem('auth_user', JSON.stringify(data.user))
-        
-        // Salvar cookie para o middleware (mesmo padrão do AuthProvider)
-        document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 dias
-        
+        document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`
         notification.success('Conta criada com sucesso!')
-        
-        // Redirecionar para login para garantir fluxo correto
         router.push('/login')
       } else {
         notification.error(data.message || 'Erro ao criar conta')
@@ -82,123 +67,53 @@ export default function RegisterPage() {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-  {/* Logo padronizada - espaçamento ajustado */}
-  <div className="flex justify-center mb-8">
-          <AuthLogo />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="flex w-full max-w-sm flex-col">
+        <div className="mb-6 flex justify-center">
+          <AuthLogo sizePreset="default" />
         </div>
-
-        <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-          <CardHeader className="text-center">
+        <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
+          <CardHeader className="pb-4 text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Crie sua conta</CardTitle>
             <CardDescription className="text-[#71717a]">Comece a transformar seu negócio hoje mesmo</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="businessName" className="text-[#ededed]">
-                  Nome da Barbearia/Salão
-                </Label>
-                <Input
-                  id="businessName"
-                  type="text"
-                  placeholder="Ex: Barbearia do João"
-                  value={formData.businessName}
-                  onChange={(e) => handleInputChange("businessName", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
-                  required
-                />
+                <Label htmlFor="businessName" className="text-[#ededed]">Nome da Barbearia/Salão</Label>
+                <Input id="businessName" type="text" placeholder="Ex: Barbearia do João" value={formData.businessName} onChange={e => handleInputChange('businessName', e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#ededed]">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
-                  required
-                />
+                <Label htmlFor="email" className="text-[#ededed]">Email</Label>
+                <Input id="email" type="email" placeholder="seu@email.com" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#ededed]">
-                  Senha
-                </Label>
+                <Label htmlFor="password" className="text-[#ededed]">Senha</Label>
                 <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Mínimo 6 caracteres"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
-                    minLength={6}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={formData.password} onChange={e => handleInputChange('password', e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10" minLength={6} required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-[#ededed]">
-                  Confirmar Senha
-                </Label>
+                <Label htmlFor="confirmPassword" className="text-[#ededed]">Confirmar Senha</Label>
                 <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Digite a senha novamente"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  <Input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Digite a senha novamente" value={formData.confirmPassword} onChange={e => handleInputChange('confirmPassword', e.target.value)} className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10" required />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </div>
               </div>
-              <Button
-                type="submit"
-                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
-                disabled={isLoading}
-              >
-                {isLoading ? "Criando conta..." : "Criar Conta"}
-              </Button>
+              <Button type="submit" className="w-full bg-tymer-primary text-white transition-all duration-200 hover:bg-tymer-primary/80" disabled={isLoading}>{isLoading ? 'Criando conta...' : 'Criar Conta'}</Button>
             </form>
-
             <div className="mt-6 text-center">
-              <p className="text-[#71717a]">
-                Já tem uma conta?{" "}
-                <Link href="/login" className="text-[#10b981] hover:text-[#059669] font-medium transition-colors">
-                  Faça login
-                </Link>
-              </p>
+              <p className="text-[#71717a]">Já tem uma conta? <Link href="/login" className="font-medium text-[#10b981] transition-colors hover:text-[#059669]">Faça login</Link></p>
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-8 text-center">
-          <Link href="/" className="text-[#71717a] hover:text-[#ededed] text-sm transition-colors">
-            ← Voltar para o site
-          </Link>
+        <div className="mt-6 text-center text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-primary">← Voltar para o site</Link>
         </div>
       </div>
     </div>
