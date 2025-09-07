@@ -81,8 +81,8 @@ export default function RecuperarSenhaPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo padronizada - espaçamento ajustado */}
-          <div className="flex justify-center mb-8">
+          {/* Logo padronizada */}
+          <div className="flex justify-center mb-16">
             <AuthLogo />
           </div>
 
@@ -138,8 +138,8 @@ export default function RecuperarSenhaPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-  {/* Logo padronizada - espaçamento ajustado */}
-  <div className="flex justify-center mb-8">
+        {/* Logo padronizada */}
+        <div className="flex justify-center mb-16">
           <AuthLogo />
         </div>
 
