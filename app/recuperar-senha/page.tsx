@@ -79,14 +79,14 @@ export default function RecuperarSenhaPage() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo padronizada - espaçamento ajustado */}
-          <div className="flex justify-center mb-8">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+        {/* Container centralizador */}
+        <div className="flex w-full max-w-sm flex-col items-center">
+          {/* Logo */}
+          <div className="mb-4">
             <AuthLogo />
           </div>
-
-          <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+          <Card className="w-full bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-[#10b981]" />
@@ -130,20 +130,24 @@ export default function RecuperarSenhaPage() {
               </div>
             </CardContent>
           </Card>
+          {/* Link inferior */}
+          <div className="mt-6 text-center text-sm text-[#71717a]">
+            <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-  {/* Logo padronizada - espaçamento ajustado */}
-  <div className="flex justify-center mb-8">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+      {/* Container centralizador */}
+      <div className="flex w-full max-w-sm flex-col items-center">
+        {/* Logo */}
+        <div className="mb-4">
           <AuthLogo />
         </div>
-
-        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+        <Card className="w-full bg-[#18181b] border-[#27272a] shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-tymer-primary/10 rounded-full flex items-center justify-center mb-4">
               <Mail className="w-8 h-8 text-tymer-primary" />
@@ -194,6 +198,10 @@ export default function RecuperarSenhaPage() {
             </div>
           </CardContent>
         </Card>
+        {/* Link inferior */}
+        <div className="mt-6 text-center text-sm text-[#71717a]">
+          <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
+        </div>
       </div>
     </div>
   )

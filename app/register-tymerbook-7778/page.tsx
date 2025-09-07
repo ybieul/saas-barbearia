@@ -86,19 +86,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-  {/* Logo padronizada - espaçamento ajustado */}
-  <div className="flex justify-center mb-8">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+      {/* Container centralizador */}
+      <div className="flex w-full max-w-sm flex-col items-center">
+        {/* Logo */}
+        <div className="mb-4">
           <AuthLogo />
         </div>
-
-        <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
-          <CardHeader className="text-center">
+        {/* Card */}
+        <Card className="w-full bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
+          <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Crie sua conta</CardTitle>
             <CardDescription className="text-[#71717a]">Comece a transformar seu negócio hoje mesmo</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="businessName" className="text-[#ededed]">
@@ -146,9 +147,9 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -169,36 +170,31 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#71717a] hover:text-[#ededed] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transform text-[#71717a] transition-colors hover:text-[#ededed]"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
               <Button
                 type="submit"
-                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
+                className="w-full bg-tymer-primary text-white transition-all duration-200 hover:bg-tymer-primary/80"
                 disabled={isLoading}
               >
                 {isLoading ? "Criando conta..." : "Criar Conta"}
               </Button>
             </form>
-
             <div className="mt-6 text-center">
               <p className="text-[#71717a]">
-                Já tem uma conta?{" "}
-                <Link href="/login" className="text-[#10b981] hover:text-[#059669] font-medium transition-colors">
-                  Faça login
-                </Link>
+                Já tem uma conta?{' '}
+                <Link href="/login" className="font-medium text-[#10b981] transition-colors hover:text-[#059669]">Faça login</Link>
               </p>
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-8 text-center">
-          <Link href="/" className="text-[#71717a] hover:text-[#ededed] text-sm transition-colors">
-            ← Voltar para o site
-          </Link>
+        {/* Link inferior */}
+        <div className="mt-6 text-center text-sm text-[#71717a]">
+          <Link href="/" className="transition-colors hover:text-[#ededed]">← Voltar para o site</Link>
         </div>
       </div>
     </div>
