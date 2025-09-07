@@ -79,16 +79,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
       
-      {/* Logo posicionada absolutamente - não afeta o fluxo do layout */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
-        <AuthLogo className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" sizePreset="default" />
-      </div>
-      
-      {/* Container do Formulário - Centralizado na tela toda */}
+      {/* Container centralizado verticalmente */}
       <div className="flex min-h-screen items-center justify-center">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md text-center">
+          
+          {/* Logo vinculada ao card */}
+          <div className="mb-6">
+            <AuthLogo 
+              className="drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]" 
+              sizePreset="default"
+            />
+          </div>
         <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Bem-vindo de volta</CardTitle>
@@ -168,6 +171,7 @@ export default function LoginPage() {
             ← Voltar para o site
           </Link>
         </div>
+        
         </div>
       </div>
     </div>

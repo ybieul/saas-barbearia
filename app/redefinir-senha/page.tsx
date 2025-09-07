@@ -106,16 +106,16 @@ function RedefinirSenhaContent() {
 
   if (successMessage) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
         
-        {/* Logo posicionada absolutamente */}
-        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
-          <AuthLogo />
-        </div>
-        
-        {/* Container do Formulário - Centralizado */}
+        {/* Container centralizado verticalmente */}
         <div className="flex min-h-screen items-center justify-center">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md text-center">
+            
+            {/* Logo vinculada ao card */}
+            <div className="mb-6">
+              <AuthLogo />
+            </div>
 
           <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
             <CardHeader className="text-center">
@@ -140,6 +140,7 @@ function RedefinirSenhaContent() {
               </Link>
             </CardContent>
           </Card>
+          
           </div>
         </div>
       </div>
@@ -147,16 +148,16 @@ function RedefinirSenhaContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
       
-      {/* Logo posicionada absolutamente */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
-        <AuthLogo />
-      </div>
-      
-      {/* Container do Formulário - Centralizado */}
+      {/* Container centralizado verticalmente */}
       <div className="flex min-h-screen items-center justify-center">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md text-center">
+          
+          {/* Logo vinculada ao card */}
+          <div className="mb-6">
+            <AuthLogo />
+          </div>
 
         <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
           <CardHeader className="text-center">
@@ -256,6 +257,7 @@ function RedefinirSenhaContent() {
             </div>
           </CardContent>
         </Card>
+        
         </div>
       </div>
     </div>
@@ -265,12 +267,12 @@ function RedefinirSenhaContent() {
 export default function RedefinirSenhaPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4 relative">
-        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
-          <AuthLogo />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
         <div className="flex min-h-screen items-center justify-center">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md text-center">
+            <div className="mb-6">
+              <AuthLogo />
+            </div>
             <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
               <CardContent className="p-8 text-center">
                 <p className="text-[#71717a]">Carregando...</p>
