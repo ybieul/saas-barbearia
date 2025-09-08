@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import ReactMarkdown from 'react-markdown'
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -271,6 +272,27 @@ function ChangePasswordSection() {
 export default function ConfiguracoesPage() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
+  // Estado para manual do usuário
+  const [isManualOpen, setIsManualOpen] = useState(false)
+  const [manualContent, setManualContent] = useState<string>('')
+  const [manualLoading, setManualLoading] = useState(false)
+  const [manualError, setManualError] = useState<string | null>(null)
+
+  const openManual = async () => {
+    setIsManualOpen(true)
+    if (manualContent || manualLoading) return
+    try {
+      setManualLoading(true)
+      const res = await fetch('/api/manual')
+      if (!res.ok) throw new Error('Falha ao carregar manual')
+      const data = await res.json()
+      setManualContent(data.content || '')
+    } catch (e:any) {
+      setManualError(e.message)
+    } finally {
+      setManualLoading(false)
+    }
+  }
   // Estados para gerenciamento de horários
   const [selectedProfile, setSelectedProfile] = useState<string>("establishment");
   const [professionalName, setProfessionalName] = useState<string>("");
@@ -1209,10 +1231,15 @@ export default function ConfiguracoesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Configurações</h1>
           <p className="text-[#3f3f46]">Gerencie as configurações do seu estabelecimento</p>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto ml-auto">
+          <Button onClick={openManual} variant="outline" className="border-[#3f3f46] text-[#ededed] hover:text-white hover:bg-[#27272a]">
+            Manual do Usuário
+          </Button>
         </div>
       </div>
 
@@ -2876,6 +2903,28 @@ export default function ConfiguracoesPage() {
         businessName={businessData.name || 'Estabelecimento'}
         businessLogo={businessData.logo}
       />
+
+      {/* Modal Manual do Usuário */}
+      <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-4xl mx-auto max-h-[90vh] flex flex-col rounded-xl">
+          <DialogHeader className="border-b border-[#27272a] pb-3 flex-shrink-0">
+            <DialogTitle className="text-lg md:text-xl font-semibold">Manual do Usuário</DialogTitle>
+            <DialogDescription className="text-[#71717a]">Guia completo de utilização da plataforma</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 pr-2 markdown-content">
+            {manualLoading && <p className="text-sm text-[#71717a] p-4">Carregando manual...</p>}
+            {manualError && <p className="text-sm text-red-400 p-4">{manualError}</p>}
+            {!manualLoading && !manualError && manualContent && (
+              <div className="prose prose-invert max-w-none prose-headings:text-[#ededed] prose-p:text-[#d4d4d8] prose-li:text-[#d4d4d8] prose-strong:text-white prose-a:text-tymer-primary">
+                <ReactMarkdown>{manualContent}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-3 flex-shrink-0 border-t border-[#27272a]">
+            <Button variant="outline" onClick={()=>setIsManualOpen(false)} className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

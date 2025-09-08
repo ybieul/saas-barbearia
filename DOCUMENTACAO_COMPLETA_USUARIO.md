@@ -2,7 +2,7 @@
 
 ## 1. Bem-vindo ao TymerBook! 
 
-### A Plataforma Definitiva para Gestão de Barbearias
+### A Plataforma Definitiva para Gestão e Agendamentos de Barbearias
 
 O TymerBook é muito mais que um simples sistema de agendamento. É uma solução completa projetada especificamente para donos de barbearias que desejam modernizar seu negócio, economizar tempo e aumentar o faturamento.
 
