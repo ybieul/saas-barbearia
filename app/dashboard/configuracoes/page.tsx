@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -277,9 +277,6 @@ export default function ConfiguracoesPage() {
   const [manualContent, setManualContent] = useState<string>('')
   const [manualLoading, setManualLoading] = useState(false)
   const [manualError, setManualError] = useState<string | null>(null)
-  // Ref e estado para controle do botão "Topo" no manual
-  const manualScrollRef = useRef<HTMLDivElement | null>(null)
-  const [showManualScrollTop, setShowManualScrollTop] = useState(false)
 
   const openManual = async () => {
     setIsManualOpen(true)
@@ -294,26 +291,6 @@ export default function ConfiguracoesPage() {
       setManualError(e.message)
     } finally {
       setManualLoading(false)
-    }
-  }
-  // Exibir botão Topo quando houver rolagem suficiente
-  useEffect(() => {
-    if (isManualOpen && manualScrollRef.current) {
-      const el = manualScrollRef.current
-      const onScroll = () => {
-        setShowManualScrollTop(el.scrollTop > 160)
-      }
-      el.addEventListener('scroll', onScroll)
-      onScroll()
-      return () => el.removeEventListener('scroll', onScroll)
-    } else {
-      setShowManualScrollTop(false)
-    }
-  }, [isManualOpen, manualContent])
-
-  const handleScrollManualToTop = () => {
-    if (manualScrollRef.current) {
-      manualScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
   // Estados para gerenciamento de horários
@@ -2930,7 +2907,7 @@ export default function ConfiguracoesPage() {
       {/* Modal Manual do Usuário */}
       <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
         <DialogContent
-          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-1.25rem)] sm:w-[calc(100vw-2rem)] max-w-5xl mx-auto max-h-[75vh] sm:max-h-[90vh] h-auto flex flex-col rounded-xl p-0 overflow-hidden relative"
+          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-1.25rem)] sm:w-[calc(100vw-2rem)] max-w-5xl mx-auto max-h-[75vh] sm:max-h-[90vh] h-auto flex flex-col rounded-xl p-0 overflow-hidden"
         >
           <DialogHeader className="border-b border-[#27272a] px-4 sm:px-6 py-2.5 flex-shrink-0">
             <DialogTitle className="font-semibold text-[1.05rem] leading-tight sm:text-lg md:text-xl tracking-tight">
@@ -2940,7 +2917,7 @@ export default function ConfiguracoesPage() {
               Guia completo de utilização da plataforma
             </DialogDescription>
           </DialogHeader>
-          <div ref={manualScrollRef} className="overflow-y-auto flex-1 markdown-content px-4 sm:px-6 py-3 sm:py-5 space-y-4 scroll-smooth">
+          <div className="overflow-y-auto flex-1 markdown-content px-4 sm:px-6 py-3 sm:py-5 space-y-4">
             {manualLoading && <p className="text-sm text-[#71717a] p-4">Carregando manual...</p>}
             {manualError && <p className="text-sm text-red-400 p-4">{manualError}</p>}
             {!manualLoading && !manualError && manualContent && (
@@ -2949,16 +2926,6 @@ export default function ConfiguracoesPage() {
               </div>
             )}
           </div>
-          {/* Botão flutuante Topo */}
-          <button
-            type="button"
-            onClick={handleScrollManualToTop}
-            aria-label="Voltar ao topo"
-            className={`absolute z-20 right-3 sm:right-5 bottom-16 sm:bottom-20 inline-flex items-center gap-1 rounded-full bg-[#27272a]/85 hover:bg-[#27272a] border border-[#3f3f46] px-3 py-1.5 text-[11px] sm:text-xs font-medium text-[#ededed] shadow-lg backdrop-blur-sm transition-all duration-200 ${showManualScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 15 7-7 7 7"/></svg>
-            Topo
-          </button>
           <DialogFooter className="pt-2 sm:pt-3 flex-shrink-0 border-t border-[#27272a] px-4 sm:px-6 pb-3 sm:pb-4">
             <Button
               variant="outline"
