@@ -2,40 +2,40 @@ import nodemailer from 'nodemailer'
 
 // Configuração do transporter de email usando variáveis de ambiente
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true', // true para 465, false para outros
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  })
+    return nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true', // true para 465, false para outros
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+        }
+    })
 }
 
 // Função para gerar senha segura
 export function generateSecurePassword(length: number = 12): string {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-  let password = ''
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+    let password = ''
   
-  // Garantir pelo menos um caractere de cada tipo
-  const lower = 'abcdefghijklmnopqrstuvwxyz'
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const digits = '0123456789'
-  const special = '!@#$%^&*'
+    // Garantir pelo menos um caractere de cada tipo
+    const lower = 'abcdefghijklmnopqrstuvwxyz'
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const digits = '0123456789'
+    const special = '!@#$%^&*'
   
-  password += lower[Math.floor(Math.random() * lower.length)]
-  password += upper[Math.floor(Math.random() * upper.length)]
-  password += digits[Math.floor(Math.random() * digits.length)]
-  password += special[Math.floor(Math.random() * special.length)]
+    password += lower[Math.floor(Math.random() * lower.length)]
+    password += upper[Math.floor(Math.random() * upper.length)]
+    password += digits[Math.floor(Math.random() * digits.length)]
+    password += special[Math.floor(Math.random() * special.length)]
   
-  // Completar com caracteres aleatórios
-  for (let i = 4; i < length; i++) {
-    password += charset[Math.floor(Math.random() * charset.length)]
-  }
+    // Completar com caracteres aleatórios
+    for (let i = 4; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)]
+    }
   
-  // Embaralhar a senha
-  return password.split('').sort(() => Math.random() - 0.5).join('')
+    // Embaralhar a senha
+    return password.split('').sort(() => Math.random() - 0.5).join('')
 }
 
 // Utilitário para formatar nome de plano em português amigável
@@ -221,28 +221,9 @@ export async function sendWelcomeEmail(
         address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com'
       },
       to: email,
-      subject: '🎉 Bem-vindo ao TymerBook - Sua conta foi criada!',
-            html: getWelcomeEmailTemplate(name, email, temporaryPassword, plan, subscriptionEnd),
-      text: `
-Bem-vindo ao TymerBook!
-
-Olá ${name},
-
-Sua assinatura foi ativada e sua conta foi criada automaticamente!
-
-Credenciais de acesso:
-- Email: ${email}
-- Senha temporária: ${temporaryPassword}
- - Plano contratado: ${planDisplay}
-${expiryDisplay ? ` - Expira em: ${expiryDisplay}` : ''}
-
-Faça login em: ${process.env.NEXTAUTH_URL || 'https://app.tymerbook.com'}/login
-
-IMPORTANTE: Altere sua senha assim que fizer o primeiro login por motivos de segurança.
-
-Atenciosamente,
-Equipe TymerBook
-      `
+    subject: '🎉 Bem-vindo ao TymerBook - Sua conta foi criada!',
+    html: getWelcomeEmailTemplate(name, email, temporaryPassword, plan, subscriptionEnd),
+    text: `Bem-vindo ao TymerBook!\n\nOlá ${name},\n\nSua assinatura foi ativada e sua conta foi criada automaticamente!\n\nCredenciais de acesso:\n• Email: ${email}\n• Senha temporária: ${temporaryPassword}\n• Plano contratado: ${planDisplay}${expiryDisplay ? `\n• Expira em: ${expiryDisplay}` : ''}\nPainel: ${(process.env.NEXTAUTH_URL || 'https://tymerbook.com')}/login\n\nIMPORTANTE:\n• Altere a senha no primeiro acesso (Configurações > Alterar Senha).\n• Não compartilhe a senha temporária.\n• Abra o Manual do Usuário em Configurações para concluir a configuração.\n• Cadastre profissionais, serviços e horários antes de liberar agendamentos.\n\nAtenciosamente,\nEquipe TymerBook`
     }
 
     const info = await transporter.sendMail(mailOptions)

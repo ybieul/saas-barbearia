@@ -2906,22 +2906,34 @@ export default function ConfiguracoesPage() {
 
       {/* Modal Manual do Usuário */}
       <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
-  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-5xl mx-auto max-h-[90vh] flex flex-col rounded-xl p-0">
-          <DialogHeader className="border-b border-[#27272a] pb-3 flex-shrink-0">
-            <DialogTitle className="text-lg md:text-xl font-semibold">Manual do Usuário</DialogTitle>
-            <DialogDescription className="text-[#71717a]">Guia completo de utilização da plataforma</DialogDescription>
+        <DialogContent
+          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-1.25rem)] sm:w-[calc(100vw-2rem)] max-w-5xl mx-auto max-h-[92vh] sm:max-h-[90vh] h-[92vh] sm:h-auto flex flex-col rounded-xl p-0 overflow-hidden"
+        >
+          <DialogHeader className="border-b border-[#27272a] px-4 sm:px-6 py-3 flex-shrink-0">
+            <DialogTitle className="font-semibold text-[1.05rem] leading-tight sm:text-lg md:text-xl tracking-tight">
+              Manual do Usuário
+            </DialogTitle>
+            <DialogDescription className="text-[#71717a] text-xs sm:text-sm leading-snug">
+              Guia completo de utilização da plataforma
+            </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 markdown-content px-6 py-5">
+          <div className="overflow-y-auto flex-1 markdown-content px-4 sm:px-6 py-4 sm:py-5 space-y-4">
             {manualLoading && <p className="text-sm text-[#71717a] p-4">Carregando manual...</p>}
             {manualError && <p className="text-sm text-red-400 p-4">{manualError}</p>}
             {!manualLoading && !manualError && manualContent && (
-              <div className="prose prose-invert max-w-3xl mx-auto w-full prose-headings:text-[#ededed] prose-p:text-[#d4d4d8] prose-li:text-[#d4d4d8] prose-strong:text-white prose-a:text-tymer-primary">
+              <div className="prose prose-invert max-w-3xl mx-auto w-full prose-headings:text-[#ededed] prose-p:text-[#d4d4d8] prose-li:text-[#d4d4d8] prose-strong:text-white prose-a:text-tymer-primary text-[0.88rem] sm:text-[0.9rem]">
                 <ReactMarkdown>{manualContent}</ReactMarkdown>
               </div>
             )}
           </div>
-      <DialogFooter className="pt-3 flex-shrink-0 border-t border-[#27272a] px-6 pb-4">
-            <Button variant="outline" onClick={()=>setIsManualOpen(false)} className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]">Fechar</Button>
+          <DialogFooter className="pt-2 sm:pt-3 flex-shrink-0 border-t border-[#27272a] px-4 sm:px-6 pb-3 sm:pb-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsManualOpen(false)}
+              className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a] w-full sm:w-auto"
+            >
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
