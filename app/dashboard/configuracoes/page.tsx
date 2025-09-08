@@ -2906,21 +2906,21 @@ export default function ConfiguracoesPage() {
 
       {/* Modal Manual do Usuário */}
       <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-4xl mx-auto max-h-[90vh] flex flex-col rounded-xl">
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-5xl mx-auto max-h-[90vh] flex flex-col rounded-xl p-0">
           <DialogHeader className="border-b border-[#27272a] pb-3 flex-shrink-0">
             <DialogTitle className="text-lg md:text-xl font-semibold">Manual do Usuário</DialogTitle>
             <DialogDescription className="text-[#71717a]">Guia completo de utilização da plataforma</DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 pr-2 markdown-content">
+          <div className="overflow-y-auto flex-1 markdown-content px-6 py-5">
             {manualLoading && <p className="text-sm text-[#71717a] p-4">Carregando manual...</p>}
             {manualError && <p className="text-sm text-red-400 p-4">{manualError}</p>}
             {!manualLoading && !manualError && manualContent && (
-              <div className="prose prose-invert max-w-none prose-headings:text-[#ededed] prose-p:text-[#d4d4d8] prose-li:text-[#d4d4d8] prose-strong:text-white prose-a:text-tymer-primary">
+              <div className="prose prose-invert max-w-3xl mx-auto w-full prose-headings:text-[#ededed] prose-p:text-[#d4d4d8] prose-li:text-[#d4d4d8] prose-strong:text-white prose-a:text-tymer-primary">
                 <ReactMarkdown>{manualContent}</ReactMarkdown>
               </div>
             )}
           </div>
-          <DialogFooter className="pt-3 flex-shrink-0 border-t border-[#27272a]">
+      <DialogFooter className="pt-3 flex-shrink-0 border-t border-[#27272a] px-6 pb-4">
             <Button variant="outline" onClick={()=>setIsManualOpen(false)} className="border-[#3f3f46] text-[#ededed] hover:bg-[#27272a]">Fechar</Button>
           </DialogFooter>
         </DialogContent>

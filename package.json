@@ -23,9 +23,9 @@
     "scheduler:prod": "node dist/scripts/scheduler-cron.js",
     "reminders:run": "tsx scripts/whatsapp-reminders-cron.ts",
     "gc:run": "tsx scripts/whatsapp-instance-gc.ts",
-  "gc:test": "node dist/scripts/test-gc.js",
-  "cron:expire-subscriptions": "tsx scripts/subscription-expirer-cron.ts",
-  "cron:preexpire-subscriptions": "tsx scripts/subscription-preexpire-cron.ts"
+    "gc:test": "node dist/scripts/test-gc.js",
+    "cron:expire-subscriptions": "tsx scripts/subscription-expirer-cron.ts",
+    "cron:preexpire-subscriptions": "tsx scripts/subscription-preexpire-cron.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -86,8 +86,8 @@
     "react": "^19",
     "react-day-picker": "^8.9.1",
     "react-dom": "^19",
-  "react-markdown": "^9.0.0",
     "react-hook-form": "^7.54.1",
+    "react-markdown": "^9.0.0",
     "react-qr-code": "^2.0.18",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
@@ -99,6 +99,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",

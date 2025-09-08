@@ -128,6 +128,10 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		// Tipografia para melhorar renderização do markdown do manual
+		require("@tailwindcss/typography")
+	],
 };
 export default config;

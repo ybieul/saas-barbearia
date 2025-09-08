@@ -69,6 +69,69 @@ body {
   }
 }
 
+/* Estilos específicos para o markdown do Manual do Usuário */
+.markdown-content .prose {
+  /* Tornar mais compacto porém legível em dark mode custom */
+  line-height: 1.55;
+  font-size: 0.9rem;
+}
+.markdown-content .prose h1,
+.markdown-content .prose h2,
+.markdown-content .prose h3,
+.markdown-content .prose h4 {
+  line-height: 1.25;
+  font-weight: 600;
+  scroll-margin-top: 80px;
+}
+.markdown-content .prose h1 { font-size: 1.4rem; margin-top:0; }
+.markdown-content .prose h2 { font-size: 1.2rem; margin-top:1.75rem; }
+.markdown-content .prose h3 { font-size: 1.05rem; margin-top:1.25rem; }
+.markdown-content .prose h4 { font-size: 0.95rem; margin-top:1rem; }
+
+.markdown-content .prose p { margin: 0.65rem 0 0.9rem; }
+.markdown-content .prose ul,
+.markdown-content .prose ol { margin: 0.5rem 0 1rem; padding-left: 1.25rem; }
+.markdown-content .prose ul li { list-style: disc; }
+.markdown-content .prose ol li { list-style: decimal; }
+.markdown-content .prose li { margin: 0.25rem 0; }
+
+.markdown-content .prose code {
+  background: #27272a;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #f5f5f5;
+}
+.markdown-content .prose pre code { background: transparent; padding:0; }
+.markdown-content .prose pre {
+  background: #18181b;
+  border: 1px solid #27272a;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+.markdown-content .prose a { text-decoration: none; }
+.markdown-content .prose a:hover { text-decoration: underline; }
+.markdown-content .prose hr { border-color: #27272a; margin: 1.5rem 0; }
+.markdown-content .prose strong { font-weight:600; }
+.markdown-content .prose blockquote {
+  border-left: 4px solid #4700FF;
+  background: #18181b;
+  padding: 0.6rem 0.9rem;
+  border-radius: 4px;
+  color: #d4d4d8;
+  margin: 1rem 0;
+  font-style: normal;
+}
+
+/* Scrollbar específica do texto para não poluir o layout */
+.markdown-content { scrollbar-width: thin; }
+.markdown-content::-webkit-scrollbar { width: 6px; }
+.markdown-content::-webkit-scrollbar-track { background: transparent; }
+.markdown-content::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+.markdown-content::-webkit-scrollbar-thumb:hover { background: #323238; }
+
 @layer base {
   :root {
     --background: 0 0% 100%;
