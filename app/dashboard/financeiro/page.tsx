@@ -2255,21 +2255,30 @@ export default function FinanceiroPage() {
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
             </div>
 
-            {/* Cards de Custos Fixos e Lucro Líquido (juntos com a seção) */}
+            {/* Cards de Custos Fixos (Mensal) e Lucro Líquido (Estimado, Mês) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
-              {[{
-                title: getPeriodTitle('Custos Fixos'),
-                value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData?.stats?.fixedCosts ?? 0),
-                change: '-',
-                changeType: 'positive',
-                icon: Banknote,
-              }, {
-                title: getPeriodTitle('Lucro Líquido (Estimado)'),
-                value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData?.stats?.netProfit ?? 0),
-                change: '-',
-                changeType: (dashboardData?.stats?.netProfit ?? 0) >= 0 ? 'positive' : 'negative',
-                icon: TrendingUp,
-              }].map((stat, index) => (
+              {(() => {
+                const monthlyFixedTotal = (fixedCostsLocal || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+                const monthRevenue = selectedMonthData?.revenue || 0
+                const monthlyNetProfit = monthRevenue - monthlyFixedTotal
+                const items = [
+                  {
+                    title: 'Custos Fixos (Mensal)',
+                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyFixedTotal),
+                    change: '-',
+                    changeType: 'positive' as const,
+                    icon: Banknote,
+                  },
+                  {
+                    title: 'Lucro Líquido (Estimado, Mês)',
+                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyNetProfit),
+                    change: '-',
+                    changeType: monthlyNetProfit >= 0 ? 'positive' as const : 'negative' as const,
+                    icon: TrendingUp,
+                  }
+                ]
+                return items
+              })().map((stat, index) => (
                 <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
