@@ -260,14 +260,9 @@ export default function FinanceiroPage() {
       })
       setProfessionalPerformance(Array.from(byProf.values()).sort((a,b)=>b.revenue-a.revenue))
 
-      // Análise de horários
-      // Base: apenas agendamentos concluídos/válidos do período selecionado
-      const baseForTimeAnalysis = inRange.filter(apt => {
-        if (!['COMPLETED','IN_PROGRESS'].includes(apt.status)) return false
-        const price = parseFloat(apt.totalPrice)
-        if (isNaN(price) || price <= 0) return false
-        return true
-      })
+  // Análise de horários
+  // Base: considerar COMPLETED/IN_PROGRESS (independente de preço) no período selecionado
+  const baseForTimeAnalysis = inRange.filter(apt => ['COMPLETED','IN_PROGRESS'].includes(apt.status))
 
       const slots = [
         { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false as const },
@@ -296,7 +291,20 @@ export default function FinanceiroPage() {
         } else {
           list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
         }
-        const slotApps = list.filter(apt => { const h = utcToBrazil(new Date(apt.dateTime)).getHours(); return h>=slot.startHour && h<slot.endHour })
+        // Regras de agrupamento:
+        // - Fins de semana: contar todos os agendamentos do dia (sem filtro de hora)
+        // - Dias úteis: agrupar por manhã (<12h), tarde (>=12h e <18h), noite (>=18h)
+        const slotApps = list.filter(apt => {
+          const h = utcToBrazil(new Date(apt.dateTime)).getHours()
+          if (slot.isWeekend) {
+            return true // já filtrado pelo dia acima
+          }
+          if (slot.period === 'Manhã') return h < 12
+          if (slot.period === 'Tarde') return h >= 12 && h < 18
+          if (slot.period === 'Noite') return h >= 18
+          // fallback
+          return h>=slot.startHour && h<slot.endHour
+        })
 
         // Capacidade baseada em horários de funcionamento configurados
         let totalSlotsInRange = 0
