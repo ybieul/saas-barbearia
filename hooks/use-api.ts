@@ -161,6 +161,18 @@ export function useAppointments() {
     return request(`/api/appointments${queryString ? `?${queryString}` : ''}`)
   }, [request])
 
+  // Novo: busca por intervalo de datas (from/to) e profissional
+  const fetchAppointmentsRange = useCallback((from?: string, to?: string, professionalId?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    if (professionalId) params.append('professionalId', professionalId)
+    if (status) params.append('status', status)
+
+    const queryString = params.toString()
+    return request(`/api/appointments${queryString ? `?${queryString}` : ''}`)
+  }, [request])
+
   const createAppointment = useCallback(async (appointmentData: {
     endUserId: string
     services: string[] // ✅ CORREÇÃO: Aceitar array de serviços conforme backend espera
@@ -220,7 +232,8 @@ export function useAppointments() {
     appointments: data?.appointments || [],
     loading,
     error,
-    fetchAppointments,
+  fetchAppointments,
+  fetchAppointmentsRange,
     createAppointment,
     updateAppointment,
     deleteAppointment

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { utcToBrazil, toBrazilDateString, parseDate, getBrazilNow } from "@/lib/timezone"
+import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,16 +12,29 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const reportType = searchParams.get('type') || 'overview'
-    const monthFilter = searchParams.get('month')
-    const yearFilter = searchParams.get('year')
+  const reportType = searchParams.get('type') || 'overview'
+  const monthFilter = searchParams.get('month')
+  const yearFilter = searchParams.get('year')
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
+  const professionalId = searchParams.get('professionalId') || undefined
 
     // 🇧🇷 Usar timezone brasileiro para cálculos
     const nowBrazil = getBrazilNow()
     const currentMonth = monthFilter ? parseInt(monthFilter) - 1 : nowBrazil.getMonth()
     const currentYear = yearFilter ? parseInt(yearFilter) : nowBrazil.getFullYear()
 
-    // Calcular início e fim do mês no timezone brasileiro
+    // Parser local (YYYY-MM-DD) para início/fim do dia no Brasil
+    const parseLocal = (dateStr: string, endOfDay = false) => {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return new Date(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0)
+    }
+
+    // Intervalo selecionado (se fornecido)
+    const rangeStart = from ? parseLocal(from, false) : undefined
+    const rangeEnd = to ? parseLocal(to, true) : (from ? parseLocal(from, true) : undefined)
+
+    // Calcular início e fim do mês no timezone brasileiro (fallback)
     const monthStart = new Date(currentYear, currentMonth, 1)
     const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999)
     
@@ -34,25 +47,30 @@ export async function GET(request: NextRequest) {
     switch (reportType) {
       case 'overview':
         return await getOverviewReport(user.tenantId, {
+          // range customizado (tem prioridade)
+          rangeStart,
+          rangeEnd,
+          // fallback mensal
           monthStart,
           monthEnd,
           lastMonthStart,
           lastMonthEnd,
           currentMonth,
-          currentYear
+          currentYear,
+          professionalId,
         })
       
       case 'monthly-performance':
-        return await getMonthlyPerformance(user.tenantId, currentYear)
+  return await getMonthlyPerformance(user.tenantId, professionalId, rangeStart, rangeEnd)
       
       case 'services':
-        return await getServicesReport(user.tenantId, monthStart, monthEnd)
+  return await getServicesReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
       
       case 'professionals':
-        return await getProfessionalsReport(user.tenantId, monthStart, monthEnd)
+  return await getProfessionalsReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
       
       case 'time-analysis':
-        return await getTimeAnalysisReport(user.tenantId, monthStart, monthEnd)
+  return await getTimeAnalysisReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
       
       default:
         return NextResponse.json({ error: "Invalid report type" }, { status: 400 })
@@ -68,19 +86,33 @@ export async function GET(request: NextRequest) {
 }
 
 // Relatório geral com métricas principais
-async function getOverviewReport(tenantId: string, dates: any) {
-  const { monthStart, monthEnd, lastMonthStart, lastMonthEnd } = dates
+async function getOverviewReport(tenantId: string, params: any) {
+  const { rangeStart, rangeEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd, professionalId } = params
 
-  // 1. Buscar agendamentos do mês atual e anterior
+  // 1. Buscar agendamentos do período atual e anterior
+  const currentWhere: any = {
+    tenantId,
+    dateTime: rangeStart && rangeEnd ? { gte: rangeStart, lte: rangeEnd } : { gte: monthStart, lte: monthEnd }
+  }
+  if (professionalId && professionalId !== 'all') currentWhere.professionalId = professionalId
+
+  // período anterior baseado no range (mesma duração imediatamente anterior) ou mês anterior
+  let prevStart = lastMonthStart
+  let prevEnd = lastMonthEnd
+  if (rangeStart && rangeEnd) {
+    const durationMs = rangeEnd.getTime() - rangeStart.getTime()
+    prevEnd = new Date(rangeStart.getTime() - 1)
+    prevStart = new Date(prevEnd.getTime() - durationMs)
+  }
+  const previousWhere: any = {
+    tenantId,
+    dateTime: { gte: prevStart, lte: prevEnd }
+  }
+  if (professionalId && professionalId !== 'all') previousWhere.professionalId = professionalId
+
   const [thisMonthAppointments, lastMonthAppointments] = await Promise.all([
     prisma.appointment.findMany({
-      where: {
-        tenantId,
-        dateTime: {
-          gte: monthStart,
-          lte: monthEnd
-        }
-      },
+      where: currentWhere,
       include: {
         services: true,
         endUser: true,
@@ -88,13 +120,7 @@ async function getOverviewReport(tenantId: string, dates: any) {
       }
     }),
     prisma.appointment.findMany({
-      where: {
-        tenantId,
-        dateTime: {
-          gte: lastMonthStart,
-          lte: lastMonthEnd
-        }
-      },
+      where: previousWhere,
       include: {
         services: true,
         endUser: true
@@ -210,48 +236,57 @@ async function getOverviewReport(tenantId: string, dates: any) {
 }
 
 // Performance mensal dos últimos 6 meses
-async function getMonthlyPerformance(tenantId: string, currentYear: number) {
+async function getMonthlyPerformance(tenantId: string, professionalId?: string, rangeStart?: Date, rangeEnd?: Date) {
   const monthlyData = []
   
-  // Buscar dados dos últimos 6 meses
-  for (let i = 5; i >= 0; i--) {
-    const targetDate = new Date()
-    targetDate.setMonth(targetDate.getMonth() - i)
-    
-    const month = targetDate.getMonth()
-    const year = targetDate.getFullYear()
-    
-    const monthStart = new Date(year, month, 1)
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
-    
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        dateTime: {
-          gte: monthStart,
-          lte: monthEnd
-        },
-        status: {
-          in: ['COMPLETED', 'IN_PROGRESS']
-        }
-      }
-    })
-
+  if (rangeStart && rangeEnd) {
+    // Quando há intervalo customizado, retornar um único bucket "Período"
+    const where: any = {
+      tenantId,
+      dateTime: { gte: rangeStart, lte: rangeEnd },
+      status: { in: ['COMPLETED', 'IN_PROGRESS'] }
+    }
+    if (professionalId && professionalId !== 'all') where.professionalId = professionalId
+    const appointments = await prisma.appointment.findMany({ where })
     const revenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
     const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
-    
-    const monthNames = [
-      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-    ]
-    
-    monthlyData.push({
-      month: monthNames[month],
-      year,
-      revenue,
-      appointments: appointments.length,
-      clients: uniqueClients
-    })
+    monthlyData.push({ month: 'Período', year: new Date().getFullYear(), revenue, appointments: appointments.length, clients: uniqueClients })
+  } else {
+    // Buscar dados dos últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date()
+      targetDate.setMonth(targetDate.getMonth() - i)
+      
+      const month = targetDate.getMonth()
+      const year = targetDate.getFullYear()
+      
+      const monthStart = new Date(year, month, 1)
+      const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
+      
+      const where: any = {
+        tenantId,
+        dateTime: { gte: monthStart, lte: monthEnd },
+        status: { in: ['COMPLETED', 'IN_PROGRESS'] }
+      }
+      if (professionalId && professionalId !== 'all') where.professionalId = professionalId
+      const appointments = await prisma.appointment.findMany({ where })
+
+      const revenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+      const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
+      
+      const monthNames = [
+        'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+      ]
+      
+      monthlyData.push({
+        month: monthNames[month],
+        year,
+        revenue,
+        appointments: appointments.length,
+        clients: uniqueClients
+      })
+    }
   }
 
   return NextResponse.json({
@@ -263,18 +298,16 @@ async function getMonthlyPerformance(tenantId: string, currentYear: number) {
 }
 
 // Relatório de serviços mais populares
-async function getServicesReport(tenantId: string, monthStart: Date, monthEnd: Date) {
+async function getServicesReport(tenantId: string, start: Date, end: Date, professionalId?: string) {
   // Buscar agendamentos do período com serviços
   const appointments = await prisma.appointment.findMany({
     where: {
       tenantId,
-      dateTime: {
-        gte: monthStart,
-        lte: monthEnd
-      },
+  dateTime: { gte: start, lte: end },
       status: {
         notIn: ['CANCELLED']
-      }
+  },
+  ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
     },
     include: {
       services: true
@@ -325,7 +358,7 @@ async function getServicesReport(tenantId: string, monthStart: Date, monthEnd: D
 }
 
 // Relatório de performance dos profissionais
-async function getProfessionalsReport(tenantId: string, monthStart: Date, monthEnd: Date) {
+async function getProfessionalsReport(tenantId: string, monthStart: Date, monthEnd: Date, professionalId?: string) {
   // Calcular período anterior para comparação
   const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
   const lastMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0, 23, 59, 59, 999)
@@ -344,7 +377,8 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
           },
           status: {
             notIn: ['CANCELLED']
-          }
+          },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         }
       }
     }
@@ -409,7 +443,7 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
 }
 
 // Análise de horários
-async function getTimeAnalysisReport(tenantId: string, monthStart: Date, monthEnd: Date) {
+async function getTimeAnalysisReport(tenantId: string, monthStart: Date, monthEnd: Date, professionalId?: string) {
   const appointments = await prisma.appointment.findMany({
     where: {
       tenantId,
@@ -419,7 +453,8 @@ async function getTimeAnalysisReport(tenantId: string, monthStart: Date, monthEn
       },
       status: {
         notIn: ['CANCELLED']
-      }
+  },
+  ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
     }
   })
 

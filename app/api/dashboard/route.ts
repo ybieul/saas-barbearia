@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
     }
     
     const { searchParams } = new URL(request.url)
-    const period = searchParams.get('period') || 'today'
+  const period = searchParams.get('period') || 'today'
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
+  const professionalId = searchParams.get('professionalId') || undefined
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Period solicitado:', period)
     }
@@ -27,10 +30,21 @@ export async function GET(request: NextRequest) {
       console.log('🕐 Brazil now local:', brazilNow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
     }
 
-    let startDate: Date
-    let endDate: Date
+  let startDate: Date
+  let endDate: Date
 
-    switch (period) {
+    // Se from/to foram passados, eles têm prioridade
+    const parseLocal = (dateStr: string, endOfDay = false) => {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return new Date(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0)
+    }
+
+    if (from || to) {
+      const start = from ? parseLocal(from, false) : getBrazilStartOfDay(brazilNow)
+      const end = to ? parseLocal(to, true) : (from ? parseLocal(from, true) : getBrazilEndOfDay(brazilNow))
+      startDate = start
+      endDate = end
+    } else switch (period) {
       case 'today':
         startDate = getBrazilStartOfDay(brazilNow)
         endDate = getBrazilEndOfDay(brazilNow)
@@ -57,10 +71,11 @@ export async function GET(request: NextRequest) {
 
     // Debug das datas calculadas
     if (process.env.NODE_ENV === 'development') {
-      console.log('📅 Start date:', startDate.toISOString())
-      console.log('📅 End date:', endDate.toISOString())
+  console.log('📅 Start date:', startDate.toISOString())
+  console.log('📅 End date:', endDate.toISOString())
       console.log('📅 Start local:', startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
       console.log('📅 End local:', endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))
+  console.log('👤 Professional filter:', professionalId)
     }
 
     // Métricas do tenant
@@ -94,10 +109,8 @@ export async function GET(request: NextRequest) {
       prisma.appointment.count({
         where: {
           tenantId: user.tenantId,
-          dateTime: {
-            gte: startDate,
-            lte: endDate
-          }
+          dateTime: { gte: startDate, lte: endDate },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         }
       }),
       
@@ -105,13 +118,9 @@ export async function GET(request: NextRequest) {
       prisma.appointment.count({
         where: {
           tenantId: user.tenantId,
-          status: {
-            in: ['COMPLETED', 'IN_PROGRESS']
-          },
-          dateTime: {
-            gte: startDate,
-            lte: endDate
-          }
+          status: { in: ['COMPLETED', 'IN_PROGRESS'] },
+          dateTime: { gte: startDate, lte: endDate },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         }
       }),
       
@@ -119,20 +128,12 @@ export async function GET(request: NextRequest) {
       prisma.appointment.aggregate({
         where: {
           tenantId: user.tenantId,
-          status: {
-            in: ['COMPLETED', 'IN_PROGRESS'] // Incluir em andamento também
-          },
-          dateTime: {
-            gte: startDate,
-            lte: endDate
-          },
-          totalPrice: {
-            gt: 0 // Apenas com valor > 0
-          }
+          status: { in: ['COMPLETED', 'IN_PROGRESS'] },
+          dateTime: { gte: startDate, lte: endDate },
+          totalPrice: { gt: 0 },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         },
-        _sum: {
-          totalPrice: true
-        }
+        _sum: { totalPrice: true }
       }),
       
       // Agendamentos pendentes/agendados
@@ -153,15 +154,13 @@ export async function GET(request: NextRequest) {
         where: {
           tenantId: user.tenantId,
           status: 'CANCELLED',
-          dateTime: {
-            gte: startDate,
-            lte: endDate
-          }
+          dateTime: { gte: startDate, lte: endDate },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         }
       }),
       
       // Próximos agendamentos - AGENDAMENTOS DO DIA ATUAL (SEM FILTRO DE HORÁRIO)
-      prisma.appointment.findMany({
+    prisma.appointment.findMany({
         where: {
           tenantId: user.tenantId,
           dateTime: {
@@ -170,7 +169,8 @@ export async function GET(request: NextRequest) {
           },
           status: {
             in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
-          }
+      },
+      ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         },
         take: 5,
         orderBy: { dateTime: 'asc' },
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
       }),
 
       // Agendamentos de hoje - para dashboard
-      prisma.appointment.findMany({
+    prisma.appointment.findMany({
         where: {
           tenantId: user.tenantId,
           dateTime: {
@@ -204,6 +204,8 @@ export async function GET(request: NextRequest) {
             lte: getBrazilEndOfDay(brazilNow)
           }
           // Remover filtro de status para pegar todos os agendamentos
+      ,
+      ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         },
         orderBy: { dateTime: 'asc' },
         include: {
@@ -242,7 +244,7 @@ export async function GET(request: NextRequest) {
       }),
 
       // Próximo agendamento - AGENDAMENTO DO DIA ATUAL (SEM FILTRO DE HORÁRIO)
-      prisma.appointment.findFirst({
+    prisma.appointment.findFirst({
         where: {
           tenantId: user.tenantId,
           dateTime: {
@@ -251,7 +253,8 @@ export async function GET(request: NextRequest) {
           },
           status: {
             in: ['CONFIRMED', 'IN_PROGRESS'] // Apenas não concluídos
-          }
+      },
+      ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         },
         orderBy: { dateTime: 'asc' },
         include: {
@@ -349,30 +352,19 @@ export async function GET(request: NextRequest) {
         const dayRevenue = await prisma.appointment.aggregate({
           where: {
             tenantId: user.tenantId,
-            status: {
-              in: ['COMPLETED', 'IN_PROGRESS'] // Incluir mais status
-            },
-            dateTime: {
-              gte: date,
-              lte: endOfDay
-            },
-            totalPrice: {
-              gt: 0
-            }
+            status: { in: ['COMPLETED', 'IN_PROGRESS'] },
+            dateTime: { gte: date, lte: endOfDay },
+            totalPrice: { gt: 0 },
+            ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
           },
-          _sum: {
-            totalPrice: true
-          }
+          _sum: { totalPrice: true }
         })
         
         const dayAppointments = await prisma.appointment.count({
           where: {
             tenantId: user.tenantId,
-            dateTime: {
-              gte: date,
-              lte: endOfDay
-            }
-            // Remover filtro de status - contar todos
+            dateTime: { gte: date, lte: endOfDay },
+            ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
           }
         })
         
@@ -380,14 +372,10 @@ export async function GET(request: NextRequest) {
         const dayClientsResult = await prisma.appointment.findMany({
           where: {
             tenantId: user.tenantId,
-            dateTime: {
-              gte: date,
-              lte: endOfDay
-            }
+            dateTime: { gte: date, lte: endOfDay },
+            ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
           },
-          select: {
-            endUserId: true
-          },
+          select: { endUserId: true },
           distinct: ['endUserId']
         })
         

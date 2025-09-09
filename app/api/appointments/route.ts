@@ -106,7 +106,9 @@ export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date')
+  const date = searchParams.get('date')
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
     const status = searchParams.get('status')
     const professionalId = searchParams.get('professionalId')
 
@@ -114,7 +116,32 @@ export async function GET(request: NextRequest) {
       tenantId: user.tenantId
     }
 
-    if (date) {
+    if (from || to) {
+      // Novo: intervalo de datas (YYYY-MM-DD)
+      // Se só tiver 'from', usa o mesmo dia como 'to'
+      const parseLocal = (dateStr: string, endOfDay = false) => {
+        const [y, m, d] = dateStr.split('-').map(Number)
+        return new Date(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0)
+      }
+
+      const startDate = from ? parseLocal(from, false) : undefined
+      const endDate = to ? parseLocal(to, true) : (from ? parseLocal(from, true) : undefined)
+
+      if (startDate && endDate) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🇧🇷 Intervalo de busca de agendamentos (from/to):', {
+            from,
+            to,
+            startISO: toLocalISOString(startDate),
+            endISO: toLocalISOString(endDate)
+          })
+        }
+        where.dateTime = {
+          gte: toLocalISOString(startDate),
+          lte: toLocalISOString(endDate)
+        }
+      }
+    } else if (date) {
       // 🇧🇷 CORREÇÃO CRÍTICA: Criar range de data sem conversão UTC
       // Parse da data como brasileira: YYYY-MM-DD → Date brasileiro
       const [year, month, day] = date.split('-').map(Number)
@@ -143,7 +170,7 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
 
-    if (professionalId && professionalId !== 'todos') {
+  if (professionalId && professionalId !== 'todos' && professionalId !== 'all') {
       where.professionalId = professionalId
     }
 

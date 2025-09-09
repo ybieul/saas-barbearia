@@ -10,6 +10,10 @@ import { useDashboard, useAppointments, useProfessionals, useReports } from "@/h
 import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
+// Date Range Picker (react-day-picker já está no projeto via shadcn Calendar)
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import type { DateRange } from "react-day-picker"
 
 // ✅ SEGURANÇA: Função para sanitizar dados de entrada
 const sanitizeString = (str: string | undefined | null): string => {
@@ -39,18 +43,25 @@ const useDebounce = (callback: Function, delay: number) => {
 }
 
 export default function FinanceiroPage() {
-  const [period, setPeriod] = useState('today')
-  const [selectedProfessional, setSelectedProfessional] = useState('todos')
+  // Novo filtro de período por intervalo de datas
+  const brazilNow = getBrazilNow()
+  const initialFrom = new Date(utcToBrazil(brazilNow))
+  initialFrom.setHours(0, 0, 0, 0)
+  const initialTo = new Date(utcToBrazil(brazilNow))
+  initialTo.setHours(23, 59, 59, 999)
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: initialFrom, to: initialTo })
+  // Novo filtro por profissional
+  const [professionalId, setProfessionalId] = useState('all') // 'all' para todos
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const brazilNow = getBrazilNow()
   const [selectedMonth, setSelectedMonth] = useState(utcToBrazil(brazilNow).getMonth())
   const [selectedYear, setSelectedYear] = useState(utcToBrazil(brazilNow).getFullYear())
   
   const { dashboardData, loading: dashboardLoading, fetchDashboardData } = useDashboard()
-  const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments()
+  const { appointments, loading: appointmentsLoading, fetchAppointmentsRange } = useAppointments()
   const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { fetchProfessionalsReport, fetchTimeAnalysis } = useReports()
 
@@ -62,38 +73,46 @@ export default function FinanceiroPage() {
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
 
+  // Carregamento inicial
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true)
         setError(null)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 Carregando dados financeiros...')
-        }
-        
+        const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
+        const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
         await Promise.all([
-          fetchDashboardData(period),
-          fetchAppointments(),
+          fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
           fetchProfessionals()
         ])
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Dados carregados com sucesso')
-        }
       } catch (err) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ Erro ao carregar dados financeiros:', err)
-        }
         setError('Erro ao carregar dados. Tente novamente.')
       } finally {
         setIsLoading(false)
+        setLastUpdated(getBrazilNow())
       }
     }
-    
     loadData()
-    setLastUpdated(getBrazilNow())
-  }, [period, fetchDashboardData, fetchAppointments, fetchProfessionals])
+  }, [fetchAppointmentsRange, fetchProfessionals])
+
+  // Recarregar dados quando filtros mudarem
+  useEffect(() => {
+    const reload = async () => {
+      try {
+        setIsRefreshing(true)
+        const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
+        const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
+        await fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined)
+        setLastUpdated(getBrazilNow())
+      } catch (err) {
+        // silencioso; já há UI de erro
+      } finally {
+        setIsRefreshing(false)
+      }
+    }
+    // Apenas quando houver intervalo válido (from & to)
+    if (dateRange?.from && dateRange?.to) reload()
+  }, [dateRange?.from, dateRange?.to, professionalId, fetchAppointmentsRange])
 
   // ✅ FUNÇÃO PARA ATUALIZAR DADOS MANUALMENTE
   const handleRefreshData = async () => {
@@ -105,9 +124,10 @@ export default function FinanceiroPage() {
         console.log('🔄 Atualizando dados financeiros manualmente...')
       }
       
+      const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
+      const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
       await Promise.all([
-        fetchDashboardData(period),
-        fetchAppointments(),
+        fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
         fetchProfessionals()
       ])
       
@@ -126,41 +146,73 @@ export default function FinanceiroPage() {
   }
 
   // Carregar dados de relatórios
+  // Recalcular "relatórios" no cliente com base no intervalo e profissional
   useEffect(() => {
-    const loadReportsData = async () => {
-      try {
-        setReportsLoading(true)
-        
-        // Buscar performance dos profissionais
-        const professionalsData = await fetchProfessionalsReport(selectedMonth + 1, selectedYear)
-        if (professionalsData?.data?.professionalPerformance) {
-          // Filtrar por profissional se selecionado
-          let filteredPerformance = professionalsData.data.professionalPerformance
-          if (selectedProfessional !== 'todos') {
-            filteredPerformance = professionalsData.data.professionalPerformance.filter(
-              (prof: any) => prof.id === selectedProfessional
-            )
+    try {
+      setReportsLoading(true)
+      // Usar appointments carregados e filtrar por intervalo
+      const from = dateRange?.from ? new Date(dateRange.from) : null
+      const to = dateRange?.to ? new Date(dateRange.to) : null
+      if (from) from.setHours(0,0,0,0)
+      if (to) to.setHours(23,59,59,999)
+      const inRange = Array.isArray(appointments) ? appointments.filter(app => {
+        if (!app?.dateTime) return false
+        try {
+          const d = utcToBrazil(new Date(app.dateTime))
+          const passProf = professionalId === 'all' ? true : app.professionalId === professionalId
+          const passRange = (!from || d >= from) && (!to || d <= to)
+          return passProf && passRange
+        } catch { return false }
+      }) : []
+
+      // Performance por profissional
+      const byProf = new Map<string, { id: string, name: string, avatar?: string | null, appointments: number, revenue: number, growth: string }>()
+      inRange.forEach((app: any) => {
+        if (!['COMPLETED','IN_PROGRESS'].includes(app.status)) return
+        const id = app.professionalId || 'sem-prof'
+        const name = app.professional?.name || 'Profissional'
+        const avatar = app.professional?.avatar || null
+        const prev = byProf.get(id) || { id, name, avatar, appointments: 0, revenue: 0, growth: '+0%' }
+        prev.appointments += 1
+        prev.revenue += parseFloat(app.totalPrice) || 0
+        byProf.set(id, prev)
+      })
+      setProfessionalPerformance(Array.from(byProf.values()).sort((a,b)=>b.revenue-a.revenue))
+
+      // Análise de horários
+      const slots = [
+        { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false },
+        { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false },
+        { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false },
+        { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true },
+      ]
+      const ta = slots.map(slot => {
+        let list = inRange
+        if (slot.isWeekend) list = list.filter(apt => utcToBrazil(new Date(apt.dateTime)).getDay() === 6)
+        else list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
+        const slotApps = list.filter(apt => { const h = utcToBrazil(new Date(apt.dateTime)).getHours(); return h>=slot.startHour && h<slot.endHour })
+        const totalHours = slot.endHour - slot.startHour
+        const slotsPerHour = 2
+        const totalSlots = totalHours * slotsPerHour
+        // Estimar dias no período selecionado
+        let daysInSel = 0
+        if (from && to) {
+          const dayMs = 24*60*60*1000
+          for (let t=from.getTime(); t<=to.getTime(); t+=dayMs) {
+            const d = new Date(t)
+            const dow = d.getDay()
+            if (slot.isWeekend ? dow===6 : dow>=1 && dow<=5) daysInSel++
           }
-          setProfessionalPerformance(filteredPerformance)
         }
-
-        // Buscar análise de horários
-        const timeAnalysis = await fetchTimeAnalysis(selectedMonth + 1, selectedYear)
-        if (timeAnalysis?.data?.timeAnalysis) {
-          setTimeAnalysisData(timeAnalysis.data.timeAnalysis)
-        }
-
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao carregar dados de relatórios:', error)
-        }
-      } finally {
-        setReportsLoading(false)
-      }
+        const totalSlotsInRange = totalSlots * Math.max(daysInSel, 1)
+        const occupancy = totalSlotsInRange>0 ? Math.min(100, Math.round((slotApps.length/totalSlotsInRange)*100)) : 0
+        return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length }
+      })
+      setTimeAnalysisData(ta)
+    } finally {
+      setReportsLoading(false)
     }
-
-    loadReportsData()
-  }, [selectedMonth, selectedYear, selectedProfessional, fetchProfessionalsReport, fetchTimeAnalysis])
+  }, [appointments, dateRange?.from, dateRange?.to, professionalId])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
   const completedAppointments = useMemo(() => {
@@ -168,8 +220,8 @@ export default function FinanceiroPage() {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔍 Processando agendamentos:', { 
           totalAppointments: appointments?.length || 0,
-          selectedProfessional,
-          period 
+          professionalId,
+          dateRange
         })
       }
       
@@ -218,9 +270,16 @@ export default function FinanceiroPage() {
           }
           
           // Filtro por profissional
-          if (selectedProfessional !== 'todos' && app.professionalId !== selectedProfessional) {
+          if (professionalId !== 'all' && app.professionalId !== professionalId) {
             return false
           }
+          // Filtro por intervalo
+          const from = dateRange?.from ? new Date(dateRange.from) : null
+          const to = dateRange?.to ? new Date(dateRange.to) : null
+          if (from) from.setHours(0,0,0,0)
+          if (to) to.setHours(23,59,59,999)
+          if (from && appointmentDate < from) return false
+          if (to && appointmentDate > to) return false
           
           // ✅ CORREÇÃO: Remover filtro de data passada - agendamentos concluídos devem aparecer independente da data original
           // O que importa é o status COMPLETED/IN_PROGRESS, não se a data é passada ou futura
@@ -247,7 +306,7 @@ export default function FinanceiroPage() {
       }
       return []
     }
-  }, [appointments, selectedProfessional])
+  }, [appointments, professionalId, dateRange?.from, dateRange?.to])
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
@@ -260,35 +319,16 @@ export default function FinanceiroPage() {
   // ✅ PERFORMANCE: Função otimizada para agendamentos do período atual
   const currentPeriodAppointments = useMemo(() => {
     try {
-      const today = getBrazilNow()
-      let currentStart: Date
-      let currentEnd: Date = today
-      
-      switch (period) {
-        case 'today':
-          currentStart = new Date(today)
-          currentStart.setHours(0, 0, 0, 0)
-          currentEnd = new Date(today)
-          currentEnd.setHours(23, 59, 59, 999)
-          break
-        case 'week':
-          currentStart = new Date(today)
-          currentStart.setDate(today.getDate() - 7)
-          break
-        case 'month':
-          currentStart = new Date(today)
-          currentStart.setMonth(today.getMonth() - 1)
-          break
-        default:
-          currentStart = new Date(today)
-          currentStart.setHours(0, 0, 0, 0)
-          currentEnd = new Date(today)
-          currentEnd.setHours(23, 59, 59, 999)
-      }
+      const from = dateRange?.from ? new Date(dateRange.from) : null
+      const to = dateRange?.to ? new Date(dateRange.to) : null
+      let currentStart: Date = from ? new Date(from) : new Date(0)
+      let currentEnd: Date = to ? new Date(to) : getBrazilNow()
+      if (currentStart) currentStart.setHours(0,0,0,0)
+      if (currentEnd) currentEnd.setHours(23,59,59,999)
       
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Filtrando agendamentos por período:', { 
-          period, 
+          period: 'custom-range', 
           currentStart: currentStart.toISOString(), 
           currentEnd: currentEnd.toISOString() 
         })
@@ -317,7 +357,7 @@ export default function FinanceiroPage() {
       }
       return []
     }
-  }, [completedAppointments, period])
+  }, [completedAppointments, dateRange?.from, dateRange?.to])
   const getMonthlyData = useMemo(() => {
     try {
       if (!Array.isArray(completedAppointments)) return []
@@ -379,7 +419,7 @@ export default function FinanceiroPage() {
   const getDailyData = useMemo(() => {
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('📊 Calculando dados diários dos últimos 30 dias...')
+        console.log('📊 Calculando dados diários do intervalo selecionado...')
       }
       
       if (!Array.isArray(completedAppointments)) {
@@ -389,14 +429,15 @@ export default function FinanceiroPage() {
         return []
       }
       
-      const dailyData = []
-      const currentDate = getBrazilNow()
-      
-      for (let i = 29; i >= 0; i--) {
+      const dailyData = [] as any[]
+      // Construir do from -> to
+      const from = dateRange?.from ? new Date(dateRange.from) : new Date(getBrazilNow())
+      const to = dateRange?.to ? new Date(dateRange.to) : new Date(getBrazilNow())
+      from.setHours(0,0,0,0)
+      to.setHours(23,59,59,999)
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
         try {
-          const brazilCurrentDate = utcToBrazil(currentDate)
-          const date = new Date(brazilCurrentDate)
-          date.setDate(brazilCurrentDate.getDate() - i)
+          const date = new Date(d)
           
           // Filtrar agendamentos do dia específico
           const dayAppointments = completedAppointments.filter(app => {
@@ -430,7 +471,7 @@ export default function FinanceiroPage() {
           })
         } catch (err) {
           if (process.env.NODE_ENV === 'development') {
-            console.error(`❌ Erro ao processar dia ${i}:`, err)
+            console.error('❌ Erro ao processar dia no intervalo selecionado:', err)
           }
         }
       }
@@ -450,7 +491,7 @@ export default function FinanceiroPage() {
       }
       return []
     }
-  }, [completedAppointments])
+  }, [completedAppointments, dateRange?.from, dateRange?.to])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para cálculos pesados
   const dailyData = getDailyData
@@ -556,49 +597,23 @@ export default function FinanceiroPage() {
   const previousPeriodData = useMemo(() => {
     try {
       if (!Array.isArray(appointments)) return { revenue: 0, completedCount: 0, totalCount: 0 }
-      
-      const today = getBrazilNow()
-      let previousStart: Date
-      let previousEnd: Date
-      
-      // Definir período anterior baseado no período selecionado
-      switch (period) {
-        case 'today':
-          // Ontem
-          previousStart = new Date(today)
-          previousStart.setDate(today.getDate() - 1)
-          previousStart.setHours(0, 0, 0, 0)
-          previousEnd = new Date(today)
-          previousEnd.setDate(today.getDate() - 1)
-          previousEnd.setHours(23, 59, 59, 999)
-          break
-        case 'week':
-          // Semana anterior
-          previousStart = new Date(today)
-          previousStart.setDate(today.getDate() - 14)
-          previousEnd = new Date(today)
-          previousEnd.setDate(today.getDate() - 7)
-          break
-        case 'month':
-          // Mês anterior
-          previousStart = new Date(today)
-          previousStart.setMonth(today.getMonth() - 2)
-          previousEnd = new Date(today)
-          previousEnd.setMonth(today.getMonth() - 1)
-          break
-        default:
-          // Ontem como padrão
-          previousStart = new Date(today)
-          previousStart.setDate(today.getDate() - 1)
-          previousStart.setHours(0, 0, 0, 0)
-          previousEnd = new Date(today)
-          previousEnd.setDate(today.getDate() - 1)
-          previousEnd.setHours(23, 59, 59, 999)
-      }
+
+      const from = dateRange?.from ? new Date(dateRange.from) : null
+      const to = dateRange?.to ? new Date(dateRange.to) : null
+      if (!from || !to) return { revenue: 0, completedCount: 0, totalCount: 0 }
+
+      const msInDay = 24*60*60*1000
+      const days = Math.max(1, Math.round((to.setHours(0,0,0,0) - from.setHours(0,0,0,0)) / msInDay) + 1)
+      const previousEnd = new Date(from)
+      previousEnd.setDate(previousEnd.getDate() - 1)
+      previousEnd.setHours(23,59,59,999)
+      const previousStart = new Date(previousEnd)
+      previousStart.setDate(previousEnd.getDate() - (days - 1))
+      previousStart.setHours(0,0,0,0)
       
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Calculando período anterior:', { 
-          period, 
+          period: 'custom-range', 
           previousStart: toLocalISOString(previousStart), 
           previousEnd: toLocalISOString(previousEnd) 
         })
@@ -642,7 +657,7 @@ export default function FinanceiroPage() {
       }
       return { revenue: 0, completedCount: 0, totalCount: 0 }
     }
-  }, [appointments, period])
+  }, [appointments, dateRange?.from, dateRange?.to])
   
   // ✅ PERFORMANCE: Receita do período atual usando agendamentos filtrados
   const currentPeriodRevenue = useMemo(() => {
@@ -675,32 +690,10 @@ export default function FinanceiroPage() {
   // ✅ CORREÇÃO: Calcular taxa de conversão do período atual
   const currentPeriodConversionRate = useMemo(() => {
     const today = getBrazilNow()
-    let currentStart: Date
-    let currentEnd: Date = today
-    
-    switch (period) {
-      case 'today':
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-        break
-      case 'week':
-        currentStart = new Date(today)
-        currentStart.setDate(today.getDate() - 7)
-        currentEnd = new Date(today)
-        break
-      case 'month':
-        currentStart = new Date(today)
-        currentStart.setMonth(today.getMonth() - 1)
-        currentEnd = new Date(today)
-        break
-      default:
-        currentStart = new Date(today)
-        currentStart.setHours(0, 0, 0, 0)
-        currentEnd = new Date(today)
-        currentEnd.setHours(23, 59, 59, 999)
-    }
+    const from = dateRange?.from ? new Date(dateRange.from) : new Date(today)
+    const to = dateRange?.to ? new Date(dateRange.to) : new Date(today)
+    const currentStart = new Date(from); currentStart.setHours(0,0,0,0)
+    const currentEnd = new Date(to); currentEnd.setHours(23,59,59,999)
     
     const allPeriodAppointments = appointments.filter(app => {
       try {
@@ -713,7 +706,7 @@ export default function FinanceiroPage() {
     
     return allPeriodAppointments.length > 0 ? 
       (currentPeriodAppointments.length / allPeriodAppointments.length) * 100 : 0
-  }, [appointments, currentPeriodAppointments, period])
+  }, [appointments, currentPeriodAppointments, dateRange?.from, dateRange?.to])
   
   const conversionChange = calculateChange(
     currentPeriodConversionRate,
@@ -790,16 +783,8 @@ export default function FinanceiroPage() {
 
   // ✅ CORREÇÃO: Função para obter título dinâmico baseado no período
   const getPeriodTitle = (baseTitle: string) => {
-    switch (period) {
-      case 'today':
-        return baseTitle.replace('Hoje', 'Hoje').replace('Agendamentos', 'Agendamentos Hoje').replace('Taxa', 'Taxa Hoje').replace('Ticket', 'Ticket Hoje')
-      case 'week':
-        return baseTitle.replace('Hoje', 'Semana').replace('Agendamentos', 'Agendamentos Semana').replace('Taxa', 'Taxa Semana').replace('Ticket', 'Ticket Semana')
-      case 'month':
-        return baseTitle.replace('Hoje', 'Mês').replace('Agendamentos', 'Agendamentos Mês').replace('Taxa', 'Taxa Mês').replace('Ticket', 'Ticket Mês')
-      default:
-        return baseTitle
-    }
+    // Mostra "no período" para indicar que segue o intervalo selecionado
+    return baseTitle.replace('Hoje', 'no período')
   }
 
   const financialStats = [
@@ -811,7 +796,7 @@ export default function FinanceiroPage() {
           .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
         
         if (process.env.NODE_ENV === 'development') {
-          console.log(`💰 Faturamento ${period} calculado:`, periodRevenue)
+          console.log('💰 Faturamento (intervalo) calculado:', periodRevenue)
         }
         
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodRevenue)
@@ -829,37 +814,13 @@ export default function FinanceiroPage() {
     },
     {
       title: getPeriodTitle("Taxa de Conversão"),
-      value: (() => {
-        // ✅ CORREÇÃO: Calcular taxa baseada no período atual
-        // Precisamos buscar TODOS os agendamentos do período (não só concluídos) para calcular conversão
-        const today = getBrazilNow()
-        let currentStart: Date
-        let currentEnd: Date = today
-        
-        switch (period) {
-          case 'today':
-            currentStart = new Date(today)
-            currentStart.setHours(0, 0, 0, 0)
-            currentEnd = new Date(today)
-            currentEnd.setHours(23, 59, 59, 999)
-            break
-          case 'week':
-            currentStart = new Date(today)
-            currentStart.setDate(today.getDate() - 7)
-            currentEnd = new Date(today)
-            break
-          case 'month':
-            currentStart = new Date(today)
-            currentStart.setMonth(today.getMonth() - 1)
-            currentEnd = new Date(today)
-            break
-          default:
-            currentStart = new Date(today)
-            currentStart.setHours(0, 0, 0, 0)
-            currentEnd = new Date(today)
-            currentEnd.setHours(23, 59, 59, 999)
-        }
-        
+    value: (() => {
+  // ✅ Calcular taxa baseada no intervalo selecionado
+  const today = getBrazilNow()
+  const from = dateRange?.from ? new Date(dateRange.from) : new Date(today)
+  const to = dateRange?.to ? new Date(dateRange.to) : new Date(today)
+  const currentStart = new Date(from); currentStart.setHours(0,0,0,0)
+  const currentEnd = new Date(to); currentEnd.setHours(23,59,59,999)
         const allPeriodAppointments = appointments.filter(app => {
           try {
             const appointmentDate = utcToBrazil(new Date(app.dateTime))
@@ -907,20 +868,22 @@ export default function FinanceiroPage() {
         return []
       }
       
-      const today = getBrazilNow()
-      const todayString = today.toDateString()
+      // Considerar o último dia do intervalo selecionado
+      const to = dateRange?.to ? new Date(dateRange.to) : getBrazilNow()
+      to.setHours(0,0,0,0)
+      const dayString = to.toDateString()
       
       const todayTransactions = completedAppointments
         .filter(app => {
           try {
             const appointmentDate = utcToBrazil(new Date(app.dateTime))
-            return appointmentDate.toDateString() === todayString
+            return appointmentDate.toDateString() === dayString
           } catch {
             return false
           }
         })
         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-        .slice(0, 6) // ✅ LIMITADO: Mostrar apenas os 6 últimos atendimentos
+        .slice(0, 6) // ✅ LIMITADO: 6 últimos atendimentos do dia final do período
         .map(app => {
           // Normalizar método de pagamento
           let paymentMethod = app.paymentMethod || 'NULL'
@@ -963,7 +926,7 @@ export default function FinanceiroPage() {
       }
       return []
     }
-  }, [completedAppointments])
+  }, [completedAppointments, dateRange?.to])
 
   // ✅ IMPLEMENTAR: Serviços mais vendidos com dados reais e sanitização
   const topServices = useMemo(() => {
@@ -1119,7 +1082,7 @@ export default function FinanceiroPage() {
             </div>
           </div>
           
-          {/* ✅ DESKTOP: Ordem original - Botão depois Filtro */}
+          {/* ✅ DESKTOP: Filtros e ações */}
           <div className="hidden sm:flex items-center gap-3 lg:ml-auto">
             {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
             <Button
@@ -1133,40 +1096,75 @@ export default function FinanceiroPage() {
               {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </Button>
             
-            {/* ✅ SELETOR DE PERÍODO */}
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-36 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="today">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Hoje
+            {/* ✅ Date Range Picker */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {dateRange?.from && dateRange?.to
+                    ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
+                    : 'Selecione o período'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="end">
+                <div className="p-3">
+                  <ShadcnCalendar
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                  />
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const d = getBrazilNow()
+                        const from = new Date(d); from.setHours(0,0,0,0)
+                        const to = new Date(d); to.setHours(23,59,59,999)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Hoje
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const to = getBrazilNow(); to.setHours(23,59,59,999)
+                        const from = new Date(to); from.setDate(from.getDate() - 6); from.setHours(0,0,0,0)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Últimos 7 dias
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const now = getBrazilNow()
+                        const from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0)
+                        const to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Este mês
+                    </Button>
                   </div>
-                </SelectItem>
-                <SelectItem value="week">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Semana
-                  </div>
-                </SelectItem>
-                <SelectItem value="month">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Mês
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                </div>
+              </PopoverContent>
+            </Popover>
             
             {/* ✅ FILTRO POR PROFISSIONAL */}
-            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            <Select value={professionalId} onValueChange={setProfessionalId}>
               <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
                 <SelectValue placeholder="Filtrar por profissional" />
               </SelectTrigger>
               <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="todos">
+                <SelectItem value="all">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Todos os profissionais
@@ -1184,25 +1182,41 @@ export default function FinanceiroPage() {
           {/* ✅ MOBILE: Igual estrutura WhatsApp */}
           <div className="sm:hidden lg:ml-auto w-full lg:w-auto">
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
-              {/* ✅ SELETOR DE PERÍODO */}
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#18181b] border-[#27272a]">
-                  <SelectItem value="today">Hoje</SelectItem>
-                  <SelectItem value="week">Semana</SelectItem>
-                  <SelectItem value="month">Mês</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* ✅ Date Range Picker (mobile) */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {dateRange?.from && dateRange?.to
+                      ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
+                      : 'Período'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="start">
+                  <div className="p-3">
+                    <ShadcnCalendar mode="range" selected={dateRange} onSelect={setDateRange} />
+                    <div className="grid grid-cols-3 gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const d = getBrazilNow(); const f = new Date(d); f.setHours(0,0,0,0); const t = new Date(d); t.setHours(23,59,59,999); setDateRange({from:f,to:t})
+                      }}>Hoje</Button>
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const t = getBrazilNow(); t.setHours(23,59,59,999); const f = new Date(t); f.setDate(f.getDate()-6); f.setHours(0,0,0,0); setDateRange({from:f,to:t})
+                      }}>Últimos 7 dias</Button>
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const n = getBrazilNow(); const f = new Date(n.getFullYear(), n.getMonth(), 1, 0,0,0,0); const t = new Date(n.getFullYear(), n.getMonth()+1, 0, 23,59,59,999); setDateRange({from:f,to:t})
+                      }}>Este mês</Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               
               {/* ✅ FILTRO POR PROFISSIONAL */}
-              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+              <Select value={professionalId} onValueChange={setProfessionalId}>
                 <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
                   <SelectValue placeholder="Filtrar por profissional" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#18181b] border-[#27272a]">
-                  <SelectItem value="todos">
+                  <SelectItem value="all">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       Todos os profissionais
@@ -1265,7 +1279,9 @@ export default function FinanceiroPage() {
               <TrendingUp className="w-5 h-5 text-tymer-icon" />
               <span className="text-lg sm:text-xl">Receita Diária</span>
             </div>
-            <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">- Últimos 30 Dias</span>
+            <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">
+              - {dateRange?.from && dateRange?.to ? `${dateRange.from.toLocaleDateString('pt-BR')} a ${dateRange.to.toLocaleDateString('pt-BR')}` : 'Selecione um período'}
+            </span>
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">
             Acompanhe o faturamento diário e identifique tendências
@@ -1643,7 +1659,7 @@ export default function FinanceiroPage() {
               <DollarSign className="w-5 h-5 text-tymer-icon" />
               Transações Recentes
             </CardTitle>
-            <CardDescription className="text-sm sm:text-sm text-[#71717a]">6 últimos atendimentos realizados hoje</CardDescription>
+            <CardDescription className="text-sm sm:text-sm text-[#71717a]">6 últimos atendimentos do dia final do período</CardDescription>
           </CardHeader>
           <CardContent>
             {recentTransactions.length === 0 ? (
