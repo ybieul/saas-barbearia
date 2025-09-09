@@ -10,6 +10,7 @@ import { useDashboard, useAppointments, useProfessionals, useReports } from "@/h
 import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
+import { useWorkingHours } from "@/hooks/use-working-hours"
 // Date Range Picker (react-day-picker já está no projeto via shadcn Calendar)
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -64,6 +65,7 @@ export default function FinanceiroPage() {
   const { appointments, loading: appointmentsLoading, fetchAppointmentsRange } = useAppointments()
   const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { fetchProfessionalsReport, fetchTimeAnalysis } = useReports()
+  const { getWorkingHoursForDay, workingHours } = useWorkingHours()
 
   // Estados para os novos cards de relatórios
   const [professionalPerformance, setProfessionalPerformance] = useState<any[]>([])
@@ -275,6 +277,17 @@ export default function FinanceiroPage() {
         { period: "Domingo", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 0 as const },
       ]
 
+      // Helpers locais para minutos e sobreposição
+      const timeToMinutes = (time: string) => {
+        const [hh, mm] = time.split(":").map(Number)
+        return (hh || 0) * 60 + (mm || 0)
+      }
+      const overlapMinutes = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+        const start = Math.max(aStart, bStart)
+        const end = Math.min(aEnd, bEnd)
+        return Math.max(0, end - start)
+      }
+
       const ta = slots.map(slot => {
         let list = baseForTimeAnalysis
         if (slot.isWeekend) {
@@ -284,25 +297,51 @@ export default function FinanceiroPage() {
           list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
         }
         const slotApps = list.filter(apt => { const h = utcToBrazil(new Date(apt.dateTime)).getHours(); return h>=slot.startHour && h<slot.endHour })
-        const totalHours = slot.endHour - slot.startHour
-        const slotsPerHour = 2 // blocos de 30 minutos
-        const totalSlots = totalHours * slotsPerHour
-        // Estimar dias no período selecionado
+
+        // Capacidade baseada em horários de funcionamento configurados
+        let totalSlotsInRange = 0
         let daysInSel = 0
         if (from && to) {
           const dayMs = 24*60*60*1000
-          for (let t=from.getTime(); t<=to.getTime(); t+=dayMs) {
-            const d = new Date(t)
-            const dow = d.getDay()
+          const slotStartMin = slot.startHour * 60
+          const slotEndMin = slot.endHour * 60
+          for (let t = from.getTime(); t <= to.getTime(); t += dayMs) {
+            const day = new Date(t)
+            const dow = day.getDay()
+            // Selecionar dias que pertencem ao slot
             if (slot.isWeekend) {
               const targetDay = (slot as any).weekendDay ?? 6
-              if (dow === targetDay) daysInSel++
+              if (dow !== targetDay) continue
             } else {
-              if (dow>=1 && dow<=5) daysInSel++
+              if (!(dow>=1 && dow<=5)) continue
             }
+            daysInSel++
+            const wh = getWorkingHoursForDay(day)
+            if (!wh?.isOpen || !wh.startTime || !wh.endTime) continue
+            const openStart = timeToMinutes(wh.startTime)
+            const openEnd = timeToMinutes(wh.endTime)
+            const minutesOverlap = overlapMinutes(slotStartMin, slotEndMin, openStart, openEnd)
+            if (minutesOverlap <= 0) continue
+            // slots de 30min
+            totalSlotsInRange += Math.floor(minutesOverlap / 30)
+          }
+          // Se não houver horários configurados, usar fallback por dias no intervalo
+          if (totalSlotsInRange === 0 && daysInSel > 0 && (!workingHours || workingHours.length === 0)) {
+            const slotsPerHour = 2
+            const totalHours = slot.endHour - slot.startHour
+            totalSlotsInRange = daysInSel * totalHours * slotsPerHour
           }
         }
-        const totalSlotsInRange = totalSlots * Math.max(daysInSel, 1)
+
+        // Fallback quando não houver intervalo (deve ser raro)
+        if (!from || !to) {
+          const totalHours = slot.endHour - slot.startHour
+          const slotsPerHour = 2
+          const totalSlots = totalHours * slotsPerHour
+          const daysFallback = slot.isWeekend ? 4 : 22
+          totalSlotsInRange = totalSlots * daysFallback
+        }
+
         const occupancy = totalSlotsInRange>0 ? Math.min(100, Math.round((slotApps.length/totalSlotsInRange)*100)) : 0
         return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length }
       })
@@ -310,7 +349,7 @@ export default function FinanceiroPage() {
     } finally {
       setReportsLoading(false)
     }
-  }, [appointments, dateRange?.from, dateRange?.to, professionalId])
+  }, [appointments, dateRange?.from, dateRange?.to, professionalId, workingHours])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros (APENAS do intervalo selecionado)
   const completedAppointments = useMemo(() => {
