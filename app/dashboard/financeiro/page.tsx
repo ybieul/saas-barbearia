@@ -259,19 +259,33 @@ export default function FinanceiroPage() {
       setProfessionalPerformance(Array.from(byProf.values()).sort((a,b)=>b.revenue-a.revenue))
 
       // Análise de horários
+      // Base: apenas agendamentos concluídos/válidos do período selecionado
+      const baseForTimeAnalysis = inRange.filter(apt => {
+        if (!['COMPLETED','IN_PROGRESS'].includes(apt.status)) return false
+        const price = parseFloat(apt.totalPrice)
+        if (isNaN(price) || price <= 0) return false
+        return true
+      })
+
       const slots = [
-        { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false },
-        { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false },
-        { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false },
-        { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true },
+        { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false as const },
+        { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false as const },
+        { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false as const },
+        { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 6 as const },
+        { period: "Domingo", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 0 as const },
       ]
+
       const ta = slots.map(slot => {
-        let list = inRange
-        if (slot.isWeekend) list = list.filter(apt => utcToBrazil(new Date(apt.dateTime)).getDay() === 6)
-        else list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
+        let list = baseForTimeAnalysis
+        if (slot.isWeekend) {
+          const targetDay = (slot as any).weekendDay ?? 6
+          list = list.filter(apt => utcToBrazil(new Date(apt.dateTime)).getDay() === targetDay)
+        } else {
+          list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
+        }
         const slotApps = list.filter(apt => { const h = utcToBrazil(new Date(apt.dateTime)).getHours(); return h>=slot.startHour && h<slot.endHour })
         const totalHours = slot.endHour - slot.startHour
-        const slotsPerHour = 2
+        const slotsPerHour = 2 // blocos de 30 minutos
         const totalSlots = totalHours * slotsPerHour
         // Estimar dias no período selecionado
         let daysInSel = 0
@@ -280,7 +294,12 @@ export default function FinanceiroPage() {
           for (let t=from.getTime(); t<=to.getTime(); t+=dayMs) {
             const d = new Date(t)
             const dow = d.getDay()
-            if (slot.isWeekend ? dow===6 : dow>=1 && dow<=5) daysInSel++
+            if (slot.isWeekend) {
+              const targetDay = (slot as any).weekendDay ?? 6
+              if (dow === targetDay) daysInSel++
+            } else {
+              if (dow>=1 && dow<=5) daysInSel++
+            }
           }
         }
         const totalSlotsInRange = totalSlots * Math.max(daysInSel, 1)
