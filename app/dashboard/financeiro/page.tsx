@@ -226,8 +226,8 @@ export default function FinanceiroPage() {
     }
   }
 
-  // Carregar dados de relatórios
-  // Recalcular "relatórios" no cliente com base no intervalo e profissional
+  // Carregar dados de relatórios (Performance por profissional)
+  // Recalcular com base no intervalo e profissional
   useEffect(() => {
     try {
       setReportsLoading(true)
@@ -260,104 +260,10 @@ export default function FinanceiroPage() {
       })
       setProfessionalPerformance(Array.from(byProf.values()).sort((a,b)=>b.revenue-a.revenue))
 
-  // Análise de horários
-  // Base: considerar COMPLETED/IN_PROGRESS (independente de preço) no período selecionado
-  const baseForTimeAnalysis = inRange.filter(apt => ['COMPLETED','IN_PROGRESS'].includes(apt.status))
-
-      const slots = [
-        { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false as const },
-        { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false as const },
-        { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false as const },
-        { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 6 as const },
-        { period: "Domingo", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 0 as const },
-      ]
-
-      // Helpers locais para minutos e sobreposição
-      const timeToMinutes = (time: string) => {
-        const [hh, mm] = time.split(":").map(Number)
-        return (hh || 0) * 60 + (mm || 0)
-      }
-      const overlapMinutes = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
-        const start = Math.max(aStart, bStart)
-        const end = Math.min(aEnd, bEnd)
-        return Math.max(0, end - start)
-      }
-
-      const ta = slots.map(slot => {
-        let list = baseForTimeAnalysis
-        if (slot.isWeekend) {
-          const targetDay = (slot as any).weekendDay ?? 6
-          list = list.filter(apt => utcToBrazil(new Date(apt.dateTime)).getDay() === targetDay)
-        } else {
-          list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
-        }
-        // Regras de agrupamento:
-        // - Fins de semana: contar todos os agendamentos do dia (sem filtro de hora)
-        // - Dias úteis: agrupar por manhã (<12h), tarde (>=12h e <18h), noite (>=18h)
-        const slotApps = list.filter(apt => {
-          const h = utcToBrazil(new Date(apt.dateTime)).getHours()
-          if (slot.isWeekend) {
-            return true // já filtrado pelo dia acima
-          }
-          if (slot.period === 'Manhã') return h < 12
-          if (slot.period === 'Tarde') return h >= 12 && h < 18
-          if (slot.period === 'Noite') return h >= 18
-          // fallback
-          return h>=slot.startHour && h<slot.endHour
-        })
-
-        // Capacidade baseada em horários de funcionamento configurados
-        let totalSlotsInRange = 0
-        let daysInSel = 0
-        if (from && to) {
-          const dayMs = 24*60*60*1000
-          const slotStartMin = slot.startHour * 60
-          const slotEndMin = slot.endHour * 60
-          for (let t = from.getTime(); t <= to.getTime(); t += dayMs) {
-            const day = new Date(t)
-            const dow = day.getDay()
-            // Selecionar dias que pertencem ao slot
-            if (slot.isWeekend) {
-              const targetDay = (slot as any).weekendDay ?? 6
-              if (dow !== targetDay) continue
-            } else {
-              if (!(dow>=1 && dow<=5)) continue
-            }
-            daysInSel++
-            const wh = getWorkingHoursForDay(day)
-            if (!wh?.isOpen || !wh.startTime || !wh.endTime) continue
-            const openStart = timeToMinutes(wh.startTime)
-            const openEnd = timeToMinutes(wh.endTime)
-            const minutesOverlap = overlapMinutes(slotStartMin, slotEndMin, openStart, openEnd)
-            if (minutesOverlap <= 0) continue
-            // slots de 30min
-            totalSlotsInRange += Math.floor(minutesOverlap / 30)
-          }
-          // Se não houver horários configurados, usar fallback por dias no intervalo
-          if (totalSlotsInRange === 0 && daysInSel > 0 && (!workingHours || workingHours.length === 0)) {
-            const slotsPerHour = 2
-            const totalHours = slot.endHour - slot.startHour
-            totalSlotsInRange = daysInSel * totalHours * slotsPerHour
-          }
-        }
-
-        // Fallback quando não houver intervalo (deve ser raro)
-        if (!from || !to) {
-          const totalHours = slot.endHour - slot.startHour
-          const slotsPerHour = 2
-          const totalSlots = totalHours * slotsPerHour
-          const daysFallback = slot.isWeekend ? 4 : 22
-          totalSlotsInRange = totalSlots * daysFallback
-        }
-
-        const occupancy = totalSlotsInRange>0 ? Math.min(100, Math.round((slotApps.length/totalSlotsInRange)*100)) : 0
-        return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length }
-      })
-      setTimeAnalysisData(ta)
     } finally {
       setReportsLoading(false)
     }
-  }, [appointments, dateRange?.from, dateRange?.to, professionalId, workingHours])
+  }, [appointments, dateRange?.from, dateRange?.to, professionalId])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros (APENAS do intervalo selecionado)
   const completedAppointments = useMemo(() => {
@@ -503,6 +409,103 @@ export default function FinanceiroPage() {
       return []
     }
   }, [completedAppointments, dateRange?.from, dateRange?.to])
+
+  // Análise de Horários: baseada nos agendamentos do período atual
+  useEffect(() => {
+    try {
+      setReportsLoading(true)
+      const from = dateRange?.from ? new Date(dateRange.from) : null
+      const to = dateRange?.to ? new Date(dateRange.to) : null
+      if (from) from.setHours(0,0,0,0)
+      if (to) to.setHours(23,59,59,999)
+
+      const baseForTimeAnalysis = currentPeriodAppointments
+
+      const slots = [
+        { period: "Manhã", time: "08:00 - 12:00", startHour: 8, endHour: 12, isWeekend: false as const },
+        { period: "Tarde", time: "12:00 - 18:00", startHour: 12, endHour: 18, isWeekend: false as const },
+        { period: "Noite", time: "18:00 - 20:00", startHour: 18, endHour: 20, isWeekend: false as const },
+        { period: "Sábado", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 6 as const },
+        { period: "Domingo", time: "08:00 - 17:00", startHour: 8, endHour: 17, isWeekend: true as const, weekendDay: 0 as const },
+      ]
+
+      // Helpers
+      const timeToMinutes = (time: string) => {
+        const [hh, mm] = time.split(":").map(Number)
+        return (hh || 0) * 60 + (mm || 0)
+      }
+      const overlapMinutes = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+        const start = Math.max(aStart, bStart)
+        const end = Math.min(aEnd, bEnd)
+        return Math.max(0, end - start)
+      }
+
+      const ta = slots.map(slot => {
+        let list = baseForTimeAnalysis
+        if (slot.isWeekend) {
+          const targetDay = (slot as any).weekendDay ?? 6
+          list = list.filter(apt => utcToBrazil(new Date(apt.dateTime)).getDay() === targetDay)
+        } else {
+          list = list.filter(apt => { const d = utcToBrazil(new Date(apt.dateTime)).getDay(); return d>=1 && d<=5 })
+        }
+
+        const slotApps = list.filter(apt => {
+          const d = utcToBrazil(new Date(apt.dateTime))
+          let h = d.getHours()
+          if (h === 0) h = 9
+          if (slot.isWeekend) return true
+          if (slot.period === 'Manhã') return h < 12
+          if (slot.period === 'Tarde') return h >= 12 && h < 18
+          if (slot.period === 'Noite') return h >= 18
+          return h>=slot.startHour && h<slot.endHour
+        })
+
+        // Capacidade por sobreposição com horários do estabelecimento
+        let totalSlotsInRange = 0
+        let daysInSel = 0
+        if (from && to) {
+          const dayMs = 24*60*60*1000
+          const slotStartMin = slot.startHour * 60
+          const slotEndMin = slot.endHour * 60
+          for (let t = from.getTime(); t <= to.getTime(); t += dayMs) {
+            const day = new Date(t)
+            const dow = day.getDay()
+            if (slot.isWeekend) {
+              const targetDay = (slot as any).weekendDay ?? 6
+              if (dow !== targetDay) continue
+            } else {
+              if (!(dow>=1 && dow<=5)) continue
+            }
+            daysInSel++
+            const wh = getWorkingHoursForDay(day)
+            if (!wh?.isOpen || !wh.startTime || !wh.endTime) continue
+            const openStart = timeToMinutes(wh.startTime)
+            const openEnd = timeToMinutes(wh.endTime)
+            const minutesOverlap = overlapMinutes(slotStartMin, slotEndMin, openStart, openEnd)
+            if (minutesOverlap <= 0) continue
+            totalSlotsInRange += Math.floor(minutesOverlap / 30)
+          }
+          if (totalSlotsInRange === 0 && daysInSel > 0 && (!workingHours || workingHours.length === 0)) {
+            const slotsPerHour = 2
+            const totalHours = slot.endHour - slot.startHour
+            totalSlotsInRange = daysInSel * totalHours * slotsPerHour
+          }
+        } else {
+          const totalHours = slot.endHour - slot.startHour
+          const slotsPerHour = 2
+          const totalSlots = totalHours * slotsPerHour
+          const daysFallback = slot.isWeekend ? 4 : 22
+          totalSlotsInRange = totalSlots * daysFallback
+        }
+
+        const occupancy = totalSlotsInRange>0 ? Math.min(100, Math.round((slotApps.length/totalSlotsInRange)*100)) : 0
+        return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length }
+      })
+      setTimeAnalysisData(ta)
+    } finally {
+      setReportsLoading(false)
+    }
+  }, [currentPeriodAppointments, dateRange?.from, dateRange?.to, workingHours])
 
   // ✅ NOVO: Conjunto de agendamentos para a Análise Mensal (IGNORA o filtro de período)
   // Mantém apenas filtro por profissional, status e preço válido
