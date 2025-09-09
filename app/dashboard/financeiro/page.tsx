@@ -263,7 +263,7 @@ export default function FinanceiroPage() {
     }
   }, [appointments, dateRange?.from, dateRange?.to, professionalId])
 
-  // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros
+  // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros (APENAS do intervalo selecionado)
   const completedAppointments = useMemo(() => {
     try {
       if (process.env.NODE_ENV === 'development') {
@@ -322,7 +322,7 @@ export default function FinanceiroPage() {
           if (professionalId !== 'all' && app.professionalId !== professionalId) {
             return false
           }
-          // Filtro por intervalo
+          // Filtro por intervalo (para seções afetadas pelo filtro de período)
           const from = dateRange?.from ? new Date(dateRange.from) : null
           const to = dateRange?.to ? new Date(dateRange.to) : null
           if (from) from.setHours(0,0,0,0)
@@ -407,9 +407,39 @@ export default function FinanceiroPage() {
       return []
     }
   }, [completedAppointments, dateRange?.from, dateRange?.to])
+
+  // ✅ NOVO: Conjunto de agendamentos para a Análise Mensal (IGNORA o filtro de período)
+  // Mantém apenas filtro por profissional, status e preço válido
+  const completedAppointmentsMonthly = useMemo(() => {
+    try {
+      if (!Array.isArray(appointments)) return []
+
+      const filtered = appointments.filter(app => {
+        if (!app || typeof app !== 'object') return false
+        if (!['COMPLETED', 'IN_PROGRESS'].includes(app.status)) return false
+        if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) return false
+        if (!app.dateTime) return false
+
+        try {
+          const appointmentDate = utcToBrazil(new Date(app.dateTime))
+          if (isNaN(appointmentDate.getTime())) return false
+          // Apenas filtra por profissional; NÃO aplica dateRange aqui
+          if (professionalId !== 'all' && app.professionalId !== professionalId) return false
+          return true
+        } catch {
+          return false
+        }
+      })
+
+      return filtered
+    } catch {
+      return []
+    }
+  }, [appointments, professionalId])
   const getMonthlyData = useMemo(() => {
     try {
-      if (!Array.isArray(completedAppointments)) return []
+      // Usar o conjunto mensal que ignora o filtro de período
+      if (!Array.isArray(completedAppointmentsMonthly)) return []
       
       const monthlyData = []
       const currentDate = getBrazilNow()
@@ -422,7 +452,7 @@ export default function FinanceiroPage() {
           const year = date.getFullYear()
           
           // Filtrar agendamentos do mês específico
-          const monthAppointments = completedAppointments.filter(app => {
+          const monthAppointments = completedAppointmentsMonthly.filter(app => {
             try {
               const appointmentDate = utcToBrazil(new Date(app.dateTime))
               return appointmentDate.getMonth() === month && appointmentDate.getFullYear() === year
@@ -455,14 +485,14 @@ export default function FinanceiroPage() {
         }
       }
       
-      return monthlyData
+    return monthlyData
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao gerar dados mensais:', err)
       }
       return []
     }
-  }, [completedAppointments])
+  }, [completedAppointmentsMonthly])
 
   // ✅ PERFORMANCE: Função otimizada para obter dados dos últimos 30 dias
   const getDailyData = useMemo(() => {
@@ -1649,7 +1679,13 @@ export default function FinanceiroPage() {
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
               <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
               <p className="text-base sm:text-lg font-bold text-[#ededed]">
-                {selectedMonthData?.appointmentCount ? Math.round(selectedMonthData.appointmentCount / 30) : 0}
+                {(() => {
+                  if (!selectedMonthData) return 0
+                  const daysInMonth = new Date(selectedMonthData.year, selectedMonthData.month + 1, 0).getDate()
+                  return daysInMonth > 0
+                    ? Math.round((selectedMonthData.appointmentCount || 0) / daysInMonth)
+                    : 0
+                })()}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
