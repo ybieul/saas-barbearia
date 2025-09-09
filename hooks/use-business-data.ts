@@ -11,6 +11,7 @@ export interface BusinessData {
   logo?: string
   cnpj?: string
   instagram: string
+  fixedCosts?: Array<{ id: string; name: string; amount: number }>
 }
 
 export function useBusinessData() {
@@ -22,7 +23,8 @@ export function useBusinessData() {
     customLink: "",
     logo: "",
     cnpj: "",
-    instagram: ""
+  instagram: "",
+  fixedCosts: []
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -63,7 +65,8 @@ export function useBusinessData() {
         customLink: "",
         logo: "",
         cnpj: "",
-        instagram: ""
+        instagram: "",
+        fixedCosts: []
       })
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
@@ -85,7 +88,7 @@ export function useBusinessData() {
         throw new Error('Token de autenticação não encontrado')
       }
 
-      const dataToUpdate = { ...businessData, ...newBusinessData }
+  const dataToUpdate = { ...businessData, ...newBusinessData }
 
       const response = await fetch('/api/business', {
         method: 'PUT',
@@ -107,7 +110,7 @@ export function useBusinessData() {
       }
       
       // Atualizar estado local
-      setBusinessData(dataToUpdate)
+  setBusinessData(dataToUpdate)
       
       return data
     } catch (err) {
@@ -125,6 +128,13 @@ export function useBusinessData() {
     setBusinessData(prev => ({
       ...prev,
       [field]: value
+    }))
+  }
+
+  const setFixedCosts = (list: Array<{ id: string; name: string; amount: number }>) => {
+    setBusinessData(prev => ({
+      ...prev,
+      fixedCosts: Array.isArray(list) ? list : []
     }))
   }
 
@@ -196,5 +206,6 @@ export function useBusinessData() {
     updateBusinessData,
     updateField,
     uploadLogo,
+  setFixedCosts,
   }
 }

@@ -324,6 +324,11 @@ export default function ConfiguracoesPage() {
     updateField,
     uploadLogo
   } = useBusinessData()
+  const [fixedCostsLocal, setFixedCostsLocal] = useState<Array<{ id: string; name: string; amount: number }>>([])
+  useEffect(() => {
+    const list = Array.isArray(businessData.fixedCosts) ? businessData.fixedCosts : []
+    setFixedCostsLocal(list.map((c: any) => ({ id: c.id || crypto.randomUUID(), name: c.name || '', amount: Number(c.amount) || 0 })))
+  }, [businessData.fixedCosts])
 
   const [services, setServices] = useState<any[]>([])
   const [isNewServiceOpen, setIsNewServiceOpen] = useState(false)
@@ -626,7 +631,7 @@ export default function ConfiguracoesPage() {
 
   const handleSave = async () => {
     try {
-      await updateBusinessData(businessData)
+  await updateBusinessData({ ...businessData, fixedCosts: fixedCostsLocal })
       toast({
         title: "✅ Configurações salvas",
         description: "Todas as alterações foram salvas com sucesso.",
@@ -1449,6 +1454,60 @@ export default function ConfiguracoesPage() {
                     className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                     placeholder="https://instagram.com/seuperfil ou @seuperfil"
                   />
+                </div>
+
+                {/* Custos Fixos Mensais */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[#ededed]">Custos Fixos Mensais</Label>
+    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-[#3f3f46] text-[#ededed] hover:text-white"
+          onClick={() => setFixedCostsLocal(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0 }])}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+        {(fixedCostsLocal || []).map((item, idx) => (
+                      <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-6">
+              <Input
+                            placeholder="Ex.: Aluguel"
+                            value={item.name}
+          onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, name: e.target.value } : c))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                          />
+                        </div>
+                        <div className="col-span-5">
+              <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Valor (R$)"
+                            value={String(item.amount ?? 0)}
+          onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, amount: parseFloat(e.target.value || '0') || 0 } : c))}
+                            className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                          />
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+              <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="border-red-600 text-red-400 hover:text-red-300"
+          onClick={() => setFixedCostsLocal(list => list.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-[#a1a1aa]">
+        Total mensal: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((fixedCostsLocal||[]).reduce((s,i)=>s+(Number(i.amount)||0),0))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

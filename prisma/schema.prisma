@@ -51,6 +51,8 @@ model Tenant {
   
   // Configurações da barbearia
   businessConfig    Json?     // Configurações personalizadas
+  // Custos fixos mensais do estabelecimento (lista de objetos JSON: [{ id, name, amount }])
+  fixedCosts       Json?
   
   // Password Reset (redefinição de senha)
   passwordResetToken   String?   // Token para redefinição de senha

@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
 
     // Métricas do tenant
     const [
+      tenantFixedCostsRaw,
       totalClients,
       activeClients,
       totalAppointments,
@@ -92,6 +93,8 @@ export async function GET(request: NextRequest) {
       professionals,
       nextAppointment
     ] = await Promise.all([
+      // Dados do tenant (para custos fixos)
+  prisma.$queryRaw`SELECT fixedCosts FROM tenants WHERE id = ${user.tenantId}` as Promise<any[]>,
       // Total de clientes do tenant
       prisma.endUser.count({
         where: { tenantId: user.tenantId }
@@ -333,6 +336,45 @@ export async function GET(request: NextRequest) {
 
     // Calcular métricas
     const revenue = totalRevenue._sum.totalPrice || 0
+    // Calcular custos fixos do período (pró-rata mensal)
+    let fixedCostsArray: Array<{ id?: string; name: string; amount: number }> = []
+    try {
+      const rawRow = Array.isArray(tenantFixedCostsRaw) ? tenantFixedCostsRaw[0] : null
+      const raw = rawRow?.fixedCosts
+      if (raw) {
+        if (typeof raw === 'string') fixedCostsArray = JSON.parse(raw)
+        else if (Array.isArray(raw)) fixedCostsArray = raw
+      }
+    } catch (e) {
+      console.warn('Erro ao parsear fixedCosts do tenant:', e)
+    }
+
+    const monthlyFixedTotal = fixedCostsArray.reduce((sum, c) => sum + (Number(c?.amount) || 0), 0)
+    // Número de dias no período selecionado
+    const oneDayMs = 24 * 60 * 60 * 1000
+    const daysInRange = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / oneDayMs) + 1)
+    // Dias no mês de referência: usar média 30 para simplificar pró-rata entre meses; alternativa: somar pró-rata por mês
+    // Vamos usar pró-rata real por calendário: distribuir por cada dia do range considerando o mês de cada dia
+    const proratedFixedCost = (() => {
+      try {
+        // iterar por dias e somar monthlyFixedTotal / daysInMonth desse mês
+        let total = 0
+        const d = new Date(startDate)
+        d.setHours(0,0,0,0)
+        for (let i = 0; i < daysInRange; i++) {
+          const year = d.getFullYear()
+          const month = d.getMonth()
+          const daysInMonth = new Date(year, month + 1, 0).getDate()
+          total += monthlyFixedTotal / daysInMonth
+          d.setDate(d.getDate() + 1)
+        }
+        return total
+      } catch {
+        // fallback simples
+        return (monthlyFixedTotal / 30) * daysInRange
+      }
+    })()
+    const netProfit = Number(revenue) - proratedFixedCost
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
     const cancellationRate = totalAppointments > 0 ? (cancelledAppointments / totalAppointments) * 100 : 0
 
@@ -537,7 +579,7 @@ export async function GET(request: NextRequest) {
     })
     console.log('⏰ === FIM DEBUG TIMEZONE ===')
 
-    return NextResponse.json({
+  return NextResponse.json({
       data: {
         // Estrutura simplificada que o frontend espera
         summary: {
@@ -546,6 +588,8 @@ export async function GET(request: NextRequest) {
           totalAppointments,
           completedAppointments,
           revenue: Number(revenue),
+      fixedCosts: Math.round(proratedFixedCost * 100) / 100,
+      netProfit: Math.round(netProfit * 100) / 100,
           pendingAppointments,
           conversionRate: Math.round(conversionRate * 100) / 100,
           cancellationRate: Math.round(cancellationRate * 100) / 100,
@@ -553,6 +597,8 @@ export async function GET(request: NextRequest) {
         },
         stats: {
           totalRevenue: Number(revenue),
+      fixedCosts: Math.round(proratedFixedCost * 100) / 100,
+      netProfit: Math.round(netProfit * 100) / 100,
           totalClients,
           totalAppointments,
           occupancyRate: averageOccupancyRate

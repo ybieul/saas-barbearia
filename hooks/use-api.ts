@@ -447,8 +447,12 @@ export function useFinancial() {
 export function useDashboard() {
   const { data, loading, error, request } = useApi<{ data: any }>()
 
-  const fetchDashboardData = useCallback((period = 'today') => {
-    return request(`/api/dashboard?period=${period}`)
+  const fetchDashboardData = useCallback((period = 'today', params?: { from?: string; to?: string; professionalId?: string }) => {
+    const sp = new URLSearchParams({ period })
+    if (params?.from) sp.set('from', params.from)
+    if (params?.to) sp.set('to', params.to)
+    if (params?.professionalId && params.professionalId !== 'all') sp.set('professionalId', params.professionalId)
+    return request(`/api/dashboard?${sp.toString()}`)
   }, [request])
 
   return {

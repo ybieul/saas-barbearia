@@ -89,7 +89,8 @@ export default function FinanceiroPage() {
         const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
         await Promise.all([
           fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
-          fetchProfessionals()
+    fetchProfessionals(),
+    fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId })
         ])
       } catch (err) {
         setError('Erro ao carregar dados. Tente novamente.')
@@ -99,7 +100,7 @@ export default function FinanceiroPage() {
       }
     }
     loadData()
-  }, [fetchAppointmentsRange, fetchProfessionals])
+  }, [fetchAppointmentsRange, fetchProfessionals, fetchDashboardData])
 
   // Recarregar dados quando filtros mudarem
   useEffect(() => {
@@ -108,7 +109,10 @@ export default function FinanceiroPage() {
         setIsRefreshing(true)
         const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
         const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
-        await fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined)
+        await Promise.all([
+          fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
+          fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId })
+        ])
         setLastUpdated(getBrazilNow())
       } catch (err) {
         // silencioso; já há UI de erro
@@ -118,7 +122,7 @@ export default function FinanceiroPage() {
     }
     // Apenas quando houver intervalo válido (from & to)
     if (dateRange?.from && dateRange?.to) reload()
-  }, [dateRange?.from, dateRange?.to, professionalId, fetchAppointmentsRange])
+  }, [dateRange?.from, dateRange?.to, professionalId, fetchAppointmentsRange, fetchDashboardData])
 
   // Carregar dados dos últimos 12 meses para a Análise Mensal (apenas quando profissional muda ou no mount)
   useEffect(() => {
@@ -1047,6 +1051,26 @@ export default function FinanceiroPage() {
       icon: DollarSign,
     },
     {
+      title: getPeriodTitle("Custos Fixos"),
+      value: (() => {
+        const val = dashboardData?.stats?.fixedCosts ?? 0
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+      })(),
+      change: '-',
+      changeType: 'positive',
+      icon: Banknote,
+    },
+    {
+      title: getPeriodTitle("Lucro Líquido (Estimado)"),
+      value: (() => {
+        const val = dashboardData?.stats?.netProfit ?? 0
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+      })(),
+      change: '-',
+      changeType: (dashboardData?.stats?.netProfit ?? 0) >= 0 ? 'positive' : 'negative',
+      icon: TrendingUp,
+    },
+    {
       title: getPeriodTitle("Agendamentos Concluídos"),
       value: currentPeriodAppointments.length.toString(),
       change: completedChange.change,
@@ -1080,7 +1104,7 @@ export default function FinanceiroPage() {
       changeType: conversionChange.type,
       icon: Calendar,
     },
-    {
+  {
       title: getPeriodTitle("Ticket Médio"),
       value: (() => {
         // ✅ CORREÇÃO: Ticket médio baseado no período atual

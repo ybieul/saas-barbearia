@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
         businessLogo, 
         businessCnpj, 
         businessInstagram,
-        businessConfig
+        businessConfig,
+        fixedCosts
       FROM tenants 
       WHERE id = ${user.tenantId}
     ` as any[]
@@ -49,6 +50,23 @@ export async function GET(request: NextRequest) {
     
     const customLink = businessConfig?.customLink || ''
     
+    // Normalizar custos fixos
+    let fixedCosts: any[] = []
+    try {
+      if (tenant.fixedCosts) {
+        if (typeof tenant.fixedCosts === 'string') {
+          fixedCosts = JSON.parse(tenant.fixedCosts)
+        } else if (Array.isArray(tenant.fixedCosts)) {
+          fixedCosts = tenant.fixedCosts
+        } else {
+          fixedCosts = []
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao parsear fixedCosts:', e)
+      fixedCosts = []
+    }
+
     const businessData = {
       name: tenant.businessName || '',
       email: tenant.email || '',
@@ -57,7 +75,8 @@ export async function GET(request: NextRequest) {
       customLink: customLink,
       logo: tenant.businessLogo || '',
       cnpj: tenant.businessCnpj || '',
-      instagram: tenant.businessInstagram || ''
+      instagram: tenant.businessInstagram || '',
+      fixedCosts
     }
     
     console.log('Business data encontrado:', businessData)
@@ -79,7 +98,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const user = verifyToken(request)
-    const { name, email, phone, address, customLink, logo, instagram } = await request.json()
+  const { name, email, phone, address, customLink, logo, instagram, fixedCosts } = await request.json()
     
     console.log('PUT business data - Dados:', { name, email, phone, address, customLink, logo: logo ? 'Logo incluída' : 'Sem logo', tenantId: user.tenantId })
     
@@ -102,7 +121,7 @@ export async function PUT(request: NextRequest) {
       customLink: customLink || ''
     }
 
-    const tenant = await prisma.tenant.update({
+  const tenant = await prisma.tenant.update({
       where: { id: user.tenantId },
       data: {
         businessName: name.trim(),
@@ -112,6 +131,7 @@ export async function PUT(request: NextRequest) {
         businessInstagram: instagram?.trim() || null,
         businessLogo: logo?.trim() || null,
         businessConfig: updatedConfig,
+    ...(fixedCosts !== undefined ? { fixedCosts: Array.isArray(fixedCosts) ? fixedCosts : [] } : {}),
         updatedAt: new Date()
       } as any
     })
