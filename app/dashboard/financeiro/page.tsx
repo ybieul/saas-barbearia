@@ -71,6 +71,8 @@ export default function FinanceiroPage() {
   const [reportsLoading, setReportsLoading] = useState(false)
   // Dados mensais para cards quando apenas 1 dia estiver selecionado
   const [monthlyAppointments, setMonthlyAppointments] = useState<any[]>([])
+  // Fonte de dados de 12 meses para a Análise Mensal (independe do filtro de período)
+  const [appointments12m, setAppointments12m] = useState<any[]>([])
 
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
@@ -115,6 +117,34 @@ export default function FinanceiroPage() {
     // Apenas quando houver intervalo válido (from & to)
     if (dateRange?.from && dateRange?.to) reload()
   }, [dateRange?.from, dateRange?.to, professionalId, fetchAppointmentsRange])
+
+  // Carregar dados dos últimos 12 meses para a Análise Mensal (apenas quando profissional muda ou no mount)
+  useEffect(() => {
+    const loadLast12m = async () => {
+      try {
+        const now = getBrazilNow()
+        const start = new Date(utcToBrazil(now))
+        start.setMonth(start.getMonth() - 11)
+        start.setDate(1)
+        start.setHours(0,0,0,0)
+        const end = new Date(utcToBrazil(now))
+        end.setMonth(end.getMonth() + 1)
+        end.setDate(0) // último dia do mês atual
+        end.setHours(23,59,59,999)
+        const fromStr = toLocalDateString(start)
+        const toStr = toLocalDateString(end)
+        const { appointments: apps } = await fetchAppointmentsRaw(
+          fromStr,
+          toStr,
+          professionalId !== 'all' ? professionalId : undefined
+        )
+        setAppointments12m(Array.isArray(apps) ? apps : [])
+      } catch {
+        setAppointments12m([])
+      }
+    }
+    loadLast12m()
+  }, [professionalId])
 
   // Helper: verificar se apenas 1 dia foi selecionado
   const isSingleDaySelected = useMemo(() => {
@@ -412,9 +442,9 @@ export default function FinanceiroPage() {
   // Mantém apenas filtro por profissional, status e preço válido
   const completedAppointmentsMonthly = useMemo(() => {
     try {
-      if (!Array.isArray(appointments)) return []
+      if (!Array.isArray(appointments12m)) return []
 
-      const filtered = appointments.filter(app => {
+      const filtered = appointments12m.filter(app => {
         if (!app || typeof app !== 'object') return false
         if (!['COMPLETED', 'IN_PROGRESS'].includes(app.status)) return false
         if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) return false
@@ -435,7 +465,7 @@ export default function FinanceiroPage() {
     } catch {
       return []
     }
-  }, [appointments, professionalId])
+  }, [appointments12m, professionalId])
   const getMonthlyData = useMemo(() => {
     try {
       // Usar o conjunto mensal que ignora o filtro de período
