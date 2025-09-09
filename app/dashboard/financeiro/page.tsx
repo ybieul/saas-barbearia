@@ -69,6 +69,8 @@ export default function FinanceiroPage() {
   const [professionalPerformance, setProfessionalPerformance] = useState<any[]>([])
   const [timeAnalysisData, setTimeAnalysisData] = useState<any[]>([])
   const [reportsLoading, setReportsLoading] = useState(false)
+  // Dados mensais para cards quando apenas 1 dia estiver selecionado
+  const [monthlyAppointments, setMonthlyAppointments] = useState<any[]>([])
 
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
@@ -113,6 +115,53 @@ export default function FinanceiroPage() {
     // Apenas quando houver intervalo válido (from & to)
     if (dateRange?.from && dateRange?.to) reload()
   }, [dateRange?.from, dateRange?.to, professionalId, fetchAppointmentsRange])
+
+  // Helper: verificar se apenas 1 dia foi selecionado
+  const isSingleDaySelected = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) return false
+    const f = new Date(dateRange.from); f.setHours(0,0,0,0)
+    const t = new Date(dateRange.to); t.setHours(0,0,0,0)
+    return f.getTime() === t.getTime()
+  }, [dateRange?.from, dateRange?.to])
+
+  // Fetch local para buscar agendamentos de um intervalo sem sobrescrever o hook principal
+  const fetchAppointmentsRaw = async (from?: string, to?: string, professional?: string) => {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    if (professional) params.append('professionalId', professional)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    const res = await fetch(`/api/appointments${params.toString() ? `?${params.toString()}` : ''}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    })
+    if (!res.ok) return { appointments: [] as any[] }
+    return res.json() as Promise<{ appointments: any[] }>
+  }
+
+  // Quando apenas 1 dia for selecionado, carregar dados do mês para os cards
+  useEffect(() => {
+    const loadMonthly = async () => {
+      if (!isSingleDaySelected || !dateRange?.from) {
+        setMonthlyAppointments([])
+        return
+      }
+      const base = new Date(dateRange.from)
+      const monthStart = new Date(base.getFullYear(), base.getMonth(), 1)
+      const monthEnd = new Date(base.getFullYear(), base.getMonth() + 1, 0)
+      const fromStr = toLocalDateString(monthStart)
+      const toStr = toLocalDateString(monthEnd)
+      try {
+        const { appointments: apps } = await fetchAppointmentsRaw(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined)
+        setMonthlyAppointments(apps || [])
+      } catch {
+        setMonthlyAppointments([])
+      }
+    }
+    loadMonthly()
+  }, [isSingleDaySelected, dateRange?.from, professionalId])
 
   // ✅ FUNÇÃO PARA ATUALIZAR DADOS MANUALMENTE
   const handleRefreshData = async () => {
@@ -430,17 +479,26 @@ export default function FinanceiroPage() {
       }
       
       const dailyData = [] as any[]
-      // Construir do from -> to
-      const from = dateRange?.from ? new Date(dateRange.from) : new Date(getBrazilNow())
-      const to = dateRange?.to ? new Date(dateRange.to) : new Date(getBrazilNow())
+      // Construir range de datas para o gráfico
+      const now = getBrazilNow()
+      const from = dateRange?.from ? new Date(dateRange.from) : new Date(now)
+      const to = dateRange?.to ? new Date(dateRange.to) : new Date(now)
       from.setHours(0,0,0,0)
       to.setHours(23,59,59,999)
-      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+
+      // Se apenas 1 dia estiver selecionado, exibir todo o mês do dia selecionado
+      let graphStart = new Date(from)
+      let graphEnd = new Date(to)
+      if (isSingleDaySelected) {
+        graphStart = new Date(from.getFullYear(), from.getMonth(), 1, 0,0,0,0)
+        graphEnd = new Date(from.getFullYear(), from.getMonth()+1, 0, 23,59,59,999)
+      }
+      for (let d = new Date(graphStart); d <= graphEnd; d.setDate(d.getDate() + 1)) {
         try {
           const date = new Date(d)
           
           // Filtrar agendamentos do dia específico
-          const dayAppointments = completedAppointments.filter(app => {
+          let dayAppointments = completedAppointments.filter(app => {
             try {
               const appointmentDate = utcToBrazil(new Date(app.dateTime))
               return appointmentDate.toDateString() === date.toDateString()
@@ -448,6 +506,14 @@ export default function FinanceiroPage() {
               return false
             }
           })
+
+          // Se for seleção de 1 dia, manter dados apenas do dia selecionado; demais dias zerados
+          if (isSingleDaySelected) {
+            const isSelectedDay = date.toDateString() === from.toDateString()
+            if (!isSelectedDay) {
+              dayAppointments = []
+            }
+          }
           
           // Calcular receita real do dia
           const revenue = dayAppointments.reduce((total, app) => {
@@ -497,12 +563,58 @@ export default function FinanceiroPage() {
   const dailyData = getDailyData
   const monthlyData = getMonthlyData
   
-  const totalDailyRevenue = useMemo(() => 
-    dailyData.reduce((total: number, day: any) => total + (day.revenue || 0), 0), [dailyData]
-  )
-  const averageDailyRevenue = dailyData.length > 0 ? totalDailyRevenue / dailyData.length : 0
-  const maxDailyRevenue = dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
-  const bestDay = dailyData.find((d: any) => d.revenue === maxDailyRevenue)
+  // Métricas para os cards da seção, usando dados mensais quando apenas 1 dia estiver selecionado
+  const {
+    cardsTotalRevenue,
+    cardsAverageDaily,
+    cardsMaxRevenue,
+    cardsBestDay
+  } = useMemo(() => {
+    if (!isSingleDaySelected || !dateRange?.from) {
+      const total = dailyData.reduce((total: number, day: any) => total + (day.revenue || 0), 0)
+      const avg = dailyData.length > 0 ? total / dailyData.length : 0
+      const max = dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
+      const b = dailyData.find((d: any) => d.revenue === max)
+      return { cardsTotalRevenue: total, cardsAverageDaily: avg, cardsMaxRevenue: max, cardsBestDay: b }
+    }
+    // Mensal
+    const base = new Date(dateRange.from)
+    const daysInMonth = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate()
+    const filtered = Array.isArray(monthlyAppointments) ? monthlyAppointments : []
+    const valid = filtered.filter((app: any) => ['COMPLETED','IN_PROGRESS'].includes(app.status) && parseFloat(app.totalPrice) > 0)
+    const total = valid.reduce((sum: number, app: any) => sum + (parseFloat(app.totalPrice) || 0), 0)
+    // Agrupar por dia
+    const map = new Map<string, number>()
+    valid.forEach((app: any) => {
+      try {
+        const d = utcToBrazil(new Date(app.dateTime))
+        const key = d.toDateString()
+        map.set(key, (map.get(key) || 0) + (parseFloat(app.totalPrice) || 0))
+      } catch {}
+    })
+    let max = 0
+    let best: any = null
+    map.forEach((value, key) => {
+      if (value >= max) {
+        max = value
+        const d = new Date(key)
+        best = {
+          date: d,
+          dayName: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
+          fullDate: d.toLocaleDateString('pt-BR'),
+          revenue: value,
+          appointmentCount: 0
+        }
+      }
+    })
+    const avg = daysInMonth > 0 ? total / daysInMonth : 0
+    return { cardsTotalRevenue: total, cardsAverageDaily: avg, cardsMaxRevenue: max, cardsBestDay: best }
+  }, [isSingleDaySelected, dateRange?.from, dailyData, monthlyAppointments])
+
+  // Máximo diário para escalar as barras do gráfico atualmente exibido
+  const chartMaxRevenue = useMemo(() => {
+    return dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
+  }, [dailyData])
   const selectedMonthData = monthlyData.find((m: any) => m.month === selectedMonth && m.year === selectedYear)
   const currentMonthAppointments = selectedMonthData?.appointments || []
 
@@ -1293,28 +1405,28 @@ export default function FinanceiroPage() {
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDailyRevenue)}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cardsTotalRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageDailyRevenue)}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cardsAverageDaily)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxDailyRevenue)}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cardsMaxRevenue)}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Melhor Dia</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-                {bestDay?.fullDate || 'N/A'}
+                {cardsBestDay?.fullDate || 'N/A'}
               </p>
               <p className="text-xs sm:text-sm text-[#71717a]">Data do Melhor Dia</p>
             </div>
@@ -1335,7 +1447,7 @@ export default function FinanceiroPage() {
               <div className="overflow-x-auto pb-4">
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                   {dailyData.map((day, index) => {
-                    const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
+                    const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
                     const dayDate = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                     const isWeekend = getBrazilDayNumber(dayDate) === 0 || getBrazilDayNumber(dayDate) === 6
                     
@@ -1398,7 +1510,7 @@ export default function FinanceiroPage() {
               {/* Chart Container */}
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
-                  const height = maxDailyRevenue > 0 ? (day.revenue / maxDailyRevenue) * 100 : 0
+                  const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
                   const dayDate2 = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                   const isWeekend = getBrazilDayNumber(dayDate2) === 0 || getBrazilDayNumber(dayDate2) === 6
                   
