@@ -1972,9 +1972,23 @@ export default function FinanceiroPage() {
                         <p className="text-[#ededed] font-medium text-sm sm:text-base">{sanitizeString(professional.name)}</p>
                       </div>
                     </div>
-                    <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs sm:text-sm">
-                      {professional.growth || '+0%'}
-                    </Badge>
+                    {(() => {
+                      const appts = professional.appointments || 0
+                      const revenue = parseFloat(professional.revenue) || 0
+                      const avg = appts > 0 ? revenue / appts : 0
+                      const totalPeriodRevenue = currentPeriodRevenue || 0
+                      const share = totalPeriodRevenue > 0 ? Math.round((revenue / totalPeriodRevenue) * 100) : 0
+                      return (
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30 text-xs sm:text-sm">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avg)} méd.
+                          </Badge>
+                          <Badge className="bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] text-xs sm:text-sm">
+                            {share}% do período
+                          </Badge>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                     <div>

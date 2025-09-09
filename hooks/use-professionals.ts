@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 interface Professional {
   id: string
   name: string
+  avatar?: string | null
   email?: string
   phone?: string
   specialty?: string

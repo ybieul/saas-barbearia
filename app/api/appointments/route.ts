@@ -199,7 +199,8 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            specialty: true
+            specialty: true,
+            avatar: true
           }
         }
       }
