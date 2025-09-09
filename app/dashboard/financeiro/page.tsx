@@ -4,13 +4,16 @@ import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw } from "lucide-react"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw, Plus, Trash2 } from "lucide-react"
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
 import { useWorkingHours } from "@/hooks/use-working-hours"
+import { useBusinessData } from "@/hooks/use-business-data"
 // Date Range Picker (react-day-picker já está no projeto via shadcn Calendar)
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -66,6 +69,29 @@ export default function FinanceiroPage() {
   const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
   const { fetchProfessionalsReport, fetchTimeAnalysis } = useReports()
   const { getWorkingHoursForDay, workingHours } = useWorkingHours()
+  // Dados do estabelecimento (para custos fixos)
+  const { businessData, updateBusinessData } = useBusinessData()
+  const [fixedCostsLocal, setFixedCostsLocal] = useState<Array<{ id: string; name: string; amount: number }>>([])
+  const [savingFixedCosts, setSavingFixedCosts] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    const list = Array.isArray(businessData?.fixedCosts) ? businessData.fixedCosts : []
+    setFixedCostsLocal(list.map((c: any) => ({ id: c.id || crypto.randomUUID(), name: c.name || '', amount: Number(c.amount) || 0 })))
+  }, [businessData?.fixedCosts])
+
+  const handleSaveFixedCosts = async () => {
+    try {
+      setSavingFixedCosts(true)
+      setSaveMsg(null)
+      await updateBusinessData({ fixedCosts: fixedCostsLocal })
+      setSaveMsg('Alterações salvas')
+    } catch (e) {
+      setSaveMsg('Falha ao salvar. Tente novamente.')
+    } finally {
+      setSavingFixedCosts(false)
+    }
+  }
 
   // Estados para os novos cards de relatórios
   const [professionalPerformance, setProfessionalPerformance] = useState<any[]>([])
@@ -1049,26 +1075,6 @@ export default function FinanceiroPage() {
       change: revenueChange.change,
       changeType: revenueChange.type,
       icon: DollarSign,
-    },
-    {
-      title: getPeriodTitle("Custos Fixos"),
-      value: (() => {
-        const val = dashboardData?.stats?.fixedCosts ?? 0
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-      })(),
-      change: '-',
-      changeType: 'positive',
-      icon: Banknote,
-    },
-    {
-      title: getPeriodTitle("Lucro Líquido (Estimado)"),
-      value: (() => {
-        const val = dashboardData?.stats?.netProfit ?? 0
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-      })(),
-      change: '-',
-      changeType: (dashboardData?.stats?.netProfit ?? 0) >= 0 ? 'positive' : 'negative',
-      icon: TrendingUp,
     },
     {
       title: getPeriodTitle("Agendamentos Concluídos"),
@@ -2181,6 +2187,109 @@ export default function FinanceiroPage() {
               })}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Custos Fixos Mensais (última seção) */}
+      <Card className="bg-[#18181b] border-[#27272a]">
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center justify-between">
+            <span>Custos Fixos Mensais</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-[#3f3f46] text-[#ededed] hover:text-white"
+              onClick={() => setFixedCostsLocal(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0 }])}
+            >
+              <Plus className="w-4 h-4 mr-1" /> Adicionar
+            </Button>
+          </CardTitle>
+          <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos fixos mensais; os valores entram no cálculo de lucro líquido</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {(fixedCostsLocal || []).map((item, idx) => (
+              <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-6">
+                  <Input
+                    placeholder="Ex.: Aluguel"
+                    value={item.name}
+                    onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, name: e.target.value } : c))}
+                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                  />
+                </div>
+                <div className="col-span-5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Valor (R$)"
+                    value={String(item.amount ?? 0)}
+                    onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, amount: parseFloat(e.target.value || '0') || 0 } : c))}
+                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                  />
+                </div>
+                <div className="col-span-1 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="border-red-600 text-red-400 hover:text-red-300"
+                    onClick={() => setFixedCostsLocal(list => list.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex items-center justify-between text-sm text-[#a1a1aa] pt-1">
+              <span>Total mensal:</span>
+              <span className="font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((fixedCostsLocal||[]).reduce((s,i)=>s+(Number(i.amount)||0),0))}</span>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button onClick={handleSaveFixedCosts} disabled={savingFixedCosts} className="bg-tymer-primary hover:bg-tymer-primary/80 text-white">
+                {savingFixedCosts ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+              {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
+            </div>
+
+            {/* Cards de Custos Fixos e Lucro Líquido (juntos com a seção) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
+              {[{
+                title: getPeriodTitle('Custos Fixos'),
+                value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData?.stats?.fixedCosts ?? 0),
+                change: '-',
+                changeType: 'positive',
+                icon: Banknote,
+              }, {
+                title: getPeriodTitle('Lucro Líquido (Estimado)'),
+                value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData?.stats?.netProfit ?? 0),
+                change: '-',
+                changeType: (dashboardData?.stats?.netProfit ?? 0) >= 0 ? 'positive' : 'negative',
+                icon: TrendingUp,
+              }].map((stat, index) => (
+                <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+                    <stat.icon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
+                    <p className={`text-xs ${stat.changeType === 'positive' ? 'text-[#10b981]' : 'text-red-400'} flex items-center`}>
+                      {stat.changeType === 'positive' ? (
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3 mr-1" />
+                      )}
+                      {stat.change}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
