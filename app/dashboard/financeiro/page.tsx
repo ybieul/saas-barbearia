@@ -48,11 +48,11 @@ const useDebounce = (callback: Function, delay: number) => {
 
 export default function FinanceiroPage() {
   // Novo filtro de período por intervalo de datas
+  // ✅ Ajuste: por padrão carregar o mês atual completo (1º dia até último dia) em vez de apenas o dia atual
   const brazilNow = getBrazilNow()
-  const initialFrom = new Date(utcToBrazil(brazilNow))
-  initialFrom.setHours(0, 0, 0, 0)
-  const initialTo = new Date(utcToBrazil(brazilNow))
-  initialTo.setHours(23, 59, 59, 999)
+  const brazilLocalNow = utcToBrazil(brazilNow)
+  const initialFrom = new Date(brazilLocalNow.getFullYear(), brazilLocalNow.getMonth(), 1, 0,0,0,0)
+  const initialTo = new Date(brazilLocalNow.getFullYear(), brazilLocalNow.getMonth() + 1, 0, 23,59,59,999)
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: initialFrom, to: initialTo })
   // Novo filtro por profissional
