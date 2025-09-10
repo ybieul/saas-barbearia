@@ -388,6 +388,24 @@ export default function FinanceiroPage() {
       return []
     }
   }, [appointments, professionalId, dateRange?.from, dateRange?.to])
+
+  // ✅ NOVO: Conjunto completo (ignora intervalo de datas) apenas filtrando por status, preço e profissional
+  const completedAppointmentsAll = useMemo(() => {
+    try {
+      if (!Array.isArray(appointments)) return []
+      return appointments.filter(app => {
+        if (!app || typeof app !== 'object') return false
+        if (!['COMPLETED','IN_PROGRESS'].includes(app.status)) return false
+        if (!app.totalPrice || parseFloat(app.totalPrice) <= 0) return false
+        if (!app.dateTime) return false
+        if (professionalId !== 'all' && app.professionalId !== professionalId) return false
+        try {
+          const d = utcToBrazil(new Date(app.dateTime))
+          return !isNaN(d.getTime())
+        } catch { return false }
+      })
+    } catch { return [] }
+  }, [appointments, professionalId])
   
   // Função para filtrar agendamentos por mês/ano
   const getAppointmentsByMonth = (month: number, year: number) => {
@@ -721,6 +739,60 @@ export default function FinanceiroPage() {
   // ✅ OTIMIZAÇÃO: Usar useMemo para cálculos pesados
   const dailyData = getDailyData
   const monthlyData = getMonthlyData
+
+  // ✅ NOVO: Dados do gráfico (sempre mês completo). Dias fora do range selecionado ficam com receita 0.
+  const dailyChartData = useMemo(() => {
+    try {
+      // Base: mês do 'from' se existir; senão mês atual Brasil
+      const base = dateRange?.from ? new Date(dateRange.from) : utcToBrazil(getBrazilNow())
+      const monthStart = new Date(base.getFullYear(), base.getMonth(), 1, 0,0,0,0)
+      const monthEnd = new Date(base.getFullYear(), base.getMonth()+1, 0, 23,59,59,999)
+
+      // Construir set de dias selecionados (apenas se range completo definido)
+      const selectedDays = new Set<string>()
+      if (dateRange?.from && dateRange?.to) {
+        const from = new Date(dateRange.from); from.setHours(0,0,0,0)
+        const to = new Date(dateRange.to); to.setHours(23,59,59,999)
+        for (let d = new Date(from); d <= to; d.setDate(d.getDate()+1)) {
+          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+            selectedDays.add(key)
+        }
+      }
+
+      // Pré-agrupamento de receita por dia (mês completo) com todas as appointments (ignora dateRange)
+      const revenueMap = new Map<string, { revenue: number; count: number }>()
+      completedAppointmentsAll.forEach(app => {
+        try {
+          const d = utcToBrazil(new Date(app.dateTime))
+          if (d.getMonth() !== monthStart.getMonth() || d.getFullYear() !== monthStart.getFullYear()) return
+          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+          if (!revenueMap.has(key)) revenueMap.set(key, { revenue: 0, count: 0 })
+          const bucket = revenueMap.get(key)!
+          bucket.revenue += parseFloat(app.totalPrice) || 0
+          bucket.count += 1
+        } catch {}
+      })
+
+      const result: any[] = []
+      for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate()+1)) {
+        const day = new Date(d)
+        const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`
+        const hasData = selectedDays.has(key)
+        const bucket = revenueMap.get(key)
+        const revenue = hasData && bucket ? bucket.revenue : 0
+        const count = hasData && bucket ? bucket.count : 0
+        result.push({
+          date: day,
+          dayName: day.toLocaleDateString('pt-BR', { weekday: 'short' }),
+          fullDate: day.toLocaleDateString('pt-BR'),
+          revenue: Math.round(revenue * 100) / 100,
+          appointmentCount: count,
+          appointments: [] as any[]
+        })
+      }
+      return result
+    } catch { return [] }
+  }, [completedAppointmentsAll, dateRange?.from, dateRange?.to])
   
   // Métricas para os cards da seção, usando dados mensais quando apenas 1 dia estiver selecionado
   const {
@@ -772,8 +844,8 @@ export default function FinanceiroPage() {
 
   // Máximo diário para escalar as barras do gráfico atualmente exibido
   const chartMaxRevenue = useMemo(() => {
-    return dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
-  }, [dailyData])
+    return dailyChartData.length > 0 ? Math.max(...dailyChartData.map((d: any) => d.revenue || 0)) : 0
+  }, [dailyChartData])
   const selectedMonthData = monthlyData.find((m: any) => m.month === selectedMonth && m.year === selectedYear)
   const currentMonthAppointments = selectedMonthData?.appointments || []
 
@@ -1605,7 +1677,7 @@ export default function FinanceiroPage() {
             <div className="block sm:hidden">
               <div className="overflow-x-auto pb-4">
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
-                  {dailyData.map((day, index) => {
+                  {dailyChartData.map((day, index) => {
                     const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
                     const dayDate = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                     const isWeekend = getBrazilDayNumber(dayDate) === 0 || getBrazilDayNumber(dayDate) === 6
@@ -1668,7 +1740,7 @@ export default function FinanceiroPage() {
             <div className="hidden sm:block relative pt-16 pb-4">
               {/* Chart Container */}
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
-                {dailyData.map((day, index) => {
+                {dailyChartData.map((day, index) => {
                   const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
                   const dayDate2 = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
                   const isWeekend = getBrazilDayNumber(dayDate2) === 0 || getBrazilDayNumber(dayDate2) === 6
