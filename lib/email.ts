@@ -268,6 +268,9 @@ export async function sendSubscriptionExpiredEmail(name: string, email: string, 
     try {
         const transporter = createTransporter()
         const html = getSubscriptionExpiredEmailTemplate(name, plan, expiredOn)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(JSON.stringify({ ts:new Date().toISOString(), service:'email', type:'expired_prepare', to:email, plan, expiredOn: expiredOn?.toISOString() }))
+        }
         const mailOptions = {
             from: { name: 'TymerBook', address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com' },
             to: email,
@@ -276,10 +279,17 @@ export async function sendSubscriptionExpiredEmail(name: string, email: string, 
             text: `Sua assinatura expirou em ${expiredOn?.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}. Acesse o painel para renová-la.`
         }
         const info = await transporter.sendMail(mailOptions)
-        console.log('📧 Email de assinatura expirada enviado:', { to: email, messageId: info.messageId })
+        if (process.env.NODE_ENV === 'development') {
+            console.log(JSON.stringify({ ts:new Date().toISOString(), service:'email', type:'expired_sent', to:email, messageId: info.messageId }))
+        } else {
+            console.log('📧 Email de assinatura expirada enviado:', { to: email, messageId: info.messageId })
+        }
         return true
     } catch (e) {
         console.error('❌ Erro ao enviar email de assinatura expirada:', e)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(JSON.stringify({ ts:new Date().toISOString(), service:'email', type:'expired_error', to:email, error:(e as Error).message }))
+        }
         return false
     }
 }
@@ -330,7 +340,14 @@ export async function sendSubscriptionPreExpireEmail(name: string, email: string
     const title = daysLeft === 1 ? 'Expira Amanhã' : 'Expira em Breve'
     const subtitle = daysLeft === 1 ? 'Último dia antes de bloquear' : 'Hora de renovar'
     const body = `<p>Olá <strong>${name}</strong>,</p><p>Sua assinatura <strong>${planDisplay}</strong> expira em <strong>${daysLeft} dia${daysLeft===1?'':'s'}</strong>.</p><p>Renove agora para evitar qualquer interrupção no acesso.</p>`
-    return sendGenericNoticeEmail({ email, name, plan, subject, title, subtitle, body, ctaText: 'Renovar agora', ctaUrl: portalUrl })
+    if (process.env.NODE_ENV === 'development') {
+        console.log(JSON.stringify({ ts:new Date().toISOString(), service:'email', type:'preexpire_prepare', to:email, plan, daysLeft }))
+    }
+    const result = await sendGenericNoticeEmail({ email, name, plan, subject, title, subtitle, body, ctaText: 'Renovar agora', ctaUrl: portalUrl })
+    if (process.env.NODE_ENV === 'development') {
+        console.log(JSON.stringify({ ts:new Date().toISOString(), service:'email', type:'preexpire_result', to:email, success:result, daysLeft }))
+    }
+    return result
 }
 
 export async function sendSubscriptionCanceledEmail(name: string, email: string, plan?: string) {

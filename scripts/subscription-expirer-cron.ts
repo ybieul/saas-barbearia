@@ -8,7 +8,12 @@ const prisma = new PrismaClient()
 
 export async function runExpireCron() {
   const now = getBrazilNow()
-  console.log(`🚀 [SUBSCRIPTION-EXPIRER] Iniciando verificação ${now.toISOString()}`)
+  const log = (event: string, data: any = {}) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(JSON.stringify({ ts: new Date().toISOString(), service: 'subscription-expirer-cron', event, ...data }))
+    }
+  }
+  log('start', { now: now.toISOString() })
   // Limite: assinaturas com subscriptionEnd < (now - 1 dia)
   // Agora subscriptionEnd é salvo no FIM DO DIA (23:59:59.999) para garantir acesso completo.
   // Mantemos 1 dia de graça após essa data.
@@ -25,40 +30,37 @@ export async function runExpireCron() {
   })
 
   if (tenantsToExpire.length === 0) {
-    console.log('✅ Nenhuma assinatura para expirar.')
+    log('no_candidates')
     return
   }
-
-  console.log(`⚠️ Encontradas ${tenantsToExpire.length} assinaturas vencidas a desativar.`)
+  log('candidates_fetched', { count: tenantsToExpire.length })
 
   for (const t of tenantsToExpire) {
     try {
       // Log detalhado em dev
   const lastType = t.lastSubscriptionEmailType
   const webhookProcessed = t.webhookExpiredProcessed
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[EXPIRER] Avaliando', t.email, 'subEnd=', t.subscriptionEnd?.toISOString(), 'lastEmailType=', lastType, 'webhookProcessed=', webhookProcessed)
-      }
+  log('tenant_evaluated', { tenantId: t.id, email: t.email, subscriptionEnd: t.subscriptionEnd?.toISOString(), lastType, webhookProcessed })
       // Se já houve processamento de expiração via webhook e email correspondente, pular
       if (webhookProcessed && (lastType === 'EXPIRED_WEBHOOK' || lastType === 'CANCELED')) {
-        console.log(`↩️ Pulando tenant ${t.email} (expiração já processada via webhook)`)
+        log('skip_webhook_processed', { tenantId: t.id, email: t.email, lastType })
         continue
       }
       await prisma.tenant.update({
         where: { id: t.id },
         data: { isActive: false, updatedAt: new Date(), lastSubscriptionEmailType: 'EXPIRED_GRACE', webhookExpiredProcessed: true }
       })
-      console.log(`⏱️ Desativada assinatura do tenant ${t.id} (${t.email}) vencida em ${t.subscriptionEnd?.toISOString()} (grace > 1 dia)`)        
+  log('expired_deactivated', { tenantId: t.id, email: t.email, subscriptionEnd: t.subscriptionEnd?.toISOString(), lastType })        
       // Evitar reenviar email se já foi enviado por webhook como expiração
       if (lastType !== 'EXPIRED_WEBHOOK') {
         try {
           await sendSubscriptionExpiredEmail(t.name || t.email, t.email, t.businessPlan, t.subscriptionEnd || undefined)
         } catch (emailErr) {
-          console.error('✉️ Falha ao enviar email de expiração para', t.email, emailErr)
+      log('email_error_expired', { tenantId: t.id, email: t.email, error: (emailErr as Error).message })
         }
       }
     } catch (e) {
-      console.error(`❌ Erro ao desativar tenant ${t.id}:`, e)
+    log('error_deactivating', { tenantId: t.id, email: t.email, error: (e as Error).message })
     }
   }
 }

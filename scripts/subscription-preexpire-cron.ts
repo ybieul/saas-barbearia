@@ -12,6 +12,11 @@ export async function runPreExpireCron() {
   if (process.env.NODE_ENV === 'development') {
     console.log('🕒 [PRE-EXPIRE] Iniciando execução em', now.toISOString())
   }
+  const log = (event: string, data: any = {}) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(JSON.stringify({ ts: new Date().toISOString(), service: 'subscription-preexpire-cron', event, ...data }))
+    }
+  }
   // Normalizar para meia-noite Brasil (comparação por dia)
   const today = new Date(now)
   today.setHours(0,0,0,0)
@@ -30,9 +35,7 @@ export async function runPreExpireCron() {
     },
     select: { id:true, name:true, email:true, subscriptionEnd:true, businessPlan:true, lastSubscriptionEmailType:true }
   })
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔍 [PRE-EXPIRE] Tenants candidatos: ${targets.length}`)
-  }
+  log('candidates_fetched', { count: targets.length })
 
   for (const t of targets) {
     if (!t.subscriptionEnd) continue
@@ -40,35 +43,33 @@ export async function runPreExpireCron() {
     const endDay = new Date(end); endDay.setHours(0,0,0,0)
     const diffDays = Math.round((endDay.getTime() - today.getTime()) / 86400000)
   const lastType = t.lastSubscriptionEmailType
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`➡️  [PRE-EXPIRE] Tenant ${t.email} expira em ${end.toISOString()} (diffDays=${diffDays}) lastEmail=${lastType}`)
-    }
+  log('tenant_evaluated', { tenantId: t.id, email: t.email, end: end.toISOString(), diffDays, lastType })
     if (diffDays === 3) {
       if (lastType !== 'PRE_EXPIRE_3D') {
         try {
           await sendSubscriptionPreExpireEmail(t.name || t.email, t.email, t.businessPlan, diffDays)
           await prisma.tenant.update({ where:{id:t.id}, data:{ lastSubscriptionEmailType: 'PRE_EXPIRE_3D' } })
-          console.log(`📧 Pré-expiração (3d) enviada para ${t.email}`)
+          log('email_sent_preexpire_3d', { tenantId: t.id, email: t.email })
         } catch (e) {
-          console.error('Erro ao enviar pré-expiração 3d para', t.email, e)
+          log('email_error_preexpire_3d', { tenantId: t.id, email: t.email, error: (e as Error).message })
         }
       } else if (process.env.NODE_ENV === 'development') {
-        console.log(`⏩ [PRE-EXPIRE] 3d já enviado anteriormente para ${t.email}`)
+        log('skip_already_sent_3d', { tenantId: t.id, email: t.email })
       }
     } else if (diffDays === 1) {
       if (lastType !== 'PRE_EXPIRE_1D') {
         try {
           await sendSubscriptionPreExpireEmail(t.name || t.email, t.email, t.businessPlan, diffDays)
           await prisma.tenant.update({ where:{id:t.id}, data:{ lastSubscriptionEmailType: 'PRE_EXPIRE_1D' } })
-          console.log(`📧 Pré-expiração (1d) enviada para ${t.email}`)
+          log('email_sent_preexpire_1d', { tenantId: t.id, email: t.email })
         } catch (e) {
-          console.error('Erro ao enviar pré-expiração 1d para', t.email, e)
+          log('email_error_preexpire_1d', { tenantId: t.id, email: t.email, error: (e as Error).message })
         }
       } else if (process.env.NODE_ENV === 'development') {
-        console.log(`⏩ [PRE-EXPIRE] 1d já enviado anteriormente para ${t.email}`)
+        log('skip_already_sent_1d', { tenantId: t.id, email: t.email })
       }
     } else if (process.env.NODE_ENV === 'development') {
-      console.log(`ℹ️  [PRE-EXPIRE] diffDays=${diffDays} (nenhuma ação) para ${t.email}`)
+      log('no_action', { tenantId: t.id, email: t.email, diffDays })
     }
   }
 }
