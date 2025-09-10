@@ -71,20 +71,44 @@ export default function FinanceiroPage() {
   const { getWorkingHoursForDay, workingHours } = useWorkingHours()
   // Dados do estabelecimento (para custos fixos)
   const { businessData, updateBusinessData } = useBusinessData()
-  const [fixedCostsLocal, setFixedCostsLocal] = useState<Array<{ id: string; name: string; amount: number }>>([])
+  // Custos fixos (suporte a recorrência e custos únicos por mês)
+  interface FixedCostItem {
+    id: string
+    name: string
+    amount: number
+    recurrence?: 'RECURRING' | 'ONE_TIME' // default: RECURRING se ausente (retrocompatibilidade)
+    year?: number // usado para ONE_TIME
+    month?: number // 0-11 usado para ONE_TIME
+  createdAt?: string // ISO
+  updatedAt?: string // ISO
+  }
+  // Mantém TODOS os custos (recorrentes + únicos de vários meses)
+  const [fixedCostsAll, setFixedCostsAll] = useState<FixedCostItem[]>([])
   const [savingFixedCosts, setSavingFixedCosts] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const list = Array.isArray(businessData?.fixedCosts) ? businessData.fixedCosts : []
-    setFixedCostsLocal(list.map((c: any) => ({ id: c.id || crypto.randomUUID(), name: c.name || '', amount: Number(c.amount) || 0 })))
+    // Migração suave: itens antigos sem recurrence => RECURRING
+    const nowIso = new Date().toISOString()
+    const migrated: FixedCostItem[] = list.map((c: any) => ({
+      id: c.id || crypto.randomUUID(),
+      name: c.name || '',
+      amount: Math.max(0, Number(c.amount) || 0),
+      recurrence: c.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING',
+      year: typeof c.year === 'number' ? c.year : c.recurrence === 'ONE_TIME' ? (typeof c.year === 'number' ? c.year : undefined) : undefined,
+      month: typeof c.month === 'number' ? c.month : c.recurrence === 'ONE_TIME' ? (typeof c.month === 'number' ? c.month : undefined) : undefined,
+      createdAt: c.createdAt || nowIso,
+      updatedAt: c.updatedAt || nowIso
+    }))
+    setFixedCostsAll(migrated)
   }, [businessData?.fixedCosts])
 
   const handleSaveFixedCosts = async () => {
     try {
       setSavingFixedCosts(true)
       setSaveMsg(null)
-      await updateBusinessData({ fixedCosts: fixedCostsLocal })
+      await updateBusinessData({ fixedCosts: fixedCostsAll })
       setSaveMsg('Alterações salvas')
     } catch (e) {
       setSaveMsg('Falha ao salvar. Tente novamente.')
@@ -2312,9 +2336,9 @@ export default function FinanceiroPage() {
                 size="sm"
                 variant="outline"
                 className="border-[#3f3f46] text-[#ededed] hover:text-white"
-                onClick={() => setFixedCostsLocal(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0 }])}
+                onClick={() => setFixedCostsAll(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0, recurrence: 'RECURRING', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])}
               >
-                <Plus className="w-4 h-4 mr-1" /> Adicionar
+                <Plus className="w-4 h-4 mr-1" /> Adicionar Custo
               </Button>
             </div>
           </CardTitle>
@@ -2322,43 +2346,84 @@ export default function FinanceiroPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {(fixedCostsLocal || []).map((item, idx) => (
-              <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-6">
-                  <Input
-                    placeholder="Ex.: Aluguel"
-                    value={item.name}
-                    onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, name: e.target.value } : c))}
-                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                  />
-                </div>
-                <div className="col-span-5">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="Valor (R$)"
-                    value={String(item.amount ?? 0)}
-                    onChange={(e) => setFixedCostsLocal(list => list.map((c, i) => i === idx ? { ...c, amount: parseFloat(e.target.value || '0') || 0 } : c))}
-                    className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                  />
-                </div>
-                <div className="col-span-1 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="border-red-600 text-red-400 hover:text-red-300"
-                    onClick={() => setFixedCostsLocal(list => list.filter((_, i) => i !== idx))}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+            {(() => {
+              // Custos exibidos: recorrentes + ONE_TIME do mês selecionado
+              const displayed = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
+              return displayed.map((item, idx) => {
+                const indexInAll = fixedCostsAll.findIndex(fc => fc.id === item.id)
+                return (
+                  <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-5">
+                      <Input
+                        placeholder="Ex.: Aluguel"
+                        value={item.name}
+                        onChange={(e) => setFixedCostsAll(list => list.map((c, i) => i === indexInAll ? { ...c, name: e.target.value, updatedAt: new Date().toISOString() } : c))}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Valor (R$)"
+                        value={String(item.amount ?? 0)}
+                        onChange={(e) => {
+                          const raw = (e.target.value || '').replace(',', '.').trim()
+                          let value = parseFloat(raw)
+                          if (isNaN(value) || value < 0) value = 0
+                          // limitar a 2 casas
+                          value = Math.round(value * 100) / 100
+                          setFixedCostsAll(list => list.map((c, i) => i === indexInAll ? { ...c, amount: value, updatedAt: new Date().toISOString() } : c))
+                        }}
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <select
+                        className="w-full bg-[#27272a] border-[#3f3f46] text-[#ededed] text-sm rounded-md h-10 px-2 focus:outline-none focus:ring-1 focus:ring-tymer-primary"
+                        value={item.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'}
+                        onChange={(e) => {
+                          const value = e.target.value === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
+                          setFixedCostsAll(list => list.map((c, i) => {
+                            if (i !== indexInAll) return c
+                            if (value === 'ONE_TIME') {
+                              return { ...c, recurrence: 'ONE_TIME', year: selectedYear, month: selectedMonth, updatedAt: new Date().toISOString() }
+                            } else {
+                              // Tornar recorrente remove vínculo de mês
+                              const { year, month, ...rest } = c
+                              return { ...rest, recurrence: 'RECURRING', updatedAt: new Date().toISOString() }
+                            }
+                          }))
+                        }}
+                      >
+                        <option value="RECURRING">Recorrente</option>
+                        <option value="ONE_TIME">Somente este mês</option>
+                      </select>
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="border-red-600 text-red-400 hover:text-red-300"
+                        onClick={() => setFixedCostsAll(list => list.filter(fc => fc.id !== item.id))}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })
+            })()}
 
             <div className="flex items-center justify-between text-sm text-[#a1a1aa] pt-1">
               <span>Total mensal:</span>
-              <span className="font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((fixedCostsLocal||[]).reduce((s,i)=>s+(Number(i.amount)||0),0))}</span>
+              <span className="font-medium">{(() => {
+                // Memo simplificado por fechamento (já que selectedMonth, selectedYear, fixedCostsAll mudam pouco)
+                const monthlyApplicable = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
+                const total = monthlyApplicable.reduce((s,i)=> s + (Number(i.amount) || 0), 0)
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)
+              })()}</span>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
@@ -2371,7 +2436,9 @@ export default function FinanceiroPage() {
             {/* Cards de Custos Fixos (Mensal) e Lucro Líquido (Estimado, Mês) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
               {(() => {
-                const monthlyFixedTotal = (fixedCostsLocal || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+                const monthlyFixedTotal = fixedCostsAll
+                  .filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
+                  .reduce((s, i) => s + (Number(i.amount) || 0), 0)
                 const monthRevenue = selectedMonthData?.revenue || 0
                 const monthlyNetProfit = monthRevenue - monthlyFixedTotal
                 return [

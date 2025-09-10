@@ -309,6 +309,23 @@ Funcionalidades:
 - Botões de navegação de mês (◀ ▶) iguais aos da Análise Mensal para alternar rapidamente o mês analisado.
 - Botão “Salvar alterações” persiste a lista no sistema (os dados são guardados e usados no cálculo do lucro líquido).
 
+Novidades (Recorrência e Custos Únicos):
+- Agora cada custo pode ser classificado como:
+   - Recorrente: aparece automaticamente em todos os meses.
+   - Somente este mês: registrado apenas no mês/ano atualmente selecionado (ideal para compras pontuais: copos descartáveis, reparos, material eventual etc.).
+- Ao trocar “Recorrente” para “Somente este mês”, o sistema fixa automaticamente o mês/ano corrente daquele item.
+- Ao voltar para “Recorrente”, o vínculo de mês/ano é removido e ele volta a compor todos os meses seguintes.
+
+Auditoria Interna (transparência):
+- Cada item armazena internamente data de criação e última atualização.
+- Esses campos hoje não aparecem na interface final, mas já existem para futuras funcionalidades (ex.: histórico e trilha de alterações).
+
+Validação e Qualidade dos Dados:
+- Valores negativos são automaticamente convertidos para 0 (não são aceitos).
+- Vírgula é aceita como separador decimal e normalizada (ex.: “12,50” → 12.50).
+- Limitação a duas casas decimais para consistência de cálculo.
+- Total mensal é recalculado de forma otimizada (eficiente mesmo com listas maiores).
+
 Decisões de Interface:
 - Removidos indicadores de variação (setas e “-”) destes dois cards para evitar interpretação errada antes da implementação de comparação histórica.
 - O valor mostrado é sempre o total fechado do mês corrente selecionado (não é pró-rata do intervalo escolhido lá em cima).
@@ -318,10 +335,22 @@ Boas Práticas de Uso:
 - Inclua somente despesas recorrentes mensais (evite custos variáveis como compra pontual de produtos).
 - Revise no início de cada mês para garantir que o Lucro Líquido estimado esteja coerente.
 
+Como registrar despesas pontuais corretamente:
+1. Navegue para o mês em que ocorreu a despesa.
+2. Adicione o item.
+3. Selecione “Somente este mês”.
+4. Salve. O item não impactará meses anteriores ou futuros.
+
+Se uma despesa pontual passou a se repetir mensalmente (ex.: novo serviço SaaS contratado):
+1. Localize o item no mês atual.
+2. Altere de “Somente este mês” para “Recorrente”.
+3. Salve. A partir daí aparecerá nos próximos meses.
+
 Planejado Futuramente (opcional):
 - Comparação automática com mês anterior (variação percentual).
 - Histórico de alterações de custos.
 - Exportação de relatório financeiro completo (CSV) com custos + lucro.
+ - Exibição de datas de criação/atualização e usuário responsável (quando controle multiusuário for ativado).
 
 > 💡 Dica: Use esta seção para ter clareza real do quanto sua operação está gerando após as despesas recorrentes — é o primeiro passo para tomada de decisões sobre reajuste de preços e promoções.
 
