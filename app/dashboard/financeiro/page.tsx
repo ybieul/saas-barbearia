@@ -2319,35 +2319,38 @@ export default function FinanceiroPage() {
   {/* Custos Mensais (última seção) */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col gap-3">
             <span>Custos Mensais</span>
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => debouncedNavigateMonth('prev')}
-                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === 0}
-                className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <div className="text-sm font-semibold text-[#ededed] min-w-[120px] text-center">
-                {selectedMonthData?.monthName || 'Carregando...'}
+            {/* Toolbar responsiva: navegação + mês na primeira linha; botão adicionar abaixo no mobile */}
+            <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => debouncedNavigateMonth('prev')}
+                  disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === 0}
+                  className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="text-sm font-semibold text-[#ededed] min-w-[130px] text-center px-2 py-1 rounded-md bg-[#27272a]/40">
+                  {selectedMonthData?.monthName || 'Carregando...'}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => debouncedNavigateMonth('next')}
+                  disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
+                  className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => debouncedNavigateMonth('next')}
-                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
-                className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="border-[#3f3f46] text-[#ededed] hover:text-white"
+                className="border-[#3f3f46] text-[#ededed] hover:text-white w-full sm:w-auto"
                 onClick={() => setFixedCostsAll(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0, recurrence: 'RECURRING', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])}
               >
                 <Plus className="w-4 h-4 mr-1" /> Adicionar Custo
@@ -2364,18 +2367,30 @@ export default function FinanceiroPage() {
               return displayed.map((item, idx) => {
                 const indexInAll = fixedCostsAll.findIndex(fc => fc.id === item.id)
                 return (
-                  <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-start rounded-md p-1 hover:bg-[#1f1f23] transition-colors">
-                    {/* Nome: full width no mobile */}
-                    <div className="col-span-12 sm:col-span-5">
-                      <Input
-                        placeholder="Ex.: Aluguel"
-                        value={item.name}
-                        onChange={(e) => setFixedCostsAll(list => list.map((c, i) => i === indexInAll ? { ...c, name: e.target.value, updatedAt: new Date().toISOString() } : c))}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                      />
+                  <div key={item.id || idx} className="relative flex flex-col gap-2 rounded-md p-2 hover:bg-[#1f1f23] transition-colors sm:grid sm:grid-cols-12 sm:gap-2">
+                    {/* Nome + botão excluir (overlay no mobile) */}
+                    <div className="sm:col-span-5">
+                      <div className="relative">
+                        <Input
+                          placeholder="Ex.: Aluguel"
+                          value={item.name}
+                          onChange={(e) => setFixedCostsAll(list => list.map((c, i) => i === indexInAll ? { ...c, name: e.target.value, updatedAt: new Date().toISOString() } : c))}
+                          className="bg-[#27272a] border-[#3f3f46] text-[#ededed] pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="absolute top-1.5 right-1.5 border-red-600 text-red-400 hover:text-red-300 h-7 w-7 sm:hidden"
+                          onClick={() => setFixedCostsAll(list => list.filter(fc => fc.id !== item.id))}
+                          aria-label="Excluir custo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    {/* Valor: metade da linha no mobile */}
-                    <div className="col-span-6 sm:col-span-3">
+                    {/* Valor */}
+                    <div className="sm:col-span-3 flex gap-2">
                       <Input
                         type="number"
                         step="0.01"
@@ -2385,15 +2400,14 @@ export default function FinanceiroPage() {
                           const raw = (e.target.value || '').replace(',', '.').trim()
                           let value = parseFloat(raw)
                           if (isNaN(value) || value < 0) value = 0
-                          // limitar a 2 casas
                           value = Math.round(value * 100) / 100
                           setFixedCostsAll(list => list.map((c, i) => i === indexInAll ? { ...c, amount: value, updatedAt: new Date().toISOString() } : c))
                         }}
-                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed] w-full"
                       />
                     </div>
-                    {/* Recorrência: ocupa restante no mobile */}
-                    <div className="col-span-5 sm:col-span-3">
+                    {/* Recorrência */}
+                    <div className="sm:col-span-3">
                       <select
                         className="w-full bg-[#27272a] border-[#3f3f46] text-[#ededed] text-sm rounded-md h-10 px-2 focus:outline-none focus:ring-1 focus:ring-tymer-primary"
                         value={item.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'}
@@ -2404,7 +2418,6 @@ export default function FinanceiroPage() {
                             if (value === 'ONE_TIME') {
                               return { ...c, recurrence: 'ONE_TIME', year: selectedYear, month: selectedMonth, updatedAt: new Date().toISOString() }
                             } else {
-                              // Tornar recorrente remove vínculo de mês
                               const { year, month, ...rest } = c
                               return { ...rest, recurrence: 'RECURRING', updatedAt: new Date().toISOString() }
                             }
@@ -2415,19 +2428,21 @@ export default function FinanceiroPage() {
                         <option value="ONE_TIME">Somente este mês</option>
                       </select>
                     </div>
-                    {/* Botão excluir: mantém coluna dedicada */}
-                    <div className="col-span-1 flex justify-end">
+                    {/* Botão excluir desktop */}
+                    <div className="hidden sm:flex sm:col-span-1 justify-end">
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         className="border-red-600 text-red-400 hover:text-red-300"
                         onClick={() => setFixedCostsAll(list => list.filter(fc => fc.id !== item.id))}
+                        aria-label="Excluir custo"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="col-span-12 -mt-1">
+                    {/* Metadata */}
+                    <div className="sm:col-span-12 -mt-1">
                       <p className="text-[10px] sm:text-xs text-[#52525b] flex flex-wrap gap-x-2">
                         <span>Criado: {formatCostDate(item.createdAt)}</span>
                         {item.updatedAt && item.updatedAt !== item.createdAt && (
