@@ -2193,17 +2193,40 @@ export default function FinanceiroPage() {
       {/* Custos Fixos Mensais (última seção) */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center justify-between">
+          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span>Custos Fixos Mensais</span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="border-[#3f3f46] text-[#ededed] hover:text-white"
-              onClick={() => setFixedCostsLocal(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0 }])}
-            >
-              <Plus className="w-4 h-4 mr-1" /> Adicionar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => debouncedNavigateMonth('prev')}
+                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === 0}
+                className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="text-sm font-semibold text-[#ededed] min-w-[120px] text-center">
+                {selectedMonthData?.monthName || 'Carregando...'}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => debouncedNavigateMonth('next')}
+                disabled={monthlyData.findIndex((m: any) => m.month === selectedMonth && m.year === selectedYear) === monthlyData.length - 1}
+                className="border-[#27272a] hover:bg-[#27272a] h-9 w-9"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-[#3f3f46] text-[#ededed] hover:text-white"
+                onClick={() => setFixedCostsLocal(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0 }])}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
+            </div>
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos fixos mensais; os valores entram no cálculo de lucro líquido</CardDescription>
         </CardHeader>
@@ -2261,23 +2284,18 @@ export default function FinanceiroPage() {
                 const monthlyFixedTotal = (fixedCostsLocal || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
                 const monthRevenue = selectedMonthData?.revenue || 0
                 const monthlyNetProfit = monthRevenue - monthlyFixedTotal
-                const items = [
+                return [
                   {
                     title: 'Custos Fixos (Mensal)',
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyFixedTotal),
-                    change: '-',
-                    changeType: 'positive' as const,
                     icon: Banknote,
                   },
                   {
                     title: 'Lucro Líquido (Estimado, Mês)',
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyNetProfit),
-                    change: '-',
-                    changeType: monthlyNetProfit >= 0 ? 'positive' as const : 'negative' as const,
                     icon: TrendingUp,
                   }
                 ]
-                return items
               })().map((stat, index) => (
                 <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -2285,15 +2303,7 @@ export default function FinanceiroPage() {
                     <stat.icon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-lg font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
-                    <p className={`text-xs ${stat.changeType === 'positive' ? 'text-[#10b981]' : 'text-red-400'} flex items-center`}>
-                      {stat.changeType === 'positive' ? (
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3 mr-1" />
-                      )}
-                      {stat.change}
-                    </p>
+                    <div className="text-lg font-bold text-[#ededed] truncate">{stat.value}</div>
                   </CardContent>
                 </Card>
               ))}
