@@ -90,7 +90,6 @@ export default function FinanceiroPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   // Ref para rolar até o item recém adicionado
   const lastAddedCostRef = useRef<HTMLDivElement | null>(null)
-  const listContainerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const list = Array.isArray(businessData?.fixedCosts) ? businessData.fixedCosts : []
@@ -2384,8 +2383,8 @@ export default function FinanceiroPage() {
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos mensais (recorrentes ou pontuais); os valores entram no cálculo de lucro líquido</CardDescription>
         </CardHeader>
-  <CardContent>
-    <div className="space-y-3 max-h-[480px] overflow-auto pr-1" ref={listContainerRef}>
+        <CardContent>
+          <div className="space-y-3">
             {(() => {
               // Custos exibidos: recorrentes + ONE_TIME do mês selecionado
               const displayed = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
