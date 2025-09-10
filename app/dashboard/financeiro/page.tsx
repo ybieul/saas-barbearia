@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import { useBusinessData } from "@/hooks/use-business-data"
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { DateRange } from "react-day-picker"
+import { useToast } from "@/hooks/use-toast"
 
 // ✅ SEGURANÇA: Função para sanitizar dados de entrada
 const sanitizeString = (str: string | undefined | null): string => {
@@ -47,6 +48,7 @@ const useDebounce = (callback: Function, delay: number) => {
 }
 
 export default function FinanceiroPage() {
+  const { toast } = useToast()
   // Novo filtro de período por intervalo de datas
   // ✅ Ajuste: por padrão carregar o mês atual completo (1º dia até último dia) em vez de apenas o dia atual
   const brazilNow = getBrazilNow()
@@ -86,6 +88,9 @@ export default function FinanceiroPage() {
   const [fixedCostsAll, setFixedCostsAll] = useState<FixedCostItem[]>([])
   const [savingFixedCosts, setSavingFixedCosts] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  // Ref para rolar até o item recém adicionado
+  const lastAddedCostRef = useRef<HTMLDivElement | null>(null)
+  const listContainerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const list = Array.isArray(businessData?.fixedCosts) ? businessData.fixedCosts : []
@@ -122,8 +127,17 @@ export default function FinanceiroPage() {
       setSaveMsg(null)
       await updateBusinessData({ fixedCosts: fixedCostsAll })
       setSaveMsg('Alterações salvas')
+      toast({
+        title: 'Custos salvos',
+        description: 'As alterações foram registradas com sucesso.',
+      })
     } catch (e) {
       setSaveMsg('Falha ao salvar. Tente novamente.')
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar. Tente novamente.',
+        variant: 'destructive'
+      })
     } finally {
       setSavingFixedCosts(false)
     }
@@ -2333,7 +2347,7 @@ export default function FinanceiroPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <div className="text-sm font-semibold text-[#ededed] min-w-[130px] text-center px-2 py-1 rounded-md bg-[#27272a]/40">
+                <div className="text-sm font-semibold text-[#ededed] min-w-[130px] flex-1 text-center px-3 py-1 rounded-md bg-[#27272a]/40 truncate">
                   {selectedMonthData?.monthName || 'Carregando...'}
                 </div>
                 <Button
@@ -2351,7 +2365,18 @@ export default function FinanceiroPage() {
                 size="sm"
                 variant="outline"
                 className="border-[#3f3f46] text-[#ededed] hover:text-white w-full sm:w-auto"
-                onClick={() => setFixedCostsAll(prev => [...prev, { id: crypto.randomUUID(), name: '', amount: 0, recurrence: 'RECURRING', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])}
+                onClick={() => {
+                  const newId = crypto.randomUUID()
+                  setFixedCostsAll(prev => [...prev, { id: newId, name: '', amount: 0, recurrence: 'RECURRING', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])
+                  // Delay para garantir render
+                  setTimeout(() => {
+                    if (lastAddedCostRef.current) {
+                      lastAddedCostRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      const input = lastAddedCostRef.current.querySelector('input') as HTMLInputElement | null
+                      input?.focus()
+                    }
+                  }, 50)
+                }}
               >
                 <Plus className="w-4 h-4 mr-1" /> Adicionar Custo
               </Button>
@@ -2359,15 +2384,15 @@ export default function FinanceiroPage() {
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos mensais (recorrentes ou pontuais); os valores entram no cálculo de lucro líquido</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+  <CardContent>
+    <div className="space-y-3 max-h-[480px] overflow-auto pr-1" ref={listContainerRef}>
             {(() => {
               // Custos exibidos: recorrentes + ONE_TIME do mês selecionado
               const displayed = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
               return displayed.map((item, idx) => {
                 const indexInAll = fixedCostsAll.findIndex(fc => fc.id === item.id)
                 return (
-                  <div key={item.id || idx} className="relative flex flex-col gap-2 rounded-md p-2 hover:bg-[#1f1f23] transition-colors sm:grid sm:grid-cols-12 sm:gap-2">
+      <div ref={idx === displayed.length - 1 ? lastAddedCostRef : undefined} key={item.id || idx} className="relative flex flex-col gap-2 rounded-md p-2 hover:bg-[#1f1f23] transition-colors sm:grid sm:grid-cols-12 sm:gap-2">
                     {/* Nome + botão excluir (overlay no mobile) */}
                     <div className="sm:col-span-5">
                       <div className="relative">
