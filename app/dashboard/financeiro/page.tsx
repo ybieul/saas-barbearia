@@ -2335,7 +2335,7 @@ export default function FinanceiroPage() {
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col gap-3">
             <span>Custos Mensais</span>
             {/* Toolbar responsiva: navegação + mês na primeira linha; botão adicionar abaixo no mobile */}
-            <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
