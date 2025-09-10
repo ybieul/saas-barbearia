@@ -104,6 +104,18 @@ export default function FinanceiroPage() {
     setFixedCostsAll(migrated)
   }, [businessData?.fixedCosts])
 
+  // Helper de formatação de datas (criação / atualização)
+  const formatCostDate = (iso?: string, includeTime: boolean = true) => {
+    if (!iso) return '-'
+    try {
+      const d = new Date(iso)
+      if (isNaN(d.getTime())) return '-'
+      return includeTime
+        ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        : d.toLocaleDateString('pt-BR')
+    } catch { return '-' }
+  }
+
   const handleSaveFixedCosts = async () => {
     try {
       setSavingFixedCosts(true)
@@ -2309,7 +2321,7 @@ export default function FinanceiroPage() {
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span>Custos Mensais</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <Button
                 variant="outline"
                 size="icon"
@@ -2352,8 +2364,9 @@ export default function FinanceiroPage() {
               return displayed.map((item, idx) => {
                 const indexInAll = fixedCostsAll.findIndex(fc => fc.id === item.id)
                 return (
-                  <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-5">
+                  <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-start rounded-md p-1 hover:bg-[#1f1f23] transition-colors">
+                    {/* Nome: full width no mobile */}
+                    <div className="col-span-12 sm:col-span-5">
                       <Input
                         placeholder="Ex.: Aluguel"
                         value={item.name}
@@ -2361,7 +2374,8 @@ export default function FinanceiroPage() {
                         className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       />
                     </div>
-                    <div className="col-span-3">
+                    {/* Valor: metade da linha no mobile */}
+                    <div className="col-span-6 sm:col-span-3">
                       <Input
                         type="number"
                         step="0.01"
@@ -2378,7 +2392,8 @@ export default function FinanceiroPage() {
                         className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                       />
                     </div>
-                    <div className="col-span-3">
+                    {/* Recorrência: ocupa restante no mobile */}
+                    <div className="col-span-5 sm:col-span-3">
                       <select
                         className="w-full bg-[#27272a] border-[#3f3f46] text-[#ededed] text-sm rounded-md h-10 px-2 focus:outline-none focus:ring-1 focus:ring-tymer-primary"
                         value={item.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'}
@@ -2400,6 +2415,7 @@ export default function FinanceiroPage() {
                         <option value="ONE_TIME">Somente este mês</option>
                       </select>
                     </div>
+                    {/* Botão excluir: mantém coluna dedicada */}
                     <div className="col-span-1 flex justify-end">
                       <Button
                         type="button"
@@ -2411,12 +2427,26 @@ export default function FinanceiroPage() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                    <div className="col-span-12 -mt-1">
+                      <p className="text-[10px] sm:text-xs text-[#52525b] flex flex-wrap gap-x-2">
+                        <span>Criado: {formatCostDate(item.createdAt)}</span>
+                        {item.updatedAt && item.updatedAt !== item.createdAt && (
+                          <span>• Última atualização: {formatCostDate(item.updatedAt)}</span>
+                        )}
+                        {!item.updatedAt || item.updatedAt === item.createdAt ? (
+                          <span>• Sem alterações posteriores</span>
+                        ) : null}
+                        {item.recurrence === 'ONE_TIME' && (
+                          <span className="text-amber-500">• Apenas este mês</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 )
               })
             })()}
 
-            <div className="flex items-center justify-between text-sm text-[#a1a1aa] pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm text-[#a1a1aa] pt-1">
               <span>Total mensal:</span>
               <span className="font-medium">{(() => {
                 // Memo simplificado por fechamento (já que selectedMonth, selectedYear, fixedCostsAll mudam pouco)
@@ -2426,8 +2456,8 @@ export default function FinanceiroPage() {
               })()}</span>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button onClick={handleSaveFixedCosts} disabled={savingFixedCosts} className="bg-tymer-primary hover:bg-tymer-primary/80 text-white">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
+              <Button onClick={handleSaveFixedCosts} disabled={savingFixedCosts} className="bg-tymer-primary hover:bg-tymer-primary/80 text-white w-full sm:w-auto">
                 {savingFixedCosts ? 'Salvando...' : 'Salvar alterações'}
               </Button>
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
