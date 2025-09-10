@@ -282,7 +282,7 @@ Esta funcionalidade é o centro de inteligência operacional e financeira da pla
 - Analisa a performance mensal com navegação rápida entre os últimos 12 meses.
 - Monitora métodos de pagamento e sua participação no faturamento.
 - Consulta transações recentes e serviços mais vendidos (quando habilitados).
-- Gerencia seus custos fixos mensais e obtém o Lucro Líquido estimado do mês.
+- Gerencia seus custos mensais e obtém o Lucro Líquido estimado do mês.
 
 Com as melhorias mais recentes, o calendário ficou mais inteligente e a seção de Custos Fixos passou a integrar diretamente a página, facilitando a tomada de decisão financeira sem sair do contexto das métricas.
 
@@ -292,20 +292,20 @@ Com as melhorias mais recentes, o calendário ficou mais inteligente e a seção
 - Navegação Mensal: Na seção "Análise Mensal" existem botões (◀ ▶) para avançar e retroceder mês a mês dentro dos últimos 12 meses disponíveis.
 - As métricas exibidas nos cards sempre deixam claro que são referentes “ao período” selecionado, evitando confusão entre dia, intervalo e mês.
 
-#### 3.6.2 Seção "Custos Fixos Mensais" (Nova)
+#### 3.6.2 Seção "Custos Mensais" (Nova)
 Localização: Última seção da página de Relatórios & Financeiro.
 
-Objetivo: Centralizar o controle dos seus custos fixos e calcular automaticamente o Lucro Líquido Estimado do mês.
+Objetivo: Centralizar o controle dos seus custos (recorrentes e pontuais) e calcular automaticamente o Lucro Líquido Estimado do mês.
 
 Funcionalidades:
 - Lista editável de itens (ex.: Aluguel, Energia, Internet, Sistema, Água, etc.).
 - Botão “Adicionar” para incluir novas linhas.
 - Campo de nome e valor (em reais) para cada item.
 - Botão de remover individual (ícone de lixeira) para excluir um custo.
-- Cálculo automático do Total Mensal (soma de todos os custos fixos listados).
+- Cálculo automático do Total Mensal (soma de todos os custos listados aplicáveis ao mês).
 - Exibição de dois cards: 
-   - Custos Fixos (Mensal): Soma integral do mês selecionado.
-   - Lucro Líquido (Estimado, Mês): Receita mensal – Custos Fixos.
+   - Custos Mensais: Soma integral do mês selecionado.
+   - Lucro Líquido (Estimado, Mês): Receita mensal – Custos Mensais.
 - Botões de navegação de mês (◀ ▶) iguais aos da Análise Mensal para alternar rapidamente o mês analisado.
 - Botão “Salvar alterações” persiste a lista no sistema (os dados são guardados e usados no cálculo do lucro líquido).
 
@@ -331,8 +331,8 @@ Decisões de Interface:
 - O valor mostrado é sempre o total fechado do mês corrente selecionado (não é pró-rata do intervalo escolhido lá em cima).
 
 Boas Práticas de Uso:
-- Atualize custos fixos apenas quando houver mudança estrutural (ex.: reajuste de aluguel ou novos serviços recorrentes).
-- Inclua somente despesas recorrentes mensais (evite custos variáveis como compra pontual de produtos).
+- Atualize custos recorrentes apenas quando houver mudança estrutural (ex.: reajuste de aluguel ou novos serviços recorrentes).
+- Use o tipo "Somente este mês" para despesas pontuais (ex.: material eventual) e não poluir a base recorrente.
 - Revise no início de cada mês para garantir que o Lucro Líquido estimado esteja coerente.
 
 Como registrar despesas pontuais corretamente:

@@ -2304,11 +2304,11 @@ export default function FinanceiroPage() {
         </CardContent>
       </Card>
 
-      {/* Custos Fixos Mensais (última seção) */}
+  {/* Custos Mensais (última seção) */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <span>Custos Fixos Mensais</span>
+            <span>Custos Mensais</span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -2342,7 +2342,7 @@ export default function FinanceiroPage() {
               </Button>
             </div>
           </CardTitle>
-          <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos fixos mensais; os valores entram no cálculo de lucro líquido</CardDescription>
+          <CardDescription className="text-sm sm:text-sm text-[#71717a]">Gerencie aqui seus custos mensais (recorrentes ou pontuais); os valores entram no cálculo de lucro líquido</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">

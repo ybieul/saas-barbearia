@@ -294,7 +294,7 @@ export const manualContent = [
    "- Navegação mensal com botões (◀ ▶) na Análise Mensal para avançar/voltar dentro dos últimos 12 meses.",
    "- Os títulos dos cards indicam 'no período' para evitar confusão entre dia, intervalo e mês.",
    "",
-   "#### 3.6.2 Custos Fixos Mensais (Nova Seção)",
+   "#### 3.6.2 Custos Mensais (Nova Seção)",
    "- Localizada no final da página de Relatórios & Financeiro.",
    "- Suporte a dois tipos de custos: Recorrente e Somente este mês (compras pontuais).",
    "- Recorrentes aparecem em todos os meses; 'Somente este mês' ficam vinculados ao mês/ano atual na criação.",
