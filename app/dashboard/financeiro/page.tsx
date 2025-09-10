@@ -740,31 +740,46 @@ export default function FinanceiroPage() {
   const dailyData = getDailyData
   const monthlyData = getMonthlyData
 
-  // ✅ NOVO: Dados do gráfico (sempre mês completo). Dias fora do range selecionado ficam com receita 0.
+  // ✅ NOVO (v2): Dados do gráfico abrangendo TODOS os meses do intervalo selecionado.
+  // Regras:
+  // 1. Sempre gera todos os dias desde o primeiro dia do mês inicial até o último dia do mês final do range.
+  // 2. Receita só aparece em dias realmente dentro do intervalo selecionado (dateRange.from -> dateRange.to).
+  // 3. Fora do intervalo selecionado (mas dentro da faixa exibida) as barras ficam com valor 0 (placeholder visual contínuo).
+  // 4. Se não houver intervalo, usa o mês atual completo.
   const dailyChartData = useMemo(() => {
     try {
-      // Base: mês do 'from' se existir; senão mês atual Brasil
-      const base = dateRange?.from ? new Date(dateRange.from) : utcToBrazil(getBrazilNow())
-      const monthStart = new Date(base.getFullYear(), base.getMonth(), 1, 0,0,0,0)
-      const monthEnd = new Date(base.getFullYear(), base.getMonth()+1, 0, 23,59,59,999)
+      const nowBrazil = utcToBrazil(getBrazilNow())
+      const hasRange = !!(dateRange?.from && dateRange?.to)
+      const rangeFrom = hasRange ? new Date(dateRange!.from!) : new Date(nowBrazil)
+      const rangeTo = hasRange ? new Date(dateRange!.to!) : new Date(nowBrazil)
+      rangeFrom.setHours(0,0,0,0)
+      rangeTo.setHours(23,59,59,999)
 
-      // Construir set de dias selecionados (apenas se range completo definido)
+      // Limites de exibição: abrangem todos os meses tocados pelo intervalo
+      const displayStart = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth(), 1, 0,0,0,0)
+      const displayEnd = new Date(rangeTo.getFullYear(), rangeTo.getMonth()+1, 0, 23,59,59,999)
+
+      // Conjunto de dias realmente selecionados (apenas dentro rangeFrom-rangeTo)
       const selectedDays = new Set<string>()
-      if (dateRange?.from && dateRange?.to) {
-        const from = new Date(dateRange.from); from.setHours(0,0,0,0)
-        const to = new Date(dateRange.to); to.setHours(23,59,59,999)
-        for (let d = new Date(from); d <= to; d.setDate(d.getDate()+1)) {
+      if (hasRange) {
+        for (let d = new Date(rangeFrom); d <= rangeTo; d.setDate(d.getDate()+1)) {
           const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-            selectedDays.add(key)
+          selectedDays.add(key)
+        }
+      } else {
+        // Se não há range definido, considerar o mês atual inteiro como "selecionado" para manter comportamento prévio
+        for (let d = new Date(displayStart); d <= displayEnd; d.setDate(d.getDate()+1)) {
+          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+          selectedDays.add(key)
         }
       }
 
-      // Pré-agrupamento de receita por dia (mês completo) com todas as appointments (ignora dateRange)
+      // Agrupar receita para todos os dias entre displayStart e displayEnd (IGNORANDO o filtro de datas – visão completa)
       const revenueMap = new Map<string, { revenue: number; count: number }>()
       completedAppointmentsAll.forEach(app => {
         try {
           const d = utcToBrazil(new Date(app.dateTime))
-          if (d.getMonth() !== monthStart.getMonth() || d.getFullYear() !== monthStart.getFullYear()) return
+          if (d < displayStart || d > displayEnd) return
           const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
           if (!revenueMap.has(key)) revenueMap.set(key, { revenue: 0, count: 0 })
           const bucket = revenueMap.get(key)!
@@ -774,16 +789,17 @@ export default function FinanceiroPage() {
       })
 
       const result: any[] = []
-      for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate()+1)) {
+      for (let d = new Date(displayStart); d <= displayEnd; d.setDate(d.getDate()+1)) {
         const day = new Date(d)
         const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`
-        const hasData = selectedDays.has(key)
+        const insideSelection = selectedDays.has(key)
         const bucket = revenueMap.get(key)
-        const revenue = hasData && bucket ? bucket.revenue : 0
-        const count = hasData && bucket ? bucket.count : 0
+        // Só mostra receita se o dia está dentro do range selecionado
+        const revenue = insideSelection && bucket ? bucket.revenue : 0
+        const count = insideSelection && bucket ? bucket.count : 0
         result.push({
           date: day,
-          dayName: day.toLocaleDateString('pt-BR', { weekday: 'short' }),
+            dayName: day.toLocaleDateString('pt-BR', { weekday: 'short' }),
           fullDate: day.toLocaleDateString('pt-BR'),
           revenue: Math.round(revenue * 100) / 100,
           appointmentCount: count,
@@ -791,7 +807,9 @@ export default function FinanceiroPage() {
         })
       }
       return result
-    } catch { return [] }
+    } catch {
+      return []
+    }
   }, [completedAppointmentsAll, dateRange?.from, dateRange?.to])
   
   // Métricas para os cards da seção, usando dados mensais quando apenas 1 dia estiver selecionado
