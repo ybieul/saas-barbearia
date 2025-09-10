@@ -256,7 +256,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="py-8">
           <div className="flex justify-center items-center">
-            <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-tymer-primary border-t-transparent rounded-full animate-spin"></div>
             <span className="ml-3 text-[#71717a]">Carregando bloqueios...</span>
           </div>
         </CardContent>
@@ -283,7 +283,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
           
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#10b981] hover:bg-[#059669] text-white border-0 px-4 sm:px-6">
+              <Button className="bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 px-4 sm:px-6 transition-colors">
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Bloqueio
               </Button>
@@ -292,8 +292,8 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
               {/* Header fixo */}
               <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
                 <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
-                  <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#10b981]/20 to-[#059669]/20 rounded-lg">
-                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 md:text-[#10b981]" />
+                  <div className="p-1.5 md:p-2 bg-tymer-primary/15 rounded-lg">
+                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-tymer-primary" />
                   </div>
                   Novo Bloqueio
                 </DialogTitle>
@@ -308,7 +308,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                   {/* Seção de Configuração do Bloqueio */}
                   <div className="bg-gradient-to-br from-tymer-accent/10 to-tymer-accent/5 p-3 md:p-4 rounded-lg border border-tymer-accent/20 md:border-tymer-border md:bg-tymer-card/50 space-y-3 md:space-y-4">
                     <div className="flex items-center gap-2 mb-2 md:mb-3">
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 md:bg-[#10b981] rounded-full"></div>
+                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-tymer-primary rounded-full"></div>
                       <h3 className="text-[#ededed] font-medium text-sm md:text-base">Configuração do Bloqueio</h3>
                     </div>
                     
@@ -431,7 +431,7 @@ export function ScheduleExceptionsManager({ professionalId, professionalName }: 
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-[#ededed] shadow-lg shadow-emerald-500/20 transition-all duration-200 h-12 md:h-10 text-base md:text-sm font-medium"
+                  className="flex-1 bg-tymer-primary hover:bg-tymer-primary/80 text-white shadow-lg shadow-tymer-primary/30 transition-all duration-200 h-12 md:h-10 text-base md:text-sm font-medium"
                 >
                   {isSubmitting ? (
                     <>
