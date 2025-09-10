@@ -1606,39 +1606,32 @@ export default function FinanceiroPage() {
               <div className="overflow-x-auto pb-4">
                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                   {dailyData.map((day, index) => {
-                    const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
-                    const dayDate = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
+                    const baseHeight = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
+                    const height = baseHeight
+                    const dayDate = day.date
                     const isWeekend = getBrazilDayNumber(dayDate) === 0 || getBrazilDayNumber(dayDate) === 6
-                    
+                    const barClass = day.revenue === 0
+                      ? 'bg-[#27272a]/60'
+                      : (isWeekend ? 'bg-orange-500' : 'bg-[#10b981]')
                     return (
-                      <div
-                        key={index}
-                        className="flex flex-col items-center min-w-[50px]"
-                      >
+                      <div key={index} className="flex flex-col items-center min-w-[50px]">
                         {/* Bar Container */}
                         <div className="w-8 h-24 bg-[#27272a]/30 rounded-t flex items-end relative mb-2">
                           <div
-                            className={`w-full transition-all duration-300 rounded-t ${
-                              isWeekend 
-                                ? 'bg-orange-500' 
-                                : 'bg-[#10b981]'
-                            }`}
-                            style={{ 
-                              height: `${height}%`, 
-                              minHeight: day.revenue > 0 ? '4px' : '0px' 
+                            className={`w-full transition-all duration-300 rounded-t ${barClass}`}
+                            style={{
+                              height: `${height}%`,
+                              minHeight: '3px'
                             }}
                           />
                         </div>
-                        
                         {/* Day Info */}
                         <div className="text-center">
                           <div className={`text-xs ${isWeekend ? 'text-tymer-icon' : 'text-[#71717a]'} font-medium mb-1`}>
                             {day.dayName.slice(0, 3)}
                           </div>
-                          <div className="text-xs text-gray-500 mb-1">
-                            {dayDate.getDate()}
-                          </div>
-                          <div className="text-xs text-[#10b981] font-medium">
+                          <div className="text-xs text-gray-500 mb-1">{dayDate.getDate()}</div>
+                          <div className={`text-xs font-medium ${day.revenue === 0 ? 'text-[#71717a]' : 'text-[#10b981]'}`}>
                             {day.revenue > 0 ? `R$ ${Math.round(day.revenue)}` : 'R$ 0'}
                           </div>
                         </div>
@@ -1670,52 +1663,36 @@ export default function FinanceiroPage() {
               <div className="flex items-end justify-between gap-1 h-32 px-4 relative">
                 {dailyData.map((day, index) => {
                   const height = chartMaxRevenue > 0 ? (day.revenue / chartMaxRevenue) * 100 : 0
-                  const dayDate2 = day.date // 🇧🇷 CORREÇÃO: day.date já é um objeto Date
+                  const dayDate2 = day.date
                   const isWeekend = getBrazilDayNumber(dayDate2) === 0 || getBrazilDayNumber(dayDate2) === 6
-                  
+                  const barClass = day.revenue === 0
+                    ? 'bg-[#27272a]/60'
+                    : (isWeekend ? 'bg-orange-500 hover:bg-orange-400' : 'bg-[#10b981] hover:bg-emerald-400')
                   return (
-                    <div
-                      key={index}
-                      className="group relative flex flex-col items-center flex-1"
-                      style={{ minWidth: '6px', maxWidth: '18px' }}
-                    >
+                    <div key={index} className="group relative flex flex-col items-center flex-1" style={{ minWidth: '6px', maxWidth: '18px' }}>
                       {/* Tooltip */}
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-900 border border-[#3f3f46] text-[#ededed] p-3 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
                         <div className="text-sm font-medium">{day.fullDate}</div>
-                        <div className="text-[#10b981] font-bold text-sm">
+                        <div className={`font-bold text-sm ${day.revenue === 0 ? 'text-[#71717a]' : 'text-[#10b981]'}`}>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(day.revenue)}
                         </div>
                         <div className="text-xs text-[#ededed]">
                           {day.appointmentCount} agendamento{day.appointmentCount !== 1 ? 's' : ''}
                         </div>
-                        {/* Tooltip Arrow */}
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
                       </div>
-
                       {/* Bar */}
                       <div className="w-full h-32 bg-[#27272a]/30 rounded-t flex items-end relative">
                         <div
-                          className={`w-full transition-all duration-300 rounded-t ${
-                            isWeekend 
-                              ? 'bg-orange-500 hover:bg-orange-400' 
-                              : 'bg-[#10b981] hover:bg-emerald-400'
-                          } group-hover:shadow-lg cursor-pointer`}
-                          style={{ 
-                            height: `${height}%`, 
-                            minHeight: day.revenue > 0 ? '4px' : '0px' 
-                          }}
+                          className={`w-full transition-all duration-300 rounded-t ${barClass} group-hover:shadow-lg cursor-pointer`}
+                          style={{ height: `${height}%`, minHeight: '3px' }}
                           title={`${day.fullDate} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(day.revenue)} - ${day.appointmentCount} agendamento${day.appointmentCount !== 1 ? 's' : ''}`}
                         />
                       </div>
-                      
                       {/* Day Label */}
                       <div className="mt-1 text-center">
-                        <div className={`text-xs ${isWeekend ? 'text-tymer-icon' : 'text-[#71717a]'} font-medium`}>
-                          {day.dayName}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {dayDate2.getDate()}
-                        </div>
+                        <div className={`text-xs ${isWeekend ? 'text-tymer-icon' : 'text-[#71717a]'} font-medium`}>{day.dayName}</div>
+                        <div className="text-xs text-gray-500">{dayDate2.getDate()}</div>
                       </div>
                     </div>
                   )
