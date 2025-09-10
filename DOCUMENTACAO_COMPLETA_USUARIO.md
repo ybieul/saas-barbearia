@@ -274,6 +274,57 @@ O sistema de WhatsApp é um dos grandes diferenciais do TymerBook, reduzindo dra
 - Ofertas sazonais
 - Pacotes especiais
 
+### 3.6 Relatórios & Financeiro (Novidades)
+
+Esta funcionalidade é o centro de inteligência operacional e financeira da plataforma. Nela você:
+- Acompanha métricas essenciais (faturamento, agendamentos concluídos, ticket médio, taxa de conversão) ajustadas ao intervalo escolhido.
+- Visualiza gráficos diários e mensais para identificar sazonalidade, dias fortes e períodos fracos.
+- Analisa a performance mensal com navegação rápida entre os últimos 12 meses.
+- Monitora métodos de pagamento e sua participação no faturamento.
+- Consulta transações recentes e serviços mais vendidos (quando habilitados).
+- Gerencia seus custos fixos mensais e obtém o Lucro Líquido estimado do mês.
+
+Com as melhorias mais recentes, o calendário ficou mais inteligente e a seção de Custos Fixos passou a integrar diretamente a página, facilitando a tomada de decisão financeira sem sair do contexto das métricas.
+
+#### 3.6.1 Novo Calendário de Período (Filtro Inteligente)
+- Você pode selecionar um intervalo de datas livremente (ex.: 05/09 a 12/09) para todos os cards principais (faturamento, concluídos, conversão e ticket médio).
+- Ao escolher apenas 1 dia, o sistema automaticamente expande a visualização dos gráficos e métricas para TODO o mês daquele dia, permitindo uma visão mensal rápida sem mudar manualmente o intervalo.
+- Navegação Mensal: Na seção "Análise Mensal" existem botões (◀ ▶) para avançar e retroceder mês a mês dentro dos últimos 12 meses disponíveis.
+- As métricas exibidas nos cards sempre deixam claro que são referentes “ao período” selecionado, evitando confusão entre dia, intervalo e mês.
+
+#### 3.6.2 Seção "Custos Fixos Mensais" (Nova)
+Localização: Última seção da página de Relatórios & Financeiro.
+
+Objetivo: Centralizar o controle dos seus custos fixos e calcular automaticamente o Lucro Líquido Estimado do mês.
+
+Funcionalidades:
+- Lista editável de itens (ex.: Aluguel, Energia, Internet, Sistema, Água, etc.).
+- Botão “Adicionar” para incluir novas linhas.
+- Campo de nome e valor (em reais) para cada item.
+- Botão de remover individual (ícone de lixeira) para excluir um custo.
+- Cálculo automático do Total Mensal (soma de todos os custos fixos listados).
+- Exibição de dois cards: 
+   - Custos Fixos (Mensal): Soma integral do mês selecionado.
+   - Lucro Líquido (Estimado, Mês): Receita mensal – Custos Fixos.
+- Botões de navegação de mês (◀ ▶) iguais aos da Análise Mensal para alternar rapidamente o mês analisado.
+- Botão “Salvar alterações” persiste a lista no sistema (os dados são guardados e usados no cálculo do lucro líquido).
+
+Decisões de Interface:
+- Removidos indicadores de variação (setas e “-”) destes dois cards para evitar interpretação errada antes da implementação de comparação histórica.
+- O valor mostrado é sempre o total fechado do mês corrente selecionado (não é pró-rata do intervalo escolhido lá em cima).
+
+Boas Práticas de Uso:
+- Atualize custos fixos apenas quando houver mudança estrutural (ex.: reajuste de aluguel ou novos serviços recorrentes).
+- Inclua somente despesas recorrentes mensais (evite custos variáveis como compra pontual de produtos).
+- Revise no início de cada mês para garantir que o Lucro Líquido estimado esteja coerente.
+
+Planejado Futuramente (opcional):
+- Comparação automática com mês anterior (variação percentual).
+- Histórico de alterações de custos.
+- Exportação de relatório financeiro completo (CSV) com custos + lucro.
+
+> 💡 Dica: Use esta seção para ter clareza real do quanto sua operação está gerando após as despesas recorrentes — é o primeiro passo para tomada de decisões sobre reajuste de preços e promoções.
+
 ---
 
 ## 4. Sua Página Pública de Agendamento
