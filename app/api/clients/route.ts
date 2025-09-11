@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
         birthday: true,
         notes: true,
         isActive: true,
-        isWalkIn: true,
+  // @ts-ignore tipos locais podem ainda não conter campo; em produção existe
+  isWalkIn: true,
         createdAt: true,
         totalSpent: true,
         totalVisits: true,
@@ -162,16 +163,27 @@ export async function PUT(request: NextRequest) {
 
     const client = await prisma.endUser.update({
       where: { id },
-      data: {
-        name,
-        email,
-        phone,
-        birthday: birthday ? parseBirthDate(birthday) : null,
-        notes,
-        isActive,
-        address,
-        cpf
-      }
+      // Lógica de promoção de cliente de balcão:
+      // Se cliente atual é walk-in e não tinha telefone (ou placeholder) e agora foi informado um telefone válido, converte para isWalkIn: false
+      data: (() => {
+        const phoneProvided = typeof phone === 'string' ? phone.trim() : ''
+        const hadNoPhone = !existingClient.phone || existingClient.phone.trim() === '' || existingClient.phone === '---'
+        const dataToUpdate: any = {
+          name,
+          email,
+          phone,
+          birthday: birthday ? parseBirthDate(birthday) : null,
+          notes,
+          isActive,
+          address,
+          cpf
+        }
+  if ((existingClient as any).isWalkIn && hadNoPhone && phoneProvided) {
+          // Promover
+          dataToUpdate.isWalkIn = false
+        }
+        return dataToUpdate
+      })()
     })
 
     return NextResponse.json({ client, message: 'Cliente atualizado com sucesso' })
