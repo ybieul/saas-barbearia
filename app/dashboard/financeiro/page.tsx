@@ -2332,11 +2332,11 @@ export default function FinanceiroPage() {
   {/* Custos Mensais (última seção) */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col gap-3">
-            <span>Custos Mensais</span>
-            {/* Toolbar responsiva: navegação + mês na primeira linha; botão adicionar abaixo no mobile */}
-            <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <div className="flex items-center gap-2">
+          <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <span className="leading-none pt-1 sm:pt-0">Custos Mensais</span>
+            {/* Controles alinhados à direita em desktop; empilhado no mobile */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 sm:order-1 order-1">
                 <Button
                   variant="outline"
                   size="icon"
@@ -2346,7 +2346,7 @@ export default function FinanceiroPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <div className="text-sm font-semibold text-[#ededed] min-w-[130px] flex-1 text-center px-3 py-1 rounded-md bg-[#27272a]/40 truncate">
+                <div className="text-sm font-semibold text-[#ededed] min-w-[140px] text-center px-3 py-1 rounded-md bg-[#27272a]/40 truncate">
                   {selectedMonthData?.monthName || 'Carregando...'}
                 </div>
                 <Button
@@ -2363,11 +2363,10 @@ export default function FinanceiroPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="border-[#3f3f46] text-[#ededed] hover:text-white w-full sm:w-auto"
+                className="border-[#3f3f46] text-[#ededed] hover:text-white w-full sm:w-auto sm:order-2 order-2"
                 onClick={() => {
                   const newId = crypto.randomUUID()
                   setFixedCostsAll(prev => [...prev, { id: newId, name: '', amount: 0, recurrence: 'RECURRING', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])
-                  // Delay para garantir render
                   setTimeout(() => {
                     if (lastAddedCostRef.current) {
                       lastAddedCostRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
