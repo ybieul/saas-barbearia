@@ -1286,7 +1286,8 @@ export default function FinanceiroPage() {
       const todayTransactions = completedAppointments
         .filter(app => {
           try {
-            const appointmentDate = utcToBrazil(new Date(app.dateTime))
+            // Usar parse direto local para evitar deslocamento de -3h
+            const appointmentDate = new Date(app.dateTime)
             return appointmentDate.toDateString() === dayString
           } catch {
             return false
@@ -1312,10 +1313,14 @@ export default function FinanceiroPage() {
           return {
             id: app.id,
             client: sanitizeString(app.endUser?.name) || 'Cliente',
-            service: sanitizeString(app.services?.[0]?.name) || 'Serviço',
+            // Concatenar múltiplos serviços (upsell)
+            service: Array.isArray(app.services) && app.services.length > 0
+              ? app.services.map((s: any) => sanitizeString(s.name) || 'Serviço').join(' + ')
+              : 'Serviço',
             amount: parseFloat(app.totalPrice) || 0,
             method: paymentMethod,
-            time: utcToBrazil(new Date(app.dateTime)).toLocaleTimeString('pt-BR', {
+            // Mostrar horário real salvo (já está em horário local “brasileiro” via toLocalISOString durante criação)
+            time: new Date(app.dateTime).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit'
             })
