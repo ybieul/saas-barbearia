@@ -246,7 +246,8 @@ export function useProfessionalAvailability() {
       const params = new URLSearchParams({
         professionalId,
         date,
-        serviceDuration: serviceDuration.toString()
+        // Parâmetro oficial após migração multi-serviços
+        duration: serviceDuration.toString()
       })
       
       // Adicionar allowPastSlots apenas se for true (para não quebrar URLs existentes)

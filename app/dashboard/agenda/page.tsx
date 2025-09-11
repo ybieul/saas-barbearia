@@ -1665,7 +1665,7 @@ export default function AgendaPage() {
       }
 
       // Chamar API availability-v2 através do hook use-schedule
-      const availableSlots = await getAvailableSlotsFromAPI(
+  let availableSlots = await getAvailableSlotsFromAPI(
         businessSlug,
         professionalId,
         newAppointment.date,
@@ -1767,6 +1767,40 @@ export default function AgendaPage() {
             console.warn('⚠️ Falha ao expandir slots de edição:', e)
           }
         }
+      }
+
+      // 🔒 Pós-processamento: Remover slots que não possuem intervalo completo livre até próximo agendamento
+      try {
+        const dayAppointments = appointments
+          .filter(apt => {
+            if (!apt.dateTime) return false
+            const aptDate = parseDatabaseDateTime(apt.dateTime)
+            return toLocalDateString(aptDate) === newAppointment.date && apt.professionalId === professionalId && (apt.status !== 'CANCELLED' && apt.status !== 'cancelled')
+          })
+          .map(apt => {
+            const start = parseDatabaseDateTime(apt.dateTime)
+            const duration = apt.duration || apt.services?.reduce((sum:number,s:any)=>sum+(s.duration||0),0) || 30
+            const end = new Date(start.getTime() + duration * 60000)
+            return { start, end }
+          })
+          .sort((a,b)=>a.start.getTime()-b.start.getTime())
+
+        // Função util para verificar se janela [slotStart, slotStart+aggregatedDuration) cruza algum agendamento
+        const slotFits = (slotTime: string) => {
+          const [h,m] = slotTime.split(':').map(Number)
+          const [year,month,day] = newAppointment.date.split('-').map(Number)
+            const slotStart = new Date(year, month-1, day, h, m, 0, 0)
+          const slotEnd = new Date(slotStart.getTime() + aggregatedDuration*60000)
+          return !dayAppointments.some(ap => slotStart < ap.end && slotEnd > ap.start)
+        }
+
+        const filtered = availableSlots.filter(slotFits)
+        if (filtered.length !== availableSlots.length && process.env.NODE_ENV==='development') {
+          console.log('🔧 Pós-processamento de multi-serviços removeu slots incompletos', { antes: availableSlots.length, depois: filtered.length })
+        }
+        availableSlots = filtered
+      } catch(e) {
+        if (process.env.NODE_ENV==='development') console.warn('⚠️ Falha pós-processamento multi-serviços', e)
       }
 
       return availableSlots
