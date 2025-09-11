@@ -2518,7 +2518,10 @@ export default function AgendaPage() {
 
       {/* Modal de novo agendamento */}
       <Dialog open={isNewAppointmentOpen} onOpenChange={(open)=>{ if(!open){ setIsNewAppointmentOpen(false); setEditingAppointment(null); resetForm(); } }}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col p-0">
+        <DialogContent
+          onOpenAutoFocus={(e) => { e.preventDefault() }}
+          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col p-0"
+        >
           {/* Header responsivo */}
           <div className="border-b border-[#27272a] pb-3 md:pb-4 px-4 sm:px-6 pt-4 flex-shrink-0">
             <div className="flex items-center justify-between">
