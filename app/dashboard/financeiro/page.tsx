@@ -1268,10 +1268,9 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
     try {
-  console.log('💳 [Transações] Calculando transações recentes...')
+  // Logs removidos em produção
       
-      if (!Array.isArray(completedAppointments)) {
-        console.log('⚠️ [Transações] completedAppointments não é um array para transações')
+  if (!Array.isArray(completedAppointments)) {
         return []
       }
       
@@ -1293,7 +1292,7 @@ export default function FinanceiroPage() {
         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
         .slice(0, 6) // ✅ LIMITADO: 6 últimos atendimentos do dia final do período
         .map(app => {
-          console.log('🧾 [Transações] Serviços do agendamento', app.id, app.services?.map((s:any)=>s.name), 'raw services:', app.services)
+          // (logs removidos)
           // Normalizar método de pagamento
           let paymentMethod = app.paymentMethod || 'NULL'
           if (paymentMethod === 'CASH') {
@@ -1322,14 +1321,10 @@ export default function FinanceiroPage() {
           }
         })
       
-      console.log('✅ [Transações] Calculadas (6 mais recentes):', {
-        total: todayTransactions.length,
-        valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
-      })
+  // (logs removidos)
       
       return todayTransactions
-    } catch (err) {
-      console.error('❌ [Transações] Erro ao processar transações recentes:', err)
+  } catch (err) {
       return []
     }
   }, [completedAppointments, dateRange?.to])
