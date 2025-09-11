@@ -2336,7 +2336,8 @@ export default function FinanceiroPage() {
             <span className="leading-none pt-1 sm:pt-0">Custos Mensais</span>
             {/* Controles alinhados à direita em desktop; empilhado no mobile */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2 sm:order-1 order-1">
+              {/* Navegação de mês: em mobile ocupa 100% da largura para ficar igual ao botão abaixo */}
+              <div className="flex items-center gap-2 sm:order-1 order-1 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="icon"
@@ -2346,7 +2347,7 @@ export default function FinanceiroPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <div className="text-sm font-semibold text-[#ededed] min-w-[140px] text-center px-3 py-1 rounded-md bg-[#27272a]/40 truncate">
+                <div className="flex-1 sm:flex-none text-sm font-semibold text-[#ededed] min-w-[140px] text-center px-3 py-1 rounded-md bg-[#27272a]/40 truncate">
                   {selectedMonthData?.monthName || 'Carregando...'}
                 </div>
                 <Button
