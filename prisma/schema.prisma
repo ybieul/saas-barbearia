@@ -91,6 +91,8 @@ model EndUser {
   address   String?  @db.Text
   cpf       String?  // CPF do cliente
   isActive  Boolean  @default(true)
+  // Indica se é um cliente de balcão (walk-in / temporário)
+  isWalkIn  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

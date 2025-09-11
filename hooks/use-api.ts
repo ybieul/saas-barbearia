@@ -60,9 +60,13 @@ export function useApi<T>() {
 export function useClients() {
   const { data, loading, error, request } = useApi<{ clients: any[] }>()
 
-  const fetchClients = useCallback((isActive?: boolean) => {
-    const params = isActive !== undefined ? `?active=${isActive}` : ''
-    return request(`/api/clients${params}`)
+  const fetchClients = useCallback((isActive?: boolean, options?: { includeWalkIn?: boolean; search?: string }) => {
+    const params = new URLSearchParams()
+    if (isActive !== undefined) params.set('active', String(isActive))
+    if (options?.includeWalkIn !== undefined) params.set('includeWalkIn', String(options.includeWalkIn))
+    if (options?.search) params.set('search', options.search)
+    const qs = params.toString()
+    return request(`/api/clients${qs ? `?${qs}` : ''}`)
   }, [request])
 
   const createClient = useCallback((clientData: {

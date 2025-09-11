@@ -9,12 +9,30 @@ export async function GET(request: NextRequest) {
     const user = verifyToken(request)
     const { searchParams } = new URL(request.url)
     const active = searchParams.get('active')
+    const includeWalkIn = searchParams.get('includeWalkIn') === 'true'
+    const search = searchParams.get('search')?.trim() || ''
+
+    // Cláusula base multi-tenant
+    const whereClause: any = {
+      tenantId: user.tenantId,
+      ...(active !== null && { isActive: active === 'true' })
+    }
+
+    // Filtro padrão: esconder walk-ins (clientes de balcão) se não solicitado
+    if (!includeWalkIn) {
+      whereClause.isWalkIn = false
+    }
+
+    // Busca por nome / telefone básica (caso exista parâmetro search)
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } }
+      ]
+    }
 
     const clients = await prisma.endUser.findMany({
-      where: {
-        tenantId: user.tenantId, // Filtro multi-tenant
-        ...(active !== null && { isActive: active === 'true' })
-      },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -23,14 +41,13 @@ export async function GET(request: NextRequest) {
         email: true,
         birthday: true,
         notes: true,
-        isActive: true,
+  isActive: true,
+  // @ts-ignore - será reconhecido após geração de tipos Prisma da migration isWalkIn
+  isWalkIn: true,
         createdAt: true,
-        // ✅ CAMPOS AGREGADOS REAIS DO BANCO
         totalSpent: true,
         totalVisits: true,
         lastVisit: true,
-        // ✅ APPOINTMENTS REMOVIDOS - NÃO NECESSÁRIOS PARA LISTAGEM
-        // appointments são desnecessários aqui, causam problema de performance
       }
     })
 

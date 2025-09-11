@@ -61,10 +61,19 @@ export default function ClientesPage() {
   })
 
   const { clients, loading, error, fetchClients, createClient, updateClient, deleteClient } = useClients()
+  const [showWalkIns, setShowWalkIns] = useState(false)
 
   useEffect(() => {
-    fetchClients(true) // Buscar apenas clientes ativos
-  }, [fetchClients])
+    fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
+  }, [fetchClients, showWalkIns])
+
+  // Recarregar quando searchTerm mudar (debounce simples opcional futuramente)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, showWalkIns, fetchClients])
 
   // Previne foco automático no modal de novo/editar cliente (apenas no primeiro input)
   useEffect(() => {
@@ -175,10 +184,7 @@ export default function ClientesPage() {
     }
   }
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone.includes(searchTerm)
-  )
+  const filteredClients = clients // server já aplica search básica; manter fallback local
 
   if (loading) {
     return (
@@ -421,7 +427,19 @@ export default function ClientesPage() {
       {/* Search and filters */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="p-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex items-center gap-2 text-sm text-[#ededed] lg:w-auto">
+              <input
+                id="show-walkins"
+                type="checkbox"
+                checked={showWalkIns}
+                onChange={(e) => setShowWalkIns(e.target.checked)}
+                className="h-4 w-4 rounded border-[#3f3f46] bg-[#27272a] text-tymer-primary focus:ring-tymer-primary"
+              />
+              <label htmlFor="show-walkins" className="select-none cursor-pointer text-[#a1a1aa] hover:text-[#ededed] transition-colors">
+                Incluir clientes de Balcão
+              </label>
+            </div>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#3f3f46] w-4 h-4" />
               <Input
@@ -463,7 +481,7 @@ export default function ClientesPage() {
                     {/* Cliente */}
                     <div className="col-span-2">
                       <div>
-                        <h3 className="font-medium text-white">{client.name}</h3>
+                        <h3 className="font-medium text-white flex items-center gap-2">{client.name}{client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}</h3>
                         <p className="text-xs text-[#71717a]">
                           Cliente desde {formatBrazilDate(new Date(client.createdAt))}
                         </p>
@@ -563,7 +581,7 @@ export default function ClientesPage() {
                       {/* Header do cliente */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-white text-base">{client.name}</h3>
+                          <h3 className="font-medium text-white text-base flex items-center gap-2">{client.name}{client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}</h3>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge 
                               className={`text-xs ${client.isActive 
