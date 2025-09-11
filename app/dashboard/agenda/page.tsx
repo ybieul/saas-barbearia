@@ -78,6 +78,11 @@ export default function AgendaPage() {
     time: "",
     notes: ""
   })
+  // 🆕 Upsell: suporte a múltiplos serviços
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [totalDuration, setTotalDuration] = useState<number>(0)
+  const [totalPrice, setTotalPrice] = useState<number>(0)
+  const [showServicePicker, setShowServicePicker] = useState<boolean>(false)
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
   
@@ -206,10 +211,24 @@ export default function AgendaPage() {
     }
   }, [appointments?.length, clients?.length, services?.length, professionalsData?.length, agendaAvailabilityReady, businessSlug])
 
+  // 🆕 Recalcular totais (preço e duração) ao mudar seleção de serviços
+  useEffect(() => {
+    const selected = services.filter(s => selectedServices.includes(s.id))
+    const duration = selected.reduce((sum, s) => sum + (s.duration || 0), 0)
+    const price = selected.reduce((sum, s) => sum + Number(s.price || 0), 0)
+    setTotalDuration(duration)
+    setTotalPrice(price)
+    // Sincronizar serviceId legado (primeiro serviço) para compatibilidade com validações existentes
+    setNewAppointment(prev => {
+      const first = selectedServices[0] || ""
+      return prev.serviceId === first ? prev : { ...prev, serviceId: first }
+    })
+  }, [selectedServices, services])
+
   // Limpar horário quando serviço, data ou profissional mudam (mas NÃO quando estamos editando)
   useEffect(() => {
-    // 🔧 CORREÇÃO: Não limpar horário quando estamos editando um agendamento
-    if (!editingAppointment && (newAppointment.serviceId || newAppointment.date || newAppointment.professionalId)) {
+    // 🔧 CORREÇÃO + Upsell: limpar horário quando muda conjunto de serviços, data ou profissional (não em edição)
+    if (!editingAppointment && (selectedServices.length > 0 || newAppointment.date || newAppointment.professionalId)) {
       setNewAppointment(prev => {
         // Só limpar o time se ele já não estiver vazio (evita loop infinito)
         if (prev.time !== "") {
@@ -220,7 +239,7 @@ export default function AgendaPage() {
       // Limpar erro do backend quando dados importantes mudam
       setBackendError(null)
     }
-  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId, editingAppointment])
+  }, [selectedServices.length, newAppointment.date, newAppointment.professionalId, editingAppointment])
 
   // Limpar erro do backend quando modal é aberto
   useEffect(() => {
@@ -296,7 +315,7 @@ export default function AgendaPage() {
   // 🚀 NOVO: useEffect para atualizar slots disponíveis automaticamente
   useEffect(() => {
     const updateAvailableSlots = async () => {
-      if (!newAppointment.serviceId || !newAppointment.date) {
+      if (selectedServices.length === 0 || !newAppointment.date) {
         setAvailableTimeSlots([])
         return
       }
@@ -316,7 +335,7 @@ export default function AgendaPage() {
     }
 
     updateAvailableSlots()
-  }, [newAppointment.serviceId, newAppointment.date, newAppointment.professionalId, editingAppointment?.id])
+  }, [selectedServices.length, totalDuration, newAppointment.date, newAppointment.professionalId, editingAppointment?.id])
 
   // Função para gerar horários baseado nos horários de funcionamento específicos por dia
   const generateTimeSlotsForDate = (date: Date) => {
@@ -685,6 +704,9 @@ export default function AgendaPage() {
       time: "",
       notes: ""
     })
+  setSelectedServices([])
+  setTotalDuration(0)
+  setTotalPrice(0)
     setEditingAppointment(null)
     setBackendError(null)
     setClientSearchTerm("")
@@ -721,7 +743,7 @@ export default function AgendaPage() {
         return false
       }
       
-      if (!newAppointment.serviceId) {
+  if (selectedServices.length === 0) {
         if (process.env.NODE_ENV === 'development') {
           console.log('❌ Serviço não selecionado')
         }
@@ -832,7 +854,7 @@ export default function AgendaPage() {
       const appointmentData = {
         date: newAppointment.date,
         time: newAppointment.time,
-        serviceId: newAppointment.serviceId,
+  serviceId: newAppointment.serviceId, // legacy field (primeiro serviço)
         professionalId: newAppointment.professionalId || undefined
       }
       
@@ -959,9 +981,9 @@ export default function AgendaPage() {
 
       const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
-        services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
+        services: selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId],
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: toLocalISOString(appointmentDateTime), // 🚨 CORREÇÃO: SEM conversão UTC
+        dateTime: toLocalISOString(appointmentDateTime),
         notes: newAppointment.notes || undefined
       }
 
@@ -1069,6 +1091,11 @@ export default function AgendaPage() {
       time: formattedTime,
       notes: appointment.notes || ""
     })
+    // 🆕 Multi-serviços
+    try {
+      const multi = (appointment.services || []).map((s: any) => s.id).filter(Boolean)
+      setSelectedServices(multi)
+    } catch {}
     
     setEditingAppointment(appointment)
     setIsNewAppointmentOpen(true) // Reutilizar o modal existente
@@ -1117,9 +1144,9 @@ export default function AgendaPage() {
       const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
-        services: [newAppointment.serviceId], // ✅ CORREÇÃO: Enviar como array conforme backend espera
+        services: selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId],
         professionalId: newAppointment.professionalId || undefined,
-        dateTime: toLocalISOString(appointmentDateTime), // 🚨 CORREÇÃO: SEM conversão UTC
+        dateTime: toLocalISOString(appointmentDateTime),
         notes: newAppointment.notes || undefined
       }
 
@@ -1443,10 +1470,10 @@ export default function AgendaPage() {
   ): Promise<{ slots: string[]; usedProfessionalRules: boolean; fallbackReason?: string }> => {
     try {
       // Validações básicas
-      if (!newAppointment.serviceId || !newAppointment.date || !newAppointment.professionalId) {
+  if (selectedServices.length === 0 || !newAppointment.date || !newAppointment.professionalId) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚫 Professional rules: Dados insuficientes', {
-            serviceId: !!newAppointment.serviceId,
+            serviceId: selectedServices.length > 0,
             date: !!newAppointment.date,
             professionalId: !!newAppointment.professionalId
           })
@@ -1582,20 +1609,15 @@ export default function AgendaPage() {
   // Função melhorada para obter horários disponíveis para o modal
   const getAvailableTimeSlots = async (excludeAppointmentId?: string): Promise<string[]> => {
     try {
-      if (!newAppointment.serviceId || !newAppointment.date) {
+  if (selectedServices.length === 0 || !newAppointment.date) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
         }
         return []
       }
 
-      const selectedService = services.find(s => s.id === newAppointment.serviceId)
-      if (!selectedService) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚫 getAvailableTimeSlots: Serviço não encontrado')
-        }
-        return []
-      }
+  // Duração agregada de todos os serviços selecionados
+  const aggregatedDuration = totalDuration || 30
 
       // Obter businessSlug do estabelecimento
       if (!businessSlug) {
@@ -1619,7 +1641,7 @@ export default function AgendaPage() {
           businessSlug,
           professionalId,
           date: newAppointment.date,
-          serviceDuration: selectedService.duration || 30
+          serviceDuration: aggregatedDuration
         })
       }
 
@@ -1628,8 +1650,8 @@ export default function AgendaPage() {
         businessSlug,
         professionalId,
         newAppointment.date,
-        selectedService.duration || 30,
-        true  // ✅ DASHBOARD: Permitir horários passados para agendamento retroativo
+        aggregatedDuration,
+        true
       )
 
       if (process.env.NODE_ENV === 'development') {
@@ -1645,7 +1667,7 @@ export default function AgendaPage() {
         const currentTime = newAppointment.time
         if (!availableSlots.includes(currentTime)) {
           try {
-            const serviceDuration = (selectedService.duration || 30)
+            const serviceDuration = aggregatedDuration
             // Verificar se o horário ainda é válido (excluindo o próprio agendamento da checagem de conflito)
             const professionalForCheck = newAppointment.professionalId || professionalId
             const canKeepTime = canScheduleService(
@@ -1682,7 +1704,7 @@ export default function AgendaPage() {
 
         // ✅ NOVO: Expandir lista com horários que só conflitam com o próprio agendamento original
         try {
-          const serviceDuration = (selectedService.duration || 30)
+          const serviceDuration = aggregatedDuration
           const professionalForCheck = newAppointment.professionalId || professionalId
           if (editingAppointment.dateTime) {
             const originalStart = parseDatabaseDateTime(editingAppointment.dateTime)
@@ -1773,7 +1795,7 @@ export default function AgendaPage() {
       }
 
       // 🔄 LÓGICA ATUAL: Fallback seguro (mantida inalterada)
-      if (!newAppointment.serviceId || !newAppointment.date) {
+  if (selectedServices.length === 0 || !newAppointment.date) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🚫 getAvailableTimeSlots: Serviço ou data não selecionados')
         }
@@ -2476,30 +2498,27 @@ export default function AgendaPage() {
       </div>
 
       {/* Modal de novo agendamento */}
-      {isNewAppointmentOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-hidden"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsClientDropdownOpen(false)
-            }
-          }}
-        >
-          <Card className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
-            {/* Header responsivo */}
-            <CardHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
-              <CardTitle className="text-[#ededed] text-base md:text-xl font-semibold flex items-center gap-2">
+      <Dialog open={isNewAppointmentOpen} onOpenChange={(open)=>{ if(!open){ setIsNewAppointmentOpen(false); setEditingAppointment(null); resetForm(); } }}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[90vh] flex flex-col p-0">
+          {/* Header responsivo */}
+          <div className="border-b border-[#27272a] pb-3 md:pb-4 px-4 sm:px-6 pt-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <div className="p-1.5 md:p-2 rounded-lg bg-primary/20 border border-primary/30">
                   <Calendar className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 </div>
-                {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
-              </CardTitle>
-              <CardDescription className="text-[#71717a] text-sm hidden md:block">
-                {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-4 md:space-y-6 mt-3 md:mt-4 overflow-y-auto flex-1 px-4 sm:px-6">
+                <h2 className="text-[#ededed] text-base md:text-xl font-semibold">
+                  {editingAppointment ? 'Editar Agendamento' : 'Novo Agendamento'}
+                </h2>
+              </div>
+            </div>
+            <p className="text-[#71717a] text-sm hidden md:block mt-1">
+              {editingAppointment ? 'Atualize os dados do agendamento' : 'Preencha os dados do agendamento'}
+            </p>
+          </div>
+
+          {/* Conteúdo scroll */}
+          <div className="space-y-4 md:space-y-6 mt-3 md:mt-4 overflow-y-auto flex-1 px-4 sm:px-6">
               {/* Exibir erro do backend */}
               {backendError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -2634,31 +2653,66 @@ export default function AgendaPage() {
                 
                 <div className="space-y-3 md:space-y-4">
                   <div>
-                    <Label htmlFor="service" className="text-[#ededed] text-sm font-medium">
-                      Serviço *
+                    <Label className="text-[#ededed] text-sm font-medium flex items-center justify-between">
+                      <span>Serviços *</span>
+                      {selectedServices.length > 0 && (
+                        <span className="text-xs text-emerald-400 font-normal">{selectedServices.length} selecionado(s)</span>
+                      )}
                     </Label>
-                    <Select 
-                      value={newAppointment.serviceId} 
-                      onValueChange={(value) => {
-                        setNewAppointment(prev => ({...prev, serviceId: value}))
-                      }}
-                    >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm mt-2 min-h-[48px]">
-                        <SelectValue placeholder="Selecione um serviço" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#18181b] md:bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
-                        {services.map((service) => (
-                          <SelectItem key={service.id} value={service.id} className="text-base md:text-sm text-[#ededed] hover:bg-[#27272a] focus:bg-[#27272a] h-12 md:h-10">
-                            <div className="flex flex-col items-start">
-                              <span className="font-medium">{service.name}</span>
-                              <span className="text-xs text-emerald-400 md:text-[#71717a]">
-                                {formatCurrency(service.price)} • {service.duration || 0}min
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowServicePicker(v=>!v)}
+                        className="w-full text-left bg-[#27272a]/50 md:bg-[#18181b] border border-[#3f3f46] md:border-[#27272a] rounded-md px-3 py-3 md:py-2.5 text-base md:text-sm flex items-center justify-between gap-2 hover:bg-[#27272a] transition"
+                      >
+                        <span className="truncate flex-1">
+                          {selectedServices.length === 0 ? 'Selecione serviços' : services.filter(s=>selectedServices.includes(s.id)).map(s=>s.name).join(' + ')}
+                        </span>
+                        <span className="text-xs text-[#71717a] whitespace-nowrap ml-2">
+                          {totalDuration}min • {formatCurrency(totalPrice)}
+                        </span>
+                      </button>
+                      {showServicePicker && (
+                        <div className="mt-2 max-h-64 overflow-y-auto border border-[#27272a] rounded-md bg-[#18181b] divide-y divide-[#27272a]">
+                          {services.map(service => {
+                            const checked = selectedServices.includes(service.id)
+                            return (
+                              <label key={service.id} className="flex items-start gap-3 p-3 hover:bg-[#27272a] cursor-pointer text-sm">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1 accent-emerald-500"
+                                  checked={checked}
+                                  onChange={() => {
+                                    setSelectedServices(prev => {
+                                      if (prev.includes(service.id)) return prev.filter(id=>id!==service.id)
+                                      return [...prev, service.id]
+                                    })
+                                  }}
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="text-[#ededed] font-medium leading-tight">{service.name}</span>
+                                  <span className="text-xs text-[#71717a]">
+                                    {formatCurrency(service.price)} • {service.duration || 0}min
+                                  </span>
+                                </div>
+                              </label>
+                            )
+                          })}
+                          {services.length === 0 && (
+                            <div className="p-3 text-xs text-center text-[#71717a]">Nenhum serviço cadastrado</div>
+                          )}
+                          <div className="p-3 flex items-center justify-between bg-[#27272a]/50">
+                            <span className="text-xs text-[#a1a1aa]">Total: {totalDuration}min • {formatCurrency(totalPrice)}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowServicePicker(false)}
+                              className="h-7 px-2 text-xs border-[#3f3f46] hover:bg-[#323238]"
+                            >Fechar</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -2746,12 +2800,12 @@ export default function AgendaPage() {
                       onValueChange={(value) => {
                         setNewAppointment(prev => ({...prev, time: value}))
                       }}
-                      disabled={!newAppointment.date || !newAppointment.serviceId || !newAppointment.professionalId || !getDateStatus().isOpen}
+                      disabled={!newAppointment.date || selectedServices.length === 0 || !newAppointment.professionalId || !getDateStatus().isOpen}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm w-full min-w-0 min-h-[48px]">
                         <SelectValue placeholder={
                           !newAppointment.date ? "Data primeiro" :
-                          !newAppointment.serviceId ? "Serviço primeiro" :
+                          selectedServices.length === 0 ? "Serviço primeiro" :
                           !newAppointment.professionalId ? "Profissional primeiro" :
                           !getDateStatus().isOpen ? "Fechado" :
                           "Selecione horário"
@@ -2777,7 +2831,7 @@ export default function AgendaPage() {
                         ) : (
                           <div className="p-3 text-center text-[#a1a1aa] text-sm">
                             {!newAppointment.date ? "Selecione uma data" :
-                             !newAppointment.serviceId ? "Selecione um serviço" :
+                             selectedServices.length === 0 ? "Selecione serviços" :
                              !getDateStatus().isOpen ? "Estabelecimento fechado" :
                              "Nenhum horário disponível"
                             }
@@ -2785,7 +2839,7 @@ export default function AgendaPage() {
                         )}
                       </SelectContent>
                     </Select>
-                    {newAppointment.date && newAppointment.serviceId && (
+                    {newAppointment.date && selectedServices.length > 0 && (
                       <div className="mt-1 space-y-1">
                         <p className="text-xs text-[#a1a1aa] break-words leading-tight">
                           {loadingTimeSlots ? 'Carregando horários...' : 
@@ -2819,10 +2873,16 @@ export default function AgendaPage() {
                   className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] min-h-20 md:min-h-20 max-h-24 md:max-h-none overflow-y-auto md:overflow-y-visible text-base md:text-sm resize-none mt-2"
                 />
               </div>
-            </CardContent>
-            
-            {/* Botões responsivos */}
-            <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a] sm:border-t-0">
+          </div>
+
+          {/* Botões responsivos */}
+          <div className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a] sm:border-t-0">
+              {selectedServices.length > 0 && (
+                <div className="hidden md:flex flex-col justify-center pr-2 text-xs text-[#a1a1aa] w-40">
+                  <span>Total: {totalDuration}min</span>
+                  <span>{formatCurrency(totalPrice)}</span>
+                </div>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2852,49 +2912,49 @@ export default function AgendaPage() {
                   }
                 }}
                 disabled={
-                  !newAppointment.endUserId || 
-                  !newAppointment.serviceId || 
-                  !newAppointment.professionalId || 
-                  !newAppointment.date || 
-                  !newAppointment.time || 
-                  isCreating || 
+                  !newAppointment.endUserId ||
+                  selectedServices.length === 0 ||
+                  !newAppointment.professionalId ||
+                  !newAppointment.date ||
+                  !newAppointment.time ||
+                  isCreating ||
                   isValidating ||
                   !getDateStatus().isOpen
                 }
                 className="flex-1 bg-primary hover:bg-primary/80 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 md:h-10 text-base md:text-sm font-medium flex items-center justify-center"
               >
                 <span className="text-center truncate">
-                  {isCreating ? 
-                    (editingAppointment ? "Atualizando..." : "Criando...") : 
-                    isValidating ? "Validando..." :
-                    !getDateStatus().isOpen ? (
-                      <span className="block">
-                        <span className="hidden sm:inline">Estabelecimento Fechado</span>
-                        <span className="sm:hidden">Fechado</span>
-                      </span>
-                    ) :
-                    (editingAppointment ? "Atualizar" : "Criar Agendamento")
-                  }
+                  {isCreating ? (
+                    editingAppointment ? 'Atualizando...' : 'Criando...'
+                  ) : isValidating ? (
+                    'Validando...'
+                  ) : !getDateStatus().isOpen ? (
+                    <span className="block">
+                      <span className="hidden sm:inline">Estabelecimento Fechado</span>
+                      <span className="sm:hidden">Fechado</span>
+                    </span>
+                  ) : (
+                    editingAppointment ? 'Salvar Alterações' : 'Criar Agendamento'
+                  )}
                 </span>
               </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Dialog de Confirmação */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
-        if (!open) {
-          setConfirmDialog({
-            isOpen: false,
-            type: null,
-            appointmentId: '',
-            clientName: '',
-            serviceName: ''
-          })
-        }
-      }}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+  {/* Dialog de Confirmação */}
+  <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
+      if (!open) {
+        setConfirmDialog({
+          isOpen: false,
+          type: null,
+          appointmentId: '',
+          clientName: '',
+          serviceName: ''
+        })
+      }
+    }}>
+      <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
           {/* Header Fixo */}
           <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -3026,6 +3086,6 @@ export default function AgendaPage() {
         } : undefined}
         isLoading={isCompletingAppointment}
       />
-    </div>
+  </div>
   )
 }
