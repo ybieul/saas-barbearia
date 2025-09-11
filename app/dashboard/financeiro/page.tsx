@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw, Plus, Trash2 } from "lucide-react"
+import { extractTimeFromDateTime } from '@/lib/timezone'
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
@@ -1267,14 +1268,10 @@ export default function FinanceiroPage() {
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('💳 Calculando transações recentes...')
-      }
+  console.log('💳 [Transações] Calculando transações recentes...')
       
       if (!Array.isArray(completedAppointments)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚠️ completedAppointments não é um array para transações')
-        }
+        console.log('⚠️ [Transações] completedAppointments não é um array para transações')
         return []
       }
       
@@ -1296,6 +1293,7 @@ export default function FinanceiroPage() {
         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
         .slice(0, 6) // ✅ LIMITADO: 6 últimos atendimentos do dia final do período
         .map(app => {
+          console.log('🧾 [Transações] Serviços do agendamento', app.id, app.services?.map((s:any)=>s.name), 'raw services:', app.services)
           // Normalizar método de pagamento
           let paymentMethod = app.paymentMethod || 'NULL'
           if (paymentMethod === 'CASH') {
@@ -1320,25 +1318,18 @@ export default function FinanceiroPage() {
             amount: parseFloat(app.totalPrice) || 0,
             method: paymentMethod,
             // Mostrar horário real salvo (já está em horário local “brasileiro” via toLocalISOString durante criação)
-            time: new Date(app.dateTime).toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })
+            time: extractTimeFromDateTime(app.dateTime)
           }
         })
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Transações recentes calculadas (6 mais recentes):', {
-          total: todayTransactions.length,
-          valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
-        })
-      }
+      console.log('✅ [Transações] Calculadas (6 mais recentes):', {
+        total: todayTransactions.length,
+        valorTotal: todayTransactions.reduce((sum, t) => sum + t.amount, 0)
+      })
       
       return todayTransactions
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Erro ao processar transações recentes:', err)
-      }
+      console.error('❌ [Transações] Erro ao processar transações recentes:', err)
       return []
     }
   }, [completedAppointments, dateRange?.to])
