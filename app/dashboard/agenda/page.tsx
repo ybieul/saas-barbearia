@@ -2643,7 +2643,7 @@ export default function AgendaPage() {
                         setNewAppointment(prev => ({...prev, serviceId: value}))
                       }}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm mt-2">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm mt-2 min-h-[48px]">
                         <SelectValue placeholder="Selecione um serviço" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] md:bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
@@ -2671,7 +2671,7 @@ export default function AgendaPage() {
                         setNewAppointment(prev => ({...prev, professionalId: value}))
                       }}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm mt-2">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm mt-2 min-h-[48px]">
                         <SelectValue placeholder="Selecione um profissional" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
@@ -2748,7 +2748,7 @@ export default function AgendaPage() {
                       }}
                       disabled={!newAppointment.date || !newAppointment.serviceId || !newAppointment.professionalId || !getDateStatus().isOpen}
                     >
-                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] h-12 md:h-11 text-base md:text-sm w-full min-w-0">
+                      <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm w-full min-w-0 min-h-[48px]">
                         <SelectValue placeholder={
                           !newAppointment.date ? "Data primeiro" :
                           !newAppointment.serviceId ? "Serviço primeiro" :
