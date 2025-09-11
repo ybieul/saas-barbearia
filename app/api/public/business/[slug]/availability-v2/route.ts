@@ -14,9 +14,8 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date') // YYYY-MM-DD
     const professionalId = searchParams.get('professionalId')
-  // Suporte a novo parâmetro 'duration' (multi-serviços) mantendo retrocompatibilidade com 'serviceDuration'
-  const durationParam = searchParams.get('duration') || searchParams.get('serviceDuration')
-  const serviceDuration = parseInt(durationParam || '30') // duração total agregada em minutos
+  // Parâmetro oficial 'duration' (multi-serviços); fallback para 30
+  const serviceDuration = parseInt(searchParams.get('duration') || '30')
     const allowPastSlots = searchParams.get('allowPastSlots') === 'true' // permitir horários passados para dashboard
 
     // Validações básicas

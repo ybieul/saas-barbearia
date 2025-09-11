@@ -113,6 +113,25 @@ export default function AgendaPage() {
     isTimeWithinWorkingHours 
   } = useWorkingHours()
   const { toast } = useToast()
+
+  // Fechar picker de serviços ao clicar fora ou pressionar ESC
+  useEffect(() => {
+    if (!showServicePicker) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-service-picker]')) return
+      setShowServicePicker(false)
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowServicePicker(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [showServicePicker])
   
   // 🚀 NOVO: Hook para disponibilidade com regras de profissional
   const {
@@ -2673,7 +2692,7 @@ export default function AgendaPage() {
                         </span>
                       </button>
                       {showServicePicker && (
-                        <div className="mt-2 max-h-64 overflow-y-auto border border-[#27272a] rounded-md bg-[#18181b] divide-y divide-[#27272a]">
+                        <div data-service-picker className="mt-2 max-h-64 overflow-y-auto border border-[#27272a] rounded-md bg-[#18181b] divide-y divide-[#27272a]">
                           {services.map(service => {
                             const checked = selectedServices.includes(service.id)
                             return (

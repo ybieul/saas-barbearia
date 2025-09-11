@@ -192,10 +192,7 @@ export function useAvailability() {
       const params = new URLSearchParams({
         professionalId,
         date,
-        // Novo parâmetro principal
-        duration: serviceDuration.toString(),
-        // Legacy para retrocompatibilidade até removermos do backend
-        serviceDuration: serviceDuration.toString()
+        duration: serviceDuration.toString()
       })
 
       const response = await fetch(`/api/public/business/${businessSlug}/availability-v2?${params}`)
@@ -331,8 +328,7 @@ export function useProfessionalAvailability() {
       const params = new URLSearchParams({
         professionalId,
         date,
-        duration: '30',
-        serviceDuration: '30'
+        duration: '30'
       })
 
       const response = await fetch(`/api/public/business/${businessSlug}/availability-v2?${params}`)
