@@ -8,9 +8,10 @@ export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
     const { searchParams } = new URL(request.url)
-    const active = searchParams.get('active')
-    const includeWalkIn = searchParams.get('includeWalkIn') === 'true'
-    const search = searchParams.get('search')?.trim() || ''
+  const active = searchParams.get('active')
+  const includeWalkIn = searchParams.get('includeWalkIn') === 'true'
+  const search = (searchParams.get('search') || searchParams.get('q') || '').trim()
+  const grouped = searchParams.get('grouped') === 'true'
 
     // Cláusula base multi-tenant
     const whereClause: any = {
@@ -31,6 +32,25 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // MODO AGRUPADO: usado pelo modal de agendamento (busca inteligente)
+    if (grouped && search) {
+      const results = await prisma.endUser.findMany({
+        where: {
+          tenantId: user.tenantId,
+          OR: [
+            { name: { contains: search } },
+            { phone: { contains: search } }
+          ],
+          ...(active !== null && { isActive: active === 'true' })
+        },
+        orderBy: { createdAt: 'desc' }
+      }) as any[]
+
+      const registeredClients = results.filter(r => r.isWalkIn === false)
+      const walkInClients = results.filter(r => r.isWalkIn === true)
+      return NextResponse.json({ registeredClients, walkInClients })
+    }
+
     const clients = await prisma.endUser.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
@@ -41,9 +61,8 @@ export async function GET(request: NextRequest) {
         email: true,
         birthday: true,
         notes: true,
-  isActive: true,
-  // @ts-ignore - será reconhecido após geração de tipos Prisma da migration isWalkIn
-  isWalkIn: true,
+        isActive: true,
+        isWalkIn: true,
         createdAt: true,
         totalSpent: true,
         totalVisits: true,

@@ -88,6 +88,9 @@ export default function AgendaPage() {
   // Estados para pesquisa de clientes
   const [clientSearchTerm, setClientSearchTerm] = useState("")
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
+  const [groupedClientResults, setGroupedClientResults] = useState<{ registeredClients: any[]; walkInClients: any[] }>({ registeredClients: [], walkInClients: [] })
+  const [clientSearchLoading, setClientSearchLoading] = useState(false)
+  const [quickCreatingClient, setQuickCreatingClient] = useState(false)
   
   // Hooks para dados reais do banco de dados
   const { appointments, loading: appointmentsLoading, error: appointmentsError, fetchAppointments, createAppointment, updateAppointment, deleteAppointment } = useAppointments()
@@ -395,18 +398,62 @@ export default function AgendaPage() {
   }
 
   // Função para filtrar clientes baseada na pesquisa
-  const filteredClients = useMemo(() => {
-    if (!clientSearchTerm.trim()) {
-      return clients
+  // Busca inteligente (agrupada) - dispara somente quando termo muda (debounce 300ms)
+  useEffect(() => {
+    if (!isClientDropdownOpen) return
+    const term = clientSearchTerm.trim()
+    if (!term) { setGroupedClientResults({ registeredClients: [], walkInClients: [] }); return }
+    const controller = new AbortController()
+    const t = setTimeout(async () => {
+      try {
+        setClientSearchLoading(true)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const res = await fetch(`/api/clients?grouped=true&search=${encodeURIComponent(term)}`, {
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          signal: controller.signal
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setGroupedClientResults({
+            registeredClients: Array.isArray(data.registeredClients) ? data.registeredClients : [],
+            walkInClients: Array.isArray(data.walkInClients) ? data.walkInClients : []
+          })
+        }
+      } catch (e) {
+        if ((e as any).name !== 'AbortError') console.error('Erro busca clientes agrupados', e)
+      } finally {
+        setClientSearchLoading(false)
+      }
+    }, 300)
+    return () => { clearTimeout(t); controller.abort() }
+  }, [clientSearchTerm, isClientDropdownOpen])
+
+  const handleQuickCreateWalkIn = async () => {
+    if (!clientSearchTerm.trim()) return
+    try {
+      setQuickCreatingClient(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch('/api/clients/quick-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ name: clientSearchTerm, phone: '' })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const created = data.client
+        setNewAppointment(prev => ({ ...prev, endUserId: created.id }))
+        setClientSearchTerm(created.name)
+        setIsClientDropdownOpen(false)
+        toast({ title: 'Cliente criado', description: 'Cliente de balcão criado e selecionado.' })
+      } else {
+        toast({ title: 'Falha ao criar cliente', description: 'Tente novamente.', variant: 'destructive' })
+      }
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Não foi possível criar cliente.', variant: 'destructive' })
+    } finally {
+      setQuickCreatingClient(false)
     }
-    
-    const searchLower = clientSearchTerm.toLowerCase()
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(searchLower) ||
-      client.phone.toLowerCase().includes(searchLower) ||
-      client.email?.toLowerCase().includes(searchLower)
-    )
-  }, [clients, clientSearchTerm])
+  }
 
   // 🇧🇷 OTIMIZADO: Obter agendamentos do dia atual (sem conversões UTC) usando useMemo
   const todayAppointments = useMemo(() => {
@@ -2518,29 +2565,59 @@ export default function AgendaPage() {
                     
                     {/* Dropdown de resultados */}
                     {isClientDropdownOpen && (
-                      <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                        {filteredClients.length > 0 ? (
-                          filteredClients.map((client) => (
-                            <div
-                              key={client.id}
-                              className="p-3 hover:bg-[#27272a] cursor-pointer border-b border-[#27272a]/50 last:border-b-0 transition-colors"
-                              onClick={() => {
-                                setNewAppointment(prev => ({...prev, endUserId: client.id}))
-                                setClientSearchTerm(client.name)
-                                setIsClientDropdownOpen(false)
-                              }}
-                            >
-                              <div className="flex flex-col">
-                                <span className="text-[#ededed] text-sm font-medium">{client.name}</span>
-                                <span className="text-[#71717a] text-xs">{client.phone}</span>
-                                {client.email && <span className="text-[#71717a] text-xs">{client.email}</span>}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-3 text-center text-[#71717a] text-sm">
-                            {clientSearchTerm ? "Nenhum cliente encontrado" : "Digite para buscar clientes"}
-                          </div>
+                      <div className="absolute z-[70] w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                        {!clientSearchTerm && (
+                          <div className="p-3 text-center text-[#71717a] text-sm">Digite para buscar clientes</div>
+                        )}
+                        {clientSearchTerm && clientSearchLoading && (
+                          <div className="p-3 text-center text-[#71717a] text-xs">Buscando...</div>
+                        )}
+                        {clientSearchTerm && !clientSearchLoading && (
+                          <>
+                            {/* Grupo: Clientes Cadastrados */}
+                            <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wide text-[#71717a] font-medium">Clientes Cadastrados</div>
+                            {groupedClientResults.registeredClients.length > 0 ? (
+                              groupedClientResults.registeredClients.map((c: any) => (
+                                <div key={c.id} className="px-3 py-2 hover:bg-[#27272a] cursor-pointer text-sm border-b border-[#27272a]/40"
+                                  onClick={() => { setNewAppointment(p=>({...p,endUserId:c.id})); setClientSearchTerm(c.name); setIsClientDropdownOpen(false) }}>
+                                  <div className="flex flex-col">
+                                    <span className="text-[#ededed] font-medium flex items-center gap-2">{c.name}{c.isWalkIn === false && <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Reg</span>}</span>
+                                    {c.phone && <span className="text-[#71717a] text-xs">{c.phone}</span>}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-[#3f3f46] text-xs">Nenhum cadastrado</div>
+                            )}
+
+                            {/* Grupo: Clientes de Balcão */}
+                            <div className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wide text-[#71717a] font-medium">Clientes de Balcão</div>
+                            {groupedClientResults.walkInClients.length > 0 ? (
+                              groupedClientResults.walkInClients.map((c: any) => (
+                                <div key={c.id} className="px-3 py-2 hover:bg-[#27272a] cursor-pointer text-sm border-b border-[#27272a]/40"
+                                  onClick={() => { setNewAppointment(p=>({...p,endUserId:c.id})); setClientSearchTerm(c.name); setIsClientDropdownOpen(false) }}>
+                                  <div className="flex flex-col">
+                                    <span className="text-[#ededed] font-medium flex items-center gap-2">{c.name}<span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Balcão</span></span>
+                                    {c.phone && <span className="text-[#71717a] text-xs">{c.phone}</span>}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-[#3f3f46] text-xs">Nenhum de balcão</div>
+                            )}
+
+                            {/* Opção de criação rápida */}
+                            {clientSearchTerm && (
+                              <button
+                                type="button"
+                                onClick={handleQuickCreateWalkIn}
+                                disabled={quickCreatingClient}
+                                className="w-full text-left px-3 py-3 bg-[#27272a] hover:bg-[#323238] text-emerald-400 text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {quickCreatingClient ? 'Criando...' : `➕ Adicionar "${clientSearchTerm}" como Cliente de Balcão`}
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
