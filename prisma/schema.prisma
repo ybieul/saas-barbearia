@@ -152,6 +152,8 @@ model Service {
   category    String?
   image       String?  @db.LongText // URL da imagem
   isActive    Boolean  @default(true)
+  // Controle de visibilidade na página pública de agendamento
+  isVisibleOnPublicPage Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

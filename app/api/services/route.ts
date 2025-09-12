@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       duration, 
       category, 
       image, 
+      isVisibleOnPublicPage,
       maxAdvanceBooking, 
       minAdvanceBooking,
       professionalIds 
@@ -76,7 +77,8 @@ export async function POST(request: NextRequest) {
         maxAdvanceBooking: maxAdvanceBooking ? parseInt(maxAdvanceBooking) : null,
         minAdvanceBooking: minAdvanceBooking ? parseInt(minAdvanceBooking) : null,
         tenantId: user.tenantId,
-        isActive: true,
+  isActive: true,
+  ...(typeof isVisibleOnPublicPage === 'boolean' ? { isVisibleOnPublicPage } : {}),
         ...(professionalIds && professionalIds.length > 0 && {
           professionals: {
             connect: professionalIds.map((id: string) => ({ id }))
@@ -114,8 +116,9 @@ export async function PUT(request: NextRequest) {
       price, 
       duration, 
       category, 
-      image, 
+  image, 
       isActive,
+  isVisibleOnPublicPage,
       maxAdvanceBooking, 
       minAdvanceBooking,
       professionalIds 
@@ -152,6 +155,7 @@ export async function PUT(request: NextRequest) {
       category,
       image,
       isActive,
+      isVisibleOnPublicPage,
       maxAdvanceBooking: maxAdvanceBooking ? parseInt(maxAdvanceBooking) : null,
       minAdvanceBooking: minAdvanceBooking ? parseInt(minAdvanceBooking) : null
     }

@@ -37,12 +37,14 @@ export async function GET(
       )
     }
 
-    // Buscar serviços ativos
+    // Buscar serviços ativos e visíveis na página pública
+    const where: any = {
+      tenantId: business.id,
+      isActive: true,
+      isVisibleOnPublicPage: true,
+    }
     const services = await prisma.service.findMany({
-      where: {
-        tenantId: business.id,
-        isActive: true
-      },
+      where,
       select: {
         id: true,
         name: true,

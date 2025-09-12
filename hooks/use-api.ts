@@ -250,7 +250,7 @@ export function useServices() {
 
   const fetchServices = useCallback((isActive?: boolean, category?: string) => {
     const params = new URLSearchParams()
-    if (isActive !== undefined) params.append('isActive', isActive.toString())
+    if (isActive !== undefined) params.append('active', isActive.toString())
     if (category) params.append('category', category)
     
     const queryString = params.toString()
@@ -280,6 +280,7 @@ export function useServices() {
     category?: string
     professionalIds?: string[]
     isActive?: boolean
+    isVisibleOnPublicPage?: boolean
   }) => {
     return request('/api/services', {
       method: 'PUT',

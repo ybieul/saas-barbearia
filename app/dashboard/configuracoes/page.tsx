@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import ReactMarkdown from 'react-markdown'
@@ -2224,7 +2224,23 @@ export default function ConfiguracoesPage() {
                           </div>
                           
                           {/* Ações - Grid em mobile, flex em desktop */}
-                          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2 flex-shrink-0">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:flex sm:gap-2 flex-shrink-0 items-center">
+                            {/* Toggle Visibilidade Pública */}
+                            <div className="flex items-center gap-2 px-2 py-1 border border-[#3f3f46] rounded-md bg-transparent">
+                              <span className="text-xs text-[#a1a1aa] hidden sm:inline">Visível na Página Pública</span>
+                              <Switch
+                                checked={!!service.isVisibleOnPublicPage}
+                                onCheckedChange={async (checked) => {
+                                  try {
+                                    await updateService({ id: service.id, isVisibleOnPublicPage: checked })
+                                    await fetchServices()
+                                  } catch (e) {
+                                    // toast opcional
+                                  }
+                                }}
+                                aria-label="Visível na Página Pública"
+                              />
+                            </div>
                             <Button
                               size="sm"
                               variant="outline"
@@ -2275,11 +2291,36 @@ export default function ConfiguracoesPage() {
                           </div>
                         </div>
 
+                        {/* Visibilidade pública */}
+                        <div className="mt-3 flex items-center gap-3">
+                          <Switch
+                            id={`public-visible-${service.id}`}
+                            checked={!!service.isVisibleOnPublicPage}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await updateService({ id: service.id, isVisibleOnPublicPage: checked })
+                                toast({ title: 'Visibilidade atualizada', description: `Serviço ${checked ? 'visível' : 'oculto'} na página pública.` })
+                                await fetchServices()
+                              } catch (e) {
+                                toast({ title: 'Erro ao atualizar visibilidade', variant: 'destructive' })
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`public-visible-${service.id}`} className="text-xs sm:text-sm text-[#ededed]">
+                            Visível na Página Pública
+                          </Label>
+                        </div>
+
                         {/* Metadados */}
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#71717a]">
                           <Badge variant={service.isActive ? "default" : "secondary"} className="text-xs">
                             {service.isActive ? "Ativo" : "Inativo"}
                           </Badge>
+                          {service.isVisibleOnPublicPage === false && (
+                            <Badge variant="secondary" className="text-xs bg-yellow-700/30 text-yellow-300 border-yellow-700/50">
+                              Oculto na página pública
+                            </Badge>
+                          )}
                           {service.createdAt && (
                             <span className="text-xs sm:text-sm">Cadastrado: {formatBrazilDate(new Date(service.createdAt))}</span>
                           )}

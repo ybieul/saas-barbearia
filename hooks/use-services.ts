@@ -9,6 +9,7 @@ interface Service {
   category?: string
   image?: string | null
   isActive: boolean
+  isVisibleOnPublicPage?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -65,13 +66,13 @@ export function useServices(): UseServicesReturn {
       
       const token = localStorage.getItem('auth_token')
       
-      const response = await fetch('/api/services', {
+  const response = await fetch('/api/services', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-        body: JSON.stringify(serviceData)
+  body: JSON.stringify(serviceData)
       })
       
       if (!response.ok) {
