@@ -332,7 +332,8 @@ export default function ConfiguracoesPage() {
     name: "",
     description: "",
     price: "",
-    duration: ""
+  durationHours: "",
+  durationMinutes: ""
   })
 
   // Estados para templates de promoção
@@ -426,7 +427,8 @@ export default function ConfiguracoesPage() {
     name: "",
     description: "",
     price: "",
-    duration: ""
+  durationHours: "",
+  durationMinutes: ""
   })
 
   // Estados para upload de imagem de serviços
@@ -977,15 +979,19 @@ export default function ConfiguracoesPage() {
     }
 
     try {
+      const hours = parseInt(newService.durationHours as any) || 0
+      const minsRaw = parseInt(newService.durationMinutes as any) || 0
+      const minutes = Math.min(Math.max(minsRaw, 0), 59)
+      const totalDuration = hours * 60 + minutes
       const result = await createService({
         name: newService.name.trim(),
         description: newService.description.trim() || "",
         price: parseFloat(newService.price) || 0,
-        duration: parseInt(newService.duration) || 0
+        duration: totalDuration
       })
 
       if (result) {
-        setNewService({ name: "", description: "", price: "", duration: "" })
+        setNewService({ name: "", description: "", price: "", durationHours: "", durationMinutes: "" })
         setIsNewServiceOpen(false)
         toast({
           title: "Serviço adicionado!",
@@ -1005,7 +1011,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleCancelAddService = () => {
-    setNewService({ name: "", description: "", price: "", duration: "" })
+    setNewService({ name: "", description: "", price: "", durationHours: "", durationMinutes: "" })
     setIsNewServiceOpen(false)
   }
 
@@ -1020,17 +1026,21 @@ export default function ConfiguracoesPage() {
     }
 
     try {
+      const hours = parseInt(editService.durationHours as any) || 0
+      const minsRaw = parseInt(editService.durationMinutes as any) || 0
+      const minutes = Math.min(Math.max(minsRaw, 0), 59)
+      const totalDuration = hours * 60 + minutes
       await updateService({ 
         id: editingService.id, 
         name: editService.name.trim(),
         description: editService.description.trim(),
         price: parseFloat(editService.price) || 0,
-        duration: parseInt(editService.duration) || 0
+        duration: totalDuration
       })
       
       setIsEditServiceOpen(false)
       setEditingService(null)
-      setEditService({ name: "", description: "", price: "", duration: "" })
+      setEditService({ name: "", description: "", price: "", durationHours: "", durationMinutes: "" })
       
       toast({
         title: "Serviço atualizado!",
@@ -1050,11 +1060,15 @@ export default function ConfiguracoesPage() {
 
   const handleEditService = (service: any) => {
     setEditingService(service)
+    const total = typeof service.duration === 'number' ? service.duration : 0
+    const hours = Math.floor(total / 60)
+    const minutes = total % 60
     setEditService({
       name: service.name || "",
       description: service.description || "",
       price: (typeof service.price === 'number' ? service.price : 0).toString(),
-      duration: (typeof service.duration === 'number' ? service.duration : 0).toString()
+      durationHours: hours ? String(hours) : "",
+      durationMinutes: minutes ? String(minutes) : ""
     })
     setIsEditServiceOpen(true)
   }
@@ -1062,7 +1076,7 @@ export default function ConfiguracoesPage() {
   const handleCancelEditService = () => {
     setIsEditServiceOpen(false)
     setEditingService(null)
-    setEditService({ name: "", description: "", price: "", duration: "" })
+  setEditService({ name: "", description: "", price: "", durationHours: "", durationMinutes: "" })
   }
 
   const handleRemoveService = async (id: string, name: string) => {
@@ -1813,12 +1827,12 @@ export default function ConfiguracoesPage() {
                             </div>
                             
                             {/* Ações - Mobile em coluna, desktop permanece horizontal */}
-                            <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 flex-shrink-0">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 flex-shrink-0">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleOpenAvatarUpload(professional)}
-                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-9 sm:h-auto sm:w-auto"
+                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-9 sm:h-9 sm:px-3 sm:w-auto sm:rounded-md sm:text-[#a1a1aa] sm:border-[#4b4b53] sm:hover:border-[#6b7280]"
                                 title="Alterar foto de perfil"
                               >
                                 <Camera className="w-4 h-4 mr-2" />
@@ -1828,7 +1842,7 @@ export default function ConfiguracoesPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEditProfessional(professional)}
-                                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-9 sm:h-auto sm:w-auto"
+                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-9 sm:h-9 sm:px-3 sm:w-auto sm:rounded-md sm:text-[#a1a1aa] sm:border-[#4b4b53] sm:hover:border-[#6b7280]"
                                 title="Editar profissional"
                               >
                                 <Edit className="w-4 h-4 mr-2" />
@@ -1838,7 +1852,7 @@ export default function ConfiguracoesPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleRemoveProfessional(professional.id, professional.name)}
-                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent w-full h-9 sm:h-auto sm:w-auto"
+                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent w-full h-9 sm:h-9 sm:px-3 sm:w-auto sm:rounded-md sm:border-red-500 sm:hover:border-red-400"
                                 disabled={professionalsLoading}
                                 title="Remover profissional"
                               >
@@ -2134,17 +2148,36 @@ export default function ConfiguracoesPage() {
                               </div>
                               
                               <div className="space-y-2">
-                                <Label htmlFor="serviceDuration" className="text-[#ededed] text-sm font-medium">
-                                  Duração (min) *
+                                <Label className="text-[#ededed] text-sm font-medium">
+                                  Duração *
                                 </Label>
-                                <Input
-                                  id="serviceDuration"
-                                  type="number"
-                                  value={newService.duration}
-                                  onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
-                                  className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
-                                  placeholder="30"
-                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex flex-col gap-1">
+                                    <Input
+                                      id="serviceDurationHours"
+                                      type="number"
+                                      min={0}
+                                      value={newService.durationHours}
+                                      onChange={(e) => setNewService({ ...newService, durationHours: e.target.value })}
+                                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                      placeholder="Horas"
+                                    />
+                                    <span className="text-xs text-[#71717a]">Horas</span>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <Input
+                                      id="serviceDurationMinutes"
+                                      type="number"
+                                      min={0}
+                                      max={59}
+                                      value={newService.durationMinutes}
+                                      onChange={(e) => setNewService({ ...newService, durationMinutes: e.target.value })}
+                                      className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                      placeholder="Minutos"
+                                    />
+                                    <span className="text-xs text-[#71717a]">Minutos</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2391,17 +2424,36 @@ export default function ConfiguracoesPage() {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label htmlFor="editServiceDuration" className="text-[#ededed] text-sm font-medium">
-                            Duração (min) *
+                          <Label className="text-[#ededed] text-sm font-medium">
+                            Duração *
                           </Label>
-                          <Input
-                            id="editServiceDuration"
-                            type="number"
-                            value={editService.duration}
-                            onChange={(e) => setEditService({ ...editService, duration: e.target.value })}
-                            className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
-                            placeholder="30"
-                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Input
+                                id="editServiceDurationHours"
+                                type="number"
+                                min={0}
+                                value={editService.durationHours}
+                                onChange={(e) => setEditService({ ...editService, durationHours: e.target.value })}
+                                className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                placeholder="Horas"
+                              />
+                              <span className="text-xs text-[#71717a]">Horas</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Input
+                                id="editServiceDurationMinutes"
+                                type="number"
+                                min={0}
+                                max={59}
+                                value={editService.durationMinutes}
+                                onChange={(e) => setEditService({ ...editService, durationMinutes: e.target.value })}
+                                className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                placeholder="Minutos"
+                              />
+                              <span className="text-xs text-[#71717a]">Minutos</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
