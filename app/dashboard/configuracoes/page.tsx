@@ -2540,17 +2540,17 @@ export default function ConfiguracoesPage() {
                                 </div>
 
                                 {/* Lado direito - Horários ou Status */}
-                <div className="flex items-center gap-2 sm:gap-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2 sm:gap-3">
                                   {hours.active ? (
-                  <div className="flex flex-row items-center justify-between gap-3 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2.5 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 bg-[#18181b] rounded-lg p-2.5 sm:p-3 border border-[#3f3f46] w-full sm:w-auto">
                                       {/* Container de Abertura */}
-                    <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
+                                      <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center">
                                         <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Abertura</label>
                                         <Select
                                           value={hours.start}
                                           onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
                                         >
-                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums whitespace-nowrap leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -2569,13 +2569,13 @@ export default function ConfiguracoesPage() {
                                       </div>
                                       
                                       {/* Container de Fechamento */}
-                    <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center order-2 sm:order-3">
+                                      <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center order-2 sm:order-3">
                                         <label className="text-[#a1a1aa] text-xs font-medium sm:mb-1 flex-shrink-0 min-w-[60px] sm:min-w-0">Fechamento</label>
                                         <Select
                                           value={hours.end}
                                           onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
                                         >
-                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums whitespace-nowrap leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
