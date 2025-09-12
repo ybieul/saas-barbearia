@@ -2291,31 +2291,10 @@ export default function ConfiguracoesPage() {
                           </div>
                         </div>
 
-                        {/* Visibilidade pública */}
-                        <div className="mt-3 flex items-center gap-3">
-                          <Switch
-                            id={`public-visible-${service.id}`}
-                            checked={!!service.isVisibleOnPublicPage}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await updateService({ id: service.id, isVisibleOnPublicPage: checked })
-                                toast({ title: 'Visibilidade atualizada', description: `Serviço ${checked ? 'visível' : 'oculto'} na página pública.` })
-                                await fetchServices()
-                              } catch (e) {
-                                toast({ title: 'Erro ao atualizar visibilidade', variant: 'destructive' })
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`public-visible-${service.id}`} className="text-xs sm:text-sm text-[#ededed]">
-                            Visível na Página Pública
-                          </Label>
-                        </div>
+                        {/* Visibilidade pública (removido o toggle duplicado na parte inferior; mantém apenas o de cima ao lado de Editar) */}
 
                         {/* Metadados */}
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#71717a]">
-                          <Badge variant={service.isActive ? "default" : "secondary"} className="text-xs">
-                            {service.isActive ? "Ativo" : "Inativo"}
-                          </Badge>
                           {service.isVisibleOnPublicPage === false && (
                             <Badge variant="secondary" className="text-xs bg-yellow-700/30 text-yellow-300 border-yellow-700/50">
                               Oculto na página pública
