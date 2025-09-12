@@ -7,6 +7,8 @@ export interface AutomationSettings {
   reminder24hEnabled: boolean
   reminder12hEnabled: boolean
   reminder2hEnabled: boolean
+  reminder1hEnabled: boolean
+  reminder30minEnabled: boolean
   reactivationEnabled: boolean
   reactivationDays: number
 }
@@ -17,6 +19,8 @@ export function useAutomationSettings() {
     reminder24hEnabled: false,
     reminder12hEnabled: false,
     reminder2hEnabled: false,
+  reminder1hEnabled: false,
+  reminder30minEnabled: false,
     reactivationEnabled: false,
     reactivationDays: 15,
   })
@@ -62,6 +66,8 @@ export function useAutomationSettings() {
           reminder24hEnabled: apiSettings.reminder_24h?.isEnabled ?? false,
           reminder12hEnabled: apiSettings.reminder_12h?.isEnabled ?? false,
           reminder2hEnabled: apiSettings.reminder_2h?.isEnabled ?? false,
+          reminder1hEnabled: apiSettings.reminder_1h?.isEnabled ?? false,
+          reminder30minEnabled: apiSettings.reminder_30min?.isEnabled ?? false,
           reactivationEnabled: apiSettings.reactivation?.isEnabled ?? false,
           reactivationDays: 15,
         }
@@ -145,6 +151,12 @@ export function useAutomationSettings() {
               break
             case 'reminder_2h':
               updated.reminder2hEnabled = isEnabled
+              break
+            case 'reminder_1h':
+              updated.reminder1hEnabled = isEnabled
+              break
+            case 'reminder_30min':
+              updated.reminder30minEnabled = isEnabled
               break
             case 'reactivation':
               updated.reactivationEnabled = isEnabled

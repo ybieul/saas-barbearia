@@ -24,6 +24,8 @@ const REMINDER_CONFIGS: ReminderConfig[] = [
   { type: 'reminder_24h', hoursBefore: 24, minutesBefore: 0 },
   { type: 'reminder_12h', hoursBefore: 12, minutesBefore: 0 },
   { type: 'reminder_2h', hoursBefore: 2, minutesBefore: 0 },
+  { type: 'reminder_1h', hoursBefore: 1, minutesBefore: 0 },
+  { type: 'reminder_30min', hoursBefore: 0, minutesBefore: 30 },
 ]
 
 export async function sendWhatsappReminders() {
@@ -300,6 +302,12 @@ async function sendReminderMessage(appointment: any, reminderType: string, insta
       break
     case 'reminder_2h':
       message = whatsappTemplates.reminder2h(templateData)
+      break
+    case 'reminder_1h':
+      message = whatsappTemplates.reminder1h(templateData)
+      break
+    case 'reminder_30min':
+      message = whatsappTemplates.reminder30min(templateData)
       break
     default:
       throw new Error(`Tipo de lembrete desconhecido: ${reminderType}`)

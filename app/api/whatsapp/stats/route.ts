@@ -86,21 +86,28 @@ export async function GET(request: NextRequest) {
     // Buscar automações ativas para calcular redução de faltas
     let activeAutomations = 0
     try {
-      const automationSettings = await prisma.automationSetting.findMany({
-        where: {
-          establishmentId: user.tenantId,
-          isEnabled: true,
-          automationType: {
-            not: 'reactivation' // Excluir automações de reativação da contagem
+        const automationSettings = await prisma.automationSetting.findMany({
+          where: {
+            establishmentId: user.tenantId,
+            isEnabled: true,
+            automationType: {
+              in: [
+                'confirmation',
+                'reminder_24h',
+                'reminder_12h',
+                'reminder_2h',
+                'reminder_1h',
+                'reminder_30min'
+              ]
+            }
           }
-        }
-      })
+        })
       activeAutomations = automationSettings.length
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.log('⚠️ Tabela automation_settings não encontrada, usando valor padrão')
       }
-      activeAutomations = 4 // Valor padrão para simular automações ativas (Confirmação + 3 Lembretes)
+  activeAutomations = 6 // Valor padrão para simular automações ativas (Confirmação + 5 Lembretes)
     }
 
     const reductionRate = Math.min(95, Math.max(70, 70 + (activeAutomations * 5)))

@@ -534,6 +534,34 @@ export default function WhatsAppPage() {
                 }}
               />
             </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Lembrete 1 hora</p>
+                <p className="text-sm text-[#71717a]">Lembrete 1 hora antes do agendamento</p>
+              </div>
+              <Switch
+                checked={automationSettings.reminder1hEnabled}
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  await handleAutomationToggle('reminder_1h', checked, 'Lembrete 1 hora')
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Lembrete 30 minutos</p>
+                <p className="text-sm text-[#71717a]">Lembrete 30 minutos antes do agendamento</p>
+              </div>
+              <Switch
+                checked={automationSettings.reminder30minEnabled}
+                disabled={isLoadingSettings}
+                onCheckedChange={async (checked) => {
+                  await handleAutomationToggle('reminder_30min', checked, 'Lembrete 30 minutos')
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
