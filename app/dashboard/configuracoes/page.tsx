@@ -2550,7 +2550,7 @@ export default function ConfiguracoesPage() {
                                           value={hours.start}
                                           onValueChange={(value) => handleWorkingHoursChange(day, 'start', value)}
                                         >
-                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums whitespace-nowrap leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
@@ -2575,7 +2575,7 @@ export default function ConfiguracoesPage() {
                                           value={hours.end}
                                           onValueChange={(value) => handleWorkingHoursChange(day, 'end', value)}
                                         >
-                      <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-20 sm:w-24 h-7 sm:h-9 text-center font-mono focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
+                                          <SelectTrigger className="bg-[#27272a] border-[#52525b] text-[#ededed] w-[84px] sm:w-24 min-w-[84px] h-7 sm:h-9 text-center font-mono tabular-nums whitespace-nowrap leading-none px-2 focus:ring-[#10b981] focus:border-[#10b981] text-xs sm:text-sm">
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent className="bg-[#27272a] border-[#52525b] max-h-60">
