@@ -69,6 +69,7 @@
     "dotenv": "^17.2.0",
     "embla-carousel-react": "8.5.1",
     "exceljs": "^4.4.0",
+    "framer-motion": "^12.23.16",
     "html2canvas": "^1.4.1",
     "input-otp": "1.4.1",
     "jose": "^6.1.0",
