@@ -11,7 +11,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ className }: HeroSectionProps) {
   return (
-    <section className={cn("relative overflow-hidden pt-28 md:pt-32 pb-16", className)}>
+    <section id="sobre" className={cn("relative overflow-hidden pt-28 md:pt-32 pb-16 scroll-mt-24", className)}>
       {/* Aura radial ao fundo */}
       <div
         aria-hidden
@@ -46,9 +46,11 @@ export default function HeroSection({ className }: HeroSectionProps) {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-8 flex justify-center"
           >
-            <Button size="lg" className="rounded-full bg-gradient-to-r from-primary to-primary/70 hover:from-primary/90 hover:to-primary/75">
-              Adquirir agora
-            </Button>
+            <a href="#pricing" className="inline-block">
+              <Button size="lg" className="rounded-full bg-gradient-to-r from-primary to-primary/70 hover:from-primary/90 hover:to-primary/75">
+                Adquirir agora
+              </Button>
+            </a>
           </motion.div>
         </div>
 

@@ -26,27 +26,27 @@ const item = {
 export default function ThreeStepsSection({ className }: ThreeStepsSectionProps) {
   const steps = [
     {
-      badge: "Passo 1",
-      title: "Passo 1 - Cadastre sua barbearia",
+        badge: "Passo 1",
+        title: "Cadastre sua barbearia",
       desc:
-        "Crie seu perfil e personalize-o com sua barbearia, serviços, horários de funcionamento e equipe. Tenha sua barbearia online e pronta para agendar.",
+          "Crie seu perfil e personalize com seus serviços, horários e equipe. Sua barbearia online, pronta para agendar.",
     },
     {
-      badge: "Passo 2",
-      title: "Passo 2 - Conecte com seus clientes",
+        badge: "Passo 2",
+        title: "Conecte com seus clientes",
       desc:
-        "Seus clientes podem agendar online de forma fácil e rápida pelo link exclusivo da sua barbearia. Tudo com a sua marca e com bastante profissionalismo.",
+          "Seus clientes agendam online de forma fácil e rápida pelo link exclusivo da sua barbearia. Tudo com a sua marca, com profissionalismo.",
     },
     {
-      badge: "Passo 3",
-      title: "Passo 3 - Gerencie seu negócio",
+        badge: "Passo 3",
+        title: "Gerencie seu negócio",
       desc:
-        "Tenha a visão completa da sua agenda, clientes, financeiro e equipe, tudo de forma automatizada e intuitiva. Foque no que importa e deixe a gestão com o TymerBook!",
+          "Tenha visão completa da agenda, clientes, financeiro e equipe. Foque no que importa e deixe a gestão com a TymerBook.",
     },
   ];
 
   return (
-    <section className={cn("py-16 md:py-20", className)}>
+    <section id="como-funciona" className={cn("py-16 md:py-20 scroll-mt-24", className)}>
       <div className="container mx-auto px-4">
         <motion.div
           variants={container}
