@@ -357,6 +357,35 @@ export async function sendSubscriptionCanceledEmail(name: string, email: string,
     return sendGenericNoticeEmail({ email, name, plan, subject: '🔔 Assinatura cancelada', title: 'Assinatura Cancelada', subtitle: 'Acesso restrito', body, ctaText: 'Reativar assinatura', ctaUrl: portalUrl })
 }
 
+// Função utilitária genérica para envio de e-mails
+export interface EmailParams {
+    to: string
+    subject: string
+    html: string
+    text?: string
+    fromName?: string
+    fromEmail?: string
+}
+
+export async function sendEmail({ to, subject, html, text, fromName, fromEmail }: EmailParams) {
+    try {
+        const transporter = createTransporter()
+        await transporter.sendMail({
+            from: {
+                name: fromName || 'TymerBook',
+                address: fromEmail || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com'
+            },
+            to,
+            subject,
+            html,
+            text
+        })
+    } catch (error) {
+        console.error('❌ Erro ao enviar e-mail:', error)
+        throw new Error('Falha ao enviar o e-mail de notificação.')
+    }
+}
+
 // Template HTML para email de redefinição de senha
 function getPasswordResetEmailTemplate(name: string, resetUrl: string) {
     return `<!DOCTYPE html>

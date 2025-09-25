@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
+import { newAppointmentNotificationEmail } from '@/utils/emailTemplates'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime, parseBirthDate } from '@/lib/timezone'
 import { whatsappTemplates } from '@/lib/whatsapp-server'
@@ -454,6 +456,34 @@ export async function POST(request: NextRequest) {
     } catch (whatsappError) {
       console.error('❌ Erro ao enviar confirmação WhatsApp:', whatsappError)
       // Não falhar a criação do agendamento por erro do WhatsApp
+    }
+
+    // ✅ NOVO: NOTIFICAÇÃO POR E-MAIL PARA O DONO (TENANT)
+    try {
+      const tenantEmail = (business as any).email
+      if (tenantEmail) {
+        const emailHtml = newAppointmentNotificationEmail({
+          clientName: appointmentClient?.name || 'Cliente',
+          professionalName: appointmentProfessional?.name || 'Não especificado',
+          services: appointmentServices.map(s => s.name).join(', '),
+          date: formatBrazilDate(appointment.dateTime),
+          time: formatBrazilTime(appointment.dateTime, 'HH:mm'),
+          totalPrice: `R$ ${Number(totalPrice).toFixed(2).replace('.', ',')}`,
+        })
+
+        await sendEmail({
+          to: tenantEmail,
+          subject: `🎉 Novo Agendamento: ${appointmentClient?.name || 'Cliente'}`,
+          html: emailHtml,
+        })
+
+        console.log(`✅ E-mail de notificação enviado para ${tenantEmail}`)
+      } else {
+        console.log('ℹ️ Tenant não possui e-mail configurado; pulando notificação por e-mail.')
+      }
+    } catch (emailError) {
+      console.error('⚠️ Falha ao enviar e-mail de notificação, mas o agendamento foi criado:', emailError)
+      // Não retornar erro aqui; o agendamento já foi criado com sucesso.
     }
 
     return NextResponse.json({
