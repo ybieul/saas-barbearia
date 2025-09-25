@@ -22,6 +22,16 @@ export default function HeroSection({ className }: HeroSectionProps) {
 
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
+          {/* Chip "Novo" conforme print */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1 text-xs font-medium text-primary mb-6"
+            aria-hidden
+          >
+            Novo
+          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -35,7 +45,7 @@ export default function HeroSection({ className }: HeroSectionProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mt-5 text-lg md:text-xl text-muted-foreground"
+            className="mt-5 text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto"
           >
             A TymerBook é o sistema simples e intuitivo que te ajuda em cada etapa, desde o agendamento do cliente até a gestão completa do seu negócio.
           </motion.p>

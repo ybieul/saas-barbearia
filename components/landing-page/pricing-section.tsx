@@ -85,6 +85,10 @@ export default function PricingSection() {
 	return (
 		<SectionLayout>
 			<div id="pricing" className="mx-auto max-w-3xl text-center">
+				<div className="mb-3 flex items-center justify-center gap-2 text-sm font-medium text-primary/80 tracking-wide">
+					<span className="text-base leading-none">•</span>
+					<span>Planos</span>
+				</div>
 				<h2 className="text-3xl md:text-4xl font-bold">Escolha o plano perfeito para o seu negócio.</h2>
 				<p className="mt-3 text-muted-foreground">Escolha o plano ideal para o momento do seu negócio. Desde planos mensais a planos anuais.</p>
 			</div>

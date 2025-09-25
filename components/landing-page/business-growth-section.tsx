@@ -63,7 +63,7 @@ export default function BusinessGrowthSection() {
 						viewport={{ once: true, amount: 0.3 }}
 						transition={{ duration: 0.5, delay: 0.05 }}
 					>
-						A TymerBook oferece as ferramentas para gerenciar seu negócio e alcançar seus objetivos, de forma simples e intuitiva.
+						A TymerBook te dá todas as ferramentas para gerenciar seu negócio e alcançar seus objetivos de forma simples e intuitiva.
 					</motion.p>
 
 					<div className="relative mt-8">
@@ -89,8 +89,8 @@ export default function BusinessGrowthSection() {
 
 				<div className="relative">
 					<div className="relative z-10 space-y-8">
-						<FloatingCard src={IMG_FLUXO_CAIXA} title="Visão geral do fluxo de caixa" description="Acompanhe sua receita diária, semanal, mês a mês e tenha clareza sobre o fluxo do caixa." className="md:ml-10 lg:ml-16 xl:ml-20 shadow-lg -rotate-[0.5deg]" />
-						<FloatingCard src={IMG_WHATSAPP} title="Integração com WhatsApp" description="Integre seu número ao WhatsApp (via Tymerbook) e estruture a forma como você se comunica com seus clientes." className="-mt-14 md:-mt-16 md:ml-2 lg:ml-6 xl:ml-10 shadow-lg rotate-[0.4deg]" />
+						<FloatingCard src={IMG_FLUXO_CAIXA} title="Visão geral do fluxo de caixa" description="Acompanhe sua receita diária, semanal e mês a mês. Tenha clareza total sobre o fluxo do caixa." className="md:ml-10 lg:ml-16 xl:ml-20 shadow-lg -rotate-[0.5deg]" />
+						<FloatingCard src={IMG_WHATSAPP} title="Integração com WhatsApp" description="Integre seu número ao WhatsApp (via TymerBook) e estruture a forma como você se comunica com seus clientes." className="-mt-14 md:-mt-16 md:ml-2 lg:ml-6 xl:ml-10 shadow-lg rotate-[0.4deg]" />
 						<FloatingCard src={IMG_UPSELL} title="Upsell" description="Ofereça serviços e produtos adicionais no agendamento, aumentando o valor de cada atendimento sem esforço." className="-mt-14 md:-mt-16 md:ml-14 lg:ml-20 xl:ml-28 shadow-lg -rotate-[0.6deg]" />
 					</div>
 					<div className="pointer-events-none absolute -inset-x-6 -bottom-6 top-6 rounded-3xl bg-black/15 blur-3xl dark:bg-white/10" aria-hidden />
