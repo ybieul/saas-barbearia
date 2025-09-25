@@ -30,8 +30,8 @@ export const newAppointmentNotificationEmail = ({
         <li><strong>Valor Total:</strong> ${totalPrice}</li>
       </ul>
       <hr>
-      <p>Pode ver mais detalhes acedendo à sua agenda no painel da TymerBook.</p>
-      <p>Obrigado,<br>Equipa TymerBook</p>
+      <p>Pode ver mais detalhes acessando a sua agenda no painel da TymerBook.</p>
+      <p>Obrigado,<br>Equipe TymerBook</p>
     </div>
   `
 }
