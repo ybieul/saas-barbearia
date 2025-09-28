@@ -26,6 +26,8 @@ const REMINDER_CONFIGS = [
     { type: 'reminder_24h', hoursBefore: 24, minutesBefore: 0 },
     { type: 'reminder_12h', hoursBefore: 12, minutesBefore: 0 },
     { type: 'reminder_2h', hoursBefore: 2, minutesBefore: 0 },
+    { type: 'reminder_1h', hoursBefore: 1, minutesBefore: 0 },
+    { type: 'reminder_30min', hoursBefore: 0, minutesBefore: 30 },
 ];
 function sendWhatsappReminders() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -171,7 +173,67 @@ function sendWhatsappReminders() {
         }
         console.log(`[${new Date().toISOString()}] 🎉 MULTI-TENANT: Processamento concluído. Total de lembretes enviados: ${totalSent}`);
         console.log('✅ Lógica de lembretes multi-tenant finalizada.');
+        try {
+            const feedbackTotal = yield sendFeedbackRequests();
+            console.log(`📝 [FEEDBACK] Total de mensagens de avaliação enviadas: ${feedbackTotal}`);
+        }
+        catch (e) {
+            console.error('❌ [FEEDBACK] Erro ao processar feedback requests:', e);
+        }
         return totalSent;
+    });
+}
+// ===================== FEEDBACK REQUESTS =====================
+function sendFeedbackRequests() {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...');
+        const now = (0, timezone_1.getBrazilNow)();
+        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+        const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
+        const appointments = yield prisma.appointment.findMany({
+            where: {
+                status: 'COMPLETED',
+                // @ts-ignore campo novo
+                feedbackSent: false,
+                completedAt: { gte: oneHourAgo, lte: thirtyMinAgo },
+                tenant: {
+                    whatsapp_instance_name: { not: null },
+                    automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
+                }
+            },
+            include: {
+                tenant: { include: { automationSettings: true } },
+                endUser: true,
+                services: true
+            }
+        });
+        console.log(`🔍 [FEEDBACK] Agendamentos candidatos: ${appointments.length}`);
+        let sentCount = 0;
+        for (const appt of appointments) {
+            try {
+                const automation = appt.tenant && appt.tenant.automationSettings && appt.tenant.automationSettings.find(a => a.automationType === 'feedback_request' && a.isEnabled);
+                if (!automation)
+                    continue;
+                if (!(appt.endUser && appt.endUser.phone))
+                    continue;
+                const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}';
+                const message = template
+                    .replace(/\{nomeCliente\}/g, appt.endUser.name)
+                    .replace(/\{nomeBarbearia\}/g, (appt.tenant.businessName || 'nossa barbearia'))
+                    .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '');
+                const success = yield sendMultiTenantWhatsAppMessage(appt.endUser.phone, message, appt.tenant.whatsapp_instance_name, 'feedback_request');
+                yield prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id);
+                if (success)
+                    sentCount++;
+                yield new Promise(r => setTimeout(r, 750));
+            }
+            catch (e) {
+                console.error('❌ [FEEDBACK] Erro ao enviar feedback para', appt.id, e);
+                yield prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id);
+            }
+        }
+        console.log(`🎉 [FEEDBACK] Processamento concluído. Enviados: ${sentCount}`);
+        return sentCount;
     });
 }
 // 🚀 FUNÇÃO MULTI-TENANT: Enviar mensagem WhatsApp usando instância específica do tenant
@@ -261,10 +323,16 @@ function sendReminderMessage(appointment, reminderType, instanceName) {
                 message = whatsapp_server_1.whatsappTemplates.reminder24h(templateData);
                 break;
             case 'reminder_12h':
-                message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData); // ✅ CORRIGIDO: usar template correto
+                message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData);
                 break;
             case 'reminder_2h':
                 message = whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
+                break;
+            case 'reminder_1h':
+                message = whatsapp_server_1.whatsappTemplates.reminder1h ? whatsapp_server_1.whatsappTemplates.reminder1h(templateData) : whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
+                break;
+            case 'reminder_30min':
+                message = whatsapp_server_1.whatsappTemplates.reminder30min ? whatsapp_server_1.whatsappTemplates.reminder30min(templateData) : whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
                 break;
             default:
                 throw new Error(`Tipo de lembrete desconhecido: ${reminderType}`);

@@ -58,6 +58,28 @@ Não esqueça do seu agendamento:
 👨‍💼 Profissional: ${data.professional}
 
 Já estamos nos preparando para te receber! 🎯`,
+    reminder1h: (data) => `⏰ *Lembrete: Seu horário é em 1 hora!*
+
+Olá *${data.clientName}*!
+
+Não esqueça do seu agendamento:
+
+⏰ *${data.time}* (em 1 hora)
+🔹 Serviço: ${data.service}  
+👨‍💼 Profissional: ${data.professional}
+
+Se precisar reagendar, fale conosco.`,
+    reminder30min: (data) => `🚀 *Falta pouco: Seu horário é em 30 minutos!*
+
+Olá *${data.clientName}*!
+
+Seu atendimento está chegando:
+
+⏰ *${data.time}* (em 30 minutos)
+🔹 Serviço: ${data.service}  
+👨‍💼 Profissional: ${data.professional}
+
+Estamos te esperando!`,
     reactivation: (data) => `🌟 *Sentimos sua falta!*
 
 Olá *${data.clientName}*! 😊
