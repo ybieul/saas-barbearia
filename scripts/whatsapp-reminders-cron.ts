@@ -297,7 +297,21 @@ export async function sendFeedbackRequests() {
             }
           })
         } catch (logErr) {
-          console.error('⚠️ [FEEDBACK] Falha ao criar WhatsAppLog:', logErr)
+          console.error('⚠️ [FEEDBACK] Falha ao criar WhatsAppLog (FEEDBACK). Tentando fallback CUSTOM:', logErr)
+          try {
+            await prisma.whatsAppLog.create({
+              data: {
+                to: appt.endUser.phone,
+                message,
+                type: 'CUSTOM' as any,
+                status: 'SENT' as any,
+                sentAt: new Date(),
+                tenantId: appt.tenantId
+              }
+            })
+          } catch (fallbackErr) {
+            console.error('❌ [FEEDBACK] Falha no fallback CUSTOM WhatsAppLog:', fallbackErr)
+          }
         }
         sentCount++
         console.log(`✅ [FEEDBACK] (${delay}m) Enviada avaliação para agendamento ${appt.id}`)
