@@ -207,12 +207,12 @@ export async function sendWhatsappReminders() {
 export async function sendFeedbackRequests() {
   console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...')
   const now = getBrazilNow()
-  // Janela ampla 2h e filtragem dinâmica por delay configurado
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  // Janela ampla 6h e filtragem dinâmica por delay configurado
+  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000)
   const appointmentsBase = await prisma.appointment.findMany({
     where: {
       status: 'COMPLETED',
-      completedAt: { gte: twoHoursAgo, lte: now },
+  completedAt: { gte: sixHoursAgo, lte: now },
       tenant: {
         whatsapp_instance_name: { not: null },
         automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
@@ -224,10 +224,10 @@ export async function sendFeedbackRequests() {
       services: true
     }
   }) as any
-  const sentRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, twoHoursAgo, now)
+  const sentRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, sixHoursAgo, now)
   const sentSet = new Set(sentRows.map(r => r.id))
   const appointments = appointmentsBase.filter((a: any) => !sentSet.has(a.id))
-  console.log(`🔍 [FEEDBACK] Candidatos (2h, filtrados sem enviados): ${appointments.length}`)
+  console.log(`🔍 [FEEDBACK] Candidatos (6h, filtrados sem enviados): ${appointments.length}`)
   let sentCount = 0
   for (const appt of appointments) {
     try {
@@ -251,23 +251,44 @@ export async function sendFeedbackRequests() {
         }
       }) as any
       if (existingLog) {
-        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+        console.log(`⚠️ [FEEDBACK] Já existe log FEEDBACK recente para telefone ${appt.endUser.phone}`)
         continue
       }
 
       const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
+      if (!appt.tenant.googleReviewLink && /\{linkAvaliacao\}/.test(template)) {
+        console.warn(`⚠️ [FEEDBACK] Template contém {linkAvaliacao} mas tenant não tem googleReviewLink (tenantId=${appt.tenantId})`)
+      }
       const message = template
         .replace(/\{nomeCliente\}/g, appt.endUser.name)
         .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
         .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
         .replace(/\{linkTracking\}/g, '')
       const success = await sendMultiTenantWhatsAppMessage(appt.endUser.phone, message, appt.tenant.whatsapp_instance_name!, 'feedback_request')
-      await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
-      if (success) sentCount++
+      if (success) {
+        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+        try {
+          await prisma.whatsAppLog.create({
+            data: {
+              to: appt.endUser.phone,
+              message,
+              type: 'FEEDBACK' as any,
+              status: 'SENT' as any,
+              sentAt: new Date(),
+              tenantId: appt.tenantId
+            }
+          })
+        } catch (logErr) {
+          console.error('⚠️ [FEEDBACK] Falha ao criar WhatsAppLog:', logErr)
+        }
+        sentCount++
+      } else {
+        console.warn(`⚠️ [FEEDBACK] Falha no envio (não marcado como enviado) appt=${appt.id}`)
+      }
       await new Promise(r => setTimeout(r, 750))
     } catch (e) {
       console.error('❌ [FEEDBACK] Erro ao enviar feedback para', appt.id, e)
-      await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+  // Não marcar feedbackSent em erro para permitir nova tentativa na janela
     }
   }
   console.log(`🎉 [FEEDBACK] Processamento concluído. Enviados: ${sentCount}`)

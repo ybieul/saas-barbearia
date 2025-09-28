@@ -28,7 +28,8 @@ export default function WhatsAppPage() {
   const [feedback, setFeedback] = useState({
     enabled: false,
     googleLink: "",
-    template: "Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Adoraríamos saber a sua opinião sobre o nosso serviço! Pode deixar a sua avaliação aqui: {linkAvaliacao}. Esperamos vê-lo em breve! 👋"
+    template: "Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Adoraríamos saber a sua opinião sobre o nosso serviço! Pode deixar a sua avaliação aqui: {linkAvaliacao}. Esperamos vê-lo em breve! 👋",
+    delayMinutes: 45
   })
   const [isSavingFeedback, setIsSavingFeedback] = useState(false)
   const [loadingFeedback, setLoadingFeedback] = useState(true)
@@ -92,7 +93,7 @@ export default function WhatsAppPage() {
   const { connectionStatus, isConnected, isLoading: isLoadingStatus, refetch: refetchStatus } = useWhatsAppStatus()
 
   // Função para salvar configurações de feedback
-  const saveFeedback = async (partial: { enabled?: boolean }) => {
+  const saveFeedback = async (partial: { enabled?: boolean; delayMinutes?: number }) => {
     try {
       setIsSavingFeedback(true)
       const token = localStorage.getItem('auth_token')
@@ -105,6 +106,7 @@ export default function WhatsAppPage() {
           googleReviewLink: feedback.googleLink,
           messageTemplate: feedback.template,
           isEnabled: partial.enabled ?? feedback.enabled,
+          delayMinutes: partial.delayMinutes ?? feedback.delayMinutes
         })
       })
       if (!res.ok) throw new Error('Falha ao salvar')
