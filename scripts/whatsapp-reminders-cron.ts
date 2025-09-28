@@ -263,21 +263,13 @@ export async function sendFeedbackRequests() {
         continue
       }
 
-      // Gerar token se não existir (client antigo pode não conhecer coluna)
-      let token = appt.feedbackToken
-      if (!token) {
-        token = randomBytes(16).toString('hex')
-        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackToken = ? WHERE id = ?`, token, appt.id)
-      }
-
-      const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.tymerbook.com'
-      const trackingUrl = `${baseUrl.replace(/\/$/, '')}/api/feedback/track?token=${token}`
+      // Montar mensagem (apenas placeholders básicos e link de avaliação se existir)
       const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
       const message = template
         .replace(/\{nomeCliente\}/g, appt.endUser.name)
         .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
-        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || trackingUrl)
-        .replace(/\{linkTracking\}/g, trackingUrl)
+        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+        .replace(/\{linkTracking\}/g, '') // placeholder removido do sistema
 
       const success = await sendMultiTenantWhatsAppMessage(
         appt.endUser.phone,

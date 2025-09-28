@@ -225,10 +225,6 @@ model Appointment {
   reminderSent  Boolean           @default(false)
   // Flag para indicar se mensagem de feedback foi enviada
   feedbackSent  Boolean           @default(false)
-  // Token único para tracking de clique
-  feedbackToken String? @unique
-  feedbackLinkClicked Boolean @default(false)
-  feedbackLinkClickedAt DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 

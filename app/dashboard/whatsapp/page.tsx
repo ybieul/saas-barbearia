@@ -665,7 +665,7 @@ export default function WhatsAppPage() {
                 onChange={(e) => setFeedback(f => ({ ...f, template: e.target.value }))}
                 className="bg-gray-700 border-[#3f3f46] text-white min-h-[140px]"
               />
-              <p className="text-xs text-[#52525b]">Variáveis: {'{nomeCliente}'}, {'{nomeBarbearia}'}, {'{linkAvaliacao}'} (usa link Google se configurado senão tracking), {'{linkTracking}'} (sempre tracking direto)</p>
+              <p className="text-xs text-[#52525b]">Variáveis: {'{nomeCliente}'}, {'{nomeBarbearia}'}, {'{linkAvaliacao}'} (usa link Google se configurado, senão fica vazio)</p>
             </div>
 
             <div className="space-y-2">
@@ -692,11 +692,11 @@ export default function WhatsAppPage() {
                   return tpl
                     .replace(/\{nomeCliente\}/g, 'João')
                     .replace(/\{nomeBarbearia\}/g, 'Barbearia Exemplo')
-                    .replace(/\{linkAvaliacao\}/g, feedback.googleLink || 'https://g.page/r/EXEMPLO')
-                    .replace(/\{linkTracking\}/g, 'https://app.tymerbook.com/api/feedback/track?token=EXEMPLO')
+                    .replace(/\{linkAvaliacao\}/g, feedback.googleLink || '')
+                    .replace(/\{linkTracking\}/g, '')
                 })()}
               </div>
-              <p className="text-xs text-[#52525b]">Exemplo ilustrativo. O link real de tracking é gerado por agendamento.</p>
+              <p className="text-xs text-[#52525b]">Exemplo ilustrativo. Caso não informe link Google, a variável {'{linkAvaliacao}'} ficará vazia.</p>
             </div>
 
             <Button

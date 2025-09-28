@@ -255,19 +255,12 @@ export async function sendFeedbackRequests() {
         continue
       }
 
-      let token = appt.feedbackToken
-      if (!token) {
-        token = require('crypto').randomBytes(16).toString('hex')
-        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackToken = ? WHERE id = ?`, token, appt.id)
-      }
-      const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.tymerbook.com'
-      const trackingUrl = `${baseUrl.replace(/\/$/, '')}/api/feedback/track?token=${token}`
       const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
       const message = template
         .replace(/\{nomeCliente\}/g, appt.endUser.name)
         .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
-        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || trackingUrl)
-        .replace(/\{linkTracking\}/g, trackingUrl)
+        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+        .replace(/\{linkTracking\}/g, '')
       const success = await sendMultiTenantWhatsAppMessage(appt.endUser.phone, message, appt.tenant.whatsapp_instance_name!, 'feedback_request')
       await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
       if (success) sentCount++
