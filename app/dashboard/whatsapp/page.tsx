@@ -138,7 +138,8 @@ export default function WhatsAppPage() {
             ...prev,
             enabled: data.isEnabled ?? false,
             googleLink: data.googleReviewLink || "",
-            template: data.messageTemplate || prev.template
+            template: data.messageTemplate || prev.template,
+            delayMinutes: typeof data.delayMinutes === 'number' ? data.delayMinutes : prev.delayMinutes
           }))
         }
       } catch (e) {
@@ -674,9 +675,11 @@ export default function WhatsAppPage() {
               <Label className="text-gray-300">Atraso (minutos após finalizar)</Label>
               <select
                 value={feedback.delayMinutes || 45}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const value = parseInt(e.target.value, 10)
                   setFeedback(f => ({ ...f, delayMinutes: value }))
+                  // Salvar automaticamente atraso
+                  await saveFeedback({ delayMinutes: value })
                 }}
                 className="w-full bg-gray-700 border-[#3f3f46] text-white rounded px-3 py-2 text-sm"
               >
