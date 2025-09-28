@@ -207,15 +207,12 @@ export async function sendWhatsappReminders() {
 export async function sendFeedbackRequests() {
   console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...')
   const now = getBrazilNow()
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000)
-
-  const appointments = await prisma.appointment.findMany({
+  // Janela ampla 2h e filtragem dinâmica por delay configurado
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  const appointmentsBase = await prisma.appointment.findMany({
     where: {
       status: 'COMPLETED',
-      // @ts-ignore campo novo
-      feedbackSent: false,
-      completedAt: { gte: oneHourAgo, lte: thirtyMinAgo },
+      completedAt: { gte: twoHoursAgo, lte: now },
       tenant: {
         whatsapp_instance_name: { not: null },
         automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
@@ -227,19 +224,50 @@ export async function sendFeedbackRequests() {
       services: true
     }
   }) as any
-
-  console.log(`🔍 [FEEDBACK] Agendamentos candidatos: ${appointments.length}`)
+  const sentRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, twoHoursAgo, now)
+  const sentSet = new Set(sentRows.map(r => r.id))
+  const appointments = appointmentsBase.filter((a: any) => !sentSet.has(a.id))
+  console.log(`🔍 [FEEDBACK] Candidatos (2h, filtrados sem enviados): ${appointments.length}`)
   let sentCount = 0
   for (const appt of appointments) {
     try {
+      if (!appt.completedAt) continue
       const automation = appt.tenant?.automationSettings?.find((a: any) => a.automationType === 'feedback_request' && a.isEnabled)
       if (!automation) continue
       if (!appt.endUser?.phone) continue
+
+      const delay = appt.tenant.feedbackDelayMinutes || 45
+      const tolerance = 5
+      const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000)
+      const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000)
+      const windowEnd = new Date(targetTime.getTime() + tolerance * 60 * 1000)
+      if (now < windowStart || now > windowEnd) continue
+
+      const existingLog = await prisma.whatsAppLog.findFirst({
+        where: {
+          to: appt.endUser.phone,
+          type: 'FEEDBACK' as any,
+          createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }
+        }
+      }) as any
+      if (existingLog) {
+        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+        continue
+      }
+
+      let token = appt.feedbackToken
+      if (!token) {
+        token = require('crypto').randomBytes(16).toString('hex')
+        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackToken = ? WHERE id = ?`, token, appt.id)
+      }
+      const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.tymerbook.com'
+      const trackingUrl = `${baseUrl.replace(/\/$/, '')}/api/feedback/track?token=${token}`
       const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
       const message = template
         .replace(/\{nomeCliente\}/g, appt.endUser.name)
         .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
-        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || trackingUrl)
+        .replace(/\{linkTracking\}/g, trackingUrl)
       const success = await sendMultiTenantWhatsAppMessage(appt.endUser.phone, message, appt.tenant.whatsapp_instance_name!, 'feedback_request')
       await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
       if (success) sentCount++

@@ -665,7 +665,38 @@ export default function WhatsAppPage() {
                 onChange={(e) => setFeedback(f => ({ ...f, template: e.target.value }))}
                 className="bg-gray-700 border-[#3f3f46] text-white min-h-[140px]"
               />
-              <p className="text-xs text-[#52525b]">Variáveis: {'{nomeCliente}'}, {'{nomeBarbearia}'}, {'{linkAvaliacao}'}</p>
+              <p className="text-xs text-[#52525b]">Variáveis: {'{nomeCliente}'}, {'{nomeBarbearia}'}, {'{linkAvaliacao}'} (usa link Google se configurado senão tracking), {'{linkTracking}'} (sempre tracking direto)</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">Atraso (minutos após finalizar)</Label>
+              <select
+                value={feedback.delayMinutes || 45}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10)
+                  setFeedback(f => ({ ...f, delayMinutes: value }))
+                }}
+                className="w-full bg-gray-700 border-[#3f3f46] text-white rounded px-3 py-2 text-sm"
+              >
+                {[15,30,45,60,90].map(v => <option key={v} value={v}>{v} minutos</option>)}
+              </select>
+              <p className="text-xs text-[#52525b]">Janela de envio considera ±5 min de tolerância.</p>
+            </div>
+
+            {/* Pré-visualização dinâmica */}
+            <div className="space-y-2">
+              <Label className="text-gray-300">Pré-visualização</Label>
+              <div className="bg-gray-800 border border-[#3f3f46] rounded p-3 text-sm text-gray-200 whitespace-pre-wrap">
+                {(() => {
+                  const tpl = feedback.template || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
+                  return tpl
+                    .replace(/\{nomeCliente\}/g, 'João')
+                    .replace(/\{nomeBarbearia\}/g, 'Barbearia Exemplo')
+                    .replace(/\{linkAvaliacao\}/g, feedback.googleLink || 'https://g.page/r/EXEMPLO')
+                    .replace(/\{linkTracking\}/g, 'https://app.tymerbook.com/api/feedback/track?token=EXEMPLO')
+                })()}
+              </div>
+              <p className="text-xs text-[#52525b]">Exemplo ilustrativo. O link real de tracking é gerado por agendamento.</p>
             </div>
 
             <Button

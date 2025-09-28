@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     // Buscar tenant para link
     const tenant = await prisma.tenant.findUnique({
       where: { id: user.tenantId },
-      select: { googleReviewLink: true }
+      select: { googleReviewLink: true, feedbackDelayMinutes: true }
     })
 
     // Buscar setting de automação
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       googleReviewLink: tenant?.googleReviewLink || null,
+      delayMinutes: tenant?.feedbackDelayMinutes ?? 45,
       isEnabled: setting?.isEnabled ?? false,
       messageTemplate: setting?.messageTemplate || null,
     })
@@ -41,13 +42,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = verifyToken(req)
-    const { googleReviewLink, messageTemplate, isEnabled } = await req.json()
+  const { googleReviewLink, messageTemplate, isEnabled, delayMinutes } = await req.json()
 
     // Atualizar link do tenant se enviado
-    if (typeof googleReviewLink === 'string') {
+    if (typeof googleReviewLink === 'string' || typeof delayMinutes === 'number') {
       await prisma.tenant.update({
         where: { id: user.tenantId },
-        data: { googleReviewLink }
+        data: {
+          googleReviewLink: typeof googleReviewLink === 'string' ? googleReviewLink : undefined,
+          feedbackDelayMinutes: typeof delayMinutes === 'number' ? delayMinutes : undefined
+        }
       })
     }
 
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: 'Feedback settings saved',
       googleReviewLink: googleReviewLink || null,
+      delayMinutes: typeof delayMinutes === 'number' ? delayMinutes : undefined,
       isEnabled: typeof isEnabled === 'boolean' ? isEnabled : true,
       messageTemplate: messageTemplate || null
     })

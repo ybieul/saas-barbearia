@@ -207,18 +207,13 @@ export async function sendWhatsappReminders() {
 export async function sendFeedbackRequests() {
   console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...')
   const now = getBrazilNow()
-
-  // Janela: concluídos entre 60 e 30 minutos atrás
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000)
-
-  const appointments = await prisma.appointment.findMany({
+  // Buscar agendamentos COMPLETED nas últimas 2 horas (janela ampla) e filtrar dinamicamente
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  // Como o client local pode não reconhecer a coluna feedbackSent (caso não regenerado), buscamos sem ela e filtramos manualmente via SQL depois
+  const appointmentsBase = await prisma.appointment.findMany({
     where: {
       status: 'COMPLETED',
-      // Campo feedbackSent pode não existir ainda no client antigo; cast para ignorar types
-      // @ts-ignore
-      feedbackSent: false,
-      completedAt: { gte: oneHourAgo, lte: thirtyMinAgo },
+      completedAt: { gte: twoHoursAgo, lte: now },
       tenant: {
         whatsapp_instance_name: { not: null },
         automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
@@ -231,25 +226,58 @@ export async function sendFeedbackRequests() {
     }
   }) as any
 
-  console.log(`🔍 [FEEDBACK] Agendamentos candidatos: ${appointments.length}`)
-  let sentCount = 0
+  // Obter ids que já têm feedbackSent = 1
+  const sentRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, twoHoursAgo, now)
+  const sentSet = new Set(sentRows.map(r => r.id))
+  const appointments = appointmentsBase.filter((a: any) => !sentSet.has(a.id))
 
+  console.log(`🔍 [FEEDBACK] Candidatos (janela ampla 2h): ${appointments.length}`)
+  let sentCount = 0
   for (const appt of appointments) {
     try {
-  const automation = appt.tenant?.automationSettings?.find((a: any) => a.automationType === 'feedback_request' && a.isEnabled)
-      if (!automation) {
-        console.log(`⚠️ [FEEDBACK] Automação desativada para tenant ${appt.tenantId}`)
+      if (!appt.completedAt) continue
+      const automation = appt.tenant?.automationSettings?.find((a: any) => a.automationType === 'feedback_request' && a.isEnabled)
+      if (!automation) continue
+      if (!appt.endUser?.phone) continue
+
+      const delay = appt.tenant.feedbackDelayMinutes || 45
+      const tolerance = 5 // minutos de tolerância para janela
+      const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000)
+      const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000)
+      const windowEnd = new Date(targetTime.getTime() + tolerance * 60 * 1000)
+      if (now < windowStart || now > windowEnd) {
+        continue // ainda não está no intervalo para este agendamento
+      }
+
+      // Evitar duplicado: checar se já existe log FEEDBACK para este telefone nas últimas 3h
+      const existingLog = await prisma.whatsAppLog.findFirst({
+        where: {
+          to: appt.endUser.phone,
+          type: 'FEEDBACK' as any,
+          createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }
+        }
+      }) as any
+      if (existingLog) {
+        console.log(`⚠️ [FEEDBACK] Já existe log FEEDBACK recente para telefone ${appt.endUser.phone}`)
+        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
         continue
       }
-  if (!appt.endUser?.phone) {
-        console.log(`⚠️ [FEEDBACK] Cliente sem telefone ${appt.endUserId}`)
-        continue
+
+      // Gerar token se não existir (client antigo pode não conhecer coluna)
+      let token = appt.feedbackToken
+      if (!token) {
+        token = randomBytes(16).toString('hex')
+        await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackToken = ? WHERE id = ?`, token, appt.id)
       }
+
+      const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.tymerbook.com'
+      const trackingUrl = `${baseUrl.replace(/\/$/, '')}/api/feedback/track?token=${token}`
       const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
       const message = template
         .replace(/\{nomeCliente\}/g, appt.endUser.name)
         .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
-        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || trackingUrl)
+        .replace(/\{linkTracking\}/g, trackingUrl)
 
       const success = await sendMultiTenantWhatsAppMessage(
         appt.endUser.phone,
@@ -260,12 +288,11 @@ export async function sendFeedbackRequests() {
 
       await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
       if (success) sentCount++
-      console.log(`✅ [FEEDBACK] Mensagem de feedback enviada para agendamento ${appt.id}`)
+      console.log(`✅ [FEEDBACK] (${delay}m) Enviada avaliação para agendamento ${appt.id}`)
       await new Promise(r => setTimeout(r, 750))
     } catch (e) {
       console.error('❌ [FEEDBACK] Erro ao enviar feedback para', appt.id, e)
-      // Ainda marcamos como enviado para evitar retry infinito; alternativa seria contador
-  await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+      await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
     }
   }
 
