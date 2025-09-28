@@ -71,6 +71,9 @@ model Tenant {
   financialRecords    FinancialRecord[]
   workingHours        WorkingHours[]
 
+  // Link de avaliação do Google (para mensagem pós-atendimento)
+  googleReviewLink String? @db.Text
+
   @@map("tenants")
 }
 
@@ -218,6 +221,8 @@ model Appointment {
   paymentStatus PaymentStatus     @default(PENDING)
   notes         String?           @db.Text
   reminderSent  Boolean           @default(false)
+  // Flag para indicar se mensagem de feedback foi enviada
+  feedbackSent  Boolean           @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 

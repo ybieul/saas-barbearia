@@ -24,10 +24,11 @@ export async function GET(request: NextRequest) {
       'confirmation',
       'reminder_24h', 
       'reminder_12h',
-  'reminder_2h',
-  'reminder_1h',
-  'reminder_30min',
-      'reactivation'
+	'reminder_2h',
+	'reminder_1h',
+	'reminder_30min',
+      'reactivation',
+      'feedback_request'
     ]
 
     // Criar resposta com todas as automações, marcando como false se não existir
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo de automação
-  const validTypes = ['confirmation', 'reminder_24h', 'reminder_12h', 'reminder_2h', 'reminder_1h', 'reminder_30min', 'reactivation']
+  const validTypes = ['confirmation', 'reminder_24h', 'reminder_12h', 'reminder_2h', 'reminder_1h', 'reminder_30min', 'reactivation', 'feedback_request']
     if (!validTypes.includes(automationType)) {
       return NextResponse.json(
         { message: 'Tipo de automação inválido' },

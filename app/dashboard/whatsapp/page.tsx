@@ -24,6 +24,14 @@ export default function WhatsAppPage() {
     phone: "",
     message: "",
   })
+  // Estado local para feedback
+  const [feedback, setFeedback] = useState({
+    enabled: false,
+    googleLink: "",
+    template: "Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Adoraríamos saber a sua opinião sobre o nosso serviço! Pode deixar a sua avaliação aqui: {linkAvaliacao}. Esperamos vê-lo em breve! 👋"
+  })
+  const [isSavingFeedback, setIsSavingFeedback] = useState(false)
+  const [loadingFeedback, setLoadingFeedback] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
@@ -83,11 +91,61 @@ export default function WhatsAppPage() {
   // Hook para status da conexão WhatsApp
   const { connectionStatus, isConnected, isLoading: isLoadingStatus, refetch: refetchStatus } = useWhatsAppStatus()
 
+  // Função para salvar configurações de feedback
+  const saveFeedback = async (partial: { enabled?: boolean }) => {
+    try {
+      setIsSavingFeedback(true)
+      const token = localStorage.getItem('auth_token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      const res = await fetch('/api/settings/feedback', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          googleReviewLink: feedback.googleLink,
+          messageTemplate: feedback.template,
+          isEnabled: partial.enabled ?? feedback.enabled,
+        })
+      })
+      if (!res.ok) throw new Error('Falha ao salvar')
+      toast({ title: 'Configurações salvas', description: 'Feedback atualizado com sucesso.' })
+    } catch (e:any) {
+      console.error(e)
+      toast({ title: 'Erro', description: e.message || 'Erro ao salvar feedback', variant: 'destructive' })
+    } finally {
+      setIsSavingFeedback(false)
+    }
+  }
+
   useEffect(() => {
     fetchAppointments()
     fetchClients()
     loadAutomationSettings()
     refetchStats()
+    // Carregar configurações de feedback
+    const loadFeedback = async () => {
+      try {
+        setLoadingFeedback(true)
+        const token = localStorage.getItem('auth_token')
+        const headers: Record<string, string> = { 'Accept': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const res = await fetch('/api/settings/feedback', { headers })
+        if (res.ok) {
+          const data = await res.json()
+          setFeedback(prev => ({
+            ...prev,
+            enabled: data.isEnabled ?? false,
+            googleLink: data.googleReviewLink || "",
+            template: data.messageTemplate || prev.template
+          }))
+        }
+      } catch (e) {
+        console.error('Erro ao carregar feedback settings', e)
+      } finally {
+        setLoadingFeedback(false)
+      }
+    }
+    loadFeedback()
   }, [fetchAppointments, fetchClients, loadAutomationSettings, refetchStats])
 
   // Usar dados reais das estatísticas do WhatsApp ou fallback para dados simulados
@@ -562,6 +620,61 @@ export default function WhatsAppPage() {
                 }}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Feedback / Pesquisa de Satisfação */}
+        <Card className="bg-[#18181b] border-[#27272a]">
+          <CardHeader>
+            <CardTitle className="text-[#a1a1aa] flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-tymer-icon" />
+              Pesquisa de Satisfação (Pós-atendimento)
+            </CardTitle>
+            <CardDescription className="text-[#71717a]">Envie uma mensagem solicitando avaliação após o serviço</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Enviar mensagem de avaliação</p>
+                <p className="text-sm text-[#71717a]">Solicita avaliação X minutos após concluir</p>
+              </div>
+              <Switch
+                checked={feedback.enabled}
+                disabled={loadingFeedback || isSavingFeedback}
+                onCheckedChange={async (checked) => {
+                  setFeedback(f => ({ ...f, enabled: checked }))
+                  await saveFeedback({ enabled: checked })
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">Link de Avaliação do Google</Label>
+              <Input
+                placeholder="https://g.page/r/..."
+                value={feedback.googleLink}
+                onChange={(e) => setFeedback(f => ({ ...f, googleLink: e.target.value }))}
+                className="bg-gray-700 border-[#3f3f46] text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">Template da Mensagem</Label>
+              <Textarea
+                value={feedback.template}
+                onChange={(e) => setFeedback(f => ({ ...f, template: e.target.value }))}
+                className="bg-gray-700 border-[#3f3f46] text-white min-h-[140px]"
+              />
+              <p className="text-xs text-[#52525b]">Variáveis: {'{nomeCliente}'}, {'{nomeBarbearia}'}, {'{linkAvaliacao}'}</p>
+            </div>
+
+            <Button
+              disabled={isSavingFeedback}
+              onClick={async () => { await saveFeedback({}) }}
+              className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white"
+            >
+              {isSavingFeedback ? 'Salvando...' : 'Salvar Configurações'}
+            </Button>
           </CardContent>
         </Card>
       </div>

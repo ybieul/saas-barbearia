@@ -193,7 +193,84 @@ export async function sendWhatsappReminders() {
 
   console.log(`[${new Date().toISOString()}] 🎉 MULTI-TENANT: Processamento concluído. Total de lembretes enviados: ${totalSent}`)
   console.log('✅ Lógica de lembretes multi-tenant finalizada.')
+  // Após lembretes, processar pedidos de feedback
+  try {
+    const feedbackSent = await sendFeedbackRequests()
+    console.log(`📝 [FEEDBACK] Total de mensagens de avaliação enviadas: ${feedbackSent}`)
+  } catch (e) {
+    console.error('❌ [FEEDBACK] Erro ao processar feedback requests:', e)
+  }
   return totalSent
+}
+
+// ===================== FEEDBACK REQUESTS =====================
+export async function sendFeedbackRequests() {
+  console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...')
+  const now = getBrazilNow()
+
+  // Janela: concluídos entre 60 e 30 minutos atrás
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000)
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      status: 'COMPLETED',
+      // Campo feedbackSent pode não existir ainda no client antigo; cast para ignorar types
+      // @ts-ignore
+      feedbackSent: false,
+      completedAt: { gte: oneHourAgo, lte: thirtyMinAgo },
+      tenant: {
+        whatsapp_instance_name: { not: null },
+        automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
+      }
+    },
+    include: {
+      tenant: { include: { automationSettings: true } },
+      endUser: true,
+      services: true
+    }
+  }) as any
+
+  console.log(`🔍 [FEEDBACK] Agendamentos candidatos: ${appointments.length}`)
+  let sentCount = 0
+
+  for (const appt of appointments) {
+    try {
+  const automation = appt.tenant?.automationSettings?.find((a: any) => a.automationType === 'feedback_request' && a.isEnabled)
+      if (!automation) {
+        console.log(`⚠️ [FEEDBACK] Automação desativada para tenant ${appt.tenantId}`)
+        continue
+      }
+  if (!appt.endUser?.phone) {
+        console.log(`⚠️ [FEEDBACK] Cliente sem telefone ${appt.endUserId}`)
+        continue
+      }
+      const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
+      const message = template
+        .replace(/\{nomeCliente\}/g, appt.endUser.name)
+        .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
+        .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+
+      const success = await sendMultiTenantWhatsAppMessage(
+        appt.endUser.phone,
+        message,
+        appt.tenant.whatsapp_instance_name!,
+        'feedback_request'
+      )
+
+      await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+      if (success) sentCount++
+      console.log(`✅ [FEEDBACK] Mensagem de feedback enviada para agendamento ${appt.id}`)
+      await new Promise(r => setTimeout(r, 750))
+    } catch (e) {
+      console.error('❌ [FEEDBACK] Erro ao enviar feedback para', appt.id, e)
+      // Ainda marcamos como enviado para evitar retry infinito; alternativa seria contador
+  await prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id)
+    }
+  }
+
+  console.log(`🎉 [FEEDBACK] Processamento concluído. Enviados: ${sentCount}`)
+  return sentCount
 }
 
 // 🚀 FUNÇÃO MULTI-TENANT: Enviar mensagem WhatsApp usando instância específica do tenant

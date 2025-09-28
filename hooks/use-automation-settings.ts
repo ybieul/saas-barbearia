@@ -11,6 +11,7 @@ export interface AutomationSettings {
   reminder30minEnabled: boolean
   reactivationEnabled: boolean
   reactivationDays: number
+  feedbackRequestEnabled: boolean
 }
 
 export function useAutomationSettings() {
@@ -23,6 +24,7 @@ export function useAutomationSettings() {
   reminder30minEnabled: false,
     reactivationEnabled: false,
     reactivationDays: 15,
+    feedbackRequestEnabled: false,
   })
   
   const [isLoading, setIsLoading] = useState(true)
@@ -70,6 +72,7 @@ export function useAutomationSettings() {
           reminder30minEnabled: apiSettings.reminder_30min?.isEnabled ?? false,
           reactivationEnabled: apiSettings.reactivation?.isEnabled ?? false,
           reactivationDays: 15,
+          feedbackRequestEnabled: apiSettings.feedback_request?.isEnabled ?? false,
         }
         
         setSettings(newSettings)
@@ -160,6 +163,9 @@ export function useAutomationSettings() {
               break
             case 'reactivation':
               updated.reactivationEnabled = isEnabled
+              break
+            case 'feedback_request':
+              updated.feedbackRequestEnabled = isEnabled
               break
           }
           if (process.env.NODE_ENV === 'development') {
