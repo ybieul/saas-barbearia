@@ -6,6 +6,8 @@ import { whatsappTemplates } from '@/lib/whatsapp-server'
 import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
 import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
 import { randomBytes } from 'crypto'
+import { sendEmail } from '@/lib/email'
+import { newAppointmentNotificationEmail } from '@/utils/emailTemplates'
 
 // Função para gerar ID único (similar ao cuid do Prisma)
 function generateId(): string {
@@ -454,7 +456,8 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            specialty: true
+            specialty: true,
+            email: true
           }
         }
       }
@@ -466,6 +469,46 @@ export async function POST(request: NextRequest) {
     } catch (whatsappError) {
       console.error('❌ Erro ao enviar confirmação WhatsApp:', whatsappError)
       // Não falhar a criação do agendamento por erro do WhatsApp
+    }
+
+    // Enviar email interno para owner e colaborador (se existir email)
+    try {
+      // Buscar tenant email
+      const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { email: true, businessName: true } })
+      const tenantEmail = tenant?.email
+      const professionalEmail = (newAppointment as any).professional?.email
+      if (tenantEmail || professionalEmail) {
+        const emailHtml = newAppointmentNotificationEmail({
+          clientName: newAppointment.endUser.name,
+            professionalName: newAppointment.professional?.name || 'Não especificado',
+          services: newAppointment.services.map(s => s.name).join(', '),
+          date: formatBrazilDate(new Date(newAppointment.dateTime)),
+          time: formatBrazilTime(new Date(newAppointment.dateTime), 'HH:mm'),
+          totalPrice: `R$ ${Number(newAppointment.totalPrice).toFixed(2).replace('.', ',')}`,
+        })
+        if (tenantEmail) {
+          await sendEmail({
+            to: tenantEmail,
+            subject: `🎉 Novo Agendamento: ${newAppointment.endUser.name}`,
+            html: emailHtml,
+          })
+          console.log('✅ Email de novo agendamento enviado ao owner')
+        }
+        if (professionalEmail && professionalEmail !== tenantEmail) {
+          try {
+            await sendEmail({
+              to: professionalEmail,
+              subject: `📅 Novo Agendamento Atribuído: ${newAppointment.endUser.name}`,
+              html: emailHtml,
+            })
+            console.log('✅ Email de novo agendamento enviado ao colaborador')
+          } catch (e) {
+            console.error('⚠️ Falha ao enviar email para colaborador', e)
+          }
+        }
+      }
+    } catch (e) {
+      console.error('⚠️ Falha ao processar emails internos de agendamento', e)
     }
 
     return NextResponse.json({ appointment: newAppointment, message: 'Agendamento criado com sucesso' })

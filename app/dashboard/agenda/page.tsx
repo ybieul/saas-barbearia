@@ -1,7 +1,5 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-auth"
-
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,8 +34,9 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react"
-// ... (outros imports já existentes acima) ...
-import { useAppointments, useClients, useServices, useEstablishment, useProfessionals } from "@/hooks/use-api"
+import { useProfessionals } from "@/hooks/use-api"
+import { useAuth } from "@/hooks/use-auth"
+import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
 import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useToast } from "@/hooks/use-toast"
 import { formatBrazilTime, getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, parseDateTime, toLocalISOString, toLocalDateString, parseDatabaseDateTime, extractTimeFromDateTime } from "@/lib/timezone"
@@ -47,8 +46,6 @@ import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
 import { useProfessionalAvailability } from "@/hooks/use-schedule"
 
 export default function AgendaPage() {
-  const { user } = useAuth()
-  const isCollaborator = user?.role === 'COLLABORATOR'
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState("todos")
   const [selectedStatus, setSelectedStatus] = useState("todos")
@@ -106,6 +103,9 @@ export default function AgendaPage() {
   const { clients, loading: clientsLoading, error: clientsError, fetchClients } = useClients()
   const { services, loading: servicesLoading, error: servicesError, fetchServices } = useServices()
   const { professionals: professionalsData, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
+  const { user } = useAuth()
+  const isCollaborator = user?.role === 'COLLABORATOR'
+  const authProfessionalId = (user as any)?.professionalId
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
   const { 
     workingHours, 
@@ -153,11 +153,10 @@ export default function AgendaPage() {
 
   // Função para refresh manual de dados
   const handleRefreshData = async () => {
-  const handleRefreshData = async () => {
     setIsRefreshing(true)
     try {
       const currentDateString = toLocalDateString(currentDate)
-    const professionalParam = isCollaborator ? undefined : (selectedProfessional === "todos" ? undefined : selectedProfessional)
+  const professionalParam = isCollaborator ? authProfessionalId : (selectedProfessional === "todos" ? undefined : selectedProfessional)
       const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
       
       await Promise.allSettled([
@@ -276,9 +275,14 @@ export default function AgendaPage() {
   useEffect(() => {
     const loadFilteredData = async () => {
       try {
+        // Formatar data atual para enviar para API
         const currentDateString = toLocalDateString(currentDate)
-        const professionalParam = isCollaborator ? undefined : (selectedProfessional === "todos" ? undefined : selectedProfessional)
+        
+        // Preparar parâmetros para a API
+  const professionalParam = isCollaborator ? authProfessionalId : (selectedProfessional === "todos" ? undefined : selectedProfessional)
         const statusParam = selectedStatus === "todos" ? undefined : selectedStatus
+        
+        // Buscar agendamentos filtrados
         await fetchAppointments(currentDateString, statusParam, professionalParam)
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -286,8 +290,9 @@ export default function AgendaPage() {
         }
       }
     }
+    
     loadFilteredData()
-  }, [selectedProfessional, selectedStatus, currentDate, isCollaborator])
+  }, [selectedProfessional, selectedStatus, currentDate, isCollaborator, authProfessionalId]) // Inclui dependências de role
 
   // Fechar dropdown de clientes ao clicar fora
   useEffect(() => {
@@ -672,6 +677,8 @@ export default function AgendaPage() {
     // Se um profissional específico está selecionado, filtrar por ele
     if (!isCollaborator && selectedProfessional !== "todos") {
       filteredTodayAppointments = todayAppointments.filter(apt => apt.professionalId === selectedProfessional)
+    } else if (isCollaborator && authProfessionalId) {
+      filteredTodayAppointments = todayAppointments.filter(apt => apt.professionalId === authProfessionalId)
     }
     
     // ⚠️ Excluir agendamentos cancelados dos cálculos conforme solicitado
@@ -2250,6 +2257,7 @@ export default function AgendaPage() {
 
         {/* Filtros - stack em mobile, inline em desktop */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          {/* Ocultar seletor de profissional para colaboradores */}
           {!isCollaborator && (
             <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
               <SelectTrigger className="w-full md:w-48 bg-tymer-card border-tymer-border text-foreground h-10 text-sm">
@@ -2781,7 +2789,7 @@ export default function AgendaPage() {
                       }}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm mt-2 min-h-[48px]">
-                        {!isCollaborator && <SelectValue placeholder="Selecione um profissional" />}
+                        <SelectValue placeholder="Selecione um profissional" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a]" position="popper" sideOffset={4}>
                         {professionalsData?.map((professional) => (
@@ -2858,15 +2866,13 @@ export default function AgendaPage() {
                       disabled={!newAppointment.date || selectedServices.length === 0 || !newAppointment.professionalId || !getDateStatus().isOpen}
                     >
                       <SelectTrigger className="bg-[#27272a]/50 md:bg-[#18181b] border-[#3f3f46] md:border-[#27272a] text-[#ededed] md:h-11 text-base md:text-sm w-full min-w-0 min-h-[48px]">
-                        {!isCollaborator && (
-                          <SelectValue placeholder={
-                            !newAppointment.date ? "Data primeiro" :
-                            selectedServices.length === 0 ? "Serviço primeiro" :
-                            !newAppointment.professionalId ? "Profissional primeiro" :
-                            !getDateStatus().isOpen ? "Fechado" :
-                            "Selecione horário"
-                          } />
-                        )}
+                        <SelectValue placeholder={
+                          !newAppointment.date ? "Data primeiro" :
+                          selectedServices.length === 0 ? "Serviço primeiro" :
+                          !newAppointment.professionalId ? "Profissional primeiro" :
+                          !getDateStatus().isOpen ? "Fechado" :
+                          "Selecione horário"
+                        } />
                       </SelectTrigger>
                       <SelectContent className="bg-[#18181b] border-[#27272a] max-h-60 z-[60]" position="popper" sideOffset={4}>
                         {loadingTimeSlots ? (
@@ -2998,6 +3004,7 @@ export default function AgendaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
   {/* Dialog de Confirmação */}
   <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
       if (!open) {
@@ -3142,7 +3149,6 @@ export default function AgendaPage() {
         } : undefined}
         isLoading={isCompletingAppointment}
       />
-    </div>
+  </div>
   )
 }
-

@@ -461,6 +461,7 @@ export async function POST(request: NextRequest) {
     // ✅ NOVO: NOTIFICAÇÃO POR E-MAIL PARA O DONO (TENANT)
     try {
       const tenantEmail = (business as any).email
+      const professionalEmail = appointmentProfessional?.email
       if (tenantEmail) {
         const emailHtml = newAppointmentNotificationEmail({
           clientName: appointmentClient?.name || 'Cliente',
@@ -478,6 +479,19 @@ export async function POST(request: NextRequest) {
         })
 
         console.log(`✅ E-mail de notificação enviado para ${tenantEmail}`)
+        // Enviar também para o colaborador se tiver email e for diferente do owner
+        if (professionalEmail && professionalEmail !== tenantEmail) {
+          try {
+            await sendEmail({
+              to: professionalEmail,
+              subject: `📅 Novo Agendamento Atribuído: ${appointmentClient?.name || 'Cliente'}`,
+              html: emailHtml,
+            })
+            console.log(`✅ E-mail de notificação enviado para colaborador ${professionalEmail}`)
+          } catch (e) {
+            console.error('⚠️ Falha ao enviar email para colaborador', e)
+          }
+        }
       } else {
         console.log('ℹ️ Tenant não possui e-mail configurado; pulando notificação por e-mail.')
       }

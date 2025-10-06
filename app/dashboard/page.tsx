@@ -240,7 +240,11 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Olá, {businessData?.name || "Estabelecimento"}! </h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-1">Olá, {businessData?.name || "Estabelecimento"}! </h1>
+        {/* Email do colaborador abaixo do nome do estabelecimento */}
+        {user?.role === 'COLLABORATOR' && user?.email && (
+          <p className="text-xs sm:text-sm text-[#a1a1aa] mb-1 break-all">{user.email}</p>
+        )}
         <p className="text-muted-foreground capitalize text-sm sm:text-base lg:text-lg">{today}</p>
       </div>
 

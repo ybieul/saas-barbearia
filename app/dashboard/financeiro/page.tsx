@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw, Plus, Trash2 } from "lucide-react"
 import { extractTimeFromDateTime } from '@/lib/timezone'
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
+import { useAuth } from "@/hooks/use-auth"
 import { utcToBrazil, getBrazilNow, getBrazilDayNumber, formatBrazilDate, toLocalDateString, toLocalISOString } from "@/lib/timezone"
 import { formatCurrency } from "@/lib/currency"
 import { ProfessionalAvatar } from "@/components/professional-avatar"
@@ -49,6 +50,8 @@ const useDebounce = (callback: Function, delay: number) => {
 }
 
 export default function FinanceiroPage() {
+  const { user } = useAuth()
+  const isCollaborator = user?.role === 'COLLABORATOR'
   const { toast } = useToast()
   // Novo filtro de período por intervalo de datas
   // ✅ Ajuste: por padrão carregar o mês atual completo (1º dia até último dia) em vez de apenas o dia atual
@@ -58,8 +61,8 @@ export default function FinanceiroPage() {
   const initialTo = new Date(brazilLocalNow.getFullYear(), brazilLocalNow.getMonth() + 1, 0, 23,59,59,999)
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: initialFrom, to: initialTo })
-  // Novo filtro por profissional
-  const [professionalId, setProfessionalId] = useState('all') // 'all' para todos
+  // Novo filtro por profissional (escondido para colaborador)
+  const [professionalId, setProfessionalId] = useState('all') // 'all' ou id específico
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -155,6 +158,10 @@ export default function FinanceiroPage() {
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
 
+  // ID efetivo a usar nas requisições (colaborador sempre fixo)
+  const userProfessionalId = (user as any)?.professionalId
+  const effectiveProfessionalId = (isCollaborator && userProfessionalId) ? userProfessionalId : (professionalId !== 'all' ? professionalId : undefined)
+
   // Carregamento inicial
   useEffect(() => {
     const loadData = async () => {
@@ -164,9 +171,9 @@ export default function FinanceiroPage() {
         const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
         const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
         await Promise.all([
-          fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
-    fetchProfessionals(),
-    fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId })
+          fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
+          fetchProfessionals(),
+          fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
       } catch (err) {
         setError('Erro ao carregar dados. Tente novamente.')
@@ -186,8 +193,8 @@ export default function FinanceiroPage() {
         const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
         const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
         await Promise.all([
-          fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
-          fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId })
+          fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
+          fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
         setLastUpdated(getBrazilNow())
       } catch (err) {
@@ -218,7 +225,7 @@ export default function FinanceiroPage() {
         const { appointments: apps } = await fetchAppointmentsRaw(
           fromStr,
           toStr,
-          professionalId !== 'all' ? professionalId : undefined
+          effectiveProfessionalId
         )
         setAppointments12m(Array.isArray(apps) ? apps : [])
       } catch {
@@ -266,7 +273,7 @@ export default function FinanceiroPage() {
       const fromStr = toLocalDateString(monthStart)
       const toStr = toLocalDateString(monthEnd)
       try {
-        const { appointments: apps } = await fetchAppointmentsRaw(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined)
+  const { appointments: apps } = await fetchAppointmentsRaw(fromStr, toStr, effectiveProfessionalId)
         setMonthlyAppointments(apps || [])
       } catch {
         setMonthlyAppointments([])
@@ -1559,25 +1566,27 @@ export default function FinanceiroPage() {
               </PopoverContent>
             </Popover>
             
-            {/* ✅ FILTRO POR PROFISSIONAL */}
-            <Select value={professionalId} onValueChange={setProfessionalId}>
-              <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <SelectValue placeholder="Filtrar por profissional" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#18181b] border-[#27272a]">
-                <SelectItem value="all">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Todos os profissionais
-                  </div>
-                </SelectItem>
-                {professionals?.map((professional: any) => (
-                  <SelectItem key={professional.id} value={professional.id}>
-                    {sanitizeString(professional.name)}
+            {/* ✅ FILTRO POR PROFISSIONAL (oculto para colaborador) */}
+            {!isCollaborator && (
+              <Select value={professionalId} onValueChange={setProfessionalId}>
+                <SelectTrigger className="w-48 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <SelectValue placeholder="Filtrar por profissional" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#18181b] border-[#27272a]">
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Todos os profissionais
+                    </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {professionals?.map((professional: any) => (
+                    <SelectItem key={professional.id} value={professional.id}>
+                      {sanitizeString(professional.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* ✅ MOBILE: Igual estrutura WhatsApp */}
@@ -1611,25 +1620,27 @@ export default function FinanceiroPage() {
                 </PopoverContent>
               </Popover>
               
-              {/* ✅ FILTRO POR PROFISSIONAL */}
-              <Select value={professionalId} onValueChange={setProfessionalId}>
-                <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
-                  <SelectValue placeholder="Filtrar por profissional" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#18181b] border-[#27272a]">
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Todos os profissionais
-                    </div>
-                  </SelectItem>
-                  {professionals?.map((professional: any) => (
-                    <SelectItem key={professional.id} value={professional.id}>
-                      {sanitizeString(professional.name)}
+              {/* ✅ FILTRO POR PROFISSIONAL (oculto para colaborador) */}
+              {!isCollaborator && (
+                <Select value={professionalId} onValueChange={setProfessionalId}>
+                  <SelectTrigger className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
+                    <SelectValue placeholder="Filtrar por profissional" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#18181b] border-[#27272a]">
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Todos os profissionais
+                      </div>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {professionals?.map((professional: any) => (
+                      <SelectItem key={professional.id} value={professional.id}>
+                        {sanitizeString(professional.name)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               
               {/* ✅ BOTÃO DE ATUALIZAR DADOS */}
               <Button
