@@ -27,15 +27,17 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/hooks/use-auth"
 import { useBusinessInfo } from "@/hooks/use-business-info"
 
-const menuItems = [
+interface MenuItem { icon: any; label: string; href: string; description: string; roles?: string[] }
+const baseMenu: MenuItem[] = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", description: "Visão geral do negócio" },
   { icon: Calendar, label: "Agenda", href: "/dashboard/agenda", description: "Gerenciar agendamentos" },
   { icon: Users, label: "Clientes", href: "/dashboard/clientes", description: "Base de clientes" },
   { icon: UserX, label: "Clientes Inativos", href: "/dashboard/clientes-inativos", description: "Reativar clientes" },
   { icon: DollarSign, label: "Relatório e Financeiro", href: "/dashboard/financeiro", description: "Receitas, relatórios e análises" },
-  { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens" },
-  { icon: Crown, label: "Minha Assinatura", href: "/dashboard/assinatura", description: "Gerenciar plano e assinatura" },
-  { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes", description: "Configurar estabelecimento" },
+  { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens", roles: ['OWNER'] },
+  { icon: Crown, label: "Minha Assinatura", href: "/dashboard/assinatura", description: "Gerenciar plano e assinatura", roles: ['OWNER'] },
+  { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes", description: "Configurar estabelecimento", roles: ['OWNER'] },
+  { icon: UserCircle, label: "Meu Perfil", href: "/dashboard/meu-perfil", description: "Gerenciar minha senha", roles: ['COLLABORATOR'] }
 ]
 
 export default function DashboardLayout({
@@ -198,7 +200,7 @@ export default function DashboardLayout({
 
           {/* Navegação */}
           <nav className="p-4 space-y-2">
-            {menuItems.map((item) => {
+            {baseMenu.filter(item => !item.roles || item.roles.includes(user.role)).map((item) => {
               const disabledByPlan = navigationLocked && item.href !== '/dashboard/assinatura'
               return (
                 <div key={item.href}>

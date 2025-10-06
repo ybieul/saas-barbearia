@@ -13,6 +13,7 @@ export interface AuthUser {
   tenantId: string
   email: string
   role: string
+  professionalId?: string
 }
 
 // Erros específicos para facilitar debug/log e permitir respostas HTTP adequadas
@@ -77,7 +78,8 @@ export function verifyToken(request: NextRequest): AuthUser {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
       email: decoded.email,
-      role: decoded.role
+      role: decoded.role,
+      professionalId: decoded.professionalId
     }
   } catch (err: any) {
     if (err instanceof AuthError) throw err

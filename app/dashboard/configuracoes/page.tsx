@@ -408,6 +408,15 @@ export default function ConfiguracoesPage() {
 
   // Estados para edição de profissionais
   const [isEditProfessionalOpen, setIsEditProfessionalOpen] = useState(false)
+  // Modal de Gerir Acesso (credenciais do profissional)
+  const [isManageAccessOpen, setIsManageAccessOpen] = useState(false)
+  interface AccessProfessionalRef { id: string; email?: string | null }
+  const [accessProfessional, setAccessProfessional] = useState<AccessProfessionalRef | null>(null)
+  const [accessEmail, setAccessEmail] = useState('')
+  const [accessPassword, setAccessPassword] = useState('')
+  const [accessPasswordConfirm, setAccessPasswordConfirm] = useState('')
+  const [showAccessPassword, setShowAccessPassword] = useState(false)
+  const [isSavingAccess, setIsSavingAccess] = useState(false)
   const [editingProfessional, setEditingProfessional] = useState<any>(null)
   const [editProfessional, setEditProfessional] = useState({
     name: "",
@@ -1851,6 +1860,22 @@ export default function ConfiguracoesPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => {
+                                  setAccessProfessional(professional)
+                                  setAccessEmail(professional.email || '')
+                                  setAccessPassword('')
+                                  setAccessPasswordConfirm('')
+                                  setIsManageAccessOpen(true)
+                                }}
+                className="border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent w-full h-9 sm:h-9 sm:px-3 sm:w-auto sm:rounded-md sm:text-[#a1a1aa] sm:border-[#4b4b53] sm:hover:border-[#6b7280]"
+                                title="Gerir acesso (email e senha)"
+                              >
+                                <LockKeyhole className="w-4 h-4 mr-2" />
+                                <span>Acesso</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleRemoveProfessional(professional.id, professional.name)}
                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-[#ededed] bg-transparent w-full h-9 sm:h-9 sm:px-3 sm:w-auto sm:rounded-md sm:border-red-500 sm:hover:border-red-400"
                                 disabled={professionalsLoading}
@@ -2008,6 +2033,115 @@ export default function ConfiguracoesPage() {
                       </Button>
                     </div>
                   </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Dialog Gerir Acesso */}
+              <Dialog open={isManageAccessOpen} onOpenChange={setIsManageAccessOpen}>
+                <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md mx-auto rounded-xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-[#ededed]">
+                      <div className="p-2 bg-tymer-primary/15 rounded-lg border border-tymer-primary/30">
+                        <LockKeyhole className="w-5 h-5 text-tymer-primary" />
+                      </div>
+                      Gerir Acesso
+                    </DialogTitle>
+                    <DialogDescription className="text-[#71717a]">
+                      Defina ou atualize email e senha do colaborador. Senha mínima 6 caracteres.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      if (!accessProfessional) return
+                      if (accessPassword !== accessPasswordConfirm) {
+                        toast({ title: 'As senhas não coincidem', variant: 'destructive' })
+                        return
+                      }
+                      setIsSavingAccess(true)
+                      try {
+                        const res = await fetch(`/api/professionals/${accessProfessional.id}/access`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ email: accessEmail.trim() || null, password: accessPassword || undefined })
+                        })
+                        const data = await res.json()
+                        if (!res.ok) {
+                          toast({ title: 'Erro ao salvar', description: data.message || 'Falha ao atualizar credenciais', variant: 'destructive' })
+                        } else {
+                          toast({ title: 'Credenciais atualizadas', description: 'Acesso configurado com sucesso.' })
+                          // atualizar lista local
+                          setProfessionals((prev) => prev.map(p => p.id === accessProfessional.id ? { ...p, email: accessEmail.trim() } : p))
+                          setIsManageAccessOpen(false)
+                        }
+                      } catch (err:any) {
+                        toast({ title: 'Erro inesperado', description: err.message, variant: 'destructive' })
+                      } finally {
+                        setIsSavingAccess(false)
+                      }
+                    }}
+                    className="space-y-5"
+                  >
+                    <div className="space-y-2">
+                      <Label className="text-sm text-[#ededed]">E-mail de Login</Label>
+                      <Input
+                        value={accessEmail}
+                        onChange={(e) => setAccessEmail(e.target.value)}
+                        type="email"
+                        placeholder="email@exemplo.com"
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm text-[#ededed] flex items-center justify-between">Senha {accessProfessional?.email ? <span className="text-xs text-[#71717a]">(deixe em branco para não alterar)</span> : ''}</Label>
+                      <div className="relative">
+                        <Input
+                          value={accessPassword}
+                          onChange={(e) => setAccessPassword(e.target.value)}
+                          type={showAccessPassword ? 'text' : 'password'}
+                          minLength={accessProfessional?.email ? 0 : 6}
+                          placeholder={accessProfessional?.email ? '••••••' : 'Mínimo 6 caracteres'}
+                          className="bg-[#27272a] border-[#3f3f46] text-[#ededed] pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAccessPassword(s => !s)}
+                          className="absolute inset-y-0 right-0 px-3 flex items-center text-[#71717a] hover:text-[#ededed]"
+                        >
+                          {showAccessPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm text-[#ededed]">Confirmar Senha</Label>
+                      <Input
+                        value={accessPasswordConfirm}
+                        onChange={(e) => setAccessPasswordConfirm(e.target.value)}
+                        type={showAccessPassword ? 'text' : 'password'}
+                        minLength={accessProfessional?.email ? 0 : 6}
+                        placeholder="Repita a senha"
+                        className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsManageAccessOpen(false)}
+                        className="w-full border-[#3f3f46] text-[#71717a] hover:text-[#ededed] bg-transparent"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isSavingAccess || (!accessProfessional?.email && accessPassword.length < 6)}
+                        className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white"
+                      >
+                        {isSavingAccess ? 'Salvando...' : 'Salvar Acesso'}
+                      </Button>
+                    </div>
+                  </form>
                 </DialogContent>
               </Dialog>
 

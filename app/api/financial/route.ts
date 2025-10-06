@@ -40,10 +40,9 @@ export async function GET(request: NextRequest) {
       where.category = category
     }
 
-    const financialRecords = await prisma.financialRecord.findMany({
-      where,
-      orderBy: { date: 'desc' }
-    })
+    // Colaborador não pode ver registros que não estejam associados a ele (se houver referência futura). Por ora apenas lista global.
+    // Mantemos mesma query, mas poderia ser refinada se houvesse professionalId nos registros.
+    const financialRecords = await prisma.financialRecord.findMany({ where, orderBy: { date: 'desc' } })
 
     return NextResponse.json({ financialRecords })
   } catch (error) {
@@ -59,6 +58,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    if (user.role === 'COLLABORATOR') {
+      return NextResponse.json({ message: 'Acesso negado' }, { status: 403 })
+    }
     const { 
       type, 
       amount, 
@@ -110,6 +112,9 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    if (user.role === 'COLLABORATOR') {
+      return NextResponse.json({ message: 'Acesso negado' }, { status: 403 })
+    }
     const { 
       id, 
       type, 
@@ -177,6 +182,9 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = verifyToken(request)
+    if (user.role === 'COLLABORATOR') {
+      return NextResponse.json({ message: 'Acesso negado' }, { status: 403 })
+    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 

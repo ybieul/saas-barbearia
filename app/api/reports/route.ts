@@ -5,19 +5,24 @@ import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
 
 export async function GET(request: NextRequest) {
   try {
-    const user = verifyToken(request)
+  const user = verifyToken(request)
     
     if (!user || !user.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-  const reportType = searchParams.get('type') || 'overview'
-  const monthFilter = searchParams.get('month')
-  const yearFilter = searchParams.get('year')
-  const from = searchParams.get('from')
-  const to = searchParams.get('to')
-  const professionalId = searchParams.get('professionalId') || undefined
+    const reportType = searchParams.get('type') || 'overview'
+    const monthFilter = searchParams.get('month')
+    const yearFilter = searchParams.get('year')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
+    let professionalId = searchParams.get('professionalId') || undefined
+
+    // Restrição: colaborador só pode ver seus próprios dados
+    if (user.role === 'COLLABORATOR') {
+      professionalId = user.professionalId
+    }
 
     // 🇧🇷 Usar timezone brasileiro para cálculos
     const nowBrazil = getBrazilNow()

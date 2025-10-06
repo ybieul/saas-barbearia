@@ -122,7 +122,7 @@ model EndUser {
 model Professional {
   id        String   @id @default(cuid())
   name      String
-  email     String?
+  email     String?  @unique
   phone     String?
   specialty String?  @db.Text
   avatar    String?  @db.LongText
@@ -131,6 +131,10 @@ model Professional {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Credenciais de acesso (multi-usuário colaborador)
+  password String?
+  role     String  @default("COLLABORATOR") // Difere de OWNER (Tenant)
 
   // Configurações do profissional
   workingDays   Json?    // Dias da semana que trabalha

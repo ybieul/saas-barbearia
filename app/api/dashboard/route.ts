@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
     }
     
     const { searchParams } = new URL(request.url)
-  const period = searchParams.get('period') || 'today'
-  const from = searchParams.get('from')
-  const to = searchParams.get('to')
-  const professionalId = searchParams.get('professionalId') || undefined
+    const period = searchParams.get('period') || 'today'
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
+    let professionalId = searchParams.get('professionalId') || undefined
+    if (user.role === 'COLLABORATOR') {
+      professionalId = user.professionalId
+    }
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Period solicitado:', period)
     }
