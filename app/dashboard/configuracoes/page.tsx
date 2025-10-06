@@ -51,6 +51,7 @@ import {
   QrCode,
   Copy,
   Lock,
+  LockKeyhole,
   Eye,
   EyeOff,
   Check,
