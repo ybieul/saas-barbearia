@@ -2077,8 +2077,9 @@ export default function ConfiguracoesPage() {
                           toast({ title: 'Erro ao salvar', description: data.message || 'Falha ao atualizar credenciais', variant: 'destructive' })
                         } else {
                           toast({ title: 'Credenciais atualizadas', description: 'Acesso configurado com sucesso.' })
-                          // atualizar lista local
-                          setProfessionals((prev) => prev.map(p => p.id === accessProfessional.id ? { ...p, email: accessEmail.trim() } : p))
+                          // Recarrega a lista de profissionais após atualizar credenciais
+                          // (o hook useProfessionals atualiza o estado interno ao fazer a requisição)
+                          fetchProfessionals('all')
                           setIsManageAccessOpen(false)
                         }
                       } catch (err:any) {
