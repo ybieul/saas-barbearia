@@ -51,15 +51,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ registeredClients, walkInClients })
     }
 
-    // Se for colaborador, filtrar apenas clientes que já tiveram atendimento com ele
+    // Se for colaborador, filtrar clientes criados por ele OU que já tiveram atendimento com ele
     let clients
     if (user.role === 'COLLABORATOR' && user.professionalId) {
       clients = await prisma.endUser.findMany({
         where: {
           ...whereClause,
-          appointments: {
-            some: { professionalId: user.professionalId }
-          }
+          OR: [
+            { appointments: { some: { professionalId: user.professionalId } } },
+            { createdByProfessionalId: user.professionalId }
+          ]
         },
         orderBy: { createdAt: 'desc' },
         select: {
@@ -148,7 +149,9 @@ export async function POST(request: NextRequest) {
         address,
         cpf,
         tenantId: user.tenantId, // Associar ao tenant
-        isActive: true
+        isActive: true,
+        // Visibilidade inicial: colaborador que criou
+        createdByProfessionalId: user.role === 'COLLABORATOR' ? user.professionalId : null
       }
     })
 

@@ -27,7 +27,14 @@ export async function GET(request: NextRequest) {
     }
     // Se colaborador, restringir a clientes que ele atendeu ao menos uma vez
     if (user.role === 'COLLABORATOR' && user.professionalId) {
-      baseWhere.appointments = { some: { professionalId: user.professionalId } }
+      baseWhere.AND = [
+        {
+          OR: [
+            { appointments: { some: { professionalId: user.professionalId } } },
+            { createdByProfessionalId: user.professionalId }
+          ]
+        }
+      ]
     }
 
     const inactiveClients = await prisma.endUser.findMany({

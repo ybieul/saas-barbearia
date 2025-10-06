@@ -101,6 +101,10 @@ model EndUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Profissional que criou o cliente (para visibilidade inicial entre colaboradores)
+  createdByProfessionalId String?
+  createdByProfessional   Professional? @relation(fields: [createdByProfessionalId], references: [id], onDelete: SetNull)
+
   // Dados do cliente
   preferences Json?   // Preferências do cliente (JSON)
   lastVisit   DateTime?
@@ -116,6 +120,7 @@ model EndUser {
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, email])
+  @@index([tenantId, createdByProfessionalId])
   @@map("end_users")
 }
 

@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
         isActive: true,
         // @ts-ignore (campo existe após migration)
         isWalkIn: true,
+        createdByProfessionalId: user.role === 'COLLABORATOR' ? user.professionalId : null
       },
       select: { id: true, name: true, phone: true }
     })
