@@ -280,7 +280,7 @@ export default function FinanceiroPage() {
       }
     }
     loadMonthly()
-  }, [isSingleDaySelected, dateRange?.from, professionalId])
+  }, [isSingleDaySelected, dateRange?.from, effectiveProfessionalId])
 
   // ✅ FUNÇÃO PARA ATUALIZAR DADOS MANUALMENTE
   const handleRefreshData = async () => {
@@ -295,10 +295,10 @@ export default function FinanceiroPage() {
       const fromStr = dateRange?.from ? toLocalDateString(new Date(dateRange.from)) : undefined
       const toStr = dateRange?.to ? toLocalDateString(new Date(dateRange.to)) : fromStr
       await Promise.all([
-        fetchAppointmentsRange(fromStr, toStr, professionalId !== 'all' ? professionalId : undefined),
+        fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
         fetchProfessionals()
       ])
-      
+
       setLastUpdated(getBrazilNow())
       if (process.env.NODE_ENV === 'development') {
         console.log('✅ Dados atualizados com sucesso')
@@ -350,7 +350,7 @@ export default function FinanceiroPage() {
     } finally {
       setReportsLoading(false)
     }
-  }, [appointments, dateRange?.from, dateRange?.to, professionalId])
+  }, [appointments, dateRange?.from, dateRange?.to, effectiveProfessionalId])
 
   // ✅ OTIMIZAÇÃO: Usar useMemo para filtros pesados com tratamento de erros (APENAS do intervalo selecionado)
   const completedAppointments = useMemo(() => {
@@ -2331,8 +2331,9 @@ export default function FinanceiroPage() {
         </CardContent>
       </Card>
 
-  {/* Custos Mensais (última seção) */}
-      <Card className="bg-[#18181b] border-[#27272a]">
+  {/* Custos Mensais (última seção) - oculto para colaborador */}
+  {!isCollaborator && (
+    <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <span className="leading-none pt-1 sm:pt-0">Custos Mensais</span>
@@ -2538,7 +2539,8 @@ export default function FinanceiroPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+    </Card>
+  )}
     </div>
   )
 }
