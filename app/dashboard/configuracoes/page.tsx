@@ -272,6 +272,7 @@ function ChangePasswordSection() {
 
 export default function ConfiguracoesPage() {
   const { toast } = useToast()
+  const { token, isAuthenticated } = useAuth()
   const [copied, setCopied] = useState(false)
   // Estado para manual do usuário
   const [isManualOpen, setIsManualOpen] = useState(false)
@@ -2061,6 +2062,11 @@ export default function ConfiguracoesPage() {
                       }
                       setIsSavingAccess(true)
                       try {
+                        if (!isAuthenticated || !token) {
+                          toast({ title: 'Sessão expirada', description: 'Faça login novamente para gerenciar acessos.', variant: 'destructive' })
+                          setIsSavingAccess(false)
+                          return
+                        }
                         const res = await fetch(`/api/professionals/${accessProfessional.id}/access`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
