@@ -236,11 +236,11 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // Profissionais com estatísticas
+      // Profissionais com estatísticas (se colaborador, apenas ele)
       prisma.professional.findMany({
         where: {
-          tenantId: user.tenantId
-          // Remover filtro isActive para pegar todos
+          tenantId: user.tenantId,
+          ...(user.role === 'COLLABORATOR' && user.professionalId ? { id: user.professionalId } : {})
         },
         select: {
           id: true,
@@ -514,6 +514,7 @@ export async function GET(request: NextRequest) {
     )
 
     // Calcular ocupação geral baseada nos profissionais
+    // Para colaborador, a taxa de ocupação média deve ser apenas a dele
     const averageOccupancyRate = professionalsWithOccupancy.length > 0 
       ? Math.round(professionalsWithOccupancy.reduce((avg, prof) => avg + prof.occupancyRate, 0) / professionalsWithOccupancy.length)
       : 0
@@ -625,8 +626,9 @@ export async function GET(request: NextRequest) {
           duration: nextAppointment.services?.length > 0 ? nextAppointment.services.reduce((total, s) => total + (s.duration || 0), 0) : 30,
           totalPrice: Number(nextAppointment.totalPrice) || 0
         } : null,
-        nextAppointmentsByProfessional: nextAppointmentsByProfessional.filter(item => item.nextAppointment !== null), // Apenas profissionais com próximos agendamentos
-        professionals: professionalsWithOccupancy,
+  nextAppointmentsByProfessional: nextAppointmentsByProfessional.filter(item => item.nextAppointment !== null), // Apenas profissionais com próximos agendamentos
+  // Para colaborador, retornar apenas seu próprio bloco de ocupação
+  professionals: professionalsWithOccupancy,
         sparklines: {
           revenue: sparklineData.map(d => d.revenue),
           appointments: sparklineData.map(d => d.appointments),

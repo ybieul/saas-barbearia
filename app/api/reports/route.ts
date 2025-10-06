@@ -367,23 +367,21 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
   // Calcular período anterior para comparação
   const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
   const lastMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0, 23, 59, 59, 999)
-
+  // Se professionalId foi forçado (colaborador), buscar apenas esse profissional
   const professionals = await prisma.professional.findMany({
     where: {
       tenantId,
-      isActive: true
+      isActive: true,
+      ...(professionalId && professionalId !== 'all' ? { id: professionalId } : {})
     },
     include: {
       appointments: {
         where: {
           dateTime: {
-            gte: lastMonthStart, // Buscar também o mês anterior
+            gte: lastMonthStart,
             lte: monthEnd
           },
-          status: {
-            notIn: ['CANCELLED']
-          },
-          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
+          status: { notIn: ['CANCELLED'] }
         }
       }
     }
@@ -436,8 +434,10 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
     }
   })
 
-  // Ordenar por faturamento decrescente
-  professionalPerformance.sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue))
+  // Ordenar por faturamento decrescente somente se múltiplos (OWNER)
+  if (professionalPerformance.length > 1) {
+    professionalPerformance.sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue))
+  }
 
   return NextResponse.json({
     success: true,

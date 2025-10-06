@@ -16,27 +16,22 @@ export async function GET(request: NextRequest) {
     thresholdDate.setDate(thresholdDate.getDate() - daysThreshold)
 
     // ✅ BUSCA NO BANCO DE DADOS COM FILTRO DIRETO
+    const baseWhere: any = {
+      tenantId: user.tenantId,
+      isActive: true,
+      OR: [
+        { totalVisits: 0 },
+        { lastVisit: null },
+        { lastVisit: { lt: thresholdDate } }
+      ]
+    }
+    // Se colaborador, restringir a clientes que ele atendeu ao menos uma vez
+    if (user.role === 'COLLABORATOR' && user.professionalId) {
+      baseWhere.appointments = { some: { professionalId: user.professionalId } }
+    }
+
     const inactiveClients = await prisma.endUser.findMany({
-      where: {
-        tenantId: user.tenantId, // Filtro multi-tenant
-        isActive: true, // Apenas clientes ativos (não desativados manualmente)
-        OR: [
-          // Cliente nunca teve visitas
-          {
-            totalVisits: 0
-          },
-          // Cliente não tem lastVisit registrado
-          {
-            lastVisit: null
-          },
-          // Cliente com última visita há mais de X dias
-          {
-            lastVisit: {
-              lt: thresholdDate
-            }
-          }
-        ]
-      },
+      where: baseWhere,
       orderBy: [
         // Priorizar por criticidade: quem nunca visitou primeiro
         { totalVisits: 'asc' },
@@ -61,15 +56,7 @@ export async function GET(request: NextRequest) {
 
     // ✅ CALCULAR ESTATÍSTICAS DIRETAMENTE NO BANCO
     const stats = await prisma.endUser.aggregate({
-      where: {
-        tenantId: user.tenantId,
-        isActive: true,
-        OR: [
-          { totalVisits: 0 },
-          { lastVisit: null },
-          { lastVisit: { lt: thresholdDate } }
-        ]
-      },
+      where: baseWhere,
       _count: {
         id: true
       },

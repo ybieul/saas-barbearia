@@ -40,8 +40,24 @@ export async function GET(request: NextRequest) {
       where.category = category
     }
 
-    // Colaborador não pode ver registros que não estejam associados a ele (se houver referência futura). Por ora apenas lista global.
-    // Mantemos mesma query, mas poderia ser refinada se houvesse professionalId nos registros.
+    // Escopo colaborador: exibir apenas registros vinculados a appointments dele e excluir despesas gerais (sem reference de appointment)
+    if (user.role === 'COLLABORATOR' && user.professionalId) {
+      // Precisamos identificar appointments do colaborador e filtrar registros com reference apontando para esses appointments
+      // Assumindo que reference guarda ID de appointment quando relacionado.
+      const collaboratorAppointments = await prisma.appointment.findMany({
+        where: {
+          tenantId: user.tenantId,
+          professionalId: user.professionalId
+        },
+        select: { id: true }
+      })
+      const appointmentIds = collaboratorAppointments.map(a => a.id)
+      if (appointmentIds.length === 0) {
+        return NextResponse.json({ financialRecords: [] })
+      }
+      where.reference = { in: appointmentIds }
+    }
+
     const financialRecords = await prisma.financialRecord.findMany({ where, orderBy: { date: 'desc' } })
 
     return NextResponse.json({ financialRecords })

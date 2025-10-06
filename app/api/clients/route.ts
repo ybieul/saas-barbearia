@@ -51,25 +51,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ registeredClients, walkInClients })
     }
 
-    const clients = await prisma.endUser.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        birthday: true,
-        notes: true,
-        isActive: true,
-  // @ts-ignore tipos locais podem ainda não conter campo; em produção existe
-  isWalkIn: true,
-        createdAt: true,
-        totalSpent: true,
-        totalVisits: true,
-        lastVisit: true,
-      }
-    })
+    // Se for colaborador, filtrar apenas clientes que já tiveram atendimento com ele
+    let clients
+    if (user.role === 'COLLABORATOR' && user.professionalId) {
+      clients = await prisma.endUser.findMany({
+        where: {
+          ...whereClause,
+          appointments: {
+            some: { professionalId: user.professionalId }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          birthday: true,
+          notes: true,
+          isActive: true,
+          // @ts-ignore campo existe no banco
+          isWalkIn: true,
+          createdAt: true,
+          totalSpent: true,
+          totalVisits: true,
+          lastVisit: true,
+        }
+      })
+    } else {
+      clients = await prisma.endUser.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          birthday: true,
+          notes: true,
+          isActive: true,
+          // @ts-ignore campo existe no banco
+          isWalkIn: true,
+          createdAt: true,
+          totalSpent: true,
+          totalVisits: true,
+          lastVisit: true,
+        }
+      })
+    }
 
     return NextResponse.json({ clients })
   } catch (error) {
