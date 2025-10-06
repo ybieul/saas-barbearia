@@ -103,7 +103,7 @@ model EndUser {
 
   // Profissional que criou o cliente (para visibilidade inicial entre colaboradores)
   createdByProfessionalId String?
-  createdByProfessional   Professional? @relation(fields: [createdByProfessionalId], references: [id], onDelete: SetNull)
+  createdByProfessional   Professional? @relation("ProfessionalCreatedClients", fields: [createdByProfessionalId], references: [id], onDelete: SetNull)
 
   // Dados do cliente
   preferences Json?   // Preferências do cliente (JSON)
@@ -152,6 +152,8 @@ model Professional {
   services           Service[]
   schedules          ProfessionalSchedule[]
   scheduleExceptions ScheduleException[]
+  // Clientes criados por este profissional
+  createdClients     EndUser[] @relation("ProfessionalCreatedClients")
 
   @@index([tenantId])
   @@map("professionals")
