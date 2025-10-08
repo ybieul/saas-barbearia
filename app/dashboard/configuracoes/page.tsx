@@ -412,13 +412,14 @@ export default function ConfiguracoesPage() {
   const [isEditProfessionalOpen, setIsEditProfessionalOpen] = useState(false)
   // Modal de Gerir Acesso (credenciais do profissional)
   const [isManageAccessOpen, setIsManageAccessOpen] = useState(false)
-  interface AccessProfessionalRef { id: string; email?: string | null }
+  interface AccessProfessionalRef { id: string; email?: string | null; role?: string | null }
   const [accessProfessional, setAccessProfessional] = useState<AccessProfessionalRef | null>(null)
   const [accessEmail, setAccessEmail] = useState('')
   const [accessPassword, setAccessPassword] = useState('')
   const [accessPasswordConfirm, setAccessPasswordConfirm] = useState('')
   const [showAccessPassword, setShowAccessPassword] = useState(false)
   const [isSavingAccess, setIsSavingAccess] = useState(false)
+  const [accessRole, setAccessRole] = useState<'OWNER' | 'COLLABORATOR'>('COLLABORATOR')
   const [editingProfessional, setEditingProfessional] = useState<any>(null)
   const [editProfessional, setEditProfessional] = useState({
     name: "",
@@ -1864,6 +1865,7 @@ export default function ConfiguracoesPage() {
                                 variant="outline"
                                 onClick={() => {
                                   setAccessProfessional(professional)
+                                  setAccessRole((professional as any).role === 'OWNER' ? 'OWNER' : 'COLLABORATOR')
                                   setAccessEmail(professional.email || '')
                                   setAccessPassword('')
                                   setAccessPasswordConfirm('')
@@ -1910,6 +1912,11 @@ export default function ConfiguracoesPage() {
                             <Badge variant={professional.isActive ? "default" : "secondary"} className="text-xs">
                               {professional.isActive ? "Ativo" : "Inativo"}
                             </Badge>
+                            { (professional as any).role && (
+                              <Badge variant={(professional as any).role === 'OWNER' ? 'default' : 'secondary'} className="text-xs">
+                                {(professional as any).role === 'OWNER' ? 'Dono' : 'Colaborador'}
+                              </Badge>
+                            )}
                             {professional.createdAt && (
                               <span>Cadastrado: {formatBrazilDate(new Date(professional.createdAt))}</span>
                             )}
@@ -2070,7 +2077,7 @@ export default function ConfiguracoesPage() {
                         const res = await fetch(`/api/professionals/${accessProfessional.id}/access`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ email: accessEmail.trim() || null, password: accessPassword || undefined })
+                          body: JSON.stringify({ email: accessEmail.trim() || null, password: accessPassword || undefined, role: accessRole })
                         })
                         const data = await res.json()
                         if (!res.ok) {
@@ -2100,6 +2107,21 @@ export default function ConfiguracoesPage() {
                         className="bg-[#27272a] border-[#3f3f46] text-[#ededed]"
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm text-[#ededed]">Tipo de Acesso</Label>
+                      <select
+                        value={accessRole}
+                        onChange={(e) => setAccessRole(e.target.value as 'OWNER' | 'COLLABORATOR')}
+                        className="w-full bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-sm text-[#ededed] focus:outline-none focus:ring-2 focus:ring-tymer-primary/50"
+                      >
+                        <option value="COLLABORATOR">Colaborador</option>
+                        <option value="OWNER">Dono</option>
+                      </select>
+                      <p className="text-xs text-[#71717a] leading-relaxed">
+                        'Dono' tem acesso completo como o proprietário (use com cautela).<br />
+                        'Colaborador' tem acesso restrito aos próprios dados.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm text-[#ededed] flex items-center justify-between">Senha {accessProfessional?.email ? <span className="text-xs text-[#71717a]">(deixe em branco para não alterar)</span> : ''}</Label>

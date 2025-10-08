@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      authType = 'COLLABORATOR'
+  authType = professional.role === 'OWNER' ? 'OWNER' : 'COLLABORATOR'
 
       // Status de assinatura deriva do tenant dono
       const now = new Date()
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         tenantId: professional.tenantId,
         professionalId: professional.id,
         email: professional.email,
-        role: 'COLLABORATOR',
+        role: professional.role || 'COLLABORATOR',
         isActive: professional.tenant.isActive,
         businessPlan: professional.tenant.businessPlan,
         subscriptionEnd: professional.tenant.subscriptionEnd ? professional.tenant.subscriptionEnd.toISOString() : null,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         email: professional.email,
         businessName: professional.tenant.businessName,
         avatar: professional.avatar,
-        role: 'COLLABORATOR',
+        role: professional.role || 'COLLABORATOR',
         tenantId: professional.tenantId,
         professionalId: professional.id,
         isActive: professional.tenant.isActive,

@@ -8,7 +8,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const authUser = verifyToken(request)
 
-    if (authUser.role !== 'OWNER') {
+    // Apenas o OWNER raiz (tenant) pode alterar credenciais e papel.
+    // (Um profissional promovido a OWNER não deve poder alterar papéis de outros.)
+    if (!(authUser.role === 'OWNER' && !authUser.professionalId)) {
       return NextResponse.json({ message: 'Acesso negado' }, { status: 403 })
     }
 
@@ -17,9 +19,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ message: 'ID do profissional é obrigatório' }, { status: 400 })
     }
 
-    const { email, password } = await request.json()
+  const { email, password, role } = await request.json()
 
-    if (!email && !password) {
+    if (!email && !password && !role) {
       return NextResponse.json({ message: 'Nada para atualizar' }, { status: 400 })
     }
 
@@ -50,12 +52,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       hashed = await bcrypt.hash(password, 10)
     }
 
+    let newRole = professional.role || 'COLLABORATOR'
+    if (role) {
+      const upperRole = String(role).toUpperCase()
+      if (!['OWNER', 'COLLABORATOR'].includes(upperRole)) {
+        return NextResponse.json({ message: 'Papel inválido' }, { status: 400 })
+      }
+      newRole = upperRole
+    }
+
     const updated = await prisma.professional.update({
       where: { id: professionalId },
       data: {
         email: email ?? professional.email,
         password: hashed ?? professional.password,
-        role: professional.role || 'COLLABORATOR'
+        role: newRole
       },
       select: {
         id: true,
