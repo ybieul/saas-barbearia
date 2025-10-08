@@ -187,11 +187,20 @@ export default function DashboardLayout({
                 <p className="text-sm lg:text-base font-semibold text-[#ededed] truncate">
                   {businessInfo?.businessName || 'Estabelecimento'}
                 </p>
-                <p className="text-xs lg:text-sm text-[#a1a1aa] truncate">
-                  {businessInfo?.email || 'email@estabelecimento.com'}
-                </p>
-                <div className="flex items-center mt-1">
-                  <div className="w-2 h-2 bg-[#10b981] rounded-full mr-2 animate-pulse"></div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-xs lg:text-sm text-[#a1a1aa] truncate max-w-[140px]">
+                    {user.email || businessInfo?.email || 'sem-email'}
+                  </span>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full tracking-wide uppercase ${
+                    user.role === 'OWNER'
+                      ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-600/40'
+                      : 'bg-indigo-600/15 text-indigo-300 border border-indigo-600/30'
+                  }`}>
+                    {user.role === 'OWNER' ? 'Dono' : 'Colaborador'}
+                  </span>
+                </div>
+                <div className="flex items-center mt-1 gap-2">
+                  <div className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
                   <span className="text-xs text-[#10b981]">Online</span>
                 </div>
               </div>
