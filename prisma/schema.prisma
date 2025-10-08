@@ -76,6 +76,9 @@ model Tenant {
   // Delay configurável para envio de feedback (minutos após completedAt)
   feedbackDelayMinutes Int @default(45)
 
+  // Intervalo configurável de geração de slots de agendamento (minutos)
+  slotInterval Int? @default(5)
+
   @@map("tenants")
 }
 

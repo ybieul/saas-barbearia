@@ -29,7 +29,8 @@ export async function GET(
         businessInstagram,
         businessConfig,
         businessPlan,
-        subscriptionEnd
+        subscriptionEnd,
+        slotInterval
       FROM tenants 
       WHERE isActive = 1 
       AND JSON_EXTRACT(businessConfig, '$.customLink') = ${slug}
@@ -55,7 +56,8 @@ export async function GET(
       businessLogo: business.businessLogo,
       businessInstagram: business.businessInstagram,
       businessPlan: business.businessPlan,
-      subscriptionEnd: business.subscriptionEnd
+      subscriptionEnd: business.subscriptionEnd,
+      slotInterval: business.slotInterval ?? 5
     }
 
     return NextResponse.json(responseData)

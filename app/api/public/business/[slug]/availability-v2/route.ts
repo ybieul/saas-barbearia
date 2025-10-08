@@ -40,7 +40,14 @@ export async function GET(
       )
     }
 
-    // Buscar tenant por slug
+    // Buscar tenant por slug (tipagem estendida localmente para slotInterval)
+    interface TenantWithInterval {
+      id: string
+      name: string | null
+      businessName: string | null
+      businessConfig: any
+      slotInterval?: number | null
+    }
     const business = await prisma.tenant.findFirst({
       where: {
         isActive: true,
@@ -49,7 +56,7 @@ export async function GET(
           equals: slug
         }
       }
-    })
+    }) as (TenantWithInterval | null)
 
     // 🔍 DEBUG: Log do tenant encontrado
     console.log('🔍 [AVAILABILITY-V2] Tenant encontrado:', {
@@ -130,11 +137,14 @@ export async function GET(
       } as DayAvailability)
     }
 
-    // PASSO 2: Gerar TODOS os slots de 5min baseados no horário de trabalho
+    // Determinar intervalo dinâmico (slotInterval) do tenant (fallback 5)
+  const slotInterval = business?.slotInterval && business.slotInterval > 0 ? business.slotInterval : 5
+
+    // PASSO 2: Gerar TODOS os slots baseados no horário de trabalho usando slotInterval configurado
     const allSlots = generateTimeSlots(
       schedule.startTime.substring(0, 5), // Remover segundos se houver (HH:MM)
       schedule.endTime.substring(0, 5),
-      5 // Sempre slots de 5 em 5 minutos
+      slotInterval // Intervalo dinâmico
     )
 
     // PASSO 2.1: Filtrar horários passados (apenas para o dia atual, exceto se allowPastSlots=true)
@@ -603,7 +613,7 @@ export async function GET(
 
       // ✅ VERIFICAÇÃO ORIGINAL: Verificar se há slots consecutivos suficientes para o serviço
       const slotIndex = allSlotsStatus.findIndex(s => s.time === slot.time)
-      const slotsNeeded = Math.ceil(serviceDuration / 5) // Quantos slots de 5min são necessários
+  const slotsNeeded = Math.ceil(serviceDuration / slotInterval) // Quantos slots do intervalo configurado são necessários
       
       // Verificar se há slots disponíveis suficientes a partir deste ponto
       for (let i = 0; i < slotsNeeded; i++) {
@@ -658,6 +668,7 @@ export async function GET(
       message: availableSlots.length > 0 
         ? `${availableSlots.length} horários disponíveis para serviço de ${serviceDuration} minutos`
         : `Nenhum horário disponível para serviço de ${serviceDuration} minutos`,
+      slotInterval,
       // 🔍 DEBUG: Informações extras para diagnóstico
       debug: {
         existingAppointmentsCount: existingAppointments.length,

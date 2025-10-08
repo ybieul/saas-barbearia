@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
         businessCnpj, 
         businessInstagram,
         businessConfig,
-        fixedCosts
+        fixedCosts,
+        slotInterval
       FROM tenants 
       WHERE id = ${user.tenantId}
     ` as any[]
@@ -76,7 +77,8 @@ export async function GET(request: NextRequest) {
       logo: tenant.businessLogo || '',
       cnpj: tenant.businessCnpj || '',
       instagram: tenant.businessInstagram || '',
-      fixedCosts
+      fixedCosts,
+      slotInterval: tenant.slotInterval ?? 5
     }
     
     console.log('Business data encontrado:', businessData)
@@ -98,7 +100,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const user = verifyToken(request)
-  const { name, email, phone, address, customLink, logo, instagram, fixedCosts } = await request.json()
+  const { name, email, phone, address, customLink, logo, instagram, fixedCosts, slotInterval } = await request.json()
     
     console.log('PUT business data - Dados:', { name, email, phone, address, customLink, logo: logo ? 'Logo incluída' : 'Sem logo', tenantId: user.tenantId })
     
@@ -131,7 +133,8 @@ export async function PUT(request: NextRequest) {
         businessInstagram: instagram?.trim() || null,
         businessLogo: logo?.trim() || null,
         businessConfig: updatedConfig,
-    ...(fixedCosts !== undefined ? { fixedCosts: Array.isArray(fixedCosts) ? fixedCosts : [] } : {}),
+        ...(fixedCosts !== undefined ? { fixedCosts: Array.isArray(fixedCosts) ? fixedCosts : [] } : {}),
+        ...(slotInterval !== undefined ? { slotInterval: Number(slotInterval) || 5 } : {}),
         updatedAt: new Date()
       } as any
     })

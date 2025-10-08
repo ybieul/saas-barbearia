@@ -30,8 +30,8 @@ export function minutesToTime(minutes: number): string {
 export function generateTimeSlots(
   startTime: string,
   endTime: string,
-  slotDuration: number = 5, // Sempre 5 minutos por slot
-  serviceDuration: number = 30 // Não usado mais na geração, apenas para compatibilidade
+  slotDuration: number = 5,
+  serviceDuration: number = 30 // compatibilidade
 ): string[] {
   const startMinutes = timeToMinutes(startTime)
   const endMinutes = timeToMinutes(endTime)
@@ -52,11 +52,13 @@ export function canSlotAccommodateService(
   slotTime: string,
   serviceDuration: number,
   availableSlots: string[],
-  endTime: string
+  endTime: string,
+  slotInterval: number = 5
 ): boolean {
   const slotMinutes = timeToMinutes(slotTime)
   const endMinutes = timeToMinutes(endTime)
-  const slotsNeeded = Math.ceil(serviceDuration / 5) // Quantos slots de 5min são necessários
+  const effectiveInterval = slotInterval > 0 ? slotInterval : 5
+  const slotsNeeded = Math.ceil(serviceDuration / effectiveInterval) // Quantos slots do intervalo configurado são necessários
   
   // Verificar se há tempo suficiente até o fim do expediente
   if (slotMinutes + serviceDuration > endMinutes) {
@@ -65,7 +67,7 @@ export function canSlotAccommodateService(
   
   // Verificar se todos os slots consecutivos necessários estão disponíveis
   for (let i = 0; i < slotsNeeded; i++) {
-    const requiredSlotMinutes = slotMinutes + (i * 5)
+    const requiredSlotMinutes = slotMinutes + (i * effectiveInterval)
     const requiredSlotTime = minutesToTime(requiredSlotMinutes)
     
     if (!availableSlots.includes(requiredSlotTime)) {

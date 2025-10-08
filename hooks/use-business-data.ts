@@ -12,6 +12,7 @@ export interface BusinessData {
   cnpj?: string
   instagram: string
   fixedCosts?: Array<{ id: string; name: string; amount: number }>
+  slotInterval?: number | null
 }
 
 export function useBusinessData() {
@@ -24,7 +25,8 @@ export function useBusinessData() {
     logo: "",
     cnpj: "",
   instagram: "",
-  fixedCosts: []
+  fixedCosts: [],
+  slotInterval: 5
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -66,7 +68,8 @@ export function useBusinessData() {
         logo: "",
         cnpj: "",
         instagram: "",
-        fixedCosts: []
+        fixedCosts: [],
+        slotInterval: 5
       })
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {

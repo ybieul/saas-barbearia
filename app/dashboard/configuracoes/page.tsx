@@ -1451,6 +1451,20 @@ export default function ConfiguracoesPage() {
                       <p>❌ <strong>Evite:</strong> espaços, acentos ou caracteres especiais</p>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="slotInterval" className="text-[#ededed]">Intervalo de horários na agenda pública</Label>
+                    <select
+                      id="slotInterval"
+                      value={businessData.slotInterval ?? 5}
+                      onChange={(e) => updateBusinessData({ slotInterval: Number(e.target.value) })}
+                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tymer-primary/40"
+                    >
+                      {[5,10,15,20,25,30,45,60].map(v => (
+                        <option key={v} value={v}>{v} minutos</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[#71717a]">Defina o intervalo de minutos entre os horários disponíveis para agendamento (ex: 15 em 15 minutos).</p>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -1865,7 +1879,7 @@ export default function ConfiguracoesPage() {
                                 variant="outline"
                                 onClick={() => {
                                   setAccessProfessional(professional)
-                                  setAccessRole((professional as any).role === 'OWNER' ? 'OWNER' : 'COLLABORATOR')
+                                  setAccessRole(professional.role === 'OWNER' ? 'OWNER' : 'COLLABORATOR')
                                   setAccessEmail(professional.email || '')
                                   setAccessPassword('')
                                   setAccessPasswordConfirm('')
@@ -1912,9 +1926,9 @@ export default function ConfiguracoesPage() {
                             <Badge variant={professional.isActive ? "default" : "secondary"} className="text-xs">
                               {professional.isActive ? "Ativo" : "Inativo"}
                             </Badge>
-                            { (professional as any).role && (
-                              <Badge variant={(professional as any).role === 'OWNER' ? 'default' : 'secondary'} className="text-xs">
-                                {(professional as any).role === 'OWNER' ? 'Dono' : 'Colaborador'}
+                            { professional.role && (
+                              <Badge variant={professional.role === 'OWNER' ? 'default' : 'secondary'} className="text-xs">
+                                {professional.role === 'OWNER' ? 'Dono' : 'Colaborador'}
                               </Badge>
                             )}
                             {professional.createdAt && (

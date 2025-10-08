@@ -407,7 +407,10 @@ export default function AgendaPage() {
         return []
       }
       
-      const interval = 5 // Intervalos de 5 minutos
+      // Intervalo dinâmico configurável (fallback 5)
+      const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
+        ? Number(establishment.slotInterval)
+        : 5
       
       // Gerar slots apenas dentro do horário de funcionamento
       for (let currentMinutes = startTotalMinutes; currentMinutes < endTotalMinutes; currentMinutes += interval) {
@@ -632,6 +635,10 @@ export default function AgendaPage() {
       return hours * 60 + minutes
     }
 
+    const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
+      ? Number(establishment.slotInterval)
+      : 5
+
     const startMinutes = timeToMinutes(time)
     const endMinutes = startMinutes + serviceDuration
     const slots = generateTimeSlots()
@@ -651,7 +658,7 @@ export default function AgendaPage() {
       } catch {}
     }
 
-    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += 5) {
+    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += interval) {
       const hours = Math.floor(currentMinutes / 60)
       const minutes = currentMinutes % 60
       const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
@@ -697,10 +704,13 @@ export default function AgendaPage() {
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
     
     // 📊 Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
+    const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
+      ? Number(establishment.slotInterval)
+      : 5
     const totalSlotsInDay = generateTimeSlots().length
     const totalOccupiedSlots = activeAppointments.reduce((sum, apt) => {
       const serviceDuration = apt.duration || 30
-      const slotsNeeded = Math.ceil(serviceDuration / 5) // slots de 5 minutos
+      const slotsNeeded = Math.ceil(serviceDuration / interval) // slots conforme intervalo dinâmico
       return sum + slotsNeeded
     }, 0)
     

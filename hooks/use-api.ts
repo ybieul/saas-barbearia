@@ -514,8 +514,24 @@ export function useReports() {
 }
 
 // Hook específico para configurações do estabelecimento
+interface EstablishmentData {
+  id: string
+  name: string
+  email?: string
+  phone?: string | null
+  address?: string | null
+  businessName?: string | null
+  businessPhone?: string | null
+  businessAddress?: string | null
+  businessLogo?: string | null
+  businessInstagram?: string | null
+  businessPlan?: string | null
+  subscriptionEnd?: string | null
+  slotInterval?: number | null
+}
+
 export function useEstablishment() {
-  const { data, loading, error, request } = useApi<{ businessData: any }>()
+  const { data, loading, error, request } = useApi<{ businessData: EstablishmentData }>()
 
   const fetchEstablishment = useCallback(() => {
     return request('/api/business')
