@@ -1452,18 +1452,22 @@ export default function ConfiguracoesPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="slotInterval" className="text-[#ededed]">Intervalo de horários na agenda pública</Label>
+                    <Label htmlFor="slotInterval" className="text-[#ededed] font-medium">Intervalo de Horários da Agenda (Pública e Interna)</Label>
                     <select
                       id="slotInterval"
                       value={businessData.slotInterval ?? 5}
                       onChange={(e) => updateBusinessData({ slotInterval: Number(e.target.value) })}
-                      className="bg-[#27272a] border-[#3f3f46] text-[#ededed] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tymer-primary/40"
+                      className="w-full sm:w-56 md:w-64 bg-[#27272a] border-[#3f3f46] text-[#ededed] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tymer-primary/40 transition-colors"
+                      aria-describedby="slotIntervalHelp"
                     >
                       {[5,10,15,20,25,30,45,60].map(v => (
                         <option key={v} value={v}>{v} minutos</option>
                       ))}
                     </select>
-                    <p className="text-xs text-[#71717a]">Defina o intervalo de minutos entre os horários disponíveis para agendamento (ex: 15 em 15 minutos).</p>
+                    <p id="slotIntervalHelp" className="text-xs text-[#71717a] leading-relaxed">
+                      Define a granularidade (em minutos) dos horários exibidos <strong>tanto na agenda pública quanto na agenda interna</strong>. 
+                      Altera geração de slots, verificação de conflitos e cálculo de ocupação. Ex.: 15 = horários de 15 em 15 minutos.
+                    </p>
                   </div>
                 </div>
                 
