@@ -700,8 +700,22 @@ export default function AgendaPage() {
       apt.status === 'pending' || apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS'
     )
     
-    // 💰 Receita apenas de agendamentos concluídos
+    // 💰 Receita de agendamentos concluídos
     const totalRevenue = completed.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
+    // 💸 Comissão do colaborador nos concluídos (snapshot ou fallback pct * total)
+    const totalCommission = completed.reduce((sum, apt) => {
+      const snap = (apt as any)?.commissionEarned
+      if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
+        return sum + parseFloat(String(snap))
+      }
+      const pctRaw = (apt as any)?.professional?.commissionPercentage
+      const pct = pctRaw !== undefined && pctRaw !== null ? parseFloat(String(pctRaw)) : NaN
+      if (!isNaN(pct)) {
+        const price = Number(apt.totalPrice) || 0
+        return sum + parseFloat((price * pct).toFixed(2))
+      }
+      return sum
+    }, 0)
     
     // 📊 Calcular taxa de ocupação baseada em minutos ocupados vs disponíveis
     const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
@@ -721,9 +735,9 @@ export default function AgendaPage() {
       completed: completed.length,
       pending: pending.length,
       occupancyRate: Math.min(occupancyRate, 100),
-      revenueToday: totalRevenue
+      revenueToday: isCollaborator ? totalCommission : totalRevenue
     }
-  }, [todayAppointments, selectedProfessional, generateTimeSlots]) // Dependências para recalcular estatísticas
+  }, [todayAppointments, selectedProfessional, generateTimeSlots, isCollaborator]) // Dependências para recalcular estatísticas
 
 
 
@@ -2216,8 +2230,8 @@ export default function AgendaPage() {
                 <span className="text-tymer-icon font-bold text-lg">R$</span>
               </div>
               <div>
-        <p className="text-sm md:text-sm text-tymer-muted">
-                  Receita Hoje
+                <p className="text-sm md:text-sm text-tymer-muted">
+                  {isCollaborator ? 'Ganhos Hoje' : 'Receita Hoje'}
                   {selectedProfessional !== "todos" && (
           <span className="ml-1 text-xs text-tymer-muted">
                       • {professionalsData?.find(p => p.id === selectedProfessional)?.name || 'Profissional'}
@@ -2311,7 +2325,10 @@ export default function AgendaPage() {
                 const dayName = currentDate.toLocaleDateString('pt-BR', { weekday: 'long' })
                 return `Estabelecimento fechado ${dayName}`
               }
-              return `Grade de 5 em 5 minutos - Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`
+              const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
+                ? Number(establishment.slotInterval)
+                : 5
+              return `Grade de ${interval} em ${interval} minutos - Funcionamento: ${dayConfig.startTime} às ${dayConfig.endTime}`
             })()}
           </CardDescription>
         </CardHeader>
@@ -2319,11 +2336,25 @@ export default function AgendaPage() {
           <div className="max-h-96 md:max-h-96 overflow-y-auto">
             {generateTimeSlots().map((time) => {
               const isOccupied = isTimeSlotOccupied(time, selectedProfessional === "todos" ? undefined : selectedProfessional)
-              // ✅ CORREÇÃO: Buscar TODOS os agendamentos do horário, não apenas o primeiro
+              // ✅ CORREÇÃO: Agrupar agendamentos cujo horário de INÍCIO cai dentro da janela do slot [slotStart, slotEnd)
+              const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0
+                ? Number(establishment.slotInterval)
+                : 5
+              const timeToMinutes = (t: string) => {
+                const [h, m] = t.split(':').map(Number)
+                return h * 60 + m
+              }
+              const slotStartMin = timeToMinutes(time)
+              const slotEndMin = slotStartMin + interval
               const appointmentsAtTime = filteredAppointments.filter(apt => {
-                // Parse seguro do dateTime do banco (sem conversão UTC automática)
-                const aptTime = extractTimeFromDateTime(apt.dateTime) // HH:mm sem UTC
-                return aptTime === time
+                try {
+                  const aptStart = extractTimeFromDateTime(apt.dateTime)
+                  const aptMin = timeToMinutes(aptStart)
+                  // Início do agendamento dentro do bucket
+                  return aptMin >= slotStartMin && aptMin < slotEndMin
+                } catch {
+                  return false
+                }
               })
 
               return (
@@ -2384,6 +2415,33 @@ export default function AgendaPage() {
                       <div className="flex items-center gap-2 sm:gap-3 flex-1">
                         <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
                         <p className="text-red-400 text-xs md:text-base">Ocupado (dentro de outro agendamento)</p>
+                        {(() => {
+                          // Mostrar breve info do agendamento que cobre este slot (primeiro que abrange a janela)
+                          const interval = establishment?.slotInterval && Number(establishment.slotInterval) > 0 ? Number(establishment.slotInterval) : 5
+                          const timeToMinutes = (t: string) => { const [h,m]=t.split(':').map(Number); return h*60+m }
+                          const slotStartMin = timeToMinutes(time)
+                          const slotEndMin = slotStartMin + interval
+                          const covering = filteredAppointments.find(apt => {
+                            try {
+                              if (apt.status === 'CANCELLED' || apt.status === 'cancelled') return false
+                              const aptStart = extractTimeFromDateTime(apt.dateTime)
+                              const aptStartMin = timeToMinutes(aptStart)
+                              // duração
+                              let dur = apt.duration || 30
+                              if (!dur && Array.isArray(apt.services) && apt.services.length>0) {
+                                dur = apt.services.reduce((s:any,sv:any)=>s+(Number(sv.duration)||0),0) || 30
+                              }
+                              const aptEndMin = aptStartMin + dur
+                              return aptStartMin < slotEndMin && aptEndMin > slotStartMin
+                            } catch { return false }
+                          })
+                          if (!covering) return null
+                          return (
+                            <span className="text-[11px] md:text-xs text-[#a1a1aa] ml-2 truncate">
+                              {covering.endUser?.name || covering.clientName || 'Cliente'} • {covering.services?.map((s:any)=>s.name).join(' + ') || covering.serviceName || 'Serviço'}
+                            </span>
+                          )
+                        })()}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 sm:gap-3 flex-1">
