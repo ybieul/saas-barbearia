@@ -708,9 +708,18 @@ export default function AgendaPage() {
       if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
         return sum + parseFloat(String(snap))
       }
+      let pct: number | null = null
       const pctRaw = (apt as any)?.professional?.commissionPercentage
-      const pct = pctRaw !== undefined && pctRaw !== null ? parseFloat(String(pctRaw)) : NaN
-      if (!isNaN(pct)) {
+      if (pctRaw !== undefined && pctRaw !== null && !isNaN(parseFloat(String(pctRaw)))) {
+        pct = parseFloat(String(pctRaw))
+      } else if (apt.professionalId && Array.isArray(professionalsData)) {
+        const prof = professionalsData.find(p => p.id === apt.professionalId)
+        const profPct = (prof as any)?.commissionPercentage
+        if (profPct !== undefined && profPct !== null && !isNaN(parseFloat(String(profPct)))) {
+          pct = parseFloat(String(profPct))
+        }
+      }
+      if (pct !== null) {
         const price = Number(apt.totalPrice) || 0
         return sum + parseFloat((price * pct).toFixed(2))
       }
@@ -2509,16 +2518,25 @@ export default function AgendaPage() {
             const status = getStatusBadge(appointment.status)
             // Parse seguro do dateTime do banco (sem conversão UTC automática)
             const appointmentTime = extractTimeFromDateTime(appointment.dateTime) // HH:mm sem UTC
-            // Cálculo de comissão (snapshot -> fallback pct * total)
+            // Cálculo de comissão (snapshot -> fallback pct * total) com fallback para professionalsData
             const grossAmount = Number(appointment.totalPrice || 0)
             let commissionAmount = 0
             const snap = (appointment as any)?.commissionEarned
             if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
               commissionAmount = parseFloat(String(snap))
             } else {
+              let pct: number | null = null
               const pctRaw = (appointment as any)?.professional?.commissionPercentage
-              const pct = pctRaw !== undefined && pctRaw !== null ? parseFloat(String(pctRaw)) : NaN
-              if (!isNaN(pct)) {
+              if (pctRaw !== undefined && pctRaw !== null && !isNaN(parseFloat(String(pctRaw)))) {
+                pct = parseFloat(String(pctRaw))
+              } else if (appointment.professionalId && Array.isArray(professionalsData)) {
+                const prof = professionalsData.find(p => p.id === appointment.professionalId)
+                const profPct = prof?.commissionPercentage
+                if (profPct !== undefined && profPct !== null && !isNaN(parseFloat(String(profPct)))) {
+                  pct = parseFloat(String(profPct))
+                }
+              }
+              if (pct !== null) {
                 commissionAmount = parseFloat((grossAmount * pct).toFixed(2))
               }
             }
