@@ -333,16 +333,18 @@ export default function FinanceiroPage() {
         } catch { return false }
       }) : []
 
-      // Performance por profissional
-      const byProf = new Map<string, { id: string, name: string, avatar?: string | null, appointments: number, revenue: number, growth: string }>()
+      // Performance por profissional (faturamento bruto e comissão estimada)
+      const byProf = new Map<string, { id: string, name: string, avatar?: string | null, appointments: number, revenue: number, commission: number, growth: string }>()
       inRange.forEach((app: any) => {
         if (!['COMPLETED','IN_PROGRESS'].includes(app.status)) return
         const id = app.professionalId || 'sem-prof'
         const name = app.professional?.name || 'Profissional'
         const avatar = app.professional?.avatar || null
-        const prev = byProf.get(id) || { id, name, avatar, appointments: 0, revenue: 0, growth: '+0%' }
+        const prev = byProf.get(id) || { id, name, avatar, appointments: 0, revenue: 0, commission: 0, growth: '+0%' }
         prev.appointments += 1
         prev.revenue += parseFloat(app.totalPrice) || 0
+        // calcular comissão (snapshot ou fallback via helper)
+        prev.commission += appointmentCommission(app)
         byProf.set(id, prev)
       })
       setProfessionalPerformance(Array.from(byProf.values()).sort((a,b)=>b.revenue-a.revenue))
@@ -1113,16 +1115,27 @@ export default function FinanceiroPage() {
       const v = parseFloat(snap)
       if (!isNaN(v)) return v
     }
-    const pct = app?.professional?.commissionPercentage
-    if (pct !== undefined && pct !== null) {
-      const p = parseFloat(pct)
-      if (!isNaN(p)) {
-        const total = parseFloat(app.totalPrice) || 0
-        return parseFloat((total * p).toFixed(2))
+    // fallback: percentual do objeto do agendamento
+    let pct: number | null = null
+    const pctRaw = app?.professional?.commissionPercentage
+    if (pctRaw !== undefined && pctRaw !== null) {
+      const p = parseFloat(pctRaw)
+      if (!isNaN(p)) pct = p
+    }
+    // fallback final: buscar percentual pela lista de profissionais carregada
+    if ((pct === null || pct === undefined) && Array.isArray(professionals)) {
+      const prof = professionals.find((p: any) => p.id === app.professionalId)
+      if (prof && prof.commissionPercentage !== undefined && prof.commissionPercentage !== null) {
+        const p = parseFloat(prof.commissionPercentage)
+        if (!isNaN(p)) pct = p
       }
     }
+    if (pct !== null && pct !== undefined) {
+      const total = parseFloat(app.totalPrice) || 0
+      return parseFloat(((total) * pct).toFixed(2))
+    }
     return 0
-  }, [])
+  }, [professionals])
 
   const previousPeriodData = useMemo(() => {
     try {
@@ -1219,6 +1232,11 @@ export default function FinanceiroPage() {
     if (!isCollaborator) return 0
     return currentPeriodAppointments.reduce((sum, app) => sum + appointmentCommission(app), 0)
   }, [currentPeriodAppointments, isCollaborator, appointmentCommission])
+
+  // Comissões no período (para OWNER) — sempre soma via helper
+  const currentPeriodCommissionsOwner = useMemo(() => {
+    return currentPeriodAppointments.reduce((sum, app) => sum + appointmentCommission(app), 0)
+  }, [currentPeriodAppointments, appointmentCommission])
 
   const revenueChange = calculateChange(
     isCollaborator ? currentCommissionRevenue : currentPeriodRevenue,
@@ -1326,7 +1344,8 @@ export default function FinanceiroPage() {
     return baseTitle.replace('Hoje', 'no período')
   }
 
-  const financialStats = [
+  // Montagem dinâmica dos cards superiores
+  const financialStatsBase = [
     {
       title: isCollaborator ? getPeriodTitle('Ganhos (Comissão)') : getPeriodTitle('Faturamento Hoje'),
       value: (() => {
@@ -1380,6 +1399,26 @@ export default function FinanceiroPage() {
       icon: CreditCard,
     },
   ]
+
+  // Inserir card "Comissões (Período)" para OWNER, usando valor da API quando existir
+  const financialStats = (() => {
+    const list = [...financialStatsBase]
+    if (!isCollaborator) {
+      const apiCommissions = Number((dashboardData as any)?.stats?.commissionsPaid || 0)
+      const displayed = apiCommissions > 0 ? apiCommissions : currentPeriodCommissionsOwner
+      const commChange = calculateChange(displayed, (previousPeriodData as any).commissionRevenue || 0)
+      const commCard = {
+        title: getPeriodTitle('Comissões (Período)'),
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayed),
+        change: commChange.change,
+        changeType: commChange.type,
+        icon: DollarSign,
+      }
+      // Inserir como segundo card para ficar no topo com destaque
+      list.splice(1, 0, commCard)
+    }
+    return list
+  })()
 
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
@@ -2378,6 +2417,12 @@ export default function FinanceiroPage() {
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(professional.revenue) || 0)}
                       </p>
                     </div>
+                    <div className="col-span-2">
+                      <p className="text-[#71717a] mb-1">Comissão a Pagar</p>
+                      <p className="text-[#f59e0b] font-medium text-sm sm:text-base">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(professional.commission) || 0)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )) : (
@@ -2672,19 +2717,31 @@ export default function FinanceiroPage() {
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
             </div>
 
-            {/* Cards de Custos Fixos (Mensal) e Lucro Líquido (Estimado, Mês) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
+            {/* Cards: Custos Fixos, Comissões (Mês) e Lucro Líquido (Estimado, Mês) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 pt-4">
               {(() => {
                 const monthlyFixedTotal = fixedCostsAll
                   .filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
                   .reduce((s, i) => s + (Number(i.amount) || 0), 0)
                 const monthRevenue = selectedMonthData?.revenue || 0
-                const monthlyNetProfit = monthRevenue - monthlyFixedTotal
+                // Calcular total de comissões do mês selecionado com fallback (snapshot ou percentual)
+                const monthlyCommissions = (() => {
+                  try {
+                    const monthApps = Array.isArray(selectedMonthData?.appointments) ? selectedMonthData.appointments : []
+                    return monthApps.reduce((acc: number, app: any) => acc + appointmentCommission(app), 0)
+                  } catch { return 0 }
+                })()
+                const monthlyNetProfit = monthRevenue - monthlyFixedTotal - monthlyCommissions
                 return [
                   {
                     title: 'Custos Fixos (Mensal)',
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyFixedTotal),
                     icon: Banknote,
+                  },
+                  {
+                    title: 'Comissões (Mês)',
+                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyCommissions),
+                    icon: DollarSign,
                   },
                   {
                     title: 'Lucro Líquido (Estimado, Mês)',

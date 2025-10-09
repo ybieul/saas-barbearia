@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
       totalAppointments,
       completedAppointments,
       totalRevenue,
+      totalCommissionsAgg,
       pendingAppointments,
       cancelledAppointments,
       recentAppointments,
@@ -140,6 +141,16 @@ export async function GET(request: NextRequest) {
           ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
         },
         _sum: { totalPrice: true }
+      }),
+      // Soma das comissões do período (snapshot)
+      prisma.appointment.aggregate({
+        where: {
+          tenantId: user.tenantId,
+          status: { in: ['COMPLETED', 'IN_PROGRESS'] },
+          dateTime: { gte: startDate, lte: endDate },
+          ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
+        },
+        _sum: { commissionEarned: true }
       }),
       
       // Agendamentos pendentes/agendados
@@ -338,7 +349,8 @@ export async function GET(request: NextRequest) {
     )
 
     // Calcular métricas
-    const revenue = totalRevenue._sum.totalPrice || 0
+  const revenue = totalRevenue._sum.totalPrice || 0
+  const commissionsPaid = Number(totalCommissionsAgg._sum.commissionEarned || 0)
     // Calcular custos fixos do período (pró-rata mensal)
     let fixedCostsArray: Array<{ id?: string; name: string; amount: number }> = []
     try {
@@ -377,7 +389,8 @@ export async function GET(request: NextRequest) {
         return (monthlyFixedTotal / 30) * daysInRange
       }
     })()
-    const netProfit = Number(revenue) - proratedFixedCost
+  // Para OWNER, considerar comissões como custo variável
+  const netProfit = Number(revenue) - proratedFixedCost - (user.role === 'COLLABORATOR' ? 0 : commissionsPaid)
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
     const cancellationRate = totalAppointments > 0 ? (cancelledAppointments / totalAppointments) * 100 : 0
 
@@ -592,6 +605,7 @@ export async function GET(request: NextRequest) {
           totalAppointments,
           completedAppointments,
           revenue: Number(revenue),
+          commissionsPaid: commissionsPaid,
       fixedCosts: Math.round(proratedFixedCost * 100) / 100,
       netProfit: Math.round(netProfit * 100) / 100,
           pendingAppointments,
@@ -601,6 +615,7 @@ export async function GET(request: NextRequest) {
         },
         stats: {
           totalRevenue: Number(revenue),
+      commissionsPaid: commissionsPaid,
       fixedCosts: Math.round(proratedFixedCost * 100) / 100,
       netProfit: Math.round(netProfit * 100) / 100,
           totalClients,

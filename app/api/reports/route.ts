@@ -237,6 +237,7 @@ async function getOverviewReport(tenantId: string, params: any) {
           commission: thisMonthCommission,
           commissionPrevious: lastMonthCommission
         },
+        totalCommissions: thisMonthCommission,
         appointments: {
           current: thisMonthAppointmentsCount,
           previous: lastMonthAppointmentsCount,
@@ -270,9 +271,11 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
     }
     if (professionalId && professionalId !== 'all') where.professionalId = professionalId
   const appointments = await prisma.appointment.findMany({ where })
-  const revenue = appointments.reduce((sum, apt) => sum + Number((isCollaborator ? apt.commissionEarned : apt.totalPrice) || 0), 0)
+  const grossRevenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+    const commission = appointments.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
+  const revenue = isCollaborator ? commission : grossRevenue
     const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
-    monthlyData.push({ month: 'Período', year: new Date().getFullYear(), revenue, appointments: appointments.length, clients: uniqueClients })
+    monthlyData.push({ month: 'Período', year: new Date().getFullYear(), revenue, grossRevenue, commission, appointments: appointments.length, clients: uniqueClients })
   } else {
     // Buscar dados dos últimos 6 meses
     for (let i = 5; i >= 0; i--) {
@@ -293,7 +296,9 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
       if (professionalId && professionalId !== 'all') where.professionalId = professionalId
   const appointments = await prisma.appointment.findMany({ where })
 
-  const revenue = appointments.reduce((sum, apt) => sum + Number((isCollaborator ? apt.commissionEarned : apt.totalPrice) || 0), 0)
+  const grossRevenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+    const commission = appointments.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
+    const revenue = isCollaborator ? commission : grossRevenue
       const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
       
       const monthNames = [
@@ -305,6 +310,8 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
         month: monthNames[month],
         year,
         revenue,
+        grossRevenue,
+        commission,
         appointments: appointments.length,
         clients: uniqueClients
       })
