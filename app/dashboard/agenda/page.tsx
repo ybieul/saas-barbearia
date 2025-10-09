@@ -2491,6 +2491,13 @@ export default function AgendaPage() {
                             )
                           }
                         </p>
+                        {/* Comissão do colaborador quando concluído */}
+                        {isCollaborator && appointment.status === 'COMPLETED' && typeof appointment.commissionEarned === 'number' && (
+                          <p className="text-[#a1a1aa] text-sm md:text-base">
+                            <strong>Sua Comissão:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appointment.commissionEarned)}
+                          </p>
+                        )}
+
                         {appointment.notes && (
                           <p className="text-[#a1a1aa] text-sm md:text-base">
                             <strong>Observações:</strong> {appointment.notes}

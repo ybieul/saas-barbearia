@@ -329,6 +329,7 @@ export function useProfessionals() {
     email?: string
     phone: string
     specialty: string
+    commissionPercentage?: number
     commission?: number
     serviceIds?: string[]
     workingHours?: any
@@ -345,6 +346,7 @@ export function useProfessionals() {
     email?: string
     phone?: string
     specialty?: string
+    commissionPercentage?: number
     commission?: number
     serviceIds?: string[]
     workingHours?: any

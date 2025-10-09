@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     let professionalId = searchParams.get('professionalId') || undefined
 
     // Restrição: colaborador só pode ver seus próprios dados
-    if (user.role === 'COLLABORATOR') {
+    const isCollaborator = user.role === 'COLLABORATOR'
+    if (isCollaborator) {
       professionalId = user.professionalId
     }
 
@@ -63,16 +64,17 @@ export async function GET(request: NextRequest) {
           currentMonth,
           currentYear,
           professionalId,
+          isCollaborator,
         })
       
       case 'monthly-performance':
-  return await getMonthlyPerformance(user.tenantId, professionalId, rangeStart, rangeEnd)
+  return await getMonthlyPerformance(user.tenantId, professionalId, rangeStart, rangeEnd, isCollaborator)
       
-      case 'services':
-  return await getServicesReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
+    case 'services':
+  return await getServicesReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId, isCollaborator)
       
       case 'professionals':
-  return await getProfessionalsReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
+  return await getProfessionalsReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId, isCollaborator)
       
       case 'time-analysis':
   return await getTimeAnalysisReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
@@ -92,7 +94,7 @@ export async function GET(request: NextRequest) {
 
 // Relatório geral com métricas principais
 async function getOverviewReport(tenantId: string, params: any) {
-  const { rangeStart, rangeEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd, professionalId } = params
+  const { rangeStart, rangeEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd, professionalId, isCollaborator } = params
 
   // 1. Buscar agendamentos do período atual e anterior
   const currentWhere: any = {
@@ -151,9 +153,7 @@ async function getOverviewReport(tenantId: string, params: any) {
   }, 0)
 
   // Se usuário é colaborador, a métrica principal de "revenue" vira sua comissão
-  const thisMonthRevenue = professionalId && professionalId !== 'all' && thisMonthCommission > 0 && completedThisMonth.every(a => a.professionalId === professionalId)
-    ? thisMonthCommission
-    : thisMonthRevenueRaw
+  const thisMonthRevenue = isCollaborator ? thisMonthCommission : thisMonthRevenueRaw
 
   const lastMonthRevenueRaw = completedLastMonth.reduce((sum, apt) => {
     return sum + Number(apt.totalPrice || 0)
@@ -161,9 +161,7 @@ async function getOverviewReport(tenantId: string, params: any) {
   const lastMonthCommission = completedLastMonth.reduce((sum, apt) => {
     return sum + Number(apt.commissionEarned || 0)
   }, 0)
-  const lastMonthRevenue = professionalId && professionalId !== 'all' && lastMonthCommission > 0 && completedLastMonth.every(a => a.professionalId === professionalId)
-    ? lastMonthCommission
-    : lastMonthRevenueRaw
+  const lastMonthRevenue = isCollaborator ? lastMonthCommission : lastMonthRevenueRaw
 
   // 4. Contagem de agendamentos (todos os status exceto CANCELLED)
   const thisMonthAppointmentsCount = thisMonthAppointments.filter(apt => 
@@ -215,8 +213,8 @@ async function getOverviewReport(tenantId: string, params: any) {
   ).size
 
   // 6. Calcular ticket médio
-  const thisMonthTicket = completedThisMonth.length > 0 ? thisMonthRevenue / completedThisMonth.length : 0
-  const lastMonthTicket = completedLastMonth.length > 0 ? lastMonthRevenue / completedLastMonth.length : 0
+  const thisMonthTicket = completedThisMonth.length > 0 ? (isCollaborator ? thisMonthCommission : thisMonthRevenueRaw) / completedThisMonth.length : 0
+  const lastMonthTicket = completedLastMonth.length > 0 ? (isCollaborator ? lastMonthCommission : lastMonthRevenueRaw) / completedLastMonth.length : 0
 
   // 7. Função para calcular mudança percentual
   const calculateChange = (current: number, previous: number) => {
@@ -260,7 +258,7 @@ async function getOverviewReport(tenantId: string, params: any) {
 }
 
 // Performance mensal dos últimos 6 meses
-async function getMonthlyPerformance(tenantId: string, professionalId?: string, rangeStart?: Date, rangeEnd?: Date) {
+async function getMonthlyPerformance(tenantId: string, professionalId?: string, rangeStart?: Date, rangeEnd?: Date, isCollaborator: boolean = false) {
   const monthlyData = []
   
   if (rangeStart && rangeEnd) {
@@ -271,8 +269,8 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
       status: { in: ['COMPLETED', 'IN_PROGRESS'] }
     }
     if (professionalId && professionalId !== 'all') where.professionalId = professionalId
-    const appointments = await prisma.appointment.findMany({ where })
-    const revenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const appointments = await prisma.appointment.findMany({ where })
+  const revenue = appointments.reduce((sum, apt) => sum + Number((isCollaborator ? apt.commissionEarned : apt.totalPrice) || 0), 0)
     const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
     monthlyData.push({ month: 'Período', year: new Date().getFullYear(), revenue, appointments: appointments.length, clients: uniqueClients })
   } else {
@@ -293,9 +291,9 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
         status: { in: ['COMPLETED', 'IN_PROGRESS'] }
       }
       if (professionalId && professionalId !== 'all') where.professionalId = professionalId
-      const appointments = await prisma.appointment.findMany({ where })
+  const appointments = await prisma.appointment.findMany({ where })
 
-      const revenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const revenue = appointments.reduce((sum, apt) => sum + Number((isCollaborator ? apt.commissionEarned : apt.totalPrice) || 0), 0)
       const uniqueClients = new Set(appointments.map(apt => apt.endUserId)).size
       
       const monthNames = [
@@ -322,7 +320,7 @@ async function getMonthlyPerformance(tenantId: string, professionalId?: string, 
 }
 
 // Relatório de serviços mais populares
-async function getServicesReport(tenantId: string, start: Date, end: Date, professionalId?: string) {
+async function getServicesReport(tenantId: string, start: Date, end: Date, professionalId?: string, isCollaborator: boolean = false) {
   // Buscar agendamentos do período com serviços
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -334,7 +332,8 @@ async function getServicesReport(tenantId: string, start: Date, end: Date, profe
   ...(professionalId && professionalId !== 'all' ? { professionalId } : {})
     },
     include: {
-      services: true
+      services: true,
+      professional: true
     }
   })
 
@@ -342,6 +341,7 @@ async function getServicesReport(tenantId: string, start: Date, end: Date, profe
   const serviceStats = new Map()
   
   appointments.forEach(appointment => {
+    // Incrementar popularidade (contagem) para todos os agendamentos não cancelados
     appointment.services.forEach(service => {
       const key = service.id
       if (!serviceStats.has(key)) {
@@ -353,15 +353,40 @@ async function getServicesReport(tenantId: string, start: Date, end: Date, profe
           price: Number(service.price)
         })
       }
-      
       const stats = serviceStats.get(key)
       stats.count += 1
-      
-      // Para receita, considerar apenas agendamentos concluídos/em andamento
-      if (appointment.status === 'COMPLETED' || appointment.status === 'IN_PROGRESS') {
-        stats.revenue += Number(service.price)
-      }
     })
+
+    // Para receita/ganhos, considerar apenas COMPLETED/IN_PROGRESS
+    if (appointment.status === 'COMPLETED' || appointment.status === 'IN_PROGRESS') {
+      if (!isCollaborator) {
+        // OWNER: receita bruta por serviço (somar preço de tabela)
+        appointment.services.forEach(service => {
+          const stats = serviceStats.get(service.id)
+          stats.revenue += Number(service.price)
+        })
+      } else {
+        // COLLABORATOR: distribuir a comissão do agendamento proporcionalmente ao preço do serviço
+        const commissionSnapshot = Number(appointment.commissionEarned || 0)
+        let commission = commissionSnapshot
+        if (!commission || commission <= 0) {
+          const pct = Number(appointment.professional?.commissionPercentage || 0)
+          const aptTotal = Number(appointment.totalPrice || 0)
+          const fallbackTotal = appointment.services.reduce((s, sv) => s + Number(sv.price || 0), 0)
+          const base = aptTotal > 0 ? aptTotal : fallbackTotal
+          commission = base * pct
+        }
+
+        const totalServicesPrice = appointment.services.reduce((sum, s) => sum + Number(s.price || 0), 0)
+        const divisor = totalServicesPrice > 0 ? totalServicesPrice : appointment.services.length || 1
+
+        appointment.services.forEach(service => {
+          const stats = serviceStats.get(service.id)
+          const weight = totalServicesPrice > 0 ? (Number(service.price || 0) / divisor) : (1 / divisor)
+          stats.revenue += commission * weight
+        })
+      }
+    }
   })
 
   // Converter para array e ordenar por quantidade
@@ -382,7 +407,7 @@ async function getServicesReport(tenantId: string, start: Date, end: Date, profe
 }
 
 // Relatório de performance dos profissionais
-async function getProfessionalsReport(tenantId: string, monthStart: Date, monthEnd: Date, professionalId?: string) {
+async function getProfessionalsReport(tenantId: string, monthStart: Date, monthEnd: Date, professionalId?: string, isCollaborator: boolean = false) {
   // Calcular período anterior para comparação
   const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
   const lastMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0, 23, 59, 59, 999)
@@ -430,7 +455,7 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
   const currentCommission = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
   const lastMonthCommission = completedLastMonth.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
   // Para colaboradores (quando professionalId filtrado) destacar comissão como receita
-  const useCommission = (professionalId && professionalId !== 'all') ? true : false
+  const useCommission = isCollaborator || (professionalId && professionalId !== 'all') ? true : false
   const currentRevenue = useCommission && currentCommission > 0 ? currentCommission : currentRevenueRaw
   const lastMonthRevenue = useCommission && lastMonthCommission > 0 ? lastMonthCommission : lastMonthRevenueRaw
     

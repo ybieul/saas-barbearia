@@ -604,7 +604,27 @@ export default function FinanceiroPage() {
         }
 
         const occupancy = totalSlotsInRange>0 ? Math.min(100, Math.round((slotApps.length/totalSlotsInRange)*100)) : 0
-        return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length }
+
+            // Calcular receita/ganhos neste período
+            const periodValue = slotApps.reduce((sum, app) => {
+              if (isCollaborator) {
+                // usar comissão snapshot ou calcular
+                const c = app?.commissionEarned
+                if (c !== undefined && c !== null && !isNaN(parseFloat(c))) {
+                  return sum + parseFloat(c)
+                }
+                const pct = app?.professional?.commissionPercentage
+                if (pct !== undefined && pct !== null && !isNaN(parseFloat(pct))) {
+                  const total = parseFloat(app.totalPrice) || 0
+                  return sum + parseFloat((total * parseFloat(pct)).toFixed(2))
+                }
+                return sum
+              } else {
+                return sum + (parseFloat(app.totalPrice) || 0)
+              }
+            }, 0)
+
+            return { period: slot.period, time: slot.time, occupancy, appointments: slotApps.length, value: periodValue }
       })
       setTimeAnalysisData(ta)
     } finally {
@@ -840,7 +860,23 @@ export default function FinanceiroPage() {
           const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
           if (!revenueMap.has(key)) revenueMap.set(key, { revenue: 0, count: 0 })
           const bucket = revenueMap.get(key)!
-          bucket.revenue += parseFloat(app.totalPrice) || 0
+          // Ganhos para colaborador (comissão); receita bruta para owner
+          let addVal = 0
+          if (isCollaborator) {
+            const c = app?.commissionEarned
+            if (c !== undefined && c !== null && !isNaN(parseFloat(c))) {
+              addVal = parseFloat(c)
+            } else if (app?.professional?.commissionPercentage !== undefined && app?.professional?.commissionPercentage !== null) {
+              const pct = parseFloat(app.professional.commissionPercentage)
+              if (!isNaN(pct)) {
+                const total = parseFloat(app.totalPrice) || 0
+                addVal = parseFloat((total * pct).toFixed(2))
+              }
+            }
+          } else {
+            addVal = parseFloat(app.totalPrice) || 0
+          }
+          bucket.revenue += addVal
           bucket.count += 1
         } catch {}
       })
@@ -867,7 +903,7 @@ export default function FinanceiroPage() {
     } catch {
       return []
     }
-  }, [completedAppointmentsAll, dateRange?.from, dateRange?.to])
+  }, [completedAppointmentsAll, dateRange?.from, dateRange?.to, isCollaborator])
 
   // =====================
   // MÉTRICAS (Suporte a Comissão para Colaborador)
@@ -1412,22 +1448,53 @@ export default function FinanceiroPage() {
       completedAppointments.forEach(app => {
         if (!app.services || !Array.isArray(app.services)) return
         
+        // Se colaborador, distribuir a comissão do agendamento proporcional ao preço dos serviços
+        const isCollab = isCollaborator
+        let commissionForAppointment = 0
+        if (isCollab) {
+          const c = app?.commissionEarned
+          if (c !== undefined && c !== null && !isNaN(parseFloat(c))) {
+            commissionForAppointment = parseFloat(c)
+          } else if (app?.professional?.commissionPercentage !== undefined && app?.professional?.commissionPercentage !== null) {
+            const pct = parseFloat(app.professional.commissionPercentage)
+            if (!isNaN(pct)) {
+              const total = parseFloat(app.totalPrice) || 0
+              commissionForAppointment = parseFloat((total * pct).toFixed(2))
+            }
+          }
+        }
+
+        // Soma de preços dos serviços deste agendamento (para rateio)
+        const totalServicesPrice = app.services.reduce((s: number, srv: any) => s + (parseFloat(srv.price) || 0), 0)
+
         app.services.forEach((service: any) => {
           const serviceName = sanitizeString(service.name) || 'Serviço sem nome'
           const servicePrice = parseFloat(service.price) || 0
-          
+
+          // Valor a acumular: comissão rateada se colaborador; caso contrário, preço do serviço
+          let addValue = 0
+          if (isCollab) {
+            if (commissionForAppointment > 0 && totalServicesPrice > 0) {
+              addValue = (servicePrice / totalServicesPrice) * commissionForAppointment
+            } else {
+              addValue = 0
+            }
+          } else {
+            addValue = isNaN(servicePrice) ? 0 : servicePrice
+          }
+
           if (serviceStats.has(serviceName)) {
             const existing = serviceStats.get(serviceName)
             serviceStats.set(serviceName, {
               ...existing,
               count: existing.count + 1,
-              revenue: existing.revenue + (isNaN(servicePrice) ? 0 : servicePrice)
+              revenue: existing.revenue + addValue
             })
           } else {
             serviceStats.set(serviceName, {
               service: serviceName,
               count: 1,
-              revenue: isNaN(servicePrice) ? 0 : servicePrice
+              revenue: addValue
             })
           }
         })
@@ -1441,7 +1508,7 @@ export default function FinanceiroPage() {
           ...service,
           percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
         }))
-        .sort((a, b) => b.count - a.count) // Ordenar por quantidade de agendamentos
+  .sort((a, b) => b.revenue - a.revenue) // Ordenar por receita/ganhos
         .slice(0, 5)
       
       if (process.env.NODE_ENV === 'development') {
@@ -1470,7 +1537,7 @@ export default function FinanceiroPage() {
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Relatório e Financeiro</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">{isCollaborator ? 'Meus Ganhos e Performance' : 'Relatório e Financeiro'}</h1>
             <p className="text-[#71717a]">Controle completo das suas finanças e análises</p>
           </div>
         </div>
@@ -1740,20 +1807,20 @@ export default function FinanceiroPage() {
         ))}
       </div>
 
-      {/* Daily Revenue Analysis Card */}
-      <Card className="bg-[#18181b] border-[#27272a]">
+    {/* Daily Revenue Analysis Card */}
+    <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-tymer-icon" />
-              <span className="text-lg sm:text-xl">{isCollaborator ? 'Ganhos Diários (Comissão)' : 'Receita Diária'}</span>
+              <span className="text-lg sm:text-xl">{isCollaborator ? 'Gráfico de Ganhos Diários' : 'Receita Diária'}</span>
             </div>
             <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">
               - {dateRange?.from && dateRange?.to ? `${dateRange.from.toLocaleDateString('pt-BR')} a ${dateRange.to.toLocaleDateString('pt-BR')}` : 'Selecione um período'}
             </span>
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">
-            Acompanhe o faturamento diário e identifique tendências
+            {isCollaborator ? 'Acompanhe seus ganhos diários e identifique tendências' : 'Acompanhe o faturamento diário e identifique tendências'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1792,10 +1859,10 @@ export default function FinanceiroPage() {
           {/* Daily Chart */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-              <h4 className="text-base sm:text-lg text-[#ededed] font-medium">Gráfico de Receita Diária</h4>
+              <h4 className="text-base sm:text-lg text-[#ededed] font-medium">{isCollaborator ? 'Gráfico de Ganhos Diários' : 'Gráfico de Receita Diária'}</h4>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-[#71717a]">
                 <div className="w-3 h-3 bg-[#10b981] rounded"></div>
-                <span>Receita do dia</span>
+                <span>{isCollaborator ? 'Ganhos do dia' : 'Receita do dia'}</span>
               </div>
             </div>
             
@@ -1935,9 +2002,9 @@ export default function FinanceiroPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+  </Card>
 
-      {/* Monthly Analysis Card */}
+  {/* Monthly Analysis Card */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1976,7 +2043,7 @@ export default function FinanceiroPage() {
             </div>
           </CardTitle>
           <CardDescription className="text-sm sm:text-sm text-[#71717a]">
-            Faturamento detalhado do mês selecionado
+            {isCollaborator ? 'Ganhos totais do mês selecionado' : 'Faturamento detalhado do mês selecionado'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1986,7 +2053,7 @@ export default function FinanceiroPage() {
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedMonthData?.revenue || 0)}
               </p>
-              <p className="text-xs sm:text-sm text-[#71717a]">Faturamento Total</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">{isCollaborator ? 'Ganhos Totais' : 'Faturamento Total'}</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
@@ -2179,7 +2246,7 @@ export default function FinanceiroPage() {
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-tymer-icon" />
-              Serviços Mais Vendidos
+              {isCollaborator ? 'Meus Serviços Mais Rentáveis' : 'Serviços Mais Vendidos'}
             </CardTitle>
             <CardDescription className="text-sm sm:text-sm text-[#71717a]">Ranking dos serviços por quantidade de atendimentos</CardDescription>
           </CardHeader>
@@ -2221,8 +2288,9 @@ export default function FinanceiroPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Professional Performance */}
-        <Card className="bg-[#18181b] border-[#27272a]">
+  {/* Professional Performance */}
+  {!isCollaborator && (
+  <Card className="bg-[#18181b] border-[#27272a]">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
               <Users className="w-5 h-5 text-tymer-icon" />
@@ -2285,7 +2353,8 @@ export default function FinanceiroPage() {
               )}
             </div>
           </CardContent>
-        </Card>
+  </Card>
+  )}
 
         {/* Time Analysis */}
         <Card className="bg-[#18181b] border-[#27272a]">
@@ -2330,6 +2399,9 @@ export default function FinanceiroPage() {
                     <p className="text-xs sm:text-sm text-[#71717a]">
                       {period.appointments || 0} agendamento{(period.appointments || 0) !== 1 ? 's' : ''}
                     </p>
+                    <p className="text-xs sm:text-sm text-[#10b981] font-medium mt-1">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(period.value || 0)} {isCollaborator ? 'em ganhos' : 'em receita'}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -2344,8 +2416,9 @@ export default function FinanceiroPage() {
         </Card>
       </div>
 
-      {/* Payment Methods */}
-      <Card className="bg-[#18181b] border-[#27272a]">
+  {/* Payment Methods */}
+  {!isCollaborator && (
+  <Card className="bg-[#18181b] border-[#27272a]">
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-tymer-icon" />
@@ -2386,7 +2459,8 @@ export default function FinanceiroPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+  </Card>
+  )}
 
   {/* Custos Mensais (última seção) - oculto para colaborador */}
   {!isCollaborator && (
