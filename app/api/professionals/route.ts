@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       phone, 
       specialty, 
       commission, 
+      commissionPercentage, // novo campo (padrão em %) vindo do front
       serviceIds,
       workingHours 
     } = await request.json()
@@ -243,6 +244,15 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ [Professionals API] Limite OK - criando profissional...')
 
+    // Normalizar commissionPercentage (valor recebido em % -> armazenado como fração 0-1)
+    let normalizedCommissionPercentage: number | null = null
+    if (commissionPercentage !== undefined && commissionPercentage !== null && commissionPercentage !== '') {
+      const num = Number(commissionPercentage)
+      if (!isNaN(num) && num >= 0 && num <= 100) {
+        normalizedCommissionPercentage = Number((num / 100).toFixed(4))
+      }
+    }
+
     const professional = await prisma.professional.create({
       data: {
         name,
@@ -250,6 +260,7 @@ export async function POST(request: NextRequest) {
         phone,
         specialty,
         commission: commission || 0,
+        commissionPercentage: normalizedCommissionPercentage,
         workingHours: workingHours || {},
         isActive: true,
         tenantId: user.tenantId,
@@ -300,6 +311,7 @@ export async function PUT(request: NextRequest) {
       phone, 
       specialty, 
       commission, 
+      commissionPercentage, // novo
       serviceIds,
       workingHours,
       isActive,
@@ -388,6 +400,17 @@ export async function PUT(request: NextRequest) {
         phone: phone || existingProfessional.phone,
         specialty: specialty || existingProfessional.specialty,
         commission: commission !== undefined ? commission : existingProfessional.commission,
+        // Normalizar commissionPercentage (se enviado). Se não enviado, manter o existente.
+        commissionPercentage: (() => {
+          if (commissionPercentage === undefined || commissionPercentage === null || commissionPercentage === '') {
+            return existingProfessional.commissionPercentage
+          }
+          const num = Number(commissionPercentage)
+            if (!isNaN(num) && num >= 0 && num <= 100) {
+              return Number((num / 100).toFixed(4))
+            }
+          return existingProfessional.commissionPercentage
+        })(),
         workingHours: workingHours || existingProfessional.workingHours,
         isActive: isActive !== undefined ? isActive : existingProfessional.isActive,
         avatar: avatar !== undefined ? avatar : existingProfessional.avatar,

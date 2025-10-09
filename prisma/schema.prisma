@@ -136,6 +136,8 @@ model Professional {
   avatar    String?  @db.LongText
   salary    Decimal? @db.Decimal(10,2)
   commission Decimal? @db.Decimal(5,2) // Porcentagem de comissão
+  // Comissão padrão (%) para novos agendamentos (ex: 0.40 = 40%)
+  commissionPercentage Decimal? @db.Decimal(5,2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -246,6 +248,8 @@ model Appointment {
   cancelledAt   DateTime?
   cancelReason  String?          @db.Text
   completedAt   DateTime?
+  // Valor da comissão efetivamente ganho (snapshot no momento da conclusão)
+  commissionEarned Decimal? @db.Decimal(10,2)
   
   // Relations
   tenantId       String

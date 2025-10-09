@@ -142,13 +142,28 @@ async function getOverviewReport(tenantId: string, params: any) {
   )
 
   // 3. Calcular faturamento (usar totalPrice dos agendamentos ou somar preços dos serviços)
-  const thisMonthRevenue = completedThisMonth.reduce((sum, apt) => {
+  const thisMonthRevenueRaw = completedThisMonth.reduce((sum, apt) => {
     return sum + Number(apt.totalPrice || 0)
+  }, 0)
+  // Soma de comissão (snapshot)
+  const thisMonthCommission = completedThisMonth.reduce((sum, apt) => {
+    return sum + Number(apt.commissionEarned || 0)
   }, 0)
 
-  const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => {
+  // Se usuário é colaborador, a métrica principal de "revenue" vira sua comissão
+  const thisMonthRevenue = professionalId && professionalId !== 'all' && thisMonthCommission > 0 && completedThisMonth.every(a => a.professionalId === professionalId)
+    ? thisMonthCommission
+    : thisMonthRevenueRaw
+
+  const lastMonthRevenueRaw = completedLastMonth.reduce((sum, apt) => {
     return sum + Number(apt.totalPrice || 0)
   }, 0)
+  const lastMonthCommission = completedLastMonth.reduce((sum, apt) => {
+    return sum + Number(apt.commissionEarned || 0)
+  }, 0)
+  const lastMonthRevenue = professionalId && professionalId !== 'all' && lastMonthCommission > 0 && completedLastMonth.every(a => a.professionalId === professionalId)
+    ? lastMonthCommission
+    : lastMonthRevenueRaw
 
   // 4. Contagem de agendamentos (todos os status exceto CANCELLED)
   const thisMonthAppointmentsCount = thisMonthAppointments.filter(apt => 
@@ -218,7 +233,11 @@ async function getOverviewReport(tenantId: string, params: any) {
         revenue: {
           current: thisMonthRevenue,
           previous: lastMonthRevenue,
-          change: calculateChange(thisMonthRevenue, lastMonthRevenue)
+          change: calculateChange(thisMonthRevenue, lastMonthRevenue),
+          gross: thisMonthRevenueRaw,
+          grossPrevious: lastMonthRevenueRaw,
+          commission: thisMonthCommission,
+          commissionPrevious: lastMonthCommission
         },
         appointments: {
           current: thisMonthAppointmentsCount,
@@ -406,8 +425,14 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
       apt.status === 'COMPLETED' || apt.status === 'IN_PROGRESS'
     )
     
-    const currentRevenue = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
-    const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const currentRevenueRaw = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const lastMonthRevenueRaw = completedLastMonth.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const currentCommission = completedCurrentMonth.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
+  const lastMonthCommission = completedLastMonth.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
+  // Para colaboradores (quando professionalId filtrado) destacar comissão como receita
+  const useCommission = (professionalId && professionalId !== 'all') ? true : false
+  const currentRevenue = useCommission && currentCommission > 0 ? currentCommission : currentRevenueRaw
+  const lastMonthRevenue = useCommission && lastMonthCommission > 0 ? lastMonthCommission : lastMonthRevenueRaw
     
     // Calcular crescimento
     let growth = "+0%"
@@ -428,7 +453,9 @@ async function getProfessionalsReport(tenantId: string, monthStart: Date, monthE
       name: professional.name,
       avatar: professional.avatar,
       appointments: appointmentsCount,
-      revenue: currentRevenue.toFixed(2),
+  revenue: currentRevenue.toFixed(2),
+  grossRevenue: currentRevenueRaw.toFixed(2),
+  commission: currentCommission.toFixed(2),
       rating: "4.8", // TODO: Implementar sistema de avaliações
       growth: growth
     }

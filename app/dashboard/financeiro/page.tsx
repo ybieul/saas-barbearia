@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,19 +39,19 @@ const sanitizeString = (str: string | undefined | null): string => {
     .trim()
 }
 
-// ✅ PERFORMANCE: Debounce hook para navegação
-const useDebounce = (callback: Function, delay: number) => {
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null)
-  
-  return (...args: any[]) => {
-    if (debounceTimer) clearTimeout(debounceTimer)
-    setDebounceTimer(setTimeout(() => callback(...args), delay))
+// ✅ PERFORMANCE: Debounce hook para navegação (implementação corrigida)
+const useDebounce = <T extends any[]>(callback: (...args: T) => void, delay: number) => {
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  return (...args: T) => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => callback(...args), delay)
   }
 }
 
 export default function FinanceiroPage() {
   const { user } = useAuth()
   const isCollaborator = user?.role === 'COLLABORATOR'
+  // Exibir ganhos (comissão) para colaborador, faturamento bruto para dono; ambos para dono avançado
   const { toast } = useToast()
   // Novo filtro de período por intervalo de datas
   // ✅ Ajuste: por padrão carregar o mês atual completo (1º dia até último dia) em vez de apenas o dia atual
@@ -868,39 +868,78 @@ export default function FinanceiroPage() {
       return []
     }
   }, [completedAppointmentsAll, dateRange?.from, dateRange?.to])
-  
-  // Métricas para os cards da seção, usando dados mensais quando apenas 1 dia estiver selecionado
+
+  // =====================
+  // MÉTRICAS (Suporte a Comissão para Colaborador)
+  // =====================
   const {
     cardsTotalRevenue,
     cardsAverageDaily,
     cardsMaxRevenue,
     cardsBestDay
   } = useMemo(() => {
-    if (!isSingleDaySelected || !dateRange?.from) {
-      const total = dailyData.reduce((total: number, day: any) => total + (day.revenue || 0), 0)
-      const avg = dailyData.length > 0 ? total / dailyData.length : 0
-      const max = dailyData.length > 0 ? Math.max(...dailyData.map((d: any) => d.revenue || 0)) : 0
-      const b = dailyData.find((d: any) => d.revenue === max)
-      return { cardsTotalRevenue: total, cardsAverageDaily: avg, cardsMaxRevenue: max, cardsBestDay: b }
+    const isCollab = isCollaborator
+    // Helper para comissão de um agendamento
+    const getCommission = (app: any) => {
+      const c = app?.commissionEarned
+      if (c !== undefined && c !== null && !isNaN(parseFloat(c))) return parseFloat(c)
+      const pct = app?.professional?.commissionPercentage
+      if (pct !== undefined && pct !== null && !isNaN(parseFloat(pct))) {
+        const total = parseFloat(app.totalPrice) || 0
+        return parseFloat((total * parseFloat(pct)).toFixed(2))
+      }
+      return 0
     }
-    // Mensal
+
+    // Fonte base: dailyData (agregada) + monthlyAppointments (raw) + completedAppointments (raw range)
+    if (!isSingleDaySelected || !dateRange?.from) {
+      // Intervalo custom ou múltiplos dias -> usar dailyData
+      let total = 0
+      let max = 0
+      let best: any = null
+      dailyData.forEach((day: any) => {
+        let value = day.revenue || 0
+        if (isCollab) {
+          // Recalcular comissão do dia varrendo appointments concluídos do período
+            value = completedAppointments.reduce((acc: number, app: any) => {
+              try {
+                if (!['COMPLETED','IN_PROGRESS'].includes(app.status)) return acc
+                const dt = utcToBrazil(new Date(app.dateTime))
+                if (dt.getFullYear() === day.date.getFullYear() && dt.getMonth() === day.date.getMonth() && dt.getDate() === day.date.getDate()) {
+                  acc += getCommission(app)
+                }
+              } catch {}
+              return acc
+            }, 0)
+        }
+        total += value
+        if (value >= max) {
+          max = value
+          best = { ...day, revenue: value }
+        }
+      })
+      const avg = dailyData.length > 0 ? total / dailyData.length : 0
+      return { cardsTotalRevenue: total, cardsAverageDaily: avg, cardsMaxRevenue: max, cardsBestDay: best }
+    }
+    // Modo mensal (quando selecionado só 1 dia – segue lógica original)
     const base = new Date(dateRange.from)
     const daysInMonth = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate()
     const filtered = Array.isArray(monthlyAppointments) ? monthlyAppointments : []
     const valid = filtered.filter((app: any) => ['COMPLETED','IN_PROGRESS'].includes(app.status) && parseFloat(app.totalPrice) > 0)
-    const total = valid.reduce((sum: number, app: any) => sum + (parseFloat(app.totalPrice) || 0), 0)
-    // Agrupar por dia
-    const map = new Map<string, number>()
-    valid.forEach((app: any) => {
+    const totalsByDay = new Map<string, number>()
+    valid.forEach(app => {
       try {
-        const d = utcToBrazil(new Date(app.dateTime))
-        const key = d.toDateString()
-        map.set(key, (map.get(key) || 0) + (parseFloat(app.totalPrice) || 0))
+        const dt = utcToBrazil(new Date(app.dateTime))
+        const key = dt.toDateString()
+        const add = isCollab ? getCommission(app) : (parseFloat(app.totalPrice) || 0)
+        totalsByDay.set(key, (totalsByDay.get(key) || 0) + add)
       } catch {}
     })
+    let total = 0
     let max = 0
     let best: any = null
-    map.forEach((value, key) => {
+    totalsByDay.forEach((value, key) => {
+      total += value
       if (value >= max) {
         max = value
         const d = new Date(key)
@@ -915,7 +954,9 @@ export default function FinanceiroPage() {
     })
     const avg = daysInMonth > 0 ? total / daysInMonth : 0
     return { cardsTotalRevenue: total, cardsAverageDaily: avg, cardsMaxRevenue: max, cardsBestDay: best }
-  }, [isSingleDaySelected, dateRange?.from, dailyData, monthlyAppointments])
+  }, [isSingleDaySelected, dateRange?.from, dailyData, monthlyAppointments, isCollaborator, completedAppointments])
+  
+  // (Versão com comissão já integrada acima – removido bloco duplicado)
 
   // Máximo diário para escalar as barras do gráfico atualmente exibido
   const chartMaxRevenue = useMemo(() => {
@@ -1012,6 +1053,25 @@ export default function FinanceiroPage() {
   }, [completedAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
+  // Helper para extrair comissão de um agendamento (snapshot ou cálculo fallback)
+  const appointmentCommission = useCallback((app: any) => {
+    if (!app) return 0
+    const snap = app?.commissionEarned
+    if (snap !== undefined && snap !== null) {
+      const v = parseFloat(snap)
+      if (!isNaN(v)) return v
+    }
+    const pct = app?.professional?.commissionPercentage
+    if (pct !== undefined && pct !== null) {
+      const p = parseFloat(pct)
+      if (!isNaN(p)) {
+        const total = parseFloat(app.totalPrice) || 0
+        return parseFloat((total * p).toFixed(2))
+      }
+    }
+    return 0
+  }, [])
+
   const previousPeriodData = useMemo(() => {
     try {
       if (!Array.isArray(appointments)) return { revenue: 0, completedCount: 0, totalCount: 0 }
@@ -1051,21 +1111,22 @@ export default function FinanceiroPage() {
         ['COMPLETED', 'IN_PROGRESS'].includes(app.status) && 
         parseFloat(app.totalPrice) > 0
       )
-      
-      const previousRevenue = previousCompleted.reduce((total, app) => 
-        total + (parseFloat(app.totalPrice) || 0), 0
-      )
-      
+
+      const previousRevenue = previousCompleted.reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
+      const previousCommission = previousCompleted.reduce((total, app) => total + appointmentCommission(app), 0)
+
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Dados período anterior:', {
           totalAppointments: previousAppointments.length,
           completedAppointments: previousCompleted.length,
-          revenue: previousRevenue
+          revenue: previousRevenue,
+          commissionRevenue: previousCommission
         })
       }
-      
+
       return {
         revenue: previousRevenue,
+        commissionRevenue: previousCommission,
         completedCount: previousCompleted.length,
         totalCount: previousAppointments.length
       }
@@ -1075,7 +1136,7 @@ export default function FinanceiroPage() {
       }
       return { revenue: 0, completedCount: 0, totalCount: 0 }
     }
-  }, [appointments, dateRange?.from, dateRange?.to])
+  }, [appointments, dateRange?.from, dateRange?.to, appointmentCommission])
   
   // ✅ PERFORMANCE: Receita do período atual usando agendamentos filtrados
   const currentPeriodRevenue = useMemo(() => {
@@ -1102,7 +1163,15 @@ export default function FinanceiroPage() {
   }
   
   // ✅ CORREÇÃO: Usar dados do período atual para comparações
-  const revenueChange = calculateChange(currentPeriodRevenue, previousPeriodData.revenue)
+  const currentCommissionRevenue = useMemo(() => {
+    if (!isCollaborator) return 0
+    return currentPeriodAppointments.reduce((sum, app) => sum + appointmentCommission(app), 0)
+  }, [currentPeriodAppointments, isCollaborator, appointmentCommission])
+
+  const revenueChange = calculateChange(
+    isCollaborator ? currentCommissionRevenue : currentPeriodRevenue,
+    isCollaborator ? (previousPeriodData as any).commissionRevenue || 0 : previousPeriodData.revenue
+  )
   const completedChange = calculateChange(currentPeriodAppointments.length, previousPeriodData.completedCount)
   
   // ✅ CORREÇÃO: Calcular taxa de conversão do período atual
@@ -1207,64 +1276,52 @@ export default function FinanceiroPage() {
 
   const financialStats = [
     {
-      title: getPeriodTitle("Faturamento Hoje"),
+      title: isCollaborator ? getPeriodTitle('Ganhos (Comissão)') : getPeriodTitle('Faturamento Hoje'),
       value: (() => {
-        // ✅ CORREÇÃO: Usar agendamentos do período atual
-        const periodRevenue = currentPeriodAppointments
-          .reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('💰 Faturamento (intervalo) calculado:', periodRevenue)
-        }
-        
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodRevenue)
+        const val = isCollaborator ? currentCommissionRevenue : currentPeriodRevenue
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
       })(),
       change: revenueChange.change,
       changeType: revenueChange.type,
       icon: DollarSign,
     },
     {
-      title: getPeriodTitle("Agendamentos Concluídos"),
+      title: getPeriodTitle('Agendamentos Concluídos'),
       value: currentPeriodAppointments.length.toString(),
       change: completedChange.change,
       changeType: completedChange.type,
       icon: TrendingUp,
     },
     {
-      title: getPeriodTitle("Taxa de Conversão"),
-    value: (() => {
-  // ✅ Calcular taxa baseada no intervalo selecionado
-  const today = getBrazilNow()
-  const from = dateRange?.from ? new Date(dateRange.from) : new Date(today)
-  const to = dateRange?.to ? new Date(dateRange.to) : new Date(today)
-  const currentStart = new Date(from); currentStart.setHours(0,0,0,0)
-  const currentEnd = new Date(to); currentEnd.setHours(23,59,59,999)
+      title: getPeriodTitle('Taxa de Conversão'),
+      value: (() => {
+        const today = getBrazilNow()
+        const from = dateRange?.from ? new Date(dateRange.from) : new Date(today)
+        const to = dateRange?.to ? new Date(dateRange.to) : new Date(today)
+        const currentStart = new Date(from); currentStart.setHours(0,0,0,0)
+        const currentEnd = new Date(to); currentEnd.setHours(23,59,59,999)
         const allPeriodAppointments = appointments.filter(app => {
           try {
             const appointmentDate = utcToBrazil(new Date(app.dateTime))
             return appointmentDate >= currentStart && appointmentDate <= currentEnd
-          } catch {
-            return false
-          }
+          } catch { return false }
         })
-        
-        const conversionRate = allPeriodAppointments.length > 0 ? 
-          (currentPeriodAppointments.length / allPeriodAppointments.length) * 100 : 0
-        
+        const conversionRate = allPeriodAppointments.length > 0 ? (currentPeriodAppointments.length / allPeriodAppointments.length) * 100 : 0
         return `${Math.round(conversionRate)}%`
       })(),
       change: conversionChange.change,
       changeType: conversionChange.type,
       icon: Calendar,
     },
-  {
-      title: getPeriodTitle("Ticket Médio"),
+    {
+      title: isCollaborator ? getPeriodTitle('Ticket Médio (Comissão)') : getPeriodTitle('Ticket Médio'),
       value: (() => {
-        // ✅ CORREÇÃO: Ticket médio baseado no período atual
-        const periodTicketMedio = currentPeriodAppointments.length > 0 ? 
-          currentPeriodAppointments.reduce((total, app) => total + (parseFloat(app.totalPrice) || 0), 0) / currentPeriodAppointments.length : 0
-        
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(periodTicketMedio)
+        if (currentPeriodAppointments.length === 0) return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0)
+        const totalValue = isCollaborator
+          ? currentPeriodAppointments.reduce((s, app) => s + appointmentCommission(app), 0)
+          : currentPeriodAppointments.reduce((s, app) => s + (parseFloat(app.totalPrice) || 0), 0)
+        const avg = totalValue / currentPeriodAppointments.length
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avg)
       })(),
       change: ticketChange.change,
       changeType: ticketChange.type,
@@ -1689,7 +1746,7 @@ export default function FinanceiroPage() {
           <CardTitle className="text-[#a1a1aa] flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-tymer-icon" />
-              <span className="text-lg sm:text-xl">Receita Diária</span>
+              <span className="text-lg sm:text-xl">{isCollaborator ? 'Ganhos Diários (Comissão)' : 'Receita Diária'}</span>
             </div>
             <span className="text-sm sm:text-base text-[#71717a] sm:text-[#a1a1aa]">
               - {dateRange?.from && dateRange?.to ? `${dateRange.from.toLocaleDateString('pt-BR')} a ${dateRange.to.toLocaleDateString('pt-BR')}` : 'Selecione um período'}
@@ -1707,14 +1764,14 @@ export default function FinanceiroPage() {
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cardsTotalRevenue)}
               </p>
-              <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Total 30 Dias {isCollaborator ? '(Comissão)' : ''}</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />
               <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cardsAverageDaily)}
               </p>
-              <p className="text-xs sm:text-sm text-[#71717a]">Média Diária</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">Média Diária {isCollaborator ? '(Comissão)' : ''}</p>
             </div>
             <div className="text-center p-3 sm:p-3 bg-tymer-card/50 rounded-lg border border-tymer-border/50">
               <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-1" />

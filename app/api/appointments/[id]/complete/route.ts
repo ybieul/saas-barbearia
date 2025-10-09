@@ -49,7 +49,18 @@ export async function PATCH(
       clientName: existingAppointment.endUser.name
     })
 
-    // ✅ USA UMA TRANSAÇÃO PARA GARANTIR A INTEGRIDADE DOS DADOS
+    // Calcular comissão do profissional (snapshot)
+    let commissionEarned = null as number | null
+    const commissionPct = existingAppointment.professional?.commissionPercentage
+    if (commissionPct !== null && commissionPct !== undefined) {
+      // commissionPercentage armazenado como fração (ex: 0.4 = 40%)
+      const pct = Number(commissionPct)
+      if (!isNaN(pct) && pct > 0) {
+        commissionEarned = Number((totalPrice * pct).toFixed(2))
+      }
+    }
+
+    // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro)
     const updatedAppointment = await prisma.$transaction(async (tx) => {
       // Operação 1: Atualizar o Agendamento
       const appointment = await tx.appointment.update({
@@ -59,7 +70,8 @@ export async function PATCH(
           paymentMethod: paymentMethod,
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
-          totalPrice: totalPrice // Atualizar com preço calculado
+          totalPrice: totalPrice, // Atualizar com preço calculado
+          commissionEarned: commissionEarned
         },
         include: {
           endUser: true,
@@ -82,7 +94,7 @@ export async function PATCH(
         },
       })
 
-      // Operação 3: Criar registro financeiro com o valor calculado
+      // Operação 3: Criar registro financeiro com o valor calculado (faturamento bruto)
       await tx.financialRecord.create({
         data: {
           type: "INCOME",
@@ -95,12 +107,16 @@ export async function PATCH(
         }
       })
 
+      // Operação 4 (opcional futura): Poder criar um registro separado de comissão a pagar (liability) se modelo exigir
+
       return appointment
     })
 
     console.log('✅ Transação concluída com sucesso:', {
       appointmentId,
       totalPrice,
+      commissionEarned,
+      commissionPct: commissionPct?.toString(),
       clientUpdated: existingAppointment.endUserId,
       message: 'Cliente atualizado: +1 visita, +' + totalPrice + ' gasto total'
     })

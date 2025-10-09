@@ -405,7 +405,8 @@ export default function ConfiguracoesPage() {
     name: "",
     email: "",
     phone: "",
-    specialty: ""
+    specialty: "",
+    commissionPercentage: "" // valor em % exibido
   })
 
   // Estados para edição de profissionais
@@ -425,7 +426,8 @@ export default function ConfiguracoesPage() {
     name: "",
     email: "",
     phone: "",
-    specialty: ""
+    specialty: "",
+    commissionPercentage: "" // valor em % exibido
   })
 
   // Estados para upload de avatar
@@ -749,10 +751,11 @@ export default function ConfiguracoesPage() {
         email: newProfessional.email.trim() || "",
         phone: newProfessional.phone.trim(),
         specialty: newProfessional.specialty.trim(),
+        commissionPercentage: newProfessional.commissionPercentage ? Number(newProfessional.commissionPercentage) : undefined,
       })
 
       if (result) {
-        setNewProfessional({ name: "", email: "", phone: "", specialty: "" })
+  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
         setIsNewProfessionalOpen(false)
         toast({
           title: "Profissional adicionado!",
@@ -783,7 +786,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleCancelAddProfessional = () => {
-    setNewProfessional({ name: "", email: "", phone: "", specialty: "" })
+  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
     setIsNewProfessionalOpen(false)
   }
 
@@ -803,12 +806,13 @@ export default function ConfiguracoesPage() {
         name: editProfessional.name.trim(),
         email: editProfessional.email.trim(),
         phone: editProfessional.phone.trim(),
-        specialty: editProfessional.specialty.trim()
+        specialty: editProfessional.specialty.trim(),
+        commissionPercentage: editProfessional.commissionPercentage ? Number(editProfessional.commissionPercentage) : undefined,
       })
       
       setIsEditProfessionalOpen(false)
       setEditingProfessional(null)
-      setEditProfessional({ name: "", email: "", phone: "", specialty: "" })
+  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
       
       toast({
         title: "Profissional atualizado!",
@@ -832,7 +836,8 @@ export default function ConfiguracoesPage() {
       name: professional.name || "",
       email: professional.email || "",
       phone: professional.phone || "",
-      specialty: professional.specialty || ""
+      specialty: professional.specialty || "",
+      commissionPercentage: professional.commissionPercentage ? String(Number(professional.commissionPercentage) * 100) : ""
     })
     setIsEditProfessionalOpen(true)
     
@@ -848,7 +853,7 @@ export default function ConfiguracoesPage() {
   const handleCancelEditProfessional = () => {
     setIsEditProfessionalOpen(false)
     setEditingProfessional(null)
-    setEditProfessional({ name: "", email: "", phone: "", specialty: "" })
+  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
   }
 
   // Função para lidar com upload de avatar do profissional
@@ -1716,6 +1721,28 @@ export default function ConfiguracoesPage() {
                                     placeholder="profissional@email.com"
                                   />
                                 </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="professionalCommission" className="text-[#ededed] text-sm font-medium flex items-center gap-2">
+                                    Comissão Padrão (%)
+                                  </Label>
+                                  <Input
+                                    id="professionalCommission"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step={0.1}
+                                    value={newProfessional.commissionPercentage}
+                                    onChange={(e) => {
+                                      const v = e.target.value
+                                      if (v === '' || (/^\d{0,3}([\.,]\d{0,2})?$/).test(v)) {
+                                        setNewProfessional({ ...newProfessional, commissionPercentage: v.replace(',', '.') })
+                                      }
+                                    }}
+                                    className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                    placeholder="Ex: 40 (para 40%)"
+                                  />
+                                  <p className="text-xs text-[#71717a]">Usada como base para calcular ganhos do profissional nos agendamentos concluídos.</p>
+                                </div>
                               </div>
                             </div>
 
@@ -1999,6 +2026,28 @@ export default function ConfiguracoesPage() {
                               className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                               placeholder="profissional@email.com"
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="editProfessionalCommission" className="text-[#ededed] text-sm font-medium flex items-center gap-2">
+                              Comissão Padrão (%)
+                            </Label>
+                            <Input
+                              id="editProfessionalCommission"
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.1}
+                              value={editProfessional.commissionPercentage}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                if (v === '' || (/^\d{0,3}([\.,]\d{0,2})?$/).test(v)) {
+                                  setEditProfessional({ ...editProfessional, commissionPercentage: v.replace(',', '.') })
+                                }
+                              }}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder="Ex: 40 (para 40%)"
+                            />
+                            <p className="text-xs text-[#71717a]">Se alterado, novos cálculos de comissão usarão este valor nos agendamentos concluídos.</p>
                           </div>
                         </div>
                       </div>
