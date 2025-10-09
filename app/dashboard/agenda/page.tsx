@@ -2451,6 +2451,19 @@ export default function AgendaPage() {
             const status = getStatusBadge(appointment.status)
             // Parse seguro do dateTime do banco (sem conversão UTC automática)
             const appointmentTime = extractTimeFromDateTime(appointment.dateTime) // HH:mm sem UTC
+            // Cálculo de comissão (snapshot -> fallback pct * total)
+            const grossAmount = Number(appointment.totalPrice || 0)
+            let commissionAmount = 0
+            const snap = (appointment as any)?.commissionEarned
+            if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
+              commissionAmount = parseFloat(String(snap))
+            } else {
+              const pctRaw = (appointment as any)?.professional?.commissionPercentage
+              const pct = pctRaw !== undefined && pctRaw !== null ? parseFloat(String(pctRaw)) : NaN
+              if (!isNaN(pct)) {
+                commissionAmount = parseFloat((grossAmount * pct).toFixed(2))
+              }
+            }
 
             return (
               <Card key={appointment.id} className="bg-[#18181b] border-[#27272a]">
@@ -2491,10 +2504,10 @@ export default function AgendaPage() {
                             )
                           }
                         </p>
-                        {/* Comissão do colaborador quando concluído */}
-                        {isCollaborator && appointment.status === 'COMPLETED' && typeof appointment.commissionEarned === 'number' && (
+                        {/* Comissão do colaborador (mostrar também para não concluídos, exceto cancelados) */}
+                        {isCollaborator && appointment.status !== 'CANCELLED' && (
                           <p className="text-[#a1a1aa] text-sm md:text-base">
-                            <strong>Sua Comissão:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appointment.commissionEarned)}
+                            <strong>{appointment.status === 'COMPLETED' ? 'Sua Comissão' : 'Sua Comissão (prevista)'}:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionAmount || 0)}
                           </p>
                         )}
 
@@ -2509,12 +2522,19 @@ export default function AgendaPage() {
                     {/* Seção de preço e duração - móvel: abaixo do conteúdo, desktop: lado direito */}
                     <div className="flex flex-row md:flex-col justify-between md:items-end gap-3">
                       <div className="flex flex-col md:text-right">
-                        <p className="text-[#10b981] font-semibold text-lg md:text-base">
-                          {new Intl.NumberFormat('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL' 
-                          }).format(appointment.totalPrice || 0)}
-                        </p>
+                        {isCollaborator && appointment.status !== 'CANCELLED' ? (
+                          <div className="space-y-0.5">
+                            <p className="text-xs text-[#71717a]">Bruto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(grossAmount)}</p>
+                            <p className="text-[#10b981] font-semibold text-lg md:text-base">{appointment.status === 'COMPLETED' ? 'Comissão' : 'Comissão (prevista)'}: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionAmount || 0)}</p>
+                          </div>
+                        ) : (
+                          <p className="text-[#10b981] font-semibold text-lg md:text-base">
+                            {new Intl.NumberFormat('pt-BR', { 
+                              style: 'currency', 
+                              currency: 'BRL' 
+                            }).format(appointment.totalPrice || 0)}
+                          </p>
+                        )}
                         <p className="text-[#a1a1aa] text-sm">
                           {appointment.duration || 0} min
                         </p>

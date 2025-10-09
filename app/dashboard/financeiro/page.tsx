@@ -685,8 +685,24 @@ export default function FinanceiroPage() {
             }
           })
           
-          // Calcular receita real do mês
+          // Calcular receita/ganhos do mês
           const revenue = monthAppointments.reduce((total, app) => {
+            // Para COLLABORATOR: usar comissão (snapshot ou pct * total)
+            if (isCollaborator) {
+              let commission = 0
+              const snap = app?.commissionEarned
+              if (snap !== undefined && snap !== null && !isNaN(parseFloat(snap))) {
+                commission = parseFloat(snap)
+              } else if (app?.professional?.commissionPercentage !== undefined && app?.professional?.commissionPercentage !== null) {
+                const pct = parseFloat(app.professional.commissionPercentage)
+                if (!isNaN(pct)) {
+                  const price = parseFloat(app.totalPrice) || 0
+                  commission = parseFloat(((price) * pct).toFixed(2))
+                }
+              }
+              return total + commission
+            }
+            // OWNER: receita bruta
             const price = parseFloat(app.totalPrice) || 0
             return total + (isNaN(price) ? 0 : price)
           }, 0)
@@ -1406,7 +1422,19 @@ export default function FinanceiroPage() {
           } else {
             paymentMethod = 'Outros'
           }
-          
+          // Calcular comissão (snapshot ou fallback)
+          let commission = 0
+          const snap = app?.commissionEarned
+          if (snap !== undefined && snap !== null && !isNaN(parseFloat(snap))) {
+            commission = parseFloat(snap)
+          } else if (app?.professional?.commissionPercentage !== undefined && app?.professional?.commissionPercentage !== null) {
+            const pct = parseFloat(app.professional.commissionPercentage)
+            if (!isNaN(pct)) {
+              const price = parseFloat(app.totalPrice) || 0
+              commission = parseFloat((price * pct).toFixed(2))
+            }
+          }
+
           return {
             id: app.id,
             client: sanitizeString(app.endUser?.name) || 'Cliente',
@@ -1415,6 +1443,7 @@ export default function FinanceiroPage() {
               ? app.services.map((s: any) => sanitizeString(s.name) || 'Serviço').join(' + ')
               : 'Serviço',
             amount: parseFloat(app.totalPrice) || 0,
+            commission,
             method: paymentMethod,
             // Mostrar horário real salvo (já está em horário local “brasileiro” via toLocalISOString durante criação)
             time: extractTimeFromDateTime(app.dateTime)
@@ -2068,7 +2097,7 @@ export default function FinanceiroPage() {
                   'R$ 0,00'
                 }
               </p>
-              <p className="text-xs sm:text-sm text-[#71717a]">Ticket Médio</p>
+              <p className="text-xs sm:text-sm text-[#71717a]">{isCollaborator ? 'Ticket Médio (Comissão)' : 'Ticket Médio'}</p>
             </div>
             <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
               <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
@@ -2164,7 +2193,7 @@ export default function FinanceiroPage() {
                             setSelectedMonth(month.month)
                             setSelectedYear(month.year)
                           }}
-                          title={`${month.monthName} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)} - ${month.appointmentCount} agendamentos`}
+                          title={`${month.monthName} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(month.revenue)} - ${month.appointmentCount} agendamentos${isCollaborator ? ' (ganhos)' : ''}`}
                         />
                       </div>
                       
@@ -2232,7 +2261,14 @@ export default function FinanceiroPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {transaction.amount}</p>
+                      {isCollaborator ? (
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-[#71717a] line-through">Bruto: R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0 }).format(transaction.amount)}</p>
+                          <p className="text-sm sm:text-base text-[#10b981] font-bold">Comissão: R$ {new Intl.NumberFormat('pt-BR').format(transaction.commission || 0)}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base text-[#10b981] font-bold">R$ {transaction.amount}</p>
+                      )}
                     </div>
                   </div>
                 ))}
