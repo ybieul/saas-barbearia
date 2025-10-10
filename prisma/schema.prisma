@@ -211,6 +211,8 @@ model ServicePackage {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // Quantidade de créditos por compra deste pacote (pool unificado)
+  defaultCredits Int @default(1)
 
   // Relations
   tenantId String

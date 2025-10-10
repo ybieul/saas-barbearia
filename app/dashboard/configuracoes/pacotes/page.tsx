@@ -26,7 +26,7 @@ export default function PacotesPage() {
 
   const [isOpen, setIsOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true })
+  const [form, setForm] = useState({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
   const [formServices, setFormServices] = useState<{ serviceId: string; quantity: number }[]>([])
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function PacotesPage() {
 
   const resetForm = () => {
     setEditingId(null)
-    setForm({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true })
+    setForm({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
     setFormServices([])
   }
 
@@ -49,7 +49,8 @@ export default function PacotesPage() {
       totalPrice: String(pkg.totalPrice || ''),
       discount: String(pkg.discount ?? '0'),
       validDays: pkg.validDays != null ? String(pkg.validDays) : '',
-      isActive: !!pkg.isActive
+      isActive: !!pkg.isActive,
+      defaultCredits: pkg.defaultCredits != null ? String(pkg.defaultCredits) : '1'
     })
     setFormServices((pkg.services || []).map((ps: any) => ({ serviceId: ps.serviceId || ps.service?.id, quantity: ps.quantity || 1 })))
     setIsOpen(true)
@@ -58,7 +59,8 @@ export default function PacotesPage() {
   const addService = () => setFormServices(prev => [...prev, { serviceId: serviceOptions[0]?.id || '', quantity: 1 }])
   const removeService = (idx: number) => setFormServices(prev => prev.filter((_, i) => i !== idx))
   const updateServiceField = (idx: number, field: 'serviceId' | 'quantity', value: string) => {
-    setFormServices(prev => prev.map((row, i) => i === idx ? { ...row, [field]: field === 'quantity' ? Number(value) : value } : row))
+    // Mesmo mantendo o campo quantity no estado por compatibilidade, o UI não expõe mais edição de quantidade
+    setFormServices(prev => prev.map((row, i) => i === idx ? { ...row, [field]: field === 'quantity' ? 1 : value } : row))
   }
 
   const onSubmit = async () => {
@@ -74,7 +76,8 @@ export default function PacotesPage() {
         discount: Number(form.discount || '0'),
         validDays: form.validDays ? Number(form.validDays) : undefined,
         isActive: form.isActive,
-        services: formServices
+        defaultCredits: form.defaultCredits ? Number(form.defaultCredits) : 1,
+        services: formServices.map(s => ({ serviceId: s.serviceId, quantity: 1 }))
       }
       if (editingId) await updatePackage({ id: editingId, ...payload })
       else await createPackage(payload)
@@ -100,7 +103,7 @@ export default function PacotesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-[#ededed]">Pacotes de Serviços</h1>
-          <p className="text-sm text-[#71717a]">Crie pacotes com múltiplos serviços e quantidades</p>
+          <p className="text-sm text-[#71717a]">Crie pacotes com múltiplos serviços</p>
         </div>
         <Button onClick={openCreate} className="bg-tymer-primary hover:bg-tymer-primary/80">
           <Plus className="w-4 h-4 mr-2" /> Novo Pacote
@@ -135,7 +138,7 @@ export default function PacotesPage() {
                   <TableCell>
                     <div className="text-sm text-[#a1a1aa]">
                       {(p.services || []).map((ps: any) => (
-                        <div key={`${ps.serviceId}-${ps.quantity}`}>{ps.service?.name || ps.serviceId} × {ps.quantity}</div>
+                        <div key={`${ps.serviceId}`}>{ps.service?.name || ps.serviceId}</div>
                       ))}
                     </div>
                   </TableCell>
@@ -160,7 +163,10 @@ export default function PacotesPage() {
         <DialogContent className="bg-[#18181b] border-[#3f3f46] text-[#ededed] max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Pacote' : 'Novo Pacote'}</DialogTitle>
-            <DialogDescription>Defina os detalhes e serviços do pacote</DialogDescription>
+            <DialogDescription>
+              Defina os detalhes e serviços do pacote. Os créditos são do pacote (pool unificado).
+              O cliente consome 1 crédito quando agenda exatamente o combo de serviços definidos aqui.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -180,6 +186,10 @@ export default function PacotesPage() {
                 <Label>Validade (dias)</Label>
                 <Input type="number" value={form.validDays} onChange={e => setForm(f => ({ ...f, validDays: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
               </div>
+              <div>
+                <Label>Créditos por pacote</Label>
+                <Input type="number" min={1} value={form.defaultCredits} onChange={e => setForm(f => ({ ...f, defaultCredits: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+              </div>
               <div className="flex items-center gap-2">
                 <Switch checked={form.isActive} onCheckedChange={(v) => setForm(f => ({ ...f, isActive: v }))} />
                 <Label>Ativo</Label>
@@ -197,7 +207,7 @@ export default function PacotesPage() {
               </div>
               <div className="space-y-3">
                 {formServices.map((row, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
                     <div className="md:col-span-4">
                       <Select value={row.serviceId} onValueChange={(v) => updateServiceField(idx, 'serviceId', v)}>
                         <SelectTrigger className="bg-[#27272a] border-[#3f3f46]">
@@ -209,9 +219,6 @@ export default function PacotesPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Input type="number" min={1} value={row.quantity} onChange={e => updateServiceField(idx, 'quantity', e.target.value)} className="bg-[#27272a] border-[#3f3f46]"/>
                     </div>
                     <div className="text-right">
                       <Button variant="destructive" onClick={() => removeService(idx)}><Trash2 className="w-4 h-4"/></Button>

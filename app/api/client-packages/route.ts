@@ -33,16 +33,22 @@ export async function POST(request: NextRequest) {
 
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const cp = await tx.clientPackage.create({
-        data: {
+        data: ({
           clientId,
           packageId,
           expiresAt: expiresDate,
-          credits: {
-            create: pkg.services.map((s: any) => ({ serviceId: s.serviceId, totalCredits: s.quantity, usedCredits: 0 }))
-          }
-        },
-        include: { credits: true }
+          // Créditos unificados por pacote
+          creditsTotal: (pkg as any).defaultCredits ?? 1,
+          usedCredits: 0
+        } as any)
       })
+
+      // Snapshot dos serviços permitidos para este ClientPackage
+      if (Array.isArray(pkg.services) && pkg.services.length > 0) {
+        const values = pkg.services.map((s: any) => `('${cp.id}', '${s.serviceId}')`).join(',')
+        // @ts-ignore inserir via raw para evitar dependência do client gerado
+        await tx.$executeRawUnsafe(`INSERT INTO client_package_allowed_services (clientPackageId, serviceId) VALUES ${values}`)
+      }
 
       await tx.financialRecord.create({
         data: {

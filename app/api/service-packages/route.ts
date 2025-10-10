@@ -46,25 +46,27 @@ export async function POST(request: NextRequest) {
     ensureOwner(user.role)
 
     const body = await request.json()
-    const { name, description, totalPrice, discount, validDays, isActive, services } = body || {}
+  const { name, description, totalPrice, discount, validDays, isActive, services, defaultCredits } = body || {}
 
     if (!name || !totalPrice || !Array.isArray(services) || services.length === 0) {
       return NextResponse.json({ message: 'Nome, preço total e ao menos um serviço são obrigatórios' }, { status: 400 })
     }
 
     const created = await prisma.servicePackage.create({
-      data: {
+      data: ({
         name,
         description,
         totalPrice: parseFloat(totalPrice),
         discount: discount != null ? parseFloat(discount) : 0,
         validDays: validDays != null ? parseInt(String(validDays)) : null,
         isActive: typeof isActive === 'boolean' ? isActive : true,
+        // Campo novo pode não existir no client gerado ainda
+        defaultCredits: defaultCredits != null ? parseInt(String(defaultCredits)) : undefined,
         tenantId: user.tenantId,
         services: {
           create: services.map((s: any) => ({ serviceId: s.serviceId, quantity: parseInt(String(s.quantity || 1)) }))
         }
-      },
+      } as any),
       include: {
         services: { include: { service: { select: { id: true, name: true } } } }
       }
@@ -85,7 +87,7 @@ export async function PUT(request: NextRequest) {
     ensureOwner(user.role)
 
     const body = await request.json()
-    const { id, name, description, totalPrice, discount, validDays, isActive, services } = body || {}
+  const { id, name, description, totalPrice, discount, validDays, isActive, services, defaultCredits } = body || {}
     if (!id) {
       return NextResponse.json({ message: 'ID do pacote é obrigatório' }, { status: 400 })
     }
@@ -99,14 +101,16 @@ export async function PUT(request: NextRequest) {
       // Atualiza dados básicos
       const base = await tx.servicePackage.update({
         where: { id },
-        data: {
+        data: ({
           name,
           description,
           totalPrice: totalPrice != null ? parseFloat(totalPrice) : undefined,
           discount: discount != null ? parseFloat(discount) : undefined,
           validDays: validDays != null ? parseInt(String(validDays)) : undefined,
-          isActive
-        }
+          isActive,
+          // Campo novo pode não existir no client gerado ainda
+          defaultCredits: defaultCredits != null ? parseInt(String(defaultCredits)) : undefined
+        } as any)
       })
 
       // Redefine serviços se enviados
