@@ -36,6 +36,7 @@ const baseMenu: MenuItem[] = [
   { icon: DollarSign, label: "Relatório e Financeiro", href: "/dashboard/financeiro", description: "Receitas, relatórios e análises" },
   { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens", roles: ['OWNER'] },
   { icon: Crown, label: "Minha Assinatura", href: "/dashboard/assinatura", description: "Gerenciar plano e assinatura", roles: ['OWNER'] },
+  { icon: Crown, label: "Assinaturas e Pacotes", href: "/dashboard/assinaturas-e-pacotes", description: "Gerenciar planos e pacotes", roles: ['OWNER'] },
   { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes", description: "Configurar estabelecimento", roles: ['OWNER'] },
   { icon: UserCircle, label: "Meu Perfil", href: "/dashboard/meu-perfil", description: "Gerenciar minha senha", roles: ['COLLABORATOR'] }
 ]

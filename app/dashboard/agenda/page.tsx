@@ -89,6 +89,9 @@ export default function AgendaPage() {
   const [creditExpiresAt, setCreditExpiresAt] = useState<Date | null>(null)
   const [creditInfoLoading, setCreditInfoLoading] = useState<boolean>(false)
   const [usePackageCredit, setUsePackageCredit] = useState<boolean>(false)
+  // Assinatura/cobertura
+  const [isCoveredBySubscription, setIsCoveredBySubscription] = useState<boolean>(false)
+  const [coverageMessage, setCoverageMessage] = useState<string>("")
   const [showServicePicker, setShowServicePicker] = useState<boolean>(false)
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
@@ -272,11 +275,13 @@ export default function AgendaPage() {
     }
   }, [selectedServices.length, newAppointment.date, newAppointment.professionalId, editingAppointment])
 
-  // Resetar estado de créditos apenas quando o conjunto de serviços OU o cliente mudarem
+  // Resetar estado de créditos/assinatura apenas quando o conjunto de serviços OU o cliente mudarem
   useEffect(() => {
     setAvailableCredits(0)
     setCreditExpiresAt(null)
     setUsePackageCredit(false)
+    setIsCoveredBySubscription(false)
+    setCoverageMessage("")
   }, [selectedServices.join(','), newAppointment.endUserId])
 
   // Limpar erro do backend quando modal é aberto
@@ -286,7 +291,7 @@ export default function AgendaPage() {
     }
   }, [isNewAppointmentOpen])
 
-  // Buscar créditos disponíveis quando cliente e conjunto de serviços estiverem selecionados (combo exato)
+  // Buscar cobertura (assinatura prioritária) e créditos de pacote quando cliente e conjunto de serviços estiverem selecionados (combo exato)
   useEffect(() => {
     const fetchCredits = async () => {
       try {
@@ -294,21 +299,32 @@ export default function AgendaPage() {
           setAvailableCredits(0)
           setCreditExpiresAt(null)
           setUsePackageCredit(false)
+          setIsCoveredBySubscription(false)
+          setCoverageMessage("")
           return
         }
         setCreditInfoLoading(true)
         const serviceIds = (selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId]).join(',')
         const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceIds })
-        const res = await fetch(`/api/client-credits-combo?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
+        const res = await fetch(`/api/client-coverage-combo?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
         const wasUsing = usePackageCredit
-        if (data.covered && data.package) {
+        if (data.coveredBy === 'subscription') {
+          setIsCoveredBySubscription(true)
+          setCoverageMessage(data.message || 'Coberto por assinatura')
+          setAvailableCredits(0)
+          setCreditExpiresAt(null)
+          setUsePackageCredit(false)
+        } else if (data.coveredBy === 'package' && data.package) {
+          setIsCoveredBySubscription(false)
+          setCoverageMessage(data.message || '')
           setAvailableCredits(Number(data.package.creditsRemaining || 0))
           setCreditExpiresAt(data.package.expiresAt ? new Date(data.package.expiresAt) : null)
-          // Se já estava usando crédito, manter ligado
           if (wasUsing) setUsePackageCredit(true)
         } else {
+          setIsCoveredBySubscription(false)
+          setCoverageMessage("")
           setAvailableCredits(0)
           setCreditExpiresAt(null)
           setUsePackageCredit(false)
@@ -320,6 +336,8 @@ export default function AgendaPage() {
         setAvailableCredits(0)
         setCreditExpiresAt(null)
         setUsePackageCredit(false)
+        setIsCoveredBySubscription(false)
+        setCoverageMessage("")
       } finally {
         setCreditInfoLoading(false)
       }
@@ -2952,7 +2970,7 @@ export default function AgendaPage() {
                           {selectedServices.length === 0 ? 'Selecione serviços' : services.filter(s=>selectedServices.includes(s.id)).map(s=>s.name).join(' + ')}
                         </span>
                         <span className="text-xs text-[#71717a] whitespace-nowrap ml-2">
-                          {totalDuration}min • {formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}
+                          {totalDuration}min • {formatCurrency((isCoveredBySubscription || (usePackageCredit && availableCredits>0)) ? 0 : totalPrice)}
                         </span>
                       </button>
                       {showServicePicker && (
@@ -2986,7 +3004,7 @@ export default function AgendaPage() {
                           )}
                           <div className="p-3 flex flex-col gap-2 bg-[#27272a]/50">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs text-[#a1a1aa]">Total: {totalDuration}min • {formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}</span>
+                              <span className="text-xs text-[#a1a1aa]">Total: {totalDuration}min • {formatCurrency((isCoveredBySubscription || (usePackageCredit && availableCredits>0)) ? 0 : totalPrice)}</span>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -3180,7 +3198,7 @@ export default function AgendaPage() {
               {selectedServices.length > 0 && (
                 <div className="hidden md:flex flex-col justify-center pr-2 text-xs text-[#a1a1aa] w-40">
                   <span>Total: {totalDuration}min</span>
-                  <span>{formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}</span>
+                  <span>{formatCurrency((isCoveredBySubscription || (usePackageCredit && availableCredits>0)) ? 0 : totalPrice)}</span>
                 </div>
               )}
               <Button

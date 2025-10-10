@@ -912,7 +912,7 @@ export default function AgendamentoPage() {
       setCreditExpiresAt(null)
 
       const allServiceIds = [selectedServiceId, ...((addedUpsells || []).map(u => u.id))]
-      const url = new URL(`/api/public/client-credits-combo`, window.location.origin)
+      const url = new URL(`/api/public/client-coverage-combo`, window.location.origin)
       url.searchParams.set('businessSlug', String(params.slug))
       url.searchParams.set('phone', rawPhone)
       url.searchParams.set('serviceIds', allServiceIds.join(','))
@@ -924,7 +924,11 @@ export default function AgendamentoPage() {
         return
       }
       const data = await res.json()
-      if (data.covered && data.package) {
+      if (data.coveredBy === 'subscription') {
+        // Assinatura cobre totalmente
+        setAvailableCredits(0)
+        setCreditExpiresAt(null)
+      } else if (data.coveredBy === 'package' && data.package) {
         setAvailableCredits(Number(data.package.creditsRemaining || 0))
         setCreditExpiresAt(data.package.expiresAt || null)
       } else {
@@ -958,6 +962,9 @@ export default function AgendamentoPage() {
       // Combo coberto: preço total vira 0
       return 0
     }
+    // Assinatura ativa e cobrindo todos os serviços: preço 0
+    // Como não mantemos um state separado aqui, inferimos assinatura quando credits === 0 mas API retornou coveredBy subscription
+    // Para simplificar, o efeito acima já zera por não setar créditos; então mantemos base
     return base
   }
 

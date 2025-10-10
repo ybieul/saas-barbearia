@@ -120,6 +120,28 @@ export default function MembershipsPage() {
     }
   }
 
+  async function handleDeletePlan(id: string) {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(`/api/subscription-plans?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao remover plano')
+      toast({ title: 'Plano removido', description: 'Plano de assinatura removido com sucesso.' })
+      await fetchPlans()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  async function handleDeletePackage(id: string) {
+    try {
+      await deletePackage(id)
+      toast({ title: 'Pacote removido', description: 'Pacote removido com sucesso.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -184,7 +206,7 @@ export default function MembershipsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Edição de planos em desenvolvimento.' })}>Editar</Button>
-                        <Button variant="destructive" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Remoção de planos em desenvolvimento.' })}>Remover</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(p.id)}>Remover</Button>
                       </div>
                     </div>
                   ))}
@@ -212,7 +234,7 @@ export default function MembershipsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Edição de pacotes em desenvolvimento.' })}>Editar</Button>
-                        <Button variant="destructive" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Remoção de pacotes em desenvolvimento.' })}>Remover</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeletePackage(pkg.id)}>Remover</Button>
                       </div>
                     </div>
                   ))}

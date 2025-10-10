@@ -34,10 +34,8 @@ export async function PATCH(
       )
     }
 
-    // Calcular preço total baseado nos serviços do agendamento
-    const totalPrice = existingAppointment.services.reduce((total, service) => {
-      return total + Number(service.price || 0)
-    }, 0)
+    // Calcular preço total baseado nos serviços do agendamento (base)
+    let totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
 
     console.log('💰 Calculando preço total na conclusão:', {
       appointmentId,
@@ -60,7 +58,7 @@ export async function PATCH(
       }
     }
 
-    // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
+  // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
     const updatedAppointment = await prisma.$transaction(async (tx) => {
       // Detectar intenção de uso de crédito e se já foi debitado
       const notesText = existingAppointment.notes || ''
@@ -69,6 +67,28 @@ export async function PATCH(
       let debitedCreditId: string | null = null
       let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
+
+      // Antes: verificar cobertura por assinatura (plano que cobre todos os serviços do agendamento)
+      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
+      const now = new Date()
+      const subs = await (tx as any).clientSubscription.findMany({
+        where: {
+          clientId: existingAppointment.endUserId,
+          status: 'ACTIVE',
+          startDate: { lte: now },
+          endDate: { gte: now },
+          plan: { isActive: true, tenantId: existingAppointment.tenantId }
+        },
+        include: { plan: { include: { services: { select: { id: true } } } } }
+      }) as Array<{ plan: { services: { id: string }[] } }>
+      const subCoversAll = subs.some(s => {
+        const allowed = new Set(s.plan.services.map(x => x.id))
+        return serviceIdsSelected.every(id => allowed.has(id))
+      })
+      if (subCoversAll) {
+        totalPrice = 0
+        shouldCreateFinancialRecord = false
+      }
 
       // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
       if (wantsToUseCredit && !alreadyDebited) {
