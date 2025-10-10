@@ -115,13 +115,9 @@ export default function MembershipsPage() {
   const addService = () => setFormServices(prev => [...prev, { serviceId: serviceOptions[0]?.id || '', quantity: 1 }])
   const removeService = (idx: number) => setFormServices(prev => prev.filter((_, i) => i !== idx))
   const updateServiceField = (idx: number, field: 'serviceId' | 'quantity', value: string) => {
-    setFormServices(prev => prev.map((row, i) => {
-      if (i !== idx) return row
-      if (field === 'serviceId') return { ...row, serviceId: value }
-      // quantity
-      const q = Math.max(1, parseInt(value || '1', 10))
-      return { ...row, quantity: Number.isFinite(q) ? q : 1 }
-    }))
+    // Só permitimos alterar o serviço; quantidade sempre 1 (créditos são do pacote, não por serviço)
+    if (field !== 'serviceId') return
+    setFormServices(prev => prev.map((row, i) => (i === idx ? { ...row, serviceId: value } : row)))
   }
 
   // Abrir modal pré-preenchido para edição de Plano
@@ -152,7 +148,7 @@ export default function MembershipsPage() {
       isActive: !!pkg.isActive,
       defaultCredits: (pkg as any).defaultCredits != null ? String((pkg as any).defaultCredits) : '1'
     } as any)
-    setFormServices((pkg.services || []).map(s => ({ serviceId: s.serviceId, quantity: s.quantity || 1 })))
+    setFormServices((pkg.services || []).map(s => ({ serviceId: s.serviceId, quantity: 1 })))
     setIsCreateOpen(true)
   }
 
@@ -161,7 +157,8 @@ export default function MembershipsPage() {
       if (submitting) return
       setSubmitting(true)
       if (createType === 'SUBSCRIPTION') {
-        if (!subForm.name || !subForm.price || formServices.length === 0) {
+        const selectedServiceIds = formServices.map(s => s.serviceId).filter(Boolean)
+        if (!subForm.name || !subForm.price || selectedServiceIds.length === 0) {
           toast({ title: 'Campos obrigatórios', description: 'Nome, Preço e ao menos um serviço são necessários', variant: 'destructive' })
           return
         }
@@ -171,7 +168,7 @@ export default function MembershipsPage() {
           price: Number(subForm.price),
           cycleInDays: Number(subForm.cycleInDays || '30'),
           isActive: subForm.isActive,
-          services: formServices.map(s => s.serviceId)
+          services: selectedServiceIds
         }
         // Se estiver editando, usar PUT
         const url = '/api/subscription-plans'
@@ -183,7 +180,8 @@ export default function MembershipsPage() {
         toast({ title: editingId ? 'Plano atualizado' : 'Plano criado', description: editingId ? 'Plano de assinatura atualizado com sucesso.' : 'Plano de assinatura criado com sucesso.' })
         await fetchPlans()
       } else {
-        if (!pkgForm.name || !pkgForm.totalPrice || formServices.length === 0) {
+        const selectedServices = formServices.filter(s => !!s.serviceId)
+        if (!pkgForm.name || !pkgForm.totalPrice || selectedServices.length === 0) {
           toast({ title: 'Campos obrigatórios', description: 'Nome, Preço e ao menos um serviço são necessários', variant: 'destructive' })
           return
         }
@@ -195,7 +193,8 @@ export default function MembershipsPage() {
           validDays: pkgForm.validDays ? Number(pkgForm.validDays) : undefined,
           isActive: pkgForm.isActive,
           defaultCredits: pkgForm.defaultCredits ? Number(pkgForm.defaultCredits) : 1,
-          services: formServices.map(s => ({ serviceId: s.serviceId, quantity: s.quantity || 1 }))
+          // Quantidade por serviço não é configurável: sempre 1. Créditos pertencem ao pacote (defaultCredits)
+          services: selectedServices.map(s => ({ serviceId: s.serviceId, quantity: 1 }))
         }
         if (editingId) {
           payload.id = editingId
@@ -431,7 +430,7 @@ export default function MembershipsPage() {
               <div className="space-y-3">
                 {formServices.map((row, idx) => (
                   <div key={idx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
-                    <div className={createType === 'PACKAGE' ? 'md:col-span-4' : 'md:col-span-5'}>
+                    <div className="md:col-span-5">
                       <Select value={row.serviceId} onValueChange={(v) => updateServiceField(idx, 'serviceId', v)}>
                         <SelectTrigger className="bg-[#27272a] border-[#3f3f46]">
                           <SelectValue placeholder="Selecione um serviço" />
@@ -443,13 +442,6 @@ export default function MembershipsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {createType === 'PACKAGE' && (
-                      <div>
-                        <Input type="number" min={1} value={row.quantity}
-                          onChange={(e) => updateServiceField(idx, 'quantity', e.target.value)}
-                          className="bg-[#27272a] border-[#3f3f46]" placeholder="Qtd" />
-                      </div>
-                    )}
                     <div className="text-right">
                       <Button variant="destructive" onClick={() => removeService(idx)}><Trash2 className="w-4 h-4"/></Button>
                     </div>
