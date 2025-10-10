@@ -28,11 +28,17 @@ export default function PacotesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
   const [formServices, setFormServices] = useState<{ serviceId: string; quantity: number }[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
+    // Carrega apenas os pacotes aqui. Os serviços já são carregados
+    // automaticamente pelo hook useServices no primeiro render.
+    // Evita loop de renderizações causado por dependência instável
+    // de função não-memoizada.
     fetchPackages()
-    fetchServices()
-  }, [fetchPackages, fetchServices])
+    // fetchServices() // desnecessário: o hook já busca sozinho
+  }, [fetchPackages])
 
   const resetForm = () => {
     setEditingId(null)
@@ -65,6 +71,8 @@ export default function PacotesPage() {
 
   const onSubmit = async () => {
     try {
+      if (submitting) return
+      setSubmitting(true)
       if (!form.name || !form.totalPrice || formServices.length === 0) {
         toast({ title: 'Campos obrigatórios', description: 'Nome, Preço e ao menos um serviço são necessários', variant: 'destructive' })
         return
@@ -86,15 +94,21 @@ export default function PacotesPage() {
       resetForm()
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const onDelete = async (id: string) => {
     try {
+      if (deletingId) return
+      setDeletingId(id)
       await deletePackage(id)
       toast({ title: 'Removido', description: 'Pacote removido com sucesso' })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -105,7 +119,7 @@ export default function PacotesPage() {
           <h1 className="text-2xl font-semibold text-[#ededed]">Pacotes de Serviços</h1>
           <p className="text-sm text-[#71717a]">Crie pacotes com múltiplos serviços</p>
         </div>
-        <Button onClick={openCreate} className="bg-tymer-primary hover:bg-tymer-primary/80">
+        <Button onClick={openCreate} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={submitting}>
           <Plus className="w-4 h-4 mr-2" /> Novo Pacote
         </Button>
       </div>
@@ -145,10 +159,10 @@ export default function PacotesPage() {
                   <TableCell>{p.isActive ? 'Sim' : 'Não'}</TableCell>
                   <TableCell>{p._count?.purchases ?? 0}</TableCell>
                   <TableCell className="space-x-2 text-right">
-                    <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(p)} disabled={submitting}>
                       <Edit className="w-4 h-4 mr-1"/> Editar
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => onDelete(p.id)}>
+                    <Button variant="destructive" size="sm" onClick={() => onDelete(p.id)} disabled={deletingId === p.id || submitting}>
                       <Trash2 className="w-4 h-4 mr-1"/> Remover
                     </Button>
                   </TableCell>
@@ -229,8 +243,8 @@ export default function PacotesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsOpen(false)}>Cancelar</Button>
-            <Button onClick={onSubmit} className="bg-tymer-primary hover:bg-tymer-primary/80">{editingId ? 'Salvar' : 'Criar'}</Button>
+            <Button variant="secondary" onClick={() => setIsOpen(false)} disabled={submitting}>Cancelar</Button>
+            <Button onClick={onSubmit} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={submitting}>{editingId ? (submitting ? 'Salvando…' : 'Salvar') : (submitting ? 'Criando…' : 'Criar')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

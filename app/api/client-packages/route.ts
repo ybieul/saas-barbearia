@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 import type { Prisma } from '@prisma/client'
 import { verifyToken } from '@/lib/auth'
 
@@ -38,16 +39,19 @@ export async function POST(request: NextRequest) {
           packageId,
           expiresAt: expiresDate,
           // Créditos unificados por pacote
-          creditsTotal: (pkg as any).defaultCredits ?? 1,
+          creditsTotal: Number.isFinite(Number((pkg as any).defaultCredits)) ? Math.max(parseInt(String((pkg as any).defaultCredits), 10) || 1, 1) : 1,
           usedCredits: 0
         } as any)
       })
 
       // Snapshot dos serviços permitidos para este ClientPackage
       if (Array.isArray(pkg.services) && pkg.services.length > 0) {
-        const values = pkg.services.map((s: any) => `('${cp.id}', '${s.serviceId}')`).join(',')
-        // @ts-ignore inserir via raw para evitar dependência do client gerado
-        await tx.$executeRawUnsafe(`INSERT INTO client_package_allowed_services (clientPackageId, serviceId) VALUES ${values}`)
+        const values = pkg.services.map((s: any) => {
+          const id = randomUUID().replace(/-/g, '')
+          return `('${id}', '${cp.id}', '${s.serviceId}')`
+        }).join(',')
+        // Inserir com id explícito para não violar PK sem default
+        await tx.$executeRawUnsafe(`INSERT INTO client_package_allowed_services (id, clientPackageId, serviceId) VALUES ${values}`)
       }
 
       await tx.financialRecord.create({

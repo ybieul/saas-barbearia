@@ -68,6 +68,7 @@ export default function ClientesPage() {
   const [isSellPackageOpen, setIsSellPackageOpen] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
+  const [selling, setSelling] = useState(false)
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -183,9 +184,13 @@ export default function ClientesPage() {
   const sellPackage = async () => {
     if (!selectedClient || !selectedPackageId) return
     try {
+      if (selling) return
+      setSelling(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const res = await fetch('/api/client-packages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
         body: JSON.stringify({ clientId: selectedClient.id, packageId: selectedPackageId, overridePrice: overridePrice || undefined })
       })
       const data = await res.json()
@@ -193,6 +198,8 @@ export default function ClientesPage() {
       setIsSellPackageOpen(false)
     } catch (e) {
       console.error('Erro ao vender pacote', e)
+    } finally {
+      setSelling(false)
     }
   }
 
@@ -1100,8 +1107,8 @@ export default function ClientesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)}>Cancelar</Button>
-            <Button onClick={sellPackage} className="bg-tymer-primary hover:bg-tymer-primary/80">Confirmar</Button>
+            <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling}>Cancelar</Button>
+            <Button onClick={sellPackage} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

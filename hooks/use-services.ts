@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface Service {
   id: string
@@ -30,7 +30,7 @@ export function useServices(): UseServicesReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchServicesInternal = async () => {
+  const fetchServicesInternal = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
@@ -41,24 +41,32 @@ export function useServices(): UseServicesReturn {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        credentials: 'include',
+        signal
       })
       
       if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`)
+        // Mensagem mais clara para sessão expirada
+        const baseMessage = response.status === 401 ? 'Sessão expirada. Faça login novamente.' : `Erro ${response.status}: ${response.statusText}`
+        throw new Error(baseMessage)
       }
       
       const data = await response.json()
-      setServices(data.services || [])
+      if (!signal?.aborted) {
+        setServices(data.services || [])
+      }
     } catch (err) {
+      // Ignora abortos
+      if ((err as any)?.name === 'AbortError') return
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao buscar serviços:', err)
       }
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
-  }
+  }, [])
 
   const createService = async (serviceData: Omit<Service, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<Service | null> => {
     try {
@@ -72,7 +80,8 @@ export function useServices(): UseServicesReturn {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-  body: JSON.stringify(serviceData)
+  body: JSON.stringify(serviceData),
+    credentials: 'include'
       })
       
       if (!response.ok) {
@@ -104,7 +113,8 @@ export function useServices(): UseServicesReturn {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-        body: JSON.stringify(serviceData)
+        body: JSON.stringify(serviceData),
+        credentials: 'include'
       })
       
       if (!response.ok) {
@@ -174,7 +184,8 @@ export function useServices(): UseServicesReturn {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        credentials: 'include'
       })
       
       if (!response.ok) {
@@ -194,13 +205,16 @@ export function useServices(): UseServicesReturn {
     }
   }
 
-  const fetchServices = async () => {
-    await fetchServicesInternal()
-  }
+  const fetchServices = useCallback(async (signal?: AbortSignal) => {
+    await fetchServicesInternal(signal)
+  }, [fetchServicesInternal])
 
   useEffect(() => {
-    fetchServicesInternal()
-  }, [])
+    // Executa no mount e cancela em unmount
+    const controller = new AbortController()
+    fetchServicesInternal(controller.signal)
+    return () => controller.abort()
+  }, [fetchServicesInternal])
 
   return {
     services,
