@@ -720,20 +720,20 @@ export default function ClientesPage() {
                     
                     {/* Ações */}
                     <div className="col-span-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(client)}
-                          className="border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 px-2 py-1 h-8 text-xs"
+                          className="shrink-0 border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 px-2 py-1 h-8 text-xs"
                         >
-                          Ver Detalhes
+                          Detalhes
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openSellPackage(client)}
-                          className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
+                          className={`shrink-0 ${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
                         >
                           <DollarSign className="w-3 h-3 mr-1" /> Pacote
                         </Button>
@@ -741,7 +741,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(client)}
-                          className="border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-2 py-1 h-8"
+                          className="shrink-0 border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-2 py-1 h-8"
                         >
                           <Edit className="w-3 h-3" />
                         </Button>
@@ -749,7 +749,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(client.id, client.name)}
-                          className="border-red-600 text-red-400 hover:bg-red-600/10 px-2 py-1 h-8"
+                          className="shrink-0 border-red-600 text-red-400 hover:bg-red-600/10 px-2 py-1 h-8"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -832,7 +832,7 @@ export default function ClientesPage() {
                           onClick={() => handleViewDetails(client)}
                           className="flex-1 border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 text-xs h-8"
                         >
-                          Ver Detalhes
+                          Detalhes
                         </Button>
                         <Button
                           variant="outline"
