@@ -47,18 +47,49 @@ export async function POST(request: NextRequest) {
       connectServices = valid.map(s => ({ id: s.id }))
     }
 
-    const plan = await (prisma as any).subscriptionPlan.create({
-      data: {
-        name: body.name,
-        price: body.price,
-        cycleInDays: body.cycleInDays,
-        isActive: body.isActive ?? true,
-        tenantId,
-        ...(connectServices ? { services: { connect: connectServices } } : {}),
-      },
-    })
-
-    return NextResponse.json({ plan })
+    try {
+      // 1) Cria o plano básico
+      let plan = await (prisma as any).subscriptionPlan.create({
+        data: {
+          name: body.name,
+          price: body.price,
+          cycleInDays: body.cycleInDays,
+          isActive: body.isActive ?? true,
+          tenantId,
+        },
+      })
+      // 2) Tenta vincular serviços (passo separado para evitar derrubar a criação)
+      if (connectServices && connectServices.length > 0) {
+        try {
+          plan = await (prisma as any).subscriptionPlan.update({
+            where: { id: plan.id },
+            data: { services: { connect: connectServices } },
+            include: { services: true }
+          })
+          return NextResponse.json({ plan })
+        } catch (linkErr: any) {
+          const warn = 'Plano criado, mas os serviços não foram vinculados. Verifique se a migração da tabela de junção está aplicada e tente editar o plano para adicionar os serviços.'
+          return NextResponse.json({ plan, warning: warn }, { status: 201 })
+        }
+      }
+      return NextResponse.json({ plan })
+    } catch (err: any) {
+      const msg = err?.message || ''
+      if (err?.code === 'P2021' || err?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
+        // Fallback: cria o plano sem relacionar serviços e retorna aviso
+        const plan = await (prisma as any).subscriptionPlan.create({
+          data: {
+            name: body.name,
+            price: body.price,
+            cycleInDays: body.cycleInDays,
+            isActive: body.isActive ?? true,
+            tenantId,
+          },
+        })
+        return NextResponse.json({ plan, warning: 'Plano criado sem vincular serviços pois a tabela de junção não está disponível. Aplique a migração e edite o plano para adicionar serviços.' }, { status: 201 })
+      }
+      throw err
+    }
   } catch (error: any) {
     const msg = error?.message || ''
     if (error?.code === 'P2021' || error?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
@@ -84,19 +115,37 @@ export async function PUT(request: NextRequest) {
       servicesSet = valid.map(s => ({ id: s.id }))
     }
 
-    const plan = await (prisma as any).subscriptionPlan.update({
-      where: { id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(price !== undefined && { price }),
-        ...(cycleInDays !== undefined && { cycleInDays }),
-        ...(isActive !== undefined && { isActive }),
-        ...(servicesSet ? { services: { set: servicesSet } } : {}),
-      },
-      include: { services: true },
-    })
-
-    return NextResponse.json({ plan })
+    try {
+      const plan = await (prisma as any).subscriptionPlan.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(price !== undefined && { price }),
+          ...(cycleInDays !== undefined && { cycleInDays }),
+          ...(isActive !== undefined && { isActive }),
+          ...(servicesSet ? { services: { set: servicesSet } } : {}),
+        },
+        include: { services: true },
+      })
+      return NextResponse.json({ plan })
+    } catch (err: any) {
+      const msg = err?.message || ''
+      if (err?.code === 'P2021' || err?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
+        // Fallback: atualiza somente campos básicos e ignora SET de serviços
+        const plan = await (prisma as any).subscriptionPlan.update({
+          where: { id },
+          data: {
+            ...(name !== undefined && { name }),
+            ...(price !== undefined && { price }),
+            ...(cycleInDays !== undefined && { cycleInDays }),
+            ...(isActive !== undefined && { isActive }),
+          },
+          include: { services: true },
+        })
+        return NextResponse.json({ plan, warning: 'Plano atualizado sem modificar serviços pois a tabela de junção não está disponível. Aplique a migração e edite o plano para gerenciar serviços.' })
+      }
+      throw err
+    }
   } catch (error: any) {
     const msg = error?.message || ''
     if (error?.code === 'P2021' || error?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
