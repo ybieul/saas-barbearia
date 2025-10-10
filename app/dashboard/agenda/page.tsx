@@ -44,6 +44,7 @@ import { formatCurrency } from "@/lib/currency"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { useAgendaAvailability } from "@/hooks/use-agenda-availability"
 import { useProfessionalAvailability } from "@/hooks/use-schedule"
+import { Switch } from "@/components/ui/switch"
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -83,6 +84,11 @@ export default function AgendaPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [totalDuration, setTotalDuration] = useState<number>(0)
   const [totalPrice, setTotalPrice] = useState<number>(0)
+  // Créditos de pacotes: verificação e uso opcional
+  const [availableCredits, setAvailableCredits] = useState<number>(0)
+  const [creditExpiresAt, setCreditExpiresAt] = useState<Date | null>(null)
+  const [creditInfoLoading, setCreditInfoLoading] = useState<boolean>(false)
+  const [usePackageCredit, setUsePackageCredit] = useState<boolean>(false)
   const [showServicePicker, setShowServicePicker] = useState<boolean>(false)
   const [editingAppointment, setEditingAppointment] = useState<any>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
@@ -246,6 +252,8 @@ export default function AgendaPage() {
       const first = selectedServices[0] || ""
       return prev.serviceId === first ? prev : { ...prev, serviceId: first }
     })
+    // Sempre que serviços mudarem, resetar uso de crédito (exige revalidação)
+    setUsePackageCredit(false)
   }, [selectedServices, services])
 
   // Limpar horário quando serviço, data ou profissional mudam (mas NÃO quando estamos editando)
@@ -262,6 +270,10 @@ export default function AgendaPage() {
       // Limpar erro do backend quando dados importantes mudam
       setBackendError(null)
     }
+    // Quando dados-chave mudam, limpar estado de crédito disponível
+    setAvailableCredits(0)
+    setCreditExpiresAt(null)
+    setUsePackageCredit(false)
   }, [selectedServices.length, newAppointment.date, newAppointment.professionalId, editingAppointment])
 
   // Limpar erro do backend quando modal é aberto
@@ -270,6 +282,37 @@ export default function AgendaPage() {
       setBackendError(null)
     }
   }, [isNewAppointmentOpen])
+
+  // Buscar créditos disponíveis quando cliente e primeiro serviço estiverem selecionados
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        if (!newAppointment.endUserId || !newAppointment.serviceId) {
+          setAvailableCredits(0)
+          setCreditExpiresAt(null)
+          setUsePackageCredit(false)
+          return
+        }
+        setCreditInfoLoading(true)
+        const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceId: newAppointment.serviceId })
+        const res = await fetch(`/api/client-credits?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
+        setAvailableCredits(Number(data.availableCredits || 0))
+        setCreditExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null)
+      } catch (e) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao buscar créditos do cliente:', e)
+        }
+        setAvailableCredits(0)
+        setCreditExpiresAt(null)
+        setUsePackageCredit(false)
+      } finally {
+        setCreditInfoLoading(false)
+      }
+    }
+    fetchCredits()
+  }, [newAppointment.endUserId, newAppointment.serviceId])
 
   // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
   useEffect(() => {
@@ -1040,7 +1083,9 @@ export default function AgendaPage() {
         services: selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId],
         professionalId: newAppointment.professionalId || undefined,
         dateTime: toLocalISOString(appointmentDateTime),
-        notes: newAppointment.notes || undefined
+        notes: newAppointment.notes || undefined,
+        // Flag opcional para uso de crédito
+        usePackageCredit: usePackageCredit && availableCredits > 0 ? true : false
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -2567,6 +2612,26 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
+                        {/* Badges de crédito de pacote */}
+                        {(() => {
+                          const notesText = (appointment.notes || '').toString()
+                          const willUse = /\[USE_CREDIT(:[^\]]+)?\]/.test(notesText)
+                          const debited = /\[DEBITED_CREDIT:[^\]]+\]/.test(notesText)
+                          return (
+                            <div className="flex flex-wrap gap-2">
+                              {willUse && !debited && (
+                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30">
+                                  Vai usar crédito
+                                </Badge>
+                              )}
+                              {debited && (
+                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                                  Crédito usado
+                                </Badge>
+                              )}
+                            </div>
+                          )
+                        })()}
                         {/* ✅ SEMPRE exibir profissional - versão simplificada para debug */}
                         <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Profissional:</strong> {
@@ -2845,7 +2910,7 @@ export default function AgendaPage() {
                           {selectedServices.length === 0 ? 'Selecione serviços' : services.filter(s=>selectedServices.includes(s.id)).map(s=>s.name).join(' + ')}
                         </span>
                         <span className="text-xs text-[#71717a] whitespace-nowrap ml-2">
-                          {totalDuration}min • {formatCurrency(totalPrice)}
+                          {totalDuration}min • {formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}
                         </span>
                       </button>
                       {showServicePicker && (
@@ -2877,14 +2942,31 @@ export default function AgendaPage() {
                           {services.length === 0 && (
                             <div className="p-3 text-xs text-center text-[#71717a]">Nenhum serviço cadastrado</div>
                           )}
-                          <div className="p-3 flex items-center justify-between bg-[#27272a]/50">
-                            <span className="text-xs text-[#a1a1aa]">Total: {totalDuration}min • {formatCurrency(totalPrice)}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setShowServicePicker(false)}
-                              className="h-7 px-2 text-xs border-[#3f3f46] hover:bg-[#323238]"
-                            >Fechar</Button>
+                          <div className="p-3 flex flex-col gap-2 bg-[#27272a]/50">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a1a1aa]">Total: {totalDuration}min • {formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowServicePicker(false)}
+                                className="h-7 px-2 text-xs border-[#3f3f46] hover:bg-[#323238]"
+                              >Fechar</Button>
+                            </div>
+                            {newAppointment.endUserId && newAppointment.serviceId && (
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={usePackageCredit && availableCredits > 0}
+                                  disabled={creditInfoLoading || availableCredits === 0}
+                                  onCheckedChange={(v)=> setUsePackageCredit(!!v && availableCredits>0)}
+                                />
+                                <span className="text-xs text-[#ededed]">
+                                  {creditInfoLoading ? 'Verificando créditos...'
+                                    : availableCredits > 0
+                                      ? `Usar 1 crédito (${availableCredits} disponível${availableCredits>1?'s':''}${creditExpiresAt?`, validade ${creditExpiresAt.toLocaleDateString('pt-BR')}`:''})`
+                                      : 'Sem créditos para este serviço'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -3056,7 +3138,7 @@ export default function AgendaPage() {
               {selectedServices.length > 0 && (
                 <div className="hidden md:flex flex-col justify-center pr-2 text-xs text-[#a1a1aa] w-40">
                   <span>Total: {totalDuration}min</span>
-                  <span>{formatCurrency(totalPrice)}</span>
+                  <span>{formatCurrency((usePackageCredit && availableCredits>0) ? 0 : totalPrice)}</span>
                 </div>
               )}
               <Button

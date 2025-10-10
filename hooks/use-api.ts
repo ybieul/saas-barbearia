@@ -183,6 +183,7 @@ export function useAppointments() {
     professionalId?: string
     dateTime: string
     notes?: string
+    usePackageCredit?: boolean // ✅ Opcional: uso de crédito de pacote
   }) => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Criando agendamento:', appointmentData)

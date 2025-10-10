@@ -118,6 +118,8 @@ model EndUser {
   tenantId     String
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  // Pacotes comprados pelo cliente (back-relation)
+  clientPackages ClientPackage[]
 
   // Índices para performance
   @@index([tenantId])
@@ -189,6 +191,8 @@ model Service {
   appointments      Appointment[]
   professionals     Professional[]
   servicePackages   ServicePackageService[]
+  // Créditos de pacotes que incluem este serviço (back-relation)
+  clientPackageCredits ClientPackageCredit[]
 
   @@index([tenantId])
   @@index([tenantId, category])
@@ -210,6 +214,8 @@ model ServicePackage {
   tenantId String
   tenant   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   services ServicePackageService[]
+  // Pacotes vendidos (back-relation)
+  purchases ClientPackage[]
 
   @@index([tenantId])
   @@map("service_packages")
@@ -227,6 +233,47 @@ model ServicePackageService {
 
   @@unique([servicePackageId, serviceId])
   @@map("service_package_services")
+}
+
+// ============================================
+// PACOTES COMPRADOS PELOS CLIENTES E CRÉDITOS
+// ============================================
+
+// Associação de um pacote vendido para um cliente
+model ClientPackage {
+  id          String         @id @default(cuid())
+  clientId    String
+  packageId   String
+
+  purchasedAt DateTime       @default(now())
+  expiresAt   DateTime?
+
+  // Relations
+  client      EndUser        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  package     ServicePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  credits     ClientPackageCredit[]
+
+  @@index([clientId])
+  @@index([packageId])
+  @@map("client_packages")
+}
+
+// Créditos por serviço dentro de um ClientPackage
+model ClientPackageCredit {
+  id              String        @id @default(cuid())
+  clientPackageId String
+  serviceId       String
+
+  totalCredits    Int
+  usedCredits     Int           @default(0)
+
+  // Relations
+  clientPackage   ClientPackage @relation(fields: [clientPackageId], references: [id], onDelete: Cascade)
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([clientPackageId])
+  @@index([serviceId])
+  @@map("client_package_credits")
 }
 
 model Appointment {

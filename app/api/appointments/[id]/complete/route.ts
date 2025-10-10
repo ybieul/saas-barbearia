@@ -60,8 +60,82 @@ export async function PATCH(
       }
     }
 
-    // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro)
+    // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
     const updatedAppointment = await prisma.$transaction(async (tx) => {
+      // Detectar intenção de uso de crédito e se já foi debitado
+      const notesText = existingAppointment.notes || ''
+      const wantsToUseCredit = /\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText)
+      const alreadyDebited = /\[DEBITED_CREDIT:[^\]]+\]/.test(notesText)
+      let debitedCreditId: string | null = null
+      let shouldCreateFinancialRecord = true
+
+      // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
+      if (wantsToUseCredit && !alreadyDebited) {
+        // Descobrir serviceId preferido pelo marcador
+        const m = notesText.match(/\[USE_CREDIT:([^\]]+)\]/)
+        const markerServiceId = m?.[1]
+        const serviceIdToConsume = markerServiceId || existingAppointment.services?.[0]?.id
+
+        if (!serviceIdToConsume) {
+          throw new Error('Serviço para débito de crédito não identificado')
+        }
+
+        const now = new Date()
+        // Buscar pacotes do cliente com crédito disponível para o serviço, não expirados
+        const packages = await tx.clientPackage.findMany({
+          where: {
+            clientId: existingAppointment.endUserId,
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: now } },
+            ],
+            credits: {
+              some: {
+                serviceId: serviceIdToConsume,
+                usedCredits: { lt: undefined as any } // placeholder; será filtrado abaixo
+              }
+            }
+          },
+          include: {
+            credits: {
+              where: { serviceId: serviceIdToConsume },
+            }
+          }
+        })
+
+        // Filtrar com saldo disponível (used < total)
+        const withBalance = packages
+          .map(p => ({
+            pkg: p,
+            credit: p.credits.find(c => c.serviceId === serviceIdToConsume && c.usedCredits < c.totalCredits) || null
+          }))
+          .filter(x => !!x.credit) as { pkg: typeof packages[number]; credit: typeof packages[number]['credits'][number] }[]
+
+        if (withBalance.length === 0) {
+          throw new Error('Sem créditos disponíveis para este serviço')
+        }
+
+        // Ordenar pelo que expira primeiro (null por último)
+        withBalance.sort((a, b) => {
+          const ax = a.pkg.expiresAt ? a.pkg.expiresAt.getTime() : Number.POSITIVE_INFINITY
+          const bx = b.pkg.expiresAt ? b.pkg.expiresAt.getTime() : Number.POSITIVE_INFINITY
+          return ax - bx
+        })
+
+        const chosen = withBalance[0]
+
+        // Debitar 1 crédito
+        const updatedCredit = await tx.clientPackageCredit.update({
+          where: { id: chosen.credit.id },
+          data: {
+            usedCredits: { increment: 1 }
+          }
+        })
+
+        debitedCreditId = updatedCredit.id
+        shouldCreateFinancialRecord = false // Não criar receita: já reconhecida na venda do pacote
+      }
+
       // Operação 1: Atualizar o Agendamento
       const appointment = await tx.appointment.update({
         where: { id: appointmentId },
@@ -71,7 +145,11 @@ export async function PATCH(
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice, // Atualizar com preço calculado
-          commissionEarned: commissionEarned
+          commissionEarned: commissionEarned,
+          // Marcar consumo de crédito (idempotência)
+          notes: debitedCreditId
+            ? `${notesText ? notesText + '\n' : ''}[DEBITED_CREDIT:${debitedCreditId}]`
+            : notesText
         },
         include: {
           endUser: true,
@@ -94,18 +172,20 @@ export async function PATCH(
         },
       })
 
-      // Operação 3: Criar registro financeiro com o valor calculado (faturamento bruto)
-      await tx.financialRecord.create({
-        data: {
-          type: "INCOME",
-          amount: totalPrice,
-          description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
-          paymentMethod: paymentMethod,
-          reference: appointmentId,
-          tenantId: appointment.tenantId,
-          date: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
-        }
-      })
+      // Operação 3: Criar registro financeiro apenas se NÃO houve uso de crédito
+      if (shouldCreateFinancialRecord) {
+        await tx.financialRecord.create({
+          data: {
+            type: "INCOME",
+            amount: totalPrice,
+            description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
+            paymentMethod: paymentMethod,
+            reference: appointmentId,
+            tenantId: appointment.tenantId,
+            date: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
+          }
+        })
+      }
 
       // Operação 4 (opcional futura): Poder criar um registro separado de comissão a pagar (liability) se modelo exigir
 

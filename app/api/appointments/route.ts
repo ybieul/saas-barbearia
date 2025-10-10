@@ -227,7 +227,8 @@ export async function POST(request: NextRequest) {
       services: serviceIds, // ✅ NOVO: Array de IDs dos serviços
       professionalId, 
       dateTime, 
-      notes 
+      notes,
+      usePackageCredit 
     } = await request.json()
 
     if (!endUserId || !serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0 || !dateTime) {
@@ -419,13 +420,23 @@ export async function POST(request: NextRequest) {
       })
     }
     
+    // Montar observação com marcador de uso de crédito (para consumo posterior na conclusão)
+    let finalNotes: string | undefined = notes || undefined
+    if (usePackageCredit === true) {
+      const firstService = Array.isArray(serviceIds) && serviceIds.length > 0 ? serviceIds[0] : undefined
+      const marker = firstService ? `[USE_CREDIT:${firstService}]` : `[USE_CREDIT]`
+      finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
+    }
+
     const newAppointment = await prisma.appointment.create({
       data: {
         dateTime: dateTimeForSave, // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         duration: totalDuration,
+        // Se for usar crédito, manter totalPrice original para métricas de valor do serviço;
+        // A baixa financeira real ocorre na conclusão conforme forma de pagamento
         totalPrice: totalPrice,
         status: 'CONFIRMED',
-        notes,
+        notes: finalNotes,
         tenantId: user.tenantId,
         endUserId,
         professionalId: professionalId || null,

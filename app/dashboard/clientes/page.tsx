@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
+import { useServicePackages } from '@/hooks/use-service-packages'
 import { useClients } from "@/hooks/use-api"
 import { getBrazilNow, formatBrazilDate, formatBrazilDateOnly } from "@/lib/timezone"
 
@@ -62,10 +63,20 @@ export default function ClientesPage() {
 
   const { clients, loading, error, fetchClients, createClient, updateClient, deleteClient } = useClients()
   const [showWalkIns, setShowWalkIns] = useState(false)
+  // Pacotes: vender para cliente
+  const { packages: availablePackages, fetchPackages } = useServicePackages()
+  const [isSellPackageOpen, setIsSellPackageOpen] = useState(false)
+  const [selectedPackageId, setSelectedPackageId] = useState<string>('')
+  const [overridePrice, setOverridePrice] = useState<string>('')
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
   }, [fetchClients, showWalkIns])
+
+  // Carrega pacotes disponíveis (apenas para OWNER via API)
+  useEffect(() => {
+    fetchPackages()
+  }, [fetchPackages])
 
   // Recarregar quando searchTerm mudar (debounce simples opcional futuramente)
   useEffect(() => {
@@ -160,6 +171,29 @@ export default function ClientesPage() {
   const handleViewDetails = (client: Client) => {
     setSelectedClient(client)
     setShowDetailsModal(true)
+  }
+
+  const openSellPackage = (client: Client) => {
+    setSelectedClient(client)
+    setSelectedPackageId('')
+    setOverridePrice('')
+    setIsSellPackageOpen(true)
+  }
+
+  const sellPackage = async () => {
+    if (!selectedClient || !selectedPackageId) return
+    try {
+      const res = await fetch('/api/client-packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: selectedClient.id, packageId: selectedPackageId, overridePrice: overridePrice || undefined })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao vender pacote')
+      setIsSellPackageOpen(false)
+    } catch (e) {
+      console.error('Erro ao vender pacote', e)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -554,6 +588,14 @@ export default function ClientesPage() {
                           className="border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 px-2 py-1 h-8 text-xs"
                         >
                           Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSellPackage(client)}
+                          className="border-blue-600 text-blue-400 hover:bg-blue-600/10 px-2 py-1 h-8 text-xs"
+                        >
+                          <DollarSign className="w-3 h-3 mr-1" /> Vender Pacote
                         </Button>
                         <Button
                           variant="outline"
@@ -1032,6 +1074,35 @@ export default function ClientesPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Vender Pacote */}
+      <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Vender Pacote</DialogTitle>
+            <DialogDescription>Selecione um pacote para o cliente {selectedClient?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Pacote</Label>
+              <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPackageId} onChange={e => setSelectedPackageId(e.target.value)}>
+                <option value="" disabled>Selecione...</option>
+                {availablePackages.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Preço (opcional)</Label>
+              <Input type="number" step="0.01" placeholder="Usar preço do pacote" value={overridePrice} onChange={e => setOverridePrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)}>Cancelar</Button>
+            <Button onClick={sellPackage} className="bg-tymer-primary hover:bg-tymer-primary/80">Confirmar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
