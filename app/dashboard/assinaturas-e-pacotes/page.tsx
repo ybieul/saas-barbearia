@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,6 +12,9 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { formatPrice } from '@/lib/api-utils'
 import { useServicePackages, ServicePackageDto } from '@/hooks/use-service-packages'
+import { useServices } from '@/hooks/use-services'
+import { Switch } from '@/components/ui/switch'
+import { Plus, Trash2 } from 'lucide-react'
 
 interface SubscriptionPlanDto {
   id: string
@@ -41,12 +44,18 @@ export default function MembershipsPage() {
   // Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createType, setCreateType] = useState<'PACKAGE' | 'SUBSCRIPTION'>('SUBSCRIPTION')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  // Services (para ambos os tipos)
+  const { services: dbServices } = useServices()
+  const serviceOptions = useMemo(() => (dbServices || []).map((s: any) => ({ id: s.id, name: s.name, price: Number(s.price || 0) })), [dbServices])
 
-  // Form fields (simplified)
-  const [formName, setFormName] = useState('')
-  const [formPrice, setFormPrice] = useState<number | ''>('')
-  const [formCycleInDays, setFormCycleInDays] = useState<number | ''>('')
-  const [formValidDays, setFormValidDays] = useState<number | ''>('')
+  // Formulário de Pacote (igual página antiga)
+  const [pkgForm, setPkgForm] = useState({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
+  // Formulário de Assinatura
+  const [subForm, setSubForm] = useState({ name: '', price: '', cycleInDays: '30', isActive: true, description: '' })
+  // Lista de serviços selecionados (compartilhado; para assinatura ignora quantidade)
+  const [formServices, setFormServices] = useState<{ serviceId: string; quantity: number }[]>([])
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -90,33 +99,119 @@ export default function MembershipsPage() {
 
   const mrrDisplay = useMemo(() => formatPrice(stats?.mrr || 0), [stats])
 
-  function resetForm() {
-    setFormName('')
-    setFormPrice('')
-    setFormCycleInDays('')
-    setFormValidDays('')
+  function resetForms() {
+    setPkgForm({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
+    setSubForm({ name: '', price: '', cycleInDays: '30', isActive: true, description: '' })
+    setFormServices([])
+    setEditingId(null)
+  }
+
+  function openCreate(type: 'SUBSCRIPTION' | 'PACKAGE') {
+    setCreateType(type)
+    resetForms()
+    setIsCreateOpen(true)
+  }
+
+  const addService = () => setFormServices(prev => [...prev, { serviceId: serviceOptions[0]?.id || '', quantity: 1 }])
+  const removeService = (idx: number) => setFormServices(prev => prev.filter((_, i) => i !== idx))
+  const updateServiceField = (idx: number, field: 'serviceId' | 'quantity', value: string) => {
+    setFormServices(prev => prev.map((row, i) => {
+      if (i !== idx) return row
+      if (field === 'serviceId') return { ...row, serviceId: value }
+      // quantity
+      const q = Math.max(1, parseInt(value || '1', 10))
+      return { ...row, quantity: Number.isFinite(q) ? q : 1 }
+    }))
+  }
+
+  // Abrir modal pré-preenchido para edição de Plano
+  function openEditPlan(plan: SubscriptionPlanDto) {
     setCreateType('SUBSCRIPTION')
+    setEditingId(plan.id)
+    setSubForm({
+      name: plan.name,
+      price: String(plan.price ?? ''),
+      cycleInDays: String(plan.cycleInDays ?? '30'),
+      isActive: !!plan.isActive,
+      description: ''
+    })
+    setFormServices((plan.services || []).map(s => ({ serviceId: s.id, quantity: 1 })))
+    setIsCreateOpen(true)
+  }
+
+  // Abrir modal pré-preenchido para edição de Pacote
+  function openEditPackage(pkg: ServicePackageDto) {
+    setCreateType('PACKAGE')
+    setEditingId(pkg.id)
+    setPkgForm({
+      name: pkg.name || '',
+      description: pkg.description || '',
+      totalPrice: String(pkg.totalPrice ?? ''),
+      discount: String(pkg.discount ?? '0'),
+      validDays: pkg.validDays != null ? String(pkg.validDays) : '',
+      isActive: !!pkg.isActive,
+      defaultCredits: (pkg as any).defaultCredits != null ? String((pkg as any).defaultCredits) : '1'
+    } as any)
+    setFormServices((pkg.services || []).map(s => ({ serviceId: s.serviceId, quantity: s.quantity || 1 })))
+    setIsCreateOpen(true)
   }
 
   async function handleCreate() {
     try {
+      if (submitting) return
+      setSubmitting(true)
       if (createType === 'SUBSCRIPTION') {
+        if (!subForm.name || !subForm.price || formServices.length === 0) {
+          toast({ title: 'Campos obrigatórios', description: 'Nome, Preço e ao menos um serviço são necessários', variant: 'destructive' })
+          return
+        }
         const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-        const payload = { name: formName, price: Number(formPrice || 0), cycleInDays: Number(formCycleInDays || 30), isActive: true, services: [] as string[] }
-        const res = await fetch('/api/subscription-plans', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) })
+        const payload: any = {
+          name: subForm.name,
+          price: Number(subForm.price),
+          cycleInDays: Number(subForm.cycleInDays || '30'),
+          isActive: subForm.isActive,
+          services: formServices.map(s => s.serviceId)
+        }
+        // Se estiver editando, usar PUT
+        const url = '/api/subscription-plans'
+        const method = editingId ? 'PUT' : 'POST'
+        if (editingId) payload.id = editingId
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) })
         const data = await res.json()
-        if (!res.ok) throw new Error(data?.message || 'Erro ao criar plano')
-        toast({ title: 'Plano criado', description: 'Plano de assinatura criado com sucesso.' })
+        if (!res.ok) throw new Error(data?.message || (editingId ? 'Erro ao atualizar plano' : 'Erro ao criar plano'))
+        toast({ title: editingId ? 'Plano atualizado' : 'Plano criado', description: editingId ? 'Plano de assinatura atualizado com sucesso.' : 'Plano de assinatura criado com sucesso.' })
         await fetchPlans()
       } else {
-        const payload = { name: formName, totalPrice: Number(formPrice || 0), validDays: formValidDays ? Number(formValidDays) : null, discount: 0, isActive: true, services: [] }
-        await createPackage(payload as any)
-        toast({ title: 'Pacote criado', description: 'Pacote de créditos criado com sucesso.' })
+        if (!pkgForm.name || !pkgForm.totalPrice || formServices.length === 0) {
+          toast({ title: 'Campos obrigatórios', description: 'Nome, Preço e ao menos um serviço são necessários', variant: 'destructive' })
+          return
+        }
+        const payload: any = {
+          name: pkgForm.name,
+          description: pkgForm.description || undefined,
+          totalPrice: Number(pkgForm.totalPrice),
+          discount: Number(pkgForm.discount || '0'),
+          validDays: pkgForm.validDays ? Number(pkgForm.validDays) : undefined,
+          isActive: pkgForm.isActive,
+          defaultCredits: pkgForm.defaultCredits ? Number(pkgForm.defaultCredits) : 1,
+          services: formServices.map(s => ({ serviceId: s.serviceId, quantity: s.quantity || 1 }))
+        }
+        if (editingId) {
+          payload.id = editingId
+          await updatePackage(payload)
+          toast({ title: 'Pacote atualizado', description: 'Pacote atualizado com sucesso.' })
+        } else {
+          await createPackage(payload as any)
+          toast({ title: 'Pacote criado', description: 'Pacote de créditos criado com sucesso.' })
+        }
       }
       setIsCreateOpen(false)
-      resetForm()
+      resetForms()
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -149,7 +244,7 @@ export default function MembershipsPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Assinaturas e Pacotes</h1>
           <p className="text-[#3f3f46]">Gerencie os planos de fidelização</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Novo Plano</Button>
+        <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
       </div>
 
       {/* Cards topo */}
@@ -205,7 +300,7 @@ export default function MembershipsPage() {
                         <div className="text-sm text-[#a1a1aa]">{formatPrice(p.price)} • ciclo {p.cycleInDays} dias</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Edição de planos em desenvolvimento.' })}>Editar</Button>
+                        <Button variant="outline" size="sm" onClick={() => openEditPlan(p)}>Editar</Button>
                         <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(p.id)}>Remover</Button>
                       </div>
                     </div>
@@ -233,7 +328,7 @@ export default function MembershipsPage() {
                         <div className="text-sm text-[#a1a1aa]">{formatPrice(pkg.totalPrice)}{pkg.validDays ? ` • validade ${pkg.validDays} dias` : ''}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em breve', description: 'Edição de pacotes em desenvolvimento.' })}>Editar</Button>
+                        <Button variant="outline" size="sm" onClick={() => openEditPackage(pkg)}>Editar</Button>
                         <Button variant="destructive" size="sm" onClick={() => handleDeletePackage(pkg.id)}>Remover</Button>
                       </div>
                     </div>
@@ -245,56 +340,128 @@ export default function MembershipsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal de criação */}
+      {/* Modal de criação (fiel ao de pacotes com seletor de tipo) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent className="bg-[#18181b] border-[#3f3f46] text-[#ededed] max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Novo Plano</DialogTitle>
+            <DialogTitle>{createType === 'SUBSCRIPTION' ? 'Nova Assinatura' : 'Novo Pacote'}</DialogTitle>
+            <DialogDescription>
+              {createType === 'SUBSCRIPTION'
+                ? 'Defina os detalhes do plano de assinatura e os serviços incluídos.'
+                : 'Defina os detalhes e serviços do pacote. Os créditos são do pacote (pool unificado). O cliente consome 1 crédito quando agenda exatamente o combo definido.'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label>Tipo de Plano</Label>
+              <Label>Tipo</Label>
               <Select value={createType} onValueChange={(v: any) => setCreateType(v)}>
-                <SelectTrigger className="w-full mt-1">
+                <SelectTrigger className="bg-[#27272a] border-[#3f3f46] mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SUBSCRIPTION">Assinatura Recorrente</SelectItem>
-                  <SelectItem value="PACKAGE">Pacote de Créditos</SelectItem>
+                  <SelectItem value="SUBSCRIPTION">Assinatura</SelectItem>
+                  <SelectItem value="PACKAGE">Pacote</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label>Nome</Label>
-                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Ex: Plano Ilimitado" />
-              </div>
-              <div>
-                <Label>Preço</Label>
-                <Input type="number" value={formPrice} onChange={(e) => setFormPrice(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0,00" />
-              </div>
-              {createType === 'SUBSCRIPTION' ? (
+            {createType === 'PACKAGE' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Ciclo (dias)</Label>
-                  <Input type="number" value={formCycleInDays} onChange={(e) => setFormCycleInDays(e.target.value === '' ? '' : Number(e.target.value))} placeholder="30" />
+                  <Label>Nome</Label>
+                  <Input value={pkgForm.name} onChange={e => setPkgForm(f => ({ ...f, name: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
                 </div>
-              ) : (
+                <div>
+                  <Label>Preço total</Label>
+                  <Input type="number" step="0.01" value={pkgForm.totalPrice} onChange={e => setPkgForm(f => ({ ...f, totalPrice: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+                <div>
+                  <Label>Desconto (%)</Label>
+                  <Input type="number" step="0.01" value={pkgForm.discount} onChange={e => setPkgForm(f => ({ ...f, discount: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
                 <div>
                   <Label>Validade (dias)</Label>
-                  <Input type="number" value={formValidDays} onChange={(e) => setFormValidDays(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Ex: 90" />
+                  <Input type="number" value={pkgForm.validDays} onChange={e => setPkgForm(f => ({ ...f, validDays: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
                 </div>
-              )}
-            </div>
+                <div>
+                  <Label>Créditos por pacote</Label>
+                  <Input type="number" min={1} value={pkgForm.defaultCredits} onChange={e => setPkgForm(f => ({ ...f, defaultCredits: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={pkgForm.isActive} onCheckedChange={(v) => setPkgForm(f => ({ ...f, isActive: v }))} />
+                  <Label>Ativo</Label>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Descrição</Label>
+                  <Input value={pkgForm.description} onChange={e => setPkgForm(f => ({ ...f, description: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nome</Label>
+                  <Input value={subForm.name} onChange={e => setSubForm(f => ({ ...f, name: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+                <div>
+                  <Label>Preço</Label>
+                  <Input type="number" step="0.01" value={subForm.price} onChange={e => setSubForm(f => ({ ...f, price: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+                <div>
+                  <Label>Ciclo (dias)</Label>
+                  <Input type="number" value={subForm.cycleInDays} onChange={e => setSubForm(f => ({ ...f, cycleInDays: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={subForm.isActive} onCheckedChange={(v) => setSubForm(f => ({ ...f, isActive: v }))} />
+                  <Label>Ativo</Label>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Descrição</Label>
+                  <Input value={subForm.description} onChange={e => setSubForm(f => ({ ...f, description: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]"/>
+                </div>
+              </div>
+            )}
 
-            <Separator />
-            <div className="text-xs text-[#a1a1aa]">A seleção de serviços e quantidades será adicionada na edição do plano.</div>
+            {/* Serviços selecionados (mesmo layout do modal antigo de pacotes) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Serviços {createType === 'PACKAGE' ? 'do pacote' : 'da assinatura'}</Label>
+                <Button variant="secondary" onClick={addService}><Plus className="w-4 h-4 mr-1"/> Adicionar</Button>
+              </div>
+              <div className="space-y-3">
+                {formServices.map((row, idx) => (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
+                    <div className={createType === 'PACKAGE' ? 'md:col-span-4' : 'md:col-span-5'}>
+                      <Select value={row.serviceId} onValueChange={(v) => updateServiceField(idx, 'serviceId', v)}>
+                        <SelectTrigger className="bg-[#27272a] border-[#3f3f46]">
+                          <SelectValue placeholder="Selecione um serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceOptions.map((s: any) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {createType === 'PACKAGE' && (
+                      <div>
+                        <Input type="number" min={1} value={row.quantity}
+                          onChange={(e) => updateServiceField(idx, 'quantity', e.target.value)}
+                          className="bg-[#27272a] border-[#3f3f46]" placeholder="Qtd" />
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <Button variant="destructive" onClick={() => removeService(idx)}><Trash2 className="w-4 h-4"/></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} className="bg-tymer-primary hover:bg-tymer-primary/80">Salvar</Button>
+            <Button variant="secondary" onClick={() => setIsCreateOpen(false)} disabled={submitting}>Cancelar</Button>
+            <Button onClick={handleCreate} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={submitting}>{submitting ? 'Salvando…' : (editingId ? 'Atualizar' : 'Salvar')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
