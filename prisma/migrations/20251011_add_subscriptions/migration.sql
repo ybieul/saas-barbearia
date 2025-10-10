@@ -1,4 +1,4 @@
--- Migration: add subscriptions (plans and client subscriptions)
+-- Migration: add subscriptions (plans and client subscriptions) ass
 -- Date: 2025-10-11
 
 -- CreateTable subscription_plans
