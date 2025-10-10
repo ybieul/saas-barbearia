@@ -2162,7 +2162,17 @@ export default function AgendamentoPage() {
                             )}
                           </div>
                           {availableCredits > 0 && (
-                            <div className="text-xs text-emerald-300 mt-1">Crédito disponível será utilizado</div>
+                            <div className="text-xs text-emerald-300 mt-1 space-y-1 text-right">
+                              <div>Crédito disponível será utilizado</div>
+                              <div className="text-[11px] text-emerald-400/90">
+                                Consumirá: <strong>1 crédito</strong> • Restantes após este agendamento: <strong>{Math.max(availableCredits - 1, 0)}</strong>
+                              </div>
+                              {creditExpiresAt && (
+                                <div className="text-[11px] text-emerald-400/60">
+                                  Validade do pacote: {new Date(creditExpiresAt).toLocaleDateString('pt-BR')}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
