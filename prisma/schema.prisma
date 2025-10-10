@@ -70,6 +70,8 @@ model Tenant {
   servicePackages     ServicePackage[]
   financialRecords    FinancialRecord[]
   workingHours        WorkingHours[]
+  // Planos de assinatura deste tenant
+  subscriptionPlans   SubscriptionPlan[]
 
   // Link de avaliação do Google (para mensagem pós-atendimento)
   googleReviewLink String? @db.Text
@@ -120,6 +122,8 @@ model EndUser {
   appointments Appointment[]
   // Pacotes comprados pelo cliente (back-relation)
   clientPackages ClientPackage[]
+  // Assinaturas do cliente (back-relation)
+  clientSubscriptions ClientSubscription[]
 
   // Índices para performance
   @@index([tenantId])
@@ -195,10 +199,55 @@ model Service {
   clientPackageCredits ClientPackageCredit[]
   // Serviços permitidos (snapshot) para pacotes do cliente (back-relation)
   clientPackageAllowedServices ClientPackageAllowedService[]
+  // Relação many-to-many com planos de assinatura
+  subscriptionPlans SubscriptionPlan[] @relation("ServiceSubscriptionPlans")
 
   @@index([tenantId])
   @@index([tenantId, category])
   @@map("services")
+}
+
+// ============================================
+// ASSINATURAS (PLANOS RECORRENTES)
+// ============================================
+
+model SubscriptionPlan {
+  id            String   @id @default(cuid())
+  name          String
+  price         Decimal  @db.Decimal(10, 2)
+  cycleInDays   Int      // Duração do ciclo em dias (ex: 30 para mensal)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services   Service[] @relation("ServiceSubscriptionPlans") // Relação many-to-many com os serviços incluídos
+  clientSubscriptions ClientSubscription[]
+
+  @@index([tenantId])
+  @@map("subscription_plans")
+}
+
+model ClientSubscription {
+  id        String           @id @default(cuid())
+  clientId  String
+  planId    String
+
+  startDate DateTime
+  endDate   DateTime
+  status    String           @default("ACTIVE") // "ACTIVE", "EXPIRED", "CANCELED"
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relations
+  client    EndUser          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([planId])
+  @@map("client_subscriptions")
 }
 
 model ServicePackage {

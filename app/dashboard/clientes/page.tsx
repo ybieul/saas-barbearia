@@ -74,6 +74,7 @@ export default function ClientesPage() {
   // Pacotes: vender para cliente
   const { packages: availablePackages, fetchPackages } = useServicePackages()
   const [isSellPackageOpen, setIsSellPackageOpen] = useState(false)
+  const [isSellSubscriptionOpen, setIsSellSubscriptionOpen] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
   const [selling, setSelling] = useState(false)
@@ -82,6 +83,10 @@ export default function ClientesPage() {
   const [clientPackagesMeta, setClientPackagesMeta] = useState<{ total: number; page: number; pageSize: number; hasNext: boolean } | null>(null)
   const [clientPackagesPage, setClientPackagesPage] = useState(1)
   const [processingAction, setProcessingAction] = useState<string | null>(null)
+  // Assinaturas
+  const [availablePlans, setAvailablePlans] = useState<Array<{ id: string; name: string }>>([])
+  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [overridePlanPrice, setOverridePlanPrice] = useState('')
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -259,6 +264,23 @@ export default function ClientesPage() {
     })()
     setIsSellPackageOpen(true)
   }
+  const openSellSubscription = async (client: Client) => {
+    setSelectedClient(client)
+    await fetchAvailablePlans()
+    setIsSellSubscriptionOpen(true)
+  }
+
+  const fetchAvailablePlans = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch('/api/subscription-plans', { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao carregar planos')
+      setAvailablePlans((data.plans || []).map((p: any) => ({ id: p.id, name: p.name })))
+    } catch (e) {
+      setAvailablePlans([])
+    }
+  }
 
   const loadClientPackagesPage = async (page: number) => {
     if (!selectedClient) return
@@ -327,6 +349,27 @@ export default function ClientesPage() {
       setIsSellPackageOpen(false)
     } catch (e) {
       console.error('Erro ao vender pacote', e)
+    } finally {
+      setSelling(false)
+    }
+  }
+  const sellSubscription = async () => {
+    if (!selectedClient || !selectedPlanId) return
+    try {
+      setSelling(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch('/api/client-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ clientId: selectedClient.id, planId: selectedPlanId, overridePrice: overridePlanPrice ? Number(overridePlanPrice) : undefined })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao vender assinatura')
+      setIsSellSubscriptionOpen(false)
+      setSelectedPlanId('')
+      setOverridePlanPrice('')
+    } catch (e) {
+      console.error('Erro ao vender assinatura', e)
     } finally {
       setSelling(false)
     }
@@ -746,6 +789,16 @@ export default function ClientesPage() {
                             <DollarSign className="w-3 h-3 mr-1" /> Pacote
                           </Button>
                         )}
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSellSubscription(client)}
+                            className="shrink-0 border-blue-600 text-blue-400 hover:bg-blue-600/10 px-2 py-1 h-8 text-xs"
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" /> Assinatura
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -851,6 +904,16 @@ export default function ClientesPage() {
                             className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-3 h-8 text-xs`}
                           >
                             <DollarSign className="w-3 h-3 mr-1" /> Pacote
+                          </Button>
+                        )}
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSellSubscription(client)}
+                            className="border-blue-600 text-blue-400 hover:bg-blue-600/10 px-3 h-8 text-xs"
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" /> Assinatura
                           </Button>
                         )}
                         <Button
@@ -1324,6 +1387,35 @@ export default function ClientesPage() {
           <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
             <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
             <Button onClick={sellPackage} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Vender Assinatura */}
+      <Dialog open={isSellSubscriptionOpen} onOpenChange={setIsSellSubscriptionOpen}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Assinatura</DialogTitle>
+            <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Plano</Label>
+              <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
+                <option value="" disabled>Selecione...</option>
+                {availablePlans.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Preço (opcional)</Label>
+              <Input type="number" step="0.01" placeholder="Usar preço do plano" value={overridePlanPrice} onChange={e => setOverridePlanPrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
+            <Button variant="secondary" onClick={() => setIsSellSubscriptionOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
+            <Button onClick={sellSubscription} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling || !selectedPlanId}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

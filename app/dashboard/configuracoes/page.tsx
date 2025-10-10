@@ -1271,9 +1271,6 @@ export default function ConfiguracoesPage() {
           <p className="text-[#3f3f46]">Gerencie as configurações do seu estabelecimento</p>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto ml-auto">
-          <Button onClick={() => (window.location.href = '/dashboard/configuracoes/pacotes')} className="bg-tymer-primary hover:bg-tymer-primary/80">
-            Pacotes de Serviços
-          </Button>
           <Button onClick={openManual} variant="outline" className="border-[#3f3f46] text-[#ededed] hover:text-white hover:bg-[#27272a]">
             Manual do Usuário
           </Button>
