@@ -407,9 +407,61 @@ export async function POST(request: NextRequest) {
     // Nota: Usar 'any' é necessário devido ao cache de tipos do Prisma local
     // Em produção, após deploy + migrate, os tipos estarão corretos
     let appointmentNotes = notes || null
-    if (usePackageCredit && serviceId) {
-      const marker = `[USE_CREDIT:${serviceId}]`
-      appointmentNotes = appointmentNotes ? `${appointmentNotes} ${marker}` : marker
+    // Novo: combo exato - se requisitado, marcar serviços selecionados e tentar fixar pacote
+    let chosenClientPackageId: string | null = null
+    if (usePackageCredit && services && Array.isArray(services) && services.length > 0) {
+      const csv = services.join(',')
+      const servicesMarker = `[USE_CREDIT_SERVICES:${csv}]`
+      appointmentNotes = appointmentNotes ? `${appointmentNotes} ${servicesMarker}` : servicesMarker
+
+      // Tentar pré-reservar o pacote elegível (opcional, para tornar determinístico)
+      const now = new Date()
+      // Buscar pacotes via SQL cru para incluir creditsTotal/usedCredits
+      const clientPackages = await prisma.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
+        SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
+        FROM client_packages
+        WHERE clientId = ${client.id}
+          AND (expiresAt IS NULL OR expiresAt > ${now})
+      `
+
+      // Buscar allowed services via SQL cru
+      let allowedRows: Array<{ clientPackageId: string, serviceId: string }> = []
+      if (clientPackages.length > 0) {
+        const ids = clientPackages.map(p => p.id)
+        const placeholders = ids.map(() => '?').join(',')
+        // @ts-ignore - usar queryRawUnsafe para IN dinâmico
+        allowedRows = await prisma.$queryRawUnsafe(`
+          SELECT clientPackageId, serviceId
+          FROM client_package_allowed_services
+          WHERE clientPackageId IN (${placeholders})
+        `, ...ids)
+      }
+      const allowedMap = new Map<string, string[]>()
+      for (const row of allowedRows) {
+        const arr = allowedMap.get(row.clientPackageId) || []
+        arr.push(row.serviceId)
+        allowedMap.set(row.clientPackageId, arr)
+      }
+      const selectedSet = new Set(services)
+      const withRemaining = clientPackages.filter(p => ((p.creditsTotal || 0) - (p.usedCredits || 0)) > 0)
+      const eligible = withRemaining.filter(p => {
+        const allowed = allowedMap.get(p.id) || []
+        if (allowed.length !== services.length) return false
+        const allowedSet = new Set(allowed)
+        for (const id of selectedSet) { if (!allowedSet.has(id)) return false }
+        return true
+      })
+      if (eligible.length > 0) {
+        eligible.sort((a, b) => {
+          const ax = a.expiresAt ? a.expiresAt.getTime() : Number.POSITIVE_INFINITY
+          const bx = b.expiresAt ? b.expiresAt.getTime() : Number.POSITIVE_INFINITY
+          if (ax !== bx) return ax - bx
+          return a.purchasedAt.getTime() - b.purchasedAt.getTime()
+        })
+        chosenClientPackageId = eligible[0].id
+        const pkgMarker = `[USE_CREDIT_PACKAGE:${chosenClientPackageId}]`
+        appointmentNotes = appointmentNotes ? `${appointmentNotes} ${pkgMarker}` : pkgMarker
+      }
     }
 
     const appointmentData: any = {
@@ -420,7 +472,7 @@ export async function POST(request: NextRequest) {
       duration: totalDuration,
       totalPrice: totalPrice,
       status: 'CONFIRMED',
-      notes: appointmentNotes,
+  notes: appointmentNotes,
       paymentStatus: 'PENDING',
       // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
       services: {

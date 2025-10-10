@@ -252,10 +252,30 @@ model ClientPackage {
   client      EndUser        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   package     ServicePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   credits     ClientPackageCredit[]
+  // Créditos unificados por pacote (sessões)
+  creditsTotal Int           @default(0)
+  usedCredits  Int           @default(0)
+  // Serviços cobertos por este pacote (snapshot na venda)
+  allowedServices ClientPackageAllowedService[]
 
   @@index([clientId])
   @@index([packageId])
   @@map("client_packages")
+}
+
+// Serviços permitidos (snapshot) para um ClientPackage
+model ClientPackageAllowedService {
+  id              String        @id @default(cuid())
+  clientPackageId String
+  serviceId       String
+
+  clientPackage   ClientPackage @relation(fields: [clientPackageId], references: [id], onDelete: Cascade)
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([clientPackageId, serviceId])
+  @@index([clientPackageId])
+  @@index([serviceId])
+  @@map("client_package_allowed_services")
 }
 
 // Créditos por serviço dentro de um ClientPackage

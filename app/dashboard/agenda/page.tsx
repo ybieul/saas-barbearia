@@ -283,23 +283,29 @@ export default function AgendaPage() {
     }
   }, [isNewAppointmentOpen])
 
-  // Buscar créditos disponíveis quando cliente e primeiro serviço estiverem selecionados
+  // Buscar créditos disponíveis quando cliente e conjunto de serviços estiverem selecionados (combo exato)
   useEffect(() => {
     const fetchCredits = async () => {
       try {
-        if (!newAppointment.endUserId || !newAppointment.serviceId) {
+        if (!newAppointment.endUserId || (selectedServices.length === 0 && !newAppointment.serviceId)) {
           setAvailableCredits(0)
           setCreditExpiresAt(null)
           setUsePackageCredit(false)
           return
         }
         setCreditInfoLoading(true)
-        const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceId: newAppointment.serviceId })
-        const res = await fetch(`/api/client-credits?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
+        const serviceIds = (selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId]).join(',')
+        const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceIds })
+        const res = await fetch(`/api/client-credits-combo?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
-        setAvailableCredits(Number(data.availableCredits || 0))
-        setCreditExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null)
+        if (data.covered && data.package) {
+          setAvailableCredits(Number(data.package.creditsRemaining || 0))
+          setCreditExpiresAt(data.package.expiresAt ? new Date(data.package.expiresAt) : null)
+        } else {
+          setAvailableCredits(0)
+          setCreditExpiresAt(null)
+        }
       } catch (e) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Erro ao buscar créditos do cliente:', e)
@@ -312,7 +318,7 @@ export default function AgendaPage() {
       }
     }
     fetchCredits()
-  }, [newAppointment.endUserId, newAppointment.serviceId])
+  }, [newAppointment.endUserId, selectedServices.join(','), newAppointment.serviceId])
 
   // ✅ Recarregar dados quando filtros mudarem (profissional, data, status)
   useEffect(() => {
@@ -2963,7 +2969,7 @@ export default function AgendaPage() {
                                   {creditInfoLoading ? 'Verificando créditos...'
                                     : availableCredits > 0
                                       ? `Usar 1 crédito (${availableCredits} disponível${availableCredits>1?'s':''}${creditExpiresAt?`, validade ${creditExpiresAt.toLocaleDateString('pt-BR')}`:''})`
-                                      : 'Sem créditos para este serviço'}
+                                      : 'Sem créditos para este combo'}
                                 </span>
                               </div>
                             )}

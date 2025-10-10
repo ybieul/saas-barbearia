@@ -901,7 +901,7 @@ export default function AgendamentoPage() {
     }
   }
 
-  // -------- Créditos: helpers e busca pública --------
+  // -------- Créditos: helpers e busca pública (combo exato) --------
   const fetchPublicCredits = async () => {
     try {
       if (!selectedServiceId) return
@@ -911,10 +911,11 @@ export default function AgendamentoPage() {
       setAvailableCredits(0)
       setCreditExpiresAt(null)
 
-      const url = new URL(`/api/public/client-credits`, window.location.origin)
+      const allServiceIds = [selectedServiceId, ...((addedUpsells || []).map(u => u.id))]
+      const url = new URL(`/api/public/client-credits-combo`, window.location.origin)
       url.searchParams.set('businessSlug', String(params.slug))
       url.searchParams.set('phone', rawPhone)
-      url.searchParams.set('serviceId', selectedServiceId)
+      url.searchParams.set('serviceIds', allServiceIds.join(','))
 
       const res = await fetch(url.toString())
       if (!res.ok) {
@@ -923,10 +924,15 @@ export default function AgendamentoPage() {
         return
       }
       const data = await res.json()
-      setAvailableCredits(Number(data.availableCredits || 0))
-      setCreditExpiresAt(data.expiresAt || null)
+      if (data.covered && data.package) {
+        setAvailableCredits(Number(data.package.creditsRemaining || 0))
+        setCreditExpiresAt(data.package.expiresAt || null)
+      } else {
+        setAvailableCredits(0)
+        setCreditExpiresAt(null)
+      }
     } catch (e) {
-      console.error('Erro ao buscar créditos públicos:', e)
+      console.error('Erro ao buscar créditos públicos (combo):', e)
       setAvailableCredits(0)
       setCreditExpiresAt(null)
     } finally {
@@ -934,7 +940,7 @@ export default function AgendamentoPage() {
     }
   }
 
-  // Buscar créditos quando telefone e serviço estiverem definidos
+  // Buscar créditos quando telefone e serviços estiverem definidos (inclui upsells)
   useEffect(() => {
     if (selectedServiceId && customerData.phone) {
       fetchPublicCredits()
@@ -943,16 +949,14 @@ export default function AgendamentoPage() {
       setCreditExpiresAt(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedServiceId, customerData.phone, params.slug])
+  }, [selectedServiceId, addedUpsells.length, customerData.phone, params.slug])
 
-  // Total efetivo considerando uso de crédito no serviço principal
+  // Total efetivo considerando uso de crédito por combo exato
   const getEffectiveTotalPrice = () => {
     const base = calculateTotals().totalPrice
-    const mainService = getMainService()
-    if (!mainService) return base
     if (availableCredits > 0) {
-      const reduced = base - Number(mainService.price || 0)
-      return Math.max(0, reduced)
+      // Combo coberto: preço total vira 0
+      return 0
     }
     return base
   }

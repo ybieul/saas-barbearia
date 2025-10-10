@@ -423,9 +423,15 @@ export async function POST(request: NextRequest) {
     // Montar observação com marcador de uso de crédito (para consumo posterior na conclusão)
     let finalNotes: string | undefined = notes || undefined
     if (usePackageCredit === true) {
-      const firstService = Array.isArray(serviceIds) && serviceIds.length > 0 ? serviceIds[0] : undefined
-      const marker = firstService ? `[USE_CREDIT:${firstService}]` : `[USE_CREDIT]`
-      finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
+      if (Array.isArray(serviceIds) && serviceIds.length > 1) {
+        const csv = serviceIds.join(',')
+        const marker = `[USE_CREDIT_SERVICES:${csv}]`
+        finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
+      } else {
+        const firstService = Array.isArray(serviceIds) && serviceIds.length > 0 ? serviceIds[0] : undefined
+        const marker = firstService ? `[USE_CREDIT:${firstService}]` : `[USE_CREDIT]`
+        finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
+      }
     }
 
     const newAppointment = await prisma.appointment.create({
