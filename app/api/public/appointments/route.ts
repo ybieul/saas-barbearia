@@ -123,7 +123,8 @@ export async function POST(request: NextRequest) {
       serviceId,      // Serviço principal (compatibilidade)
       services,       // Array com todos os serviços (principal + upsells)
       appointmentDateTime,
-      notes
+      notes,
+      usePackageCredit
     } = await request.json()
 
     // Validações básicas
@@ -405,6 +406,12 @@ export async function POST(request: NextRequest) {
     // ✅ CRIAR AGENDAMENTO COM RELACIONAMENTO MANY-TO-MANY
     // Nota: Usar 'any' é necessário devido ao cache de tipos do Prisma local
     // Em produção, após deploy + migrate, os tipos estarão corretos
+    let appointmentNotes = notes || null
+    if (usePackageCredit && serviceId) {
+      const marker = `[USE_CREDIT:${serviceId}]`
+      appointmentNotes = appointmentNotes ? `${appointmentNotes} ${marker}` : marker
+    }
+
     const appointmentData: any = {
       tenantId: business.id,
       endUserId: client.id,
@@ -413,7 +420,7 @@ export async function POST(request: NextRequest) {
       duration: totalDuration,
       totalPrice: totalPrice,
       status: 'CONFIRMED',
-      notes: notes || null,
+      notes: appointmentNotes,
       paymentStatus: 'PENDING',
       // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
       services: {

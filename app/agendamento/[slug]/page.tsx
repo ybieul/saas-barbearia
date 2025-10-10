@@ -140,6 +140,11 @@ export default function AgendamentoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   
+  // Créditos de pacote (página pública)
+  const [availableCredits, setAvailableCredits] = useState<number>(0)
+  const [creditExpiresAt, setCreditExpiresAt] = useState<string | null>(null)
+  const [creditInfoLoading, setCreditInfoLoading] = useState<boolean>(false)
+  
   // Estados para formulário inteligente de cliente
   const [searchingClient, setSearchingClient] = useState(false)
   const [clientFound, setClientFound] = useState<boolean | null>(null)
@@ -813,7 +818,7 @@ export default function AgendamentoPage() {
       // Combinar todos os serviços em um array (compatível com API existente)
       const allServiceIds = [mainService.id, ...validUpsells.map(upsell => upsell.id)]
       
-      const sanitizedData = {
+      const sanitizedData: any = {
         businessSlug: params.slug as string,
         clientName: sanitizeInput(customerData.name),
         clientPhone: sanitizeInput(customerData.phone),
@@ -824,6 +829,11 @@ export default function AgendamentoPage() {
         services: allServiceIds, // Array completo com principal + complementos
         appointmentDateTime: toLocalISOString(appointmentDateTime), // 🇧🇷 Envia horário brasileiro para o backend
         notes: customerData.notes ? sanitizeInput(customerData.notes) : null
+      }
+
+      // Se houver crédito disponível, informar intenção de uso
+      if (availableCredits > 0) {
+        sanitizedData.usePackageCredit = true
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -889,6 +899,62 @@ export default function AgendamentoPage() {
       }
       setIsSubmitting(false)
     }
+  }
+
+  // -------- Créditos: helpers e busca pública --------
+  const fetchPublicCredits = async () => {
+    try {
+      if (!selectedServiceId) return
+      const rawPhone = customerData.phone.replace(/\D/g, '')
+      if (rawPhone.length < 10) return
+      setCreditInfoLoading(true)
+      setAvailableCredits(0)
+      setCreditExpiresAt(null)
+
+      const url = new URL(`/api/public/client-credits`, window.location.origin)
+      url.searchParams.set('businessSlug', String(params.slug))
+      url.searchParams.set('phone', rawPhone)
+      url.searchParams.set('serviceId', selectedServiceId)
+
+      const res = await fetch(url.toString())
+      if (!res.ok) {
+        setAvailableCredits(0)
+        setCreditExpiresAt(null)
+        return
+      }
+      const data = await res.json()
+      setAvailableCredits(Number(data.availableCredits || 0))
+      setCreditExpiresAt(data.expiresAt || null)
+    } catch (e) {
+      console.error('Erro ao buscar créditos públicos:', e)
+      setAvailableCredits(0)
+      setCreditExpiresAt(null)
+    } finally {
+      setCreditInfoLoading(false)
+    }
+  }
+
+  // Buscar créditos quando telefone e serviço estiverem definidos
+  useEffect(() => {
+    if (selectedServiceId && customerData.phone) {
+      fetchPublicCredits()
+    } else {
+      setAvailableCredits(0)
+      setCreditExpiresAt(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedServiceId, customerData.phone, params.slug])
+
+  // Total efetivo considerando uso de crédito no serviço principal
+  const getEffectiveTotalPrice = () => {
+    const base = calculateTotals().totalPrice
+    const mainService = getMainService()
+    if (!mainService) return base
+    if (availableCredits > 0) {
+      const reduced = base - Number(mainService.price || 0)
+      return Math.max(0, reduced)
+    }
+    return base
   }
 
   if (loading) {
@@ -1289,13 +1355,22 @@ export default function AgendamentoPage() {
                         </h4>
                         <div className="text-right">
                           <div className="font-bold text-2xl text-[#ededed] leading-tight">
-                            {formatCurrency(calculateTotals().totalPrice)}
+                            {availableCredits > 0 ? (
+                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
+                            ) : (
+                              formatCurrency(calculateTotals().totalPrice)
+                            )}
                           </div>
                           <div className="text-[#a1a1aa] text-xs font-medium">
                             {calculateTotals().totalDuration} minutos
                           </div>
                         </div>
                       </div>
+                      {availableCredits > 0 && (
+                        <div className="mt-2 text-xs text-emerald-300">
+                          Crédito disponível será utilizado neste agendamento {creditExpiresAt ? `(vence em ${formatBrazilDate(new Date(creditExpiresAt))})` : ''}
+                        </div>
+                      )}
                     </div>
 
                     {/* Botões de Ação */}
@@ -2074,9 +2149,18 @@ export default function AgendamentoPage() {
                       
                       <div className="flex justify-between border-t border-[#3f3f46] pt-3">
                         <span className="text-[#a1a1aa]">Valor Total:</span>
-                        <span className="text-[#ededed] font-bold text-lg">
-                          {formatCurrency(calculateTotals().totalPrice)}
-                        </span>
+                        <div className="text-right">
+                          <div className="text-[#ededed] font-bold text-lg">
+                            {availableCredits > 0 ? (
+                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
+                            ) : (
+                              formatCurrency(calculateTotals().totalPrice)
+                            )}
+                          </div>
+                          {availableCredits > 0 && (
+                            <div className="text-xs text-emerald-300 mt-1">Crédito disponível será utilizado</div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -2203,9 +2287,18 @@ export default function AgendamentoPage() {
                           <Wallet className="h-4 w-4 text-tymer-icon" />
                           <span>Valor Total:</span>
                         </div>
-                        <span className="text-[#ededed] font-bold text-xl">
-                          {formatCurrency(calculateTotals().totalPrice)}
-                        </span>
+                        <div className="text-right">
+                          <span className="text-[#ededed] font-bold text-xl">
+                            {availableCredits > 0 ? (
+                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
+                            ) : (
+                              formatCurrency(calculateTotals().totalPrice)
+                            )}
+                          </span>
+                          {availableCredits > 0 && (
+                            <div className="text-xs text-emerald-300 mt-1">Crédito utilizado neste agendamento</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
