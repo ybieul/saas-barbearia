@@ -631,14 +631,14 @@ export default function ClientesPage() {
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="p-0">
           {/* Header da tabela - apenas desktop */}
-          <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-[#27272a] text-sm font-medium text-[#a1a1aa]">
+          <div className="hidden md:grid grid-cols-12 gap-4 p-4 pr-6 lg:pr-8 border-b border-[#27272a] text-sm font-medium text-[#a1a1aa]">
             <div className="col-span-2">Cliente</div>
             <div className="col-span-2">Contato</div>
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Agendamentos</div>
             <div className="col-span-2">Total Gasto</div>
             <div className="col-span-2">Última Visita</div>
-            <div className="col-span-2">Ações</div>
+            <div className="col-span-2 pr-2 text-right md:text-left">Ações</div>
           </div>
           
           {/* Lista de clientes */}
@@ -651,7 +651,7 @@ export default function ClientesPage() {
               return (
                 <div key={client.id}>
                   {/* Layout Desktop - mantido exatamente igual */}
-                  <div className="hidden md:grid grid-cols-12 gap-4 p-4 hover:bg-[#27272a]/80 transition-colors">
+                  <div className="hidden md:grid grid-cols-12 gap-4 p-4 pr-6 lg:pr-8 hover:bg-[#27272a]/80 transition-colors">
                     {/* Cliente */}
                     <div className="col-span-2">
                       <div>
@@ -719,8 +719,8 @@ export default function ClientesPage() {
                     </div>
                     
                     {/* Ações */}
-                    <div className="col-span-2">
-                      <div className="flex items-center gap-2 flex-nowrap">
+                    <div className="col-span-2 pr-2">
+                      <div className="flex items-center gap-2 flex-nowrap justify-start md:justify-end">
                         <Button
                           variant="outline"
                           size="sm"
