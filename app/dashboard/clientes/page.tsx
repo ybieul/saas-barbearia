@@ -385,12 +385,6 @@ export default function ClientesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Clientes</h1>
           <p className="text-[#a1a1aa]">Gerencie sua base de clientes</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
-            <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
-          </div>
-        </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <div className="flex justify-center lg:justify-start w-full lg:w-auto">
@@ -627,6 +621,11 @@ export default function ClientesPage() {
           </div>
         </CardContent>
       </Card>
+      {/* Filtro por Pacote Ativo (abaixo da busca) */}
+      <div className="flex items-center gap-2 px-2 sm:px-0">
+        <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
+        <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
+      </div>
 
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
@@ -721,7 +720,7 @@ export default function ClientesPage() {
                     
                     {/* Ações */}
                     <div className="col-span-2">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -826,7 +825,7 @@ export default function ClientesPage() {
                       </div>
 
                       {/* Botões de ação */}
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2 pt-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -834,6 +833,14 @@ export default function ClientesPage() {
                           className="flex-1 border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 text-xs h-8"
                         >
                           Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSellPackage(client)}
+                          className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-3 h-8 text-xs`}
+                        >
+                          <DollarSign className="w-3 h-3 mr-1" /> Pacote
                         </Button>
                         <Button
                           variant="outline"
@@ -1303,9 +1310,9 @@ export default function ClientesPage() {
               <Input type="number" step="0.01" placeholder="Usar preço do pacote" value={overridePrice} onChange={e => setOverridePrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling}>Cancelar</Button>
-            <Button onClick={sellPackage} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
+          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
+            <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
+            <Button onClick={sellPackage} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
