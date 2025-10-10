@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { useServicePackages } from '@/hooks/use-service-packages'
 import { useClients } from "@/hooks/use-api"
 import { getBrazilNow, formatBrazilDate, formatBrazilDateOnly } from "@/lib/timezone"
@@ -62,6 +63,10 @@ export default function ClientesPage() {
   })
 
   const { clients, loading, error, fetchClients, createClient, updateClient, deleteClient } = useClients()
+  const [clientPackagesSummary, setClientPackagesSummary] = useState<Record<string, { hasAny: boolean; hasActive: boolean }>>({})
+  const summaryAbortRef = useRef<AbortController | null>(null)
+  const lastSummaryKeyRef = useRef<string | null>(null)
+  const summaryCacheRef = useRef<Record<string, Record<string, { hasAny: boolean; hasActive: boolean }>>>({})
   const [showWalkIns, setShowWalkIns] = useState(false)
   // Pacotes: vender para cliente
   const { packages: availablePackages, fetchPackages } = useServicePackages()
@@ -69,6 +74,11 @@ export default function ClientesPage() {
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
   const [selling, setSelling] = useState(false)
+  const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number }>>([])
+  const [loadingClientPackages, setLoadingClientPackages] = useState(false)
+  const [clientPackagesMeta, setClientPackagesMeta] = useState<{ total: number; page: number; pageSize: number; hasNext: boolean } | null>(null)
+  const [clientPackagesPage, setClientPackagesPage] = useState(1)
+  const [processingAction, setProcessingAction] = useState<string | null>(null)
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -78,6 +88,44 @@ export default function ClientesPage() {
   useEffect(() => {
     fetchPackages()
   }, [fetchPackages])
+
+  // Buscar resumo de pacotes por cliente para Colorir botão "Pacote" (debounce + cancel + cache)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        if (!clients || clients.length === 0) { setClientPackagesSummary({}); return }
+        const ids = clients.map((c: any) => c.id)
+        const key = ids.sort().join(',')
+
+        if (summaryCacheRef.current[key]) {
+          setClientPackagesSummary(summaryCacheRef.current[key])
+          lastSummaryKeyRef.current = key
+          return
+        }
+        if (lastSummaryKeyRef.current === key) return
+
+        if (summaryAbortRef.current) summaryAbortRef.current.abort()
+        const controller = new AbortController()
+        summaryAbortRef.current = controller
+
+        const url = new URL('/api/client-packages/summary', window.location.origin)
+        url.searchParams.set('clientIds', key)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include', signal: controller.signal })
+        if (!res.ok) { setClientPackagesSummary({}); return }
+        const data = await res.json()
+        const summary = data.summary || {}
+        summaryCacheRef.current[key] = summary
+        lastSummaryKeyRef.current = key
+        setClientPackagesSummary(summary)
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        console.error('Erro ao buscar resumo de pacotes:', e)
+        setClientPackagesSummary({})
+      }
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [clients])
 
   // Recarregar quando searchTerm mudar (debounce simples opcional futuramente)
   useEffect(() => {
@@ -178,7 +226,83 @@ export default function ClientesPage() {
     setSelectedClient(client)
     setSelectedPackageId('')
     setOverridePrice('')
+    setClientPackagesPage(1)
+    // Carregar pacotes já vendidos para este cliente
+    ;(async () => {
+      try {
+        setLoadingClientPackages(true)
+        const url = new URL('/api/client-packages', window.location.origin)
+        url.searchParams.set('clientId', client.id)
+        url.searchParams.set('page', '1')
+        url.searchParams.set('pageSize', '5')
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+        if (!res.ok) { setClientPackagesList([]); setClientPackagesMeta(null) }
+        else {
+          const data = await res.json()
+          const items = (data.items || []).map((it: any) => ({ id: it.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+          setClientPackagesList(items)
+          setClientPackagesMeta(data.meta || null)
+        }
+      } catch (e) {
+        console.error('Erro ao carregar pacotes do cliente:', e)
+        setClientPackagesList([])
+        setClientPackagesMeta(null)
+      } finally {
+        setLoadingClientPackages(false)
+      }
+    })()
     setIsSellPackageOpen(true)
+  }
+
+  const loadClientPackagesPage = async (page: number) => {
+    if (!selectedClient) return
+    try {
+      setLoadingClientPackages(true)
+      const url = new URL('/api/client-packages', window.location.origin)
+      url.searchParams.set('clientId', selectedClient.id)
+      url.searchParams.set('page', String(page))
+      url.searchParams.set('pageSize', '5')
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+      if (!res.ok) { return }
+      const data = await res.json()
+      const items = (data.items || []).map((it: any) => ({ id: it.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+      setClientPackagesList(items)
+      setClientPackagesMeta(data.meta || null)
+      setClientPackagesPage(page)
+    } catch (e) {
+      console.error('Erro ao paginar pacotes do cliente', e)
+    } finally {
+      setLoadingClientPackages(false)
+    }
+  }
+
+  const deactivateClientPackage = async (id: string) => {
+    if (!selectedClient) return
+    const confirm = window.confirm('Deseja desativar este pacote? Você pode informar um valor de estorno na próxima etapa.')
+    if (!confirm) return
+    const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum estorno:', '')
+    try {
+      setProcessingAction(id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { id, action: 'deactivate' }
+      const parsed = refundStr ? Number(String(refundStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
+      const res = await fetch('/api/client-packages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao desativar pacote')
+      await loadClientPackagesPage(clientPackagesPage)
+    } catch (e) {
+      console.error('Erro ao desativar pacote', e)
+    } finally {
+      setProcessingAction(null)
+    }
   }
 
   const sellPackage = async () => {
@@ -225,7 +349,12 @@ export default function ClientesPage() {
     }
   }
 
-  const filteredClients = clients // server já aplica search básica; manter fallback local
+  const [filterActivePackagesOnly, setFilterActivePackagesOnly] = useState(false)
+  const filteredClients = (clients || []).filter((c: any) => {
+    if (!filterActivePackagesOnly) return true
+    const status = clientPackagesSummary[c.id]
+    return !!status?.hasActive
+  })
 
   if (loading) {
     return (
@@ -256,7 +385,12 @@ export default function ClientesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Clientes</h1>
           <p className="text-[#a1a1aa]">Gerencie sua base de clientes</p>
         </div>
-        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
+            <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
+          </div>
+        </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <div className="flex justify-center lg:justify-start w-full lg:w-auto">
@@ -600,9 +734,9 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openSellPackage(client)}
-                          className="border-blue-600 text-blue-400 hover:bg-blue-600/10 px-2 py-1 h-8 text-xs"
+                          className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
                         >
-                          <DollarSign className="w-3 h-3 mr-1" /> Vender Pacote
+                          <DollarSign className="w-3 h-3 mr-1" /> Pacote
                         </Button>
                         <Button
                           variant="outline"
@@ -1088,10 +1222,73 @@ export default function ClientesPage() {
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
         <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
           <DialogHeader>
-            <DialogTitle>Vender Pacote</DialogTitle>
-            <DialogDescription>Selecione um pacote para o cliente {selectedClient?.name}</DialogDescription>
+            <DialogTitle>Pacote</DialogTitle>
+            <DialogDescription>Gerenciar pacotes do cliente {selectedClient?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Lista de pacotes já vendidos para este cliente */}
+            <div className="bg-[#121214] border border-[#27272a] rounded p-3">
+              <div className="text-sm font-medium text-[#ededed] mb-2">Pacotes do cliente</div>
+              {loadingClientPackages ? (
+                <div className="text-[#71717a] text-sm">Carregando...</div>
+              ) : clientPackagesList.length === 0 ? (
+                <div className="text-[#71717a] text-sm">Nenhum pacote encontrado</div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {clientPackagesList.map((p) => {
+                      const remaining = Math.max((Number(p.creditsTotal || 0) - Number(p.usedCredits || 0)), 0)
+                      const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() < Date.now() : false
+                      const statusLabel = remaining > 0 && !isExpired ? 'Ativo' : 'Expirado'
+                      const statusClass = remaining > 0 && !isExpired ? 'text-emerald-400 border-emerald-600/30 bg-emerald-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
+                      return (
+                        <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2">
+                          <div className="flex-1 mr-3">
+                            <div className="flex items-center gap-2">
+                              <div className="text-[#ededed] font-medium">{p.name}</div>
+                              <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
+                            </div>
+                            <div className="text-[#a1a1aa] text-xs">
+                              Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
+                              {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
+                            </div>
+                            {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
+                            {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className={`text-xs font-semibold ${remaining > 0 && !isExpired ? 'text-emerald-400' : 'text-[#a1a1aa]'}`}>
+                              Saldo: {remaining}
+                            </div>
+                            <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10"
+                              disabled={processingAction === p.id}
+                              onClick={() => deactivateClientPackage(p.id)}
+                            >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {clientPackagesMeta && (clientPackagesMeta.total > clientPackagesMeta.pageSize) && (
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="text-xs text-[#a1a1aa]">Total: {clientPackagesMeta.total}</div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                          disabled={clientPackagesPage <= 1 || loadingClientPackages}
+                          onClick={() => loadClientPackagesPage(clientPackagesPage - 1)}
+                        >Anterior</Button>
+                        <div className="text-xs text-[#a1a1aa]">Página {clientPackagesMeta.page}</div>
+                        <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                          disabled={!clientPackagesMeta.hasNext || loadingClientPackages}
+                          onClick={() => loadClientPackagesPage(clientPackagesPage + 1)}
+                        >Próxima</Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="text-sm font-medium text-[#ededed]">Vender novo pacote</div>
             <div className="space-y-2">
               <Label>Pacote</Label>
               <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPackageId} onChange={e => setSelectedPackageId(e.target.value)}>

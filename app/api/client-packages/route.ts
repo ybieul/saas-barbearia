@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/client-packages?clientId= - listar pacotes de um cliente (ativos e expirados)
+// GET /api/client-packages?clientId=&page=&pageSize= - listar pacotes de um cliente (ativos e expirados) com paginação
 export async function GET(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -88,15 +88,84 @@ export async function GET(request: NextRequest) {
     const client = await prisma.endUser.findFirst({ where: { id: clientId, tenantId: user.tenantId } })
     if (!client) return NextResponse.json({ message: 'Cliente não encontrado' }, { status: 404 })
 
-    const items = await prisma.clientPackage.findMany({
-      where: { clientId },
-      orderBy: { purchasedAt: 'desc' },
-      include: { package: true, credits: { include: { service: { select: { id: true, name: true } } } } }
-    })
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
+    const pageSize = Math.max(Math.min(parseInt(searchParams.get('pageSize') || '10', 10), 100), 1)
 
-    return NextResponse.json({ items })
+    const [total, items] = await Promise.all([
+      prisma.clientPackage.count({ where: { clientId } }),
+      prisma.clientPackage.findMany({
+        where: { clientId },
+        orderBy: { purchasedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { package: true, credits: { include: { service: { select: { id: true, name: true } } } } }
+      })
+    ])
+
+    const hasNext = page * pageSize < total
+    return NextResponse.json({ items, meta: { total, page, pageSize, hasNext } })
   } catch (error: any) {
     console.error('Erro ao listar pacotes do cliente:', error)
+    const status = error?.status || (error?.message?.includes('Token') ? 401 : 500)
+    return NextResponse.json({ message: error?.message || 'Erro interno' }, { status })
+  }
+}
+
+// PUT /api/client-packages - desativar/estornar um pacote do cliente
+// body: { id, action: 'deactivate', refundAmount? }
+export async function PUT(request: NextRequest) {
+  try {
+    const user = verifyToken(request)
+    if (user.role !== 'OWNER') {
+      return NextResponse.json({ message: 'Apenas o dono pode alterar pacotes' }, { status: 403 })
+    }
+
+    const { id, action, refundAmount } = await request.json()
+    if (!id || !action) {
+      return NextResponse.json({ message: 'id e action são obrigatórios' }, { status: 400 })
+    }
+
+    const cp = await prisma.clientPackage.findFirst({
+      where: { id },
+      include: { client: true, package: true }
+    })
+    if (!cp) return NextResponse.json({ message: 'Pacote do cliente não encontrado' }, { status: 404 })
+
+    // Segurança multi-tenant: garantir que pertence ao tenant
+    const client = await prisma.endUser.findFirst({ where: { id: cp.clientId, tenantId: user.tenantId } })
+    if (!client) return NextResponse.json({ message: 'Pacote não pertence ao seu estabelecimento' }, { status: 403 })
+
+    if (action !== 'deactivate') {
+      return NextResponse.json({ message: 'Ação não suportada' }, { status: 400 })
+    }
+
+    const now = new Date()
+    const updated = await prisma.$transaction(async (tx) => {
+      const upd = await tx.clientPackage.update({
+        where: { id: cp.id },
+        data: { expiresAt: now }
+      })
+
+      const refundValue = refundAmount != null ? Number(refundAmount) : 0
+      if (Number.isFinite(refundValue) && refundValue > 0) {
+        await tx.financialRecord.create({
+          data: {
+            tenantId: user.tenantId,
+            type: 'EXPENSE',
+            amount: refundValue,
+            description: `Estorno de pacote: ${cp.package?.name || 'Pacote'} para ${client.name}`,
+            category: 'Estornos de Pacotes',
+            reference: `clientPackage:${cp.id}:refund`
+          }
+        })
+      }
+
+      return upd
+    })
+
+    return NextResponse.json({ clientPackage: updated, message: 'Pacote desativado com sucesso' })
+  } catch (error: any) {
+    console.error('Erro ao alterar pacote do cliente:', error)
     const status = error?.status || (error?.message?.includes('Token') ? 401 : 500)
     return NextResponse.json({ message: error?.message || 'Erro interno' }, { status })
   }
