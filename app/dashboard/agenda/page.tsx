@@ -270,11 +270,14 @@ export default function AgendaPage() {
       // Limpar erro do backend quando dados importantes mudam
       setBackendError(null)
     }
-    // Quando dados-chave mudam, limpar estado de crédito disponível
+  }, [selectedServices.length, newAppointment.date, newAppointment.professionalId, editingAppointment])
+
+  // Resetar estado de créditos apenas quando o conjunto de serviços OU o cliente mudarem
+  useEffect(() => {
     setAvailableCredits(0)
     setCreditExpiresAt(null)
     setUsePackageCredit(false)
-  }, [selectedServices.length, newAppointment.date, newAppointment.professionalId, editingAppointment])
+  }, [selectedServices.join(','), newAppointment.endUserId])
 
   // Limpar erro do backend quando modal é aberto
   useEffect(() => {
@@ -299,12 +302,16 @@ export default function AgendaPage() {
         const res = await fetch(`/api/client-credits-combo?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
+        const wasUsing = usePackageCredit
         if (data.covered && data.package) {
           setAvailableCredits(Number(data.package.creditsRemaining || 0))
           setCreditExpiresAt(data.package.expiresAt ? new Date(data.package.expiresAt) : null)
+          // Se já estava usando crédito, manter ligado
+          if (wasUsing) setUsePackageCredit(true)
         } else {
           setAvailableCredits(0)
           setCreditExpiresAt(null)
+          setUsePackageCredit(false)
         }
       } catch (e) {
         if (process.env.NODE_ENV === 'development') {
