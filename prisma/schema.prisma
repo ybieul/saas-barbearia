@@ -193,6 +193,8 @@ model Service {
   servicePackages   ServicePackageService[]
   // Créditos de pacotes que incluem este serviço (back-relation)
   clientPackageCredits ClientPackageCredit[]
+  // Serviços permitidos (snapshot) para pacotes do cliente (back-relation)
+  clientPackageAllowedServices ClientPackageAllowedService[]
 
   @@index([tenantId])
   @@index([tenantId, category])
