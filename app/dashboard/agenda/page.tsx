@@ -1197,13 +1197,20 @@ export default function AgendaPage() {
       })
     }
     
+    // Sanitizar notas removendo tokens internos antes de popular o formulário de edição
+    const cleanedNotes = (appointment.notes || '')
+      .toString()
+      .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE))(?:[^\]]*)\]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+
     setNewAppointment({
       endUserId: appointment.endUserId || appointment.endUser?.id || "",
       professionalId: appointment.professionalId || "",
       serviceId: appointment.services?.[0]?.id || "", // pegar primeiro serviço por compatibilidade
       date: formattedDate,
       time: formattedTime,
-      notes: appointment.notes || ""
+      notes: cleanedNotes || ""
     })
     // 🆕 Multi-serviços
     try {
@@ -1255,13 +1262,20 @@ export default function AgendaPage() {
         })
       }
 
+      // Sanitizar notas novamente no envio para garantir que nenhum token interno entre
+      const cleanedFormNotes = (newAppointment.notes || '')
+        .toString()
+        .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE))(?:[^\]]*)\]/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+
       const finalAppointmentData = {
         id: editingAppointment.id,
         endUserId: newAppointment.endUserId,
         services: selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId],
         professionalId: newAppointment.professionalId || undefined,
         dateTime: toLocalISOString(appointmentDateTime),
-        notes: newAppointment.notes || undefined
+        notes: cleanedFormNotes || undefined
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -2628,8 +2642,8 @@ export default function AgendaPage() {
                         {/* Badges de crédito de pacote */}
                         {(() => {
                           const notesText = (appointment.notes || '').toString()
-                          const willUse = /\[USE_CREDIT(:[^\]]+)?\]/.test(notesText)
-                          const debited = /\[DEBITED_CREDIT:[^\]]+\]/.test(notesText)
+                          const willUse = /\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?)(?::[^\]]+)?\]/.test(notesText)
+                          const debited = /\[(?:DEBITED_(?:CREDIT|PACKAGE)):[^\]]+\]/.test(notesText)
                           return (
                             <div className="flex flex-wrap gap-2">
                               {willUse && !debited && (
@@ -2665,30 +2679,45 @@ export default function AgendaPage() {
                           </p>
                         )}
 
-                        {appointment.notes && (
-                          <p className="text-[#a1a1aa] text-sm md:text-base">
-                            <strong>Observações:</strong> {appointment.notes}
-                          </p>
-                        )}
+                        {(() => {
+                          const raw = (appointment.notes || '').toString()
+                          // Remover marcadores internos [USE_CREDIT...], [DEBITED_...]
+                          const cleaned = raw
+                            .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE))(?:[^\]]*)\]/g, '')
+                            .replace(/\s{2,}/g, ' ') // compactar espaços
+                            .trim()
+                          if (!cleaned) return null
+                          return (
+                            <p className="text-[#a1a1aa] text-sm md:text-base">
+                              <strong>Observações:</strong> {cleaned}
+                            </p>
+                          )
+                        })()}
                       </div>
                     </div>
 
                     {/* Seção de preço e duração - móvel: abaixo do conteúdo, desktop: lado direito */}
                     <div className="flex flex-row md:flex-col justify-between md:items-end gap-3">
                       <div className="flex flex-col md:text-right">
-                        {isCollaborator && appointment.status !== 'CANCELLED' ? (
-                          <div className="space-y-0.5">
-                            <p className="text-xs text-[#71717a]">Bruto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(grossAmount)}</p>
-                            <p className="text-[#10b981] font-semibold text-lg md:text-base">{appointment.status === 'COMPLETED' ? 'Comissão' : 'Comissão (prevista)'}: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionAmount || 0)}</p>
-                          </div>
-                        ) : (
-                          <p className="text-[#10b981] font-semibold text-lg md:text-base">
-                            {new Intl.NumberFormat('pt-BR', { 
-                              style: 'currency', 
-                              currency: 'BRL' 
-                            }).format(appointment.totalPrice || 0)}
-                          </p>
-                        )}
+                        {(() => {
+                          const notesText = (appointment.notes || '').toString()
+                          const willUse = /\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?)(?::[^\]]+)?\]/.test(notesText)
+                          const debited = /\[(?:DEBITED_(?:CREDIT|PACKAGE)):[^\]]+\]/.test(notesText)
+                          const displayAmount = (willUse || debited) ? 0 : grossAmount
+                          if (isCollaborator && appointment.status !== 'CANCELLED') {
+                            return (
+                              <div className="space-y-0.5">
+                                <p className="text-xs text-[#71717a]">Bruto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}</p>
+                                <p className="text-[#10b981] font-semibold text-lg md:text-base">{appointment.status === 'COMPLETED' ? 'Comissão' : 'Comissão (prevista)'}: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionAmount || 0)}</p>
+                              </div>
+                            )
+                          }
+                          return (
+                            <p className="text-[#10b981] font-semibold text-lg md:text-base">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
+                            </p>
+                          )
+                        })()}
                         <p className="text-[#a1a1aa] text-sm">
                           {appointment.duration || 0} min
                         </p>
