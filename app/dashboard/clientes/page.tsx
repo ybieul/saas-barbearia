@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useServicePackages } from '@/hooks/use-service-packages'
+import { useAuth } from '@/hooks/use-auth'
 import { useClients } from "@/hooks/use-api"
 import { getBrazilNow, formatBrazilDate, formatBrazilDateOnly } from "@/lib/timezone"
 
@@ -40,6 +41,8 @@ interface Client {
 }
 
 export default function ClientesPage() {
+  const { user } = useAuth()
+  const isCollaborator = user?.role === 'COLLABORATOR'
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -86,13 +89,15 @@ export default function ClientesPage() {
 
   // Carrega pacotes disponíveis (apenas para OWNER via API)
   useEffect(() => {
+    if (isCollaborator) return
     fetchPackages()
-  }, [fetchPackages])
+  }, [fetchPackages, isCollaborator])
 
   // Buscar resumo de pacotes por cliente para Colorir botão "Pacote" (debounce + cancel + cache)
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
+        if (isCollaborator) { setClientPackagesSummary({}); return }
         if (!clients || clients.length === 0) { setClientPackagesSummary({}); return }
         const ids = clients.map((c: any) => c.id)
         const key = ids.sort().join(',')
@@ -125,7 +130,7 @@ export default function ClientesPage() {
       }
     }, 150)
     return () => clearTimeout(timer)
-  }, [clients])
+  }, [clients, isCollaborator])
 
   // Recarregar quando searchTerm mudar (debounce simples opcional futuramente)
   useEffect(() => {
@@ -622,10 +627,12 @@ export default function ClientesPage() {
         </CardContent>
       </Card>
       {/* Filtro por Pacote Ativo (abaixo da busca) */}
-      <div className="flex items-center gap-2 px-2 sm:px-0">
-        <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
-        <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
-      </div>
+      {!isCollaborator && (
+        <div className="flex items-center gap-2 px-2 sm:px-0">
+          <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
+          <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
+        </div>
+      )}
 
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
@@ -729,14 +736,16 @@ export default function ClientesPage() {
                         >
                           Detalhes
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openSellPackage(client)}
-                          className={`shrink-0 ${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
-                        >
-                          <DollarSign className="w-3 h-3 mr-1" /> Pacote
-                        </Button>
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSellPackage(client)}
+                            className={`shrink-0 ${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" /> Pacote
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -834,14 +843,16 @@ export default function ClientesPage() {
                         >
                           Detalhes
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openSellPackage(client)}
-                          className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-3 h-8 text-xs`}
-                        >
-                          <DollarSign className="w-3 h-3 mr-1" /> Pacote
-                        </Button>
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSellPackage(client)}
+                            className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-3 h-8 text-xs`}
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" /> Pacote
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

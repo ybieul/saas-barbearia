@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/use-auth'
 import { useServicePackages } from '@/hooks/use-service-packages'
 import { useServices } from '@/hooks/use-services'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +20,9 @@ import { Plus, Trash2, Edit } from 'lucide-react'
 type ServiceOption = { id: string; name: string; price: number }
 
 export default function PacotesPage() {
+  const { user, isLoading } = useAuth()
+  const isCollaborator = user?.role === 'COLLABORATOR'
+  const router = useRouter()
   const { packages, loading, error, fetchPackages, createPackage, updatePackage, deletePackage } = useServicePackages()
   const { services: dbServices, fetchServices } = useServices()
   const { toast } = useToast()
@@ -32,13 +37,20 @@ export default function PacotesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isCollaborator) return
     // Carrega apenas os pacotes aqui. Os serviços já são carregados
     // automaticamente pelo hook useServices no primeiro render.
     // Evita loop de renderizações causado por dependência instável
     // de função não-memoizada.
     fetchPackages()
     // fetchServices() // desnecessário: o hook já busca sozinho
-  }, [fetchPackages])
+  }, [fetchPackages, isCollaborator])
+
+  // Redireciona colaboradores
+  useEffect(() => {
+    if (isLoading) return
+    if (isCollaborator) router.replace('/dashboard')
+  }, [isCollaborator, isLoading, router])
 
   const resetForm = () => {
     setEditingId(null)
@@ -110,6 +122,16 @@ export default function PacotesPage() {
     } finally {
       setDeletingId(null)
     }
+  }
+
+  if (isCollaborator) {
+    return (
+      <div className="p-6">
+        <div className="bg-[#18181b] border border-[#3f3f46] rounded-lg p-4 text-[#a1a1aa]">
+          Acesso restrito: apenas o dono pode gerenciar pacotes.
+        </div>
+      </div>
+    )
   }
 
   return (
