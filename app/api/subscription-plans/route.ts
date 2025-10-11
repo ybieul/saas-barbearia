@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { validateRequired } from '@/lib/api-utils'
 import { verifyToken, AuthError } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
 
 // tenantId vem do token
 
@@ -11,36 +12,21 @@ export async function GET(request: NextRequest) {
     const tenantId = user.tenantId
     if (!tenantId) return NextResponse.json({ message: 'Tenant não encontrado' }, { status: 404 })
 
-    // Verifica se a tabela de junção existe; se não, evita include: services
-    let joinExists = true
+    // Tenta incluir serviços normalmente; se falhar (ex.: tabela de junção ausente ou permissão), faz fallback sem include
     try {
-      const rows = await (prisma as any).$queryRawUnsafe("SHOW TABLES LIKE '_ServiceToSubscriptionPlan'")
-      joinExists = Array.isArray(rows) && rows.length > 0
-    } catch {
-      joinExists = false
-    }
-
-    let plans
-    if (joinExists) {
-      plans = await (prisma as any).subscriptionPlan.findMany({
+      const plans = await prisma.subscriptionPlan.findMany({
         where: { tenantId },
         include: { services: { select: { id: true, name: true } }, _count: { select: { clientSubscriptions: true } } },
         orderBy: { createdAt: 'desc' }
       })
       return NextResponse.json({ plans })
-    } else {
-      plans = await (prisma as any).subscriptionPlan.findMany({
-        where: { tenantId },
-        orderBy: { createdAt: 'desc' }
-      })
-      return NextResponse.json({ plans, warning: 'Tabela de junção de serviços não encontrada. Planos listados sem serviços vinculados.' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : ''
+      const plans = await prisma.subscriptionPlan.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } })
+      return NextResponse.json({ plans, warning: 'Planos listados sem serviços vinculados. Motivo: ' + (msg || 'falha ao carregar serviços.') })
     }
   } catch (error: any) {
-    // Prisma: tabela não existe (migração não aplicada)
     const msg = error?.message || ''
-    if (error?.code === 'P2021' || error?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
-      return NextResponse.json({ message: 'Assinaturas não configuradas no banco. Aplique a migração de assinaturas e tente novamente.' }, { status: 503 })
-    }
     const status = error instanceof AuthError ? error.status : 500
     return NextResponse.json({ message: error.message || 'Erro ao listar planos' }, { status })
   }
@@ -56,7 +42,7 @@ export async function POST(request: NextRequest) {
     const tenantId = user.tenantId
     if (!tenantId) return NextResponse.json({ message: 'Tenant não encontrado' }, { status: 404 })
 
-    const serviceIds: string[] = Array.isArray(body.services) ? body.services.filter(Boolean) : []
+  const serviceIds: string[] = Array.isArray(body.services) ? body.services.filter(Boolean) : []
     // Garantir que os serviços pertençam ao tenant
     let connectServices: { id: string }[] | undefined
     if (serviceIds.length > 0) {
@@ -67,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 1) Cria o plano básico
-      let plan = await (prisma as any).subscriptionPlan.create({
+      let plan = await prisma.subscriptionPlan.create({
         data: {
           name: body.name,
           price: body.price,
@@ -79,7 +65,7 @@ export async function POST(request: NextRequest) {
       // 2) Tenta vincular serviços (passo separado para evitar derrubar a criação)
       if (connectServices && connectServices.length > 0) {
         try {
-          plan = await (prisma as any).subscriptionPlan.update({
+          plan = await prisma.subscriptionPlan.update({
             where: { id: plan.id },
             data: { services: { connect: connectServices } },
             include: { services: true }
@@ -93,9 +79,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ plan })
     } catch (err: any) {
       const msg = err?.message || ''
-      if (err?.code === 'P2021' || err?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
+      if ((err as Prisma.PrismaClientKnownRequestError)?.code === 'P2021' || (err as Prisma.PrismaClientKnownRequestError)?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
         // Fallback: cria o plano sem relacionar serviços e retorna aviso
-        const plan = await (prisma as any).subscriptionPlan.create({
+        const plan = await prisma.subscriptionPlan.create({
           data: {
             name: body.name,
             price: body.price,
@@ -110,9 +96,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     const msg = error?.message || ''
-    if (error?.code === 'P2021' || error?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
-      return NextResponse.json({ message: 'Assinaturas não configuradas no banco. Aplique a migração de assinaturas e tente novamente.' }, { status: 503 })
-    }
+    // Não retornar 503 aqui — a criação já tem fallback
     const status = error instanceof AuthError ? error.status : 500
     return NextResponse.json({ message: msg || 'Erro ao criar plano' }, { status })
   }
@@ -134,7 +118,7 @@ export async function PUT(request: NextRequest) {
     }
 
     try {
-      const plan = await (prisma as any).subscriptionPlan.update({
+      const plan = await prisma.subscriptionPlan.update({
         where: { id },
         data: {
           ...(name !== undefined && { name }),
@@ -148,9 +132,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ plan })
     } catch (err: any) {
       const msg = err?.message || ''
-      if (err?.code === 'P2021' || err?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
+      if ((err as Prisma.PrismaClientKnownRequestError)?.code === 'P2021' || (err as Prisma.PrismaClientKnownRequestError)?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
         // Fallback: atualiza somente campos básicos e ignora SET de serviços
-        const plan = await (prisma as any).subscriptionPlan.update({
+        const plan = await prisma.subscriptionPlan.update({
           where: { id },
           data: {
             ...(name !== undefined && { name }),
@@ -166,9 +150,7 @@ export async function PUT(request: NextRequest) {
     }
   } catch (error: any) {
     const msg = error?.message || ''
-    if (error?.code === 'P2021' || error?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
-      return NextResponse.json({ message: 'Assinaturas não configuradas no banco. Aplique a migração de assinaturas e tente novamente.' }, { status: 503 })
-    }
+    // Não retornar 503 no PUT; já há fallback
     const status = error instanceof AuthError ? error.status : 500
     return NextResponse.json({ message: msg || 'Erro ao atualizar plano' }, { status })
   }
@@ -181,7 +163,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ message: 'id é obrigatório' }, { status: 400 })
 
-    await (prisma as any).subscriptionPlan.delete({ where: { id } })
+    await prisma.subscriptionPlan.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     const status = error instanceof AuthError ? error.status : 500
