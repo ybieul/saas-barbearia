@@ -185,9 +185,7 @@ export default function AgendaPage() {
       })
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-      if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao atualizar dados:', error)
-      }
       }
       toast({
         title: "❌ Erro ao Atualizar",
@@ -215,9 +213,7 @@ export default function AgendaPage() {
         ])
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV === 'development') {
           console.error('Erro ao carregar dados:', error)
-        }
         }
       }
     }

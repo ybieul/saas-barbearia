@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
     let totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
 
-    // 🔰 Assinatura tem prioridade sobre pacote: se cobrir todos os serviços, preço = 0
+  // 🔰 Assinatura tem prioridade sobre pacote: se cobrir todos os serviços, marcar nas notas (preço no banco permanece original)
     // Implementação baseada no fluxo de pacotes (consulta SQL direta e determinística)
     let subscriptionCoveredPlanId: string | null = null
     try {
@@ -385,9 +385,8 @@ export async function POST(request: NextRequest) {
       // Em caso de erro, segue fluxo normal (sem cobertura)
     }
 
-    if (subscriptionCoveredPlanId) {
-      totalPrice = 0
-    }
+    // Não zerar o totalPrice aqui: manter valor original para relatórios;
+    // a UI pode exibir 0 via badge/marcador e na conclusão registramos paymentSource
 
     // Verificar conflitos de horário se profissional foi especificado
     if (professionalId) {
@@ -463,9 +462,9 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // Montar observação com marcador determinístico
-    // 1) Se assinatura cobre, marcar e NÃO marcar pacote
-    // 2) Caso contrário, respeitar intenção de usar crédito de pacote
+  // Montar observação com marcador determinístico
+  // 1) Se assinatura cobre, marcar e NÃO marcar pacote
+  // 2) Caso contrário, respeitar intenção de usar crédito de pacote
     let finalNotes: string | undefined = notes || undefined
     if (subscriptionCoveredPlanId) {
       const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`

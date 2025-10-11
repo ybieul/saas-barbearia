@@ -500,8 +500,7 @@ export async function POST(request: NextRequest) {
           }
         }
         if (subscriptionCoveredPlanId) {
-          // Zerar total e marcar, limpando qualquer marker de pacote previamente definido
-          totalPrice = 0
+          // Não zerar total no banco; apenas marcar e limpar markers de pacote
           const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`
           if (appointmentNotes) {
             appointmentNotes = appointmentNotes

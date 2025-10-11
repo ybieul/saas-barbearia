@@ -517,6 +517,29 @@ export default function FinanceiroPage() {
     }
   }, [completedAppointments, dateRange?.from, dateRange?.to])
 
+  // ✅ NOVO: Pré-pago (Pacotes/Assinaturas) no período atual
+  const prepaidStats = useMemo(() => {
+    try {
+      const from = dateRange?.from ? new Date(dateRange.from) : null
+      const to = dateRange?.to ? new Date(dateRange.to) : null
+      if (from) from.setHours(0,0,0,0)
+      if (to) to.setHours(23,59,59,999)
+      const inRange = Array.isArray(appointments) ? appointments.filter(app => {
+        try {
+          if (!app?.dateTime) return false
+          const d = utcToBrazil(new Date(app.dateTime))
+          const inPeriod = (!from || d >= from) && (!to || d <= to)
+          return inPeriod && (app.status === 'COMPLETED' || app.status === 'IN_PROGRESS')
+        } catch { return false }
+      }) : []
+      // Somar valores de appointments com paymentSource PACKAGE ou SUBSCRIPTION
+      const prepaidApps = inRange.filter((app: any) => app.paymentSource === 'PACKAGE' || app.paymentSource === 'SUBSCRIPTION')
+      const prepaidAmount = prepaidApps.reduce((sum: number, app: any) => sum + (parseFloat(app.totalPrice) || 0), 0)
+      const prepaidCount = prepaidApps.length
+      return { prepaidAmount, prepaidCount }
+    } catch { return { prepaidAmount: 0, prepaidCount: 0 } }
+  }, [appointments, dateRange?.from, dateRange?.to])
+
   // Análise de Horários: baseada nos agendamentos do período atual
   useEffect(() => {
     try {
@@ -2541,6 +2564,35 @@ export default function FinanceiroPage() {
           )}
         </CardContent>
   </Card>
+  )}
+
+  {/* ✅ NOVO: Pré-pago (Pacotes/Assinaturas) */}
+  {!isCollaborator && (
+    <Card className="bg-[#18181b] border-[#27272a]">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-tymer-icon" />
+          Pré-pago (Pacotes/Assinaturas)
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-sm text-[#71717a]">Agendamentos pagos via crédito de pacote ou assinatura</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
+            <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(prepaidStats.prepaidAmount || 0)}
+            </p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Valor no período</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{prepaidStats.prepaidCount || 0}</p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Atendimentos pré-pagos</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )}
 
   {/* Custos Mensais (última seção) - oculto para colaborador */}

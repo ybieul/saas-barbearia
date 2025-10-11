@@ -357,6 +357,8 @@ model Appointment {
   status        AppointmentStatus @default(SCHEDULED)
   paymentMethod PaymentMethod?
   paymentStatus PaymentStatus     @default(PENDING)
+  // Fonte do pagamento quando pré-pago (PACOTE/ASSINATURA)
+  paymentSource String?
   notes         String?           @db.Text
   reminderSent  Boolean           @default(false)
   // Flag para indicar se mensagem de feedback foi enviada

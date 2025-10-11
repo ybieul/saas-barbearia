@@ -35,7 +35,11 @@ export async function PATCH(
     }
 
     // Calcular preço total baseado nos serviços do agendamento (base)
-    let totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
+    // Usar o total salvo como fonte primária; fallback para soma dos serviços
+    let totalPrice = Number(existingAppointment.totalPrice || 0)
+    if (!totalPrice || totalPrice <= 0) {
+      totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
+    }
 
     console.log('💰 Calculando preço total na conclusão:', {
       appointmentId,
@@ -70,9 +74,8 @@ export async function PATCH(
       let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
-      // Se já houver marker de assinatura, priorizar e zerar total
+      // Se já houver marker de assinatura, priorizar como pré-pago (sem financeiro)
       if (hasSubscriptionMarker) {
-        totalPrice = 0
         shouldCreateFinancialRecord = false
       }
 
@@ -239,7 +242,7 @@ export async function PATCH(
           paymentMethod: paymentMethod,
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
-          totalPrice: totalPrice, // Atualizar com preço calculado
+          totalPrice: totalPrice, // Mantém preço original no banco
           commissionEarned: commissionEarned,
           // Marcar consumo de crédito (idempotência)
           notes: debitedPackageId
@@ -254,6 +257,12 @@ export async function PATCH(
           services: true
         }
       })
+
+      // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
+      const source = hasSubscriptionMarker ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+      if (source) {
+        await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
+      }
 
       // Operação 2: Atualizar os dados agregados do Cliente
       await tx.endUser.update({
