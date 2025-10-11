@@ -89,7 +89,18 @@ export default function MembershipsPage() {
       const res = await fetch('/api/subscription-plans', { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Erro ao carregar planos')
-      setPlans(data.plans || [])
+      setPlans((data.plans || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price || 0),
+        cycleInDays: Number(p.cycleInDays || 30),
+        isActive: !!p.isActive,
+        services: Array.isArray(p.services) ? p.services : [],
+        _count: p._count || undefined,
+      })))
+      if (data.warning) {
+        toast({ title: 'Aviso', description: data.warning })
+      }
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     } finally {
@@ -174,11 +185,12 @@ export default function MembershipsPage() {
         const url = '/api/subscription-plans'
         const method = editingId ? 'PUT' : 'POST'
         if (editingId) payload.id = editingId
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data?.message || (editingId ? 'Erro ao atualizar plano' : 'Erro ao criar plano'))
-        toast({ title: editingId ? 'Plano atualizado' : 'Plano criado', description: editingId ? 'Plano de assinatura atualizado com sucesso.' : 'Plano de assinatura criado com sucesso.' })
-        await fetchPlans()
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) })
+  const data = await res.json()
+  if (!res.ok && res.status !== 201) throw new Error(data?.message || (editingId ? 'Erro ao atualizar plano' : 'Erro ao criar plano'))
+  const msg = data?.warning ? `${editingId ? 'Plano atualizado' : 'Plano criado'} (serviços não vinculados ainda)` : (editingId ? 'Plano atualizado' : 'Plano criado')
+  toast({ title: msg, description: data?.warning || (editingId ? 'Plano de assinatura atualizado com sucesso.' : 'Plano de assinatura criado com sucesso.') })
+  await fetchPlans()
       } else {
         const selectedServices = formServices.filter(s => !!s.serviceId)
         if (!pkgForm.name || !pkgForm.totalPrice || selectedServices.length === 0) {

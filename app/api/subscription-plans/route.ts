@@ -11,12 +11,30 @@ export async function GET(request: NextRequest) {
     const tenantId = user.tenantId
     if (!tenantId) return NextResponse.json({ message: 'Tenant não encontrado' }, { status: 404 })
 
-    const plans = await (prisma as any).subscriptionPlan.findMany({
-      where: { tenantId },
-      include: { services: { select: { id: true, name: true } }, _count: { select: { clientSubscriptions: true } } },
-      orderBy: { createdAt: 'desc' }
-    })
-    return NextResponse.json({ plans })
+    // Verifica se a tabela de junção existe; se não, evita include: services
+    let joinExists = true
+    try {
+      const rows = await (prisma as any).$queryRawUnsafe("SHOW TABLES LIKE '_ServiceToSubscriptionPlan'")
+      joinExists = Array.isArray(rows) && rows.length > 0
+    } catch {
+      joinExists = false
+    }
+
+    let plans
+    if (joinExists) {
+      plans = await (prisma as any).subscriptionPlan.findMany({
+        where: { tenantId },
+        include: { services: { select: { id: true, name: true } }, _count: { select: { clientSubscriptions: true } } },
+        orderBy: { createdAt: 'desc' }
+      })
+      return NextResponse.json({ plans })
+    } else {
+      plans = await (prisma as any).subscriptionPlan.findMany({
+        where: { tenantId },
+        orderBy: { createdAt: 'desc' }
+      })
+      return NextResponse.json({ plans, warning: 'Tabela de junção de serviços não encontrada. Planos listados sem serviços vinculados.' })
+    }
   } catch (error: any) {
     // Prisma: tabela não existe (migração não aplicada)
     const msg = error?.message || ''
