@@ -64,34 +64,22 @@ export async function PATCH(
       const notesText = existingAppointment.notes || ''
       const wantsToUseCredit = /\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText) || /\[USE_CREDIT_SERVICES:[^\]]+\]/.test(notesText)
       const alreadyDebited = /\[(DEBITED_CREDIT|DEBITED_PACKAGE):[^\]]+\]/.test(notesText)
+      const subscriptionMarkerMatch = notesText.match(/\[SUBSCRIPTION_COVERED:([^\]]+)\]/)
+      const hasSubscriptionMarker = !!subscriptionMarkerMatch
       let debitedCreditId: string | null = null
       let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
-      // Antes: verificar cobertura por assinatura (plano que cobre todos os serviços do agendamento)
-      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
-      const now = new Date()
-      const subs = await tx.clientSubscription.findMany({
-        where: {
-          clientId: existingAppointment.endUserId,
-          status: 'ACTIVE',
-          startDate: { lte: now },
-          endDate: { gte: now },
-          plan: { isActive: true, tenantId: existingAppointment.tenantId }
-        },
-        include: { plan: { include: { services: { select: { id: true } } } } }
-      })
-      const subCoversAll = subs.some((s: { plan?: { services?: { id: string }[] } }) => {
-        const allowed = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
-        return serviceIdsSelected.every(id => allowed.has(id))
-      })
-      if (subCoversAll) {
+      // Se já houver marker de assinatura, priorizar e zerar total
+      if (hasSubscriptionMarker) {
         totalPrice = 0
         shouldCreateFinancialRecord = false
       }
 
-      // Fallback SQL: se ainda não cobriu, checar via join table
-      if (!subCoversAll) {
+      // Verificar cobertura por assinatura de forma determinística via SQL (baseada na lógica de pacotes)
+      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
+      const now = new Date()
+      if (!hasSubscriptionMarker) {
         try {
           const planRows = await tx.$queryRaw<Array<{ planId: string }>>`
             SELECT cs.planId as planId

@@ -342,9 +342,52 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ Validação de horário aprovada: ${appointmentTime} está entre ${startTime} e ${endTime}`)
 
-    // Calcular duração e preço totais
+    // Calcular duração e preço totais (base)
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
-    const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
+    let totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
+
+    // 🔰 Assinatura tem prioridade sobre pacote: se cobrir todos os serviços, preço = 0
+    // Implementação baseada no fluxo de pacotes (consulta SQL direta e determinística)
+    let subscriptionCoveredPlanId: string | null = null
+    try {
+      const now = new Date()
+      const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
+        SELECT cs.planId as planId
+        FROM client_subscriptions cs
+        JOIN subscription_plans sp ON sp.id = cs.planId AND sp.isActive = 1 AND sp.tenantId = ${user.tenantId}
+        WHERE cs.clientId = ${endUserId}
+          AND cs.status = 'ACTIVE'
+          AND cs.startDate <= ${now}
+          AND cs.endDate >= ${now}
+      `
+      if (planRows.length > 0) {
+        const ids = [...new Set(planRows.map(r => r.planId))]
+        const placeholders = ids.map(() => '?').join(',')
+        const allowed = await prisma.$queryRawUnsafe<Array<{ planId: string, serviceId: string }>>(
+          `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
+          ...ids
+        )
+        const byPlan = new Map<string, Set<string>>()
+        for (const row of allowed) {
+          const set = byPlan.get(row.planId) || new Set<string>()
+          set.add(row.serviceId)
+          byPlan.set(row.planId, set)
+        }
+        for (const pid of ids) {
+          const set = byPlan.get(pid) || new Set<string>()
+          if ((serviceIds as string[]).every(id => set.has(id))) {
+            subscriptionCoveredPlanId = pid
+            break
+          }
+        }
+      }
+    } catch (e) {
+      // Em caso de erro, segue fluxo normal (sem cobertura)
+    }
+
+    if (subscriptionCoveredPlanId) {
+      totalPrice = 0
+    }
 
     // Verificar conflitos de horário se profissional foi especificado
     if (professionalId) {
@@ -420,9 +463,14 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // Montar observação com marcador de uso de crédito (para consumo posterior na conclusão)
+    // Montar observação com marcador determinístico
+    // 1) Se assinatura cobre, marcar e NÃO marcar pacote
+    // 2) Caso contrário, respeitar intenção de usar crédito de pacote
     let finalNotes: string | undefined = notes || undefined
-    if (usePackageCredit === true) {
+    if (subscriptionCoveredPlanId) {
+      const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`
+      finalNotes = finalNotes ? `${finalNotes}\n${subMarker}` : subMarker
+    } else if (usePackageCredit === true) {
       if (Array.isArray(serviceIds) && serviceIds.length > 1) {
         const csv = serviceIds.join(',')
         const marker = `[USE_CREDIT_SERVICES:${csv}]`
@@ -440,7 +488,7 @@ export async function POST(request: NextRequest) {
         duration: totalDuration,
         // Se for usar crédito, manter totalPrice original para métricas de valor do serviço;
         // A baixa financeira real ocorre na conclusão conforme forma de pagamento
-        totalPrice: totalPrice,
+  totalPrice: totalPrice,
         status: 'CONFIRMED',
         notes: finalNotes,
         tenantId: user.tenantId,

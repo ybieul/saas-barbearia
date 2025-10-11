@@ -29,32 +29,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
 
     // 1) Cobertura por assinatura ativa (plano inclui todos os serviços)
-    try {
-      const subs = await prisma.clientSubscription.findMany({
-        where: {
-          clientId,
-          status: 'ACTIVE',
-          startDate: { lte: now },
-          endDate: { gte: now },
-          plan: { isActive: true, tenantId: user.tenantId }
-        },
-        include: { plan: { include: { services: { select: { id: true, name: true } } } } }
-      })
-      const coveringSub = subs.find((s: { plan: { id: string; name: string; services?: { id: string; name?: string }[] } }) => {
-        const allowedSet = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
-        return serviceIds.every(id => allowedSet.has(id))
-      })
-      if (coveringSub) {
-        return NextResponse.json({
-          covered: true,
-          coveredBy: 'subscription',
-          subscription: { planId: coveringSub.plan.id, planName: coveringSub.plan.name },
-          message: `Coberto pela assinatura: ${coveringSub.plan.name}`,
-        })
-      }
-    } catch (e) {
-      // Segue para fallback SQL
-    }
+    // Removido caminho Prisma (delegate pode não existir localmente); usar somente SQL determinístico
 
     // Fallback SQL: checar assinatura ativa e serviços via join table
     try {
@@ -83,7 +58,7 @@ export async function GET(request: NextRequest) {
         for (const pid of ids) {
           const set = byPlan.get(pid) || new Set<string>()
           if (serviceIds.every(id => set.has(id))) {
-            return NextResponse.json({ covered: true, coveredBy: 'subscription', subscription: { planId: pid }, message: 'Coberto pela assinatura.' })
+            return NextResponse.json({ covered: true, coveredBy: 'subscription', subscription: { planId: pid }, message: 'Coberto pela assinatura' })
           }
         }
       }

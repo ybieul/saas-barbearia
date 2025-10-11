@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
     // ✅ CRIAR AGENDAMENTO COM RELACIONAMENTO MANY-TO-MANY
     // Nota: Usar 'any' é necessário devido ao cache de tipos do Prisma local
     // Em produção, após deploy + migrate, os tipos estarão corretos
-    let appointmentNotes = notes || null
+  let appointmentNotes = notes || null
     // Novo: combo exato - se requisitado, marcar serviços selecionados e tentar fixar pacote
     let chosenClientPackageId: string | null = null
     if (usePackageCredit && services && Array.isArray(services) && services.length > 0) {
@@ -464,13 +464,66 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 🔰 Assinatura tem prioridade sobre pacote no público: se cobrir todos os serviços, zerar total e marcar
+    try {
+      const nowSub = new Date()
+      // Buscar assinaturas ativas do cliente no tenant atual
+      const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
+        SELECT cs.planId as planId
+        FROM client_subscriptions cs
+        JOIN subscription_plans sp ON sp.id = cs.planId AND sp.isActive = 1 AND sp.tenantId = ${business.id}
+        WHERE cs.clientId = ${client.id}
+          AND cs.status = 'ACTIVE'
+          AND cs.startDate <= ${nowSub}
+          AND cs.endDate >= ${nowSub}
+      `
+      if (planRows.length > 0) {
+        const ids = [...new Set(planRows.map(r => r.planId))]
+        const placeholders = ids.map(() => '?').join(',')
+        const allowed = await prisma.$queryRawUnsafe<Array<{ planId: string, serviceId: string }>>(
+          `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
+          ...ids
+        )
+        const byPlan = new Map<string, Set<string>>()
+        for (const row of allowed) {
+          const set = byPlan.get(row.planId) || new Set<string>()
+          set.add(row.serviceId)
+          byPlan.set(row.planId, set)
+        }
+        const serviceIdsAll = (services && Array.isArray(services) && services.length > 0) ? services : [serviceId]
+        let subscriptionCoveredPlanId: string | null = null
+        for (const pid of ids) {
+          const set = byPlan.get(pid) || new Set<string>()
+          if (serviceIdsAll.every(id => set.has(id))) {
+            subscriptionCoveredPlanId = pid
+            break
+          }
+        }
+        if (subscriptionCoveredPlanId) {
+          // Zerar total e marcar, limpando qualquer marker de pacote previamente definido
+          totalPrice = 0
+          const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`
+          if (appointmentNotes) {
+            appointmentNotes = appointmentNotes
+              .replace(/\[USE_CREDIT_SERVICES:[^\]]+\]/g, '')
+              .replace(/\[USE_CREDIT_PACKAGE:[^\]]+\]/g, '')
+              .replace(/\[USE_CREDIT(?::[^\]]+)?\]/g, '')
+              .trim()
+          }
+          appointmentNotes = appointmentNotes ? `${appointmentNotes} ${subMarker}` : subMarker
+        }
+      }
+    } catch (e) {
+      // Em caso de erro, segue fluxo normal
+    }
+
     const appointmentData: any = {
       tenantId: business.id,
       endUserId: client.id,
       professionalId: finalProfessionalId,
       dateTime: toLocalISOString(appointmentDate), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
       duration: totalDuration,
-      totalPrice: totalPrice,
+  totalPrice: totalPrice,
       status: 'CONFIRMED',
   notes: appointmentNotes,
       paymentStatus: 'PENDING',
