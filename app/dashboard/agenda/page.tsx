@@ -184,11 +184,7 @@ export default function AgendaPage() {
         description: "Informações da agenda foram atualizadas com sucesso!",
       })
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao atualizar dados:', error)
-      }
-      }
+      console.error('Erro ao atualizar dados:', error)
       toast({
         title: "❌ Erro ao Atualizar",
         description: "Erro ao atualizar dados. Tente novamente.",
@@ -214,11 +210,7 @@ export default function AgendaPage() {
           initializeBusinessSlug()
         ])
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao carregar dados:', error)
-        }
-        }
+        console.error('Erro ao carregar dados:', error)
       }
     }
     
@@ -228,18 +220,16 @@ export default function AgendaPage() {
   // Debug para verificar se os dados estão chegando (apenas uma vez)
   useEffect(() => {
     if (appointments && clients && services && professionalsData) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Todos os dados carregados:', {
-          appointments: appointments?.length || 0,
-          clients: clients?.length || 0,
-          services: services?.length || 0,
-          professionals: professionalsData?.length || 0,
-          agendaAvailabilityReady,
-          businessSlug,
-          agendaAvailabilityLoading,
-          agendaAvailabilityError
-        })
-      }
+      console.log('✅ Todos os dados carregados:', {
+        appointments: appointments?.length || 0,
+        clients: clients?.length || 0,
+        services: services?.length || 0,
+        professionals: professionalsData?.length || 0,
+        agendaAvailabilityReady,
+        businessSlug,
+        agendaAvailabilityLoading,
+        agendaAvailabilityError
+      })
     }
   }, [appointments?.length, clients?.length, services?.length, professionalsData?.length, agendaAvailabilityReady, businessSlug])
 
@@ -307,6 +297,7 @@ export default function AgendaPage() {
         const serviceIds = (selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId]).join(',')
         const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceIds })
         const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        console.log('🧪 [COVERAGE] Requisição (dashboard):', { clientId: newAppointment.endUserId, serviceIds })
         const res = await fetch(`/api/client-coverage-combo?${sp.toString()}`, {
           headers: {
             'Content-Type': 'application/json',
@@ -314,6 +305,7 @@ export default function AgendaPage() {
           }
         })
         const data = await res.json()
+        console.log('🧪 [COVERAGE] Resposta (dashboard):', { status: res.status, ok: res.ok, data })
         if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
         const wasUsing = usePackageCredit
         if (data.coveredBy === 'subscription') {
@@ -329,6 +321,7 @@ export default function AgendaPage() {
           setCreditExpiresAt(data.package.expiresAt ? new Date(data.package.expiresAt) : null)
           if (wasUsing) setUsePackageCredit(true)
         } else {
+          console.log('🧪 [COVERAGE] Sem cobertura para combo selecionado')
           setIsCoveredBySubscription(false)
           setCoverageMessage("")
           setAvailableCredits(0)
@@ -336,9 +329,7 @@ export default function AgendaPage() {
           setUsePackageCredit(false)
         }
       } catch (e) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao buscar créditos do cliente:', e)
-        }
+        console.error('Erro ao buscar créditos do cliente:', e)
         setAvailableCredits(0)
         setCreditExpiresAt(null)
         setUsePackageCredit(false)
@@ -365,9 +356,7 @@ export default function AgendaPage() {
         // Buscar agendamentos filtrados
         await fetchAppointments(currentDateString, statusParam, professionalParam)
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao carregar dados filtrados:', error)
-        }
+        console.error('Erro ao carregar dados filtrados:', error)
       }
     }
     
@@ -428,9 +417,7 @@ export default function AgendaPage() {
         const slots = await getAvailableTimeSlots(editingAppointment?.id)
         setAvailableTimeSlots(slots)
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao atualizar slots:', error)
-        }
+        console.error('Erro ao atualizar slots:', error)
         setAvailableTimeSlots([])
       } finally {
         setLoadingTimeSlots(false)
@@ -447,9 +434,7 @@ export default function AgendaPage() {
       
       // Verificar se o estabelecimento está aberto no dia
       if (!isEstablishmentOpen(date)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🚫 Estabelecimento fechado em ${date.toDateString()}`)
-        }
+        console.log(`🚫 Estabelecimento fechado em ${date.toDateString()}`)
         return []
       }
       
@@ -457,18 +442,14 @@ export default function AgendaPage() {
       const dayConfig = getWorkingHoursForDay(date)
       
       if (!dayConfig.isOpen || !dayConfig.startTime || !dayConfig.endTime) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🚫 Configuração inválida para ${date.toDateString()}:`, dayConfig)
-        }
+        console.log(`🚫 Configuração inválida para ${date.toDateString()}:`, dayConfig)
         return []
       }
       
       // Validar formato de horários
       const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
       if (!timeRegex.test(dayConfig.startTime) || !timeRegex.test(dayConfig.endTime)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`🚫 Formato de horário inválido:`, dayConfig)
-        }
+        console.error(`🚫 Formato de horário inválido:`, dayConfig)
         return []
       }
       
@@ -481,9 +462,7 @@ export default function AgendaPage() {
       
       // Validar se horário de início é menor que fim
       if (startTotalMinutes >= endTotalMinutes) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`🚫 Horário de início deve ser menor que fim:`, dayConfig)
-        }
+        console.error(`🚫 Horário de início deve ser menor que fim:`, dayConfig)
         return []
       }
       
@@ -500,19 +479,15 @@ export default function AgendaPage() {
         slots.push(time)
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ Gerados ${slots.length} slots para ${date.toDateString()}:`, {
-          funcionamento: `${dayConfig.startTime} - ${dayConfig.endTime}`,
-          primeiros3: slots.slice(0, 3),
-          ultimos3: slots.slice(-3)
-        })
-      }
+      console.log(`✅ Gerados ${slots.length} slots para ${date.toDateString()}:`, {
+        funcionamento: `${dayConfig.startTime} - ${dayConfig.endTime}`,
+        primeiros3: slots.slice(0, 3),
+        ultimos3: slots.slice(-3)
+      })
       
       return slots
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro ao gerar slots de horário:', error)
-      }
+      console.error('🚫 Erro ao gerar slots de horário:', error)
       return []
     }
   }
@@ -701,9 +676,7 @@ export default function AgendaPage() {
         return false
       })
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao verificar conflitos:', error)
-      }
+      console.error('Erro ao verificar conflitos:', error)
       return true // Em caso de erro, considerar como conflito para segurança
     }
   }
@@ -1019,38 +992,30 @@ export default function AgendaPage() {
         }
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Validação concluída com sucesso')
-      }
+      console.log('✅ Validação concluída com sucesso')
       
       // ✅ Aviso informativo para agendamentos retroativos (não bloqueante)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       selectedDate.setHours(0, 0, 0, 0)
       
-      if (selectedDate < today) {
-        if (process.env.NODE_ENV === 'development') {
+        if (selectedDate < today) {
           console.log('⏰ Agendamento retroativo detectado - prosseguindo com aviso')
-        }
-      } else if (selectedDate.getTime() === today.getTime()) {
+        } else if (selectedDate.getTime() === today.getTime()) {
         // Se é hoje, verificar se o horário já passou
         const [hours, minutes] = newAppointment.time.split(':').map(Number)
         const appointmentTime = new Date()
         appointmentTime.setHours(hours, minutes, 0, 0)
         const now = new Date()
         
-        if (appointmentTime <= now) {
-          if (process.env.NODE_ENV === 'development') {
+          if (appointmentTime <= now) {
             console.log('⏰ Agendamento em horário passado (hoje) detectado - prosseguindo com aviso')
           }
-        }
       }
       
       return true
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro na validação:', error)
-      }
+      console.error('🚫 Erro na validação:', error)
       toast({
         title: "❌ Erro de Validação",
         description: "Erro interno ao validar agendamento. Tente novamente.",
@@ -1068,17 +1033,15 @@ export default function AgendaPage() {
     setBackendError(null)
     
     // 🔍 DEBUG: Log do estado atual do formulário antes da validação
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Estado do formulário ANTES da validação:', {
-        endUserId: newAppointment.endUserId,
-        serviceId: newAppointment.serviceId, 
-        professionalId: newAppointment.professionalId,
-        date: newAppointment.date,
-        time: newAppointment.time,
-        notes: newAppointment.notes,
-        isComplete: !!(newAppointment.endUserId && newAppointment.serviceId && newAppointment.date && newAppointment.time)
-      })
-    }
+    console.log('🔍 Estado do formulário ANTES da validação:', {
+      endUserId: newAppointment.endUserId,
+      serviceId: newAppointment.serviceId, 
+      professionalId: newAppointment.professionalId,
+      date: newAppointment.date,
+      time: newAppointment.time,
+      notes: newAppointment.notes,
+      isComplete: !!(newAppointment.endUserId && newAppointment.serviceId && newAppointment.date && newAppointment.time)
+    })
     
     if (!(await validateForm())) return
 
@@ -1106,14 +1069,12 @@ export default function AgendaPage() {
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Criando agendamento')
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚨 CORREÇÃO UTC - Debug da data:', {
-          inputDate: newAppointment.date,
-          inputTime: newAppointment.time,
-          localDateTime: appointmentDateTime.toString(),
-          localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
-        })
-      }
+      console.log('🚨 CORREÇÃO UTC - Debug da data:', {
+        inputDate: newAppointment.date,
+        inputTime: newAppointment.time,
+        localDateTime: appointmentDateTime.toString(),
+        localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
+      })
 
       const finalAppointmentData = {
         endUserId: newAppointment.endUserId,
@@ -1125,23 +1086,19 @@ export default function AgendaPage() {
         usePackageCredit: usePackageCredit && availableCredits > 0 ? true : false
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 Criando agendamento:', finalAppointmentData)
-        console.log('🔍 Debug do formulário:', {
-          endUserId: newAppointment.endUserId,
-          serviceId: newAppointment.serviceId,
-          professionalId: newAppointment.professionalId,
-          date: newAppointment.date,
-          time: newAppointment.time,
-          notes: newAppointment.notes
-        })
-      }
+      console.log('🚀 Criando agendamento:', finalAppointmentData)
+      console.log('🔍 Debug do formulário:', {
+        endUserId: newAppointment.endUserId,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes
+      })
       
       // ✅ Validação final antes de enviar
       if (!finalAppointmentData.endUserId || !finalAppointmentData.services || finalAppointmentData.services.length === 0 || !finalAppointmentData.dateTime) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ Dados inválidos para envio:', finalAppointmentData)
-        }
+        console.error('❌ Dados inválidos para envio:', finalAppointmentData)
         toast({
           title: "❌ Erro de Validação",
           description: "Campos obrigatórios não preenchidos. Verifique o formulário.",
@@ -1162,9 +1119,7 @@ export default function AgendaPage() {
       await fetchAppointments() // Recarregar dados
       setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro ao criar agendamento:', error)
-      }
+      console.error('🚫 Erro ao criar agendamento:', error)
       
       // Tratar diferentes tipos de erro do backend com mensagens específicas
       let errorMessage = "Erro ao criar agendamento. Tente novamente."
@@ -1213,13 +1168,11 @@ export default function AgendaPage() {
     const formattedTime = extractTimeFromDateTime(appointment.dateTime)
     
     debugTimezone(appointmentDate, `Editando agendamento`)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🇧🇷 Dados para edição:', {
-        appointmentDate: toLocalISOString(appointmentDate),
-        formattedDate,
-        formattedTime
-      })
-    }
+    console.log('🇧🇷 Dados para edição:', {
+      appointmentDate: toLocalISOString(appointmentDate),
+      formattedDate,
+      formattedTime
+    })
     
     // Sanitizar notas removendo tokens internos antes de popular o formulário de edição
     const cleanedNotes = (appointment.notes || '')
@@ -1277,14 +1230,12 @@ export default function AgendaPage() {
       const appointmentDateTime = parseDateTime(newAppointment.date, newAppointment.time)
       debugTimezone(appointmentDateTime, 'Frontend - Atualizando agendamento')
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚨 CORREÇÃO UTC - Debug da data (UPDATE):', {
-          inputDate: newAppointment.date,
-          inputTime: newAppointment.time,
-          localDateTime: appointmentDateTime.toString(),
-          localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
-        })
-      }
+      console.log('🚨 CORREÇÃO UTC - Debug da data (UPDATE):', {
+        inputDate: newAppointment.date,
+        inputTime: newAppointment.time,
+        localDateTime: appointmentDateTime.toString(),
+        localISOString: toLocalISOString(appointmentDateTime) // ✅ Local
+      })
 
       // Sanitizar notas novamente no envio para garantir que nenhum token interno entre
       const cleanedFormNotes = (newAppointment.notes || '')
@@ -1302,17 +1253,15 @@ export default function AgendaPage() {
         notes: cleanedFormNotes || undefined
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Atualizando agendamento:', finalAppointmentData)
-        console.log('🔍 Debug do formulário (update):', {
-          endUserId: newAppointment.endUserId,
-          serviceId: newAppointment.serviceId,
-          professionalId: newAppointment.professionalId,
-          date: newAppointment.date,
-          time: newAppointment.time,
-          notes: newAppointment.notes
-        })
-      }
+      console.log('🔄 Atualizando agendamento:', finalAppointmentData)
+      console.log('🔍 Debug do formulário (update):', {
+        endUserId: newAppointment.endUserId,
+        serviceId: newAppointment.serviceId,
+        professionalId: newAppointment.professionalId,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes
+      })
       await updateAppointment(finalAppointmentData)
       
       toast({
@@ -1326,9 +1275,7 @@ export default function AgendaPage() {
       await fetchAppointments() // Recarregar dados
       setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🚫 Erro ao atualizar agendamento:', error)
-      }
+      console.error('🚫 Erro ao atualizar agendamento:', error)
       
       // Tratar diferentes tipos de erro do backend com mensagens específicas
       let errorMessage = "Erro ao atualizar agendamento. Tente novamente."
@@ -1420,9 +1367,7 @@ export default function AgendaPage() {
       await fetchAppointments(currentDateString, statusParam, professionalParam)
       setLastUpdated(new Date()) // Atualizar timestamp
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao concluir agendamento:', error)
-      }
+      console.error('Erro ao concluir agendamento:', error)
       toast({
         title: "❌ Erro",
         description: error instanceof Error ? error.message : "Erro ao concluir agendamento. Tente novamente.",
@@ -2131,26 +2076,24 @@ export default function AgendaPage() {
     // 🇧🇷 CORREÇÃO: Usar função brasileira para obter nome do dia - MESMA usada no hook
     const dayNameBR = getBrazilDayNameEn(selectedDate)
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 getDateStatus Debug DETALHADO:', {
-        dateToCheck,
-        selectedDate: selectedDate.toString(),
-        dayOfWeek: selectedDate.getDay(),
-        dayNameBR,
-        dayNameLocal: selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' }),
-        dayConfig,
-        isOpen,
-        workingHoursAvailable: workingHours?.length || 0,
-        allWorkingHours: workingHours?.map(wh => ({
-          dayOfWeek: wh.dayOfWeek,
-          isActive: wh.isActive,
-          startTime: wh.startTime,
-          endTime: wh.endTime
-        })) || [],
-        establishmentOpenResult: isEstablishmentOpen(selectedDate),
-        debugDate: `Sexta-feira: ${selectedDate.getDay() === 5 ? 'SIM' : 'NÃO'}`
-      })
-    }
+    console.log('🔍 getDateStatus Debug DETALHADO:', {
+      dateToCheck,
+      selectedDate: selectedDate.toString(),
+      dayOfWeek: selectedDate.getDay(),
+      dayNameBR,
+      dayNameLocal: selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' }),
+      dayConfig,
+      isOpen,
+      workingHoursAvailable: workingHours?.length || 0,
+      allWorkingHours: workingHours?.map(wh => ({
+        dayOfWeek: wh.dayOfWeek,
+        isActive: wh.isActive,
+        startTime: wh.startTime,
+        endTime: wh.endTime
+      })) || [],
+      establishmentOpenResult: isEstablishmentOpen(selectedDate),
+      debugDate: `Sexta-feira: ${selectedDate.getDay() === 5 ? 'SIM' : 'NÃO'}`
+    })
     
     if (!isOpen) {
       const dayName = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
@@ -3228,15 +3171,13 @@ export default function AgendaPage() {
               </Button>
               <Button
                 onClick={() => {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('🔍 Botão clicado - Estado atual:', {
-                      endUserId: newAppointment.endUserId,
-                      serviceId: newAppointment.serviceId,
-                      date: newAppointment.date,
-                      time: newAppointment.time,
-                      isEditing: !!editingAppointment
-                    })
-                  }
+                  console.log('🔍 Botão clicado - Estado atual:', {
+                    endUserId: newAppointment.endUserId,
+                    serviceId: newAppointment.serviceId,
+                    date: newAppointment.date,
+                    time: newAppointment.time,
+                    isEditing: !!editingAppointment
+                  })
                   if (editingAppointment) {
                     handleUpdateAppointment()
                   } else {

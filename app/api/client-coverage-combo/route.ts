@@ -6,6 +6,7 @@ import { verifyToken } from '@/lib/auth'
 // Retorna cobertura por assinatura (prioridade) ou pacote (combo exato) com saldo
 export async function GET(request: NextRequest) {
   try {
+    console.log('[coverage-combo][internal][GET] Início')
     const user = verifyToken(request)
     if (!['OWNER', 'COLLABORATOR'].includes(user.role)) {
       return NextResponse.json({ message: 'Acesso negado' }, { status: 403 })
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'clientId e serviceIds são obrigatórios' }, { status: 400 })
     }
     const serviceIds = rawServiceIds.split(',').filter(Boolean)
+    console.log('[coverage-combo][internal][GET] Params:', { clientId, serviceIdsCount: serviceIds.length, tenantId: user.tenantId })
     if (serviceIds.length === 0) {
       return NextResponse.json({ message: 'serviceIds inválido' }, { status: 400 })
     }
@@ -29,31 +31,40 @@ export async function GET(request: NextRequest) {
     const now = new Date()
 
     // 1) Cobertura por assinatura ativa (plano inclui todos os serviços)
-    const subs = await prisma.clientSubscription.findMany({
-      where: {
-        clientId,
-        status: 'ACTIVE',
-        startDate: { lte: now },
-        endDate: { gte: now },
-        plan: { isActive: true, tenantId: user.tenantId }
-      },
-      include: { plan: { include: { services: { select: { id: true, name: true } } } } }
-    })
-    const coveringSub = subs.find((s: { plan: { id: string; name: string; services?: { id: string; name?: string }[] } }) => {
-      const allowedSet = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
-      return serviceIds.every(id => allowedSet.has(id))
-    })
-    if (coveringSub) {
-      return NextResponse.json({
-        covered: true,
-        coveredBy: 'subscription',
-        subscription: { planId: coveringSub.plan.id, planName: coveringSub.plan.name },
-        message: `Coberto pela assinatura: ${coveringSub.plan.name}`,
+    try {
+      console.log('[coverage-combo][internal][GET] Tentando via Prisma (assinaturas com include de serviços)')
+      const subs = await prisma.clientSubscription.findMany({
+        where: {
+          clientId,
+          status: 'ACTIVE',
+          startDate: { lte: now },
+          endDate: { gte: now },
+          plan: { isActive: true, tenantId: user.tenantId }
+        },
+        include: { plan: { include: { services: { select: { id: true, name: true } } } } }
       })
+      console.log('[coverage-combo][internal][GET] Prisma retornou assinaturas:', subs.length)
+      const coveringSub = subs.find((s: { plan: { id: string; name: string; services?: { id: string; name?: string }[] } }) => {
+        const allowedSet = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
+        return serviceIds.every(id => allowedSet.has(id))
+      })
+      if (coveringSub) {
+        console.log('[coverage-combo][internal][GET] Coberto por assinatura (Prisma):', coveringSub.plan?.id)
+        return NextResponse.json({
+          covered: true,
+          coveredBy: 'subscription',
+          subscription: { planId: coveringSub.plan.id, planName: coveringSub.plan.name },
+          message: `Coberto pela assinatura: ${coveringSub.plan.name}`,
+        })
+      }
+    } catch (e) {
+      console.warn('[coverage-combo][internal][GET] Falha via Prisma, indo para fallback SQL. err=', (e as any)?.message)
+      // Segue para fallback SQL
     }
 
     // Fallback SQL: checar assinatura ativa e serviços via join table
     try {
+      console.log('[coverage-combo][internal][GET] Fallback SQL: buscando planos ativos do cliente')
       const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
         SELECT cs.planId as planId
         FROM client_subscriptions cs
@@ -63,6 +74,7 @@ export async function GET(request: NextRequest) {
           AND cs.startDate <= ${now}
           AND cs.endDate >= ${now}
       `
+      console.log('[coverage-combo][internal][GET] Fallback SQL: planos encontrados=', planRows.length)
       if (planRows.length > 0) {
         const ids = [...new Set(planRows.map(r => r.planId))]
         const placeholders = ids.map(() => '?').join(',')
@@ -70,6 +82,7 @@ export async function GET(request: NextRequest) {
           `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
           ...ids
         )
+        console.log('[coverage-combo][internal][GET] Fallback SQL: linhas da join table=', allowed.length)
         const byPlan = new Map<string, Set<string>>()
         for (const row of allowed) {
           const set = byPlan.get(row.planId) || new Set<string>()
@@ -79,21 +92,25 @@ export async function GET(request: NextRequest) {
         for (const pid of ids) {
           const set = byPlan.get(pid) || new Set<string>()
           if (serviceIds.every(id => set.has(id))) {
+            console.log('[coverage-combo][internal][GET] Coberto por assinatura (SQL) planId=', pid)
             return NextResponse.json({ covered: true, coveredBy: 'subscription', subscription: { planId: pid }, message: 'Coberto pela assinatura.' })
           }
         }
       }
     } catch (e) {
+      console.warn('[coverage-combo][internal][GET] Erro no fallback SQL para assinatura:', (e as any)?.message)
       // Ignora e segue para checagem de pacotes
     }
 
     // 2) Cobertura por pacote (combo exato) com saldo > 0
+    console.log('[coverage-combo][internal][GET] Verificando pacotes elegíveis (combo exato)')
     const packagesBase = await prisma.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
       SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
       FROM client_packages
       WHERE clientId = ${clientId}
         AND (expiresAt IS NULL OR expiresAt > ${now})
     `
+    console.log('[coverage-combo][internal][GET] Pacotes base encontrados=', packagesBase.length)
     let allowedRows: Array<{ clientPackageId: string, serviceId: string }> = []
     if (packagesBase.length > 0) {
       const ids = packagesBase.map(p => p.id)
@@ -102,6 +119,7 @@ export async function GET(request: NextRequest) {
         `SELECT clientPackageId, serviceId FROM client_package_allowed_services WHERE clientPackageId IN (${placeholders})`,
         ...ids
       )
+      console.log('[coverage-combo][internal][GET] Linhas de serviços permitidos (pacotes)=', allowedRows.length)
     }
     const allowedMap = new Map<string, string[]>()
     for (const row of allowedRows) {
@@ -119,6 +137,7 @@ export async function GET(request: NextRequest) {
       return true
     })
     if (eligible.length > 0) {
+      console.log('[coverage-combo][internal][GET] Coberto por pacote. qtd elegíveis=', eligible.length)
       eligible.sort((a, b) => {
         const ax = a.expiresAt ? a.expiresAt.getTime() : Number.POSITIVE_INFINITY
         const bx = b.expiresAt ? b.expiresAt.getTime() : Number.POSITIVE_INFINITY
@@ -135,9 +154,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    console.log('[coverage-combo][internal][GET] Sem cobertura encontrada')
     return NextResponse.json({ covered: false })
   } catch (error: any) {
-    console.error('Erro em /api/client-coverage-combo:', error)
+    console.error('[coverage-combo][internal][GET] Erro inesperado:', error)
     const status = error?.status || (error?.message?.includes('Token') ? 401 : 500)
     return NextResponse.json({ message: error?.message || 'Erro interno' }, { status })
   }
