@@ -25,8 +25,26 @@ export async function GET(request: NextRequest) {
       const msg = err instanceof Error ? err.message : ''
       try {
         // Fallback 1: listar sem include via delegate
-        const plans = await prisma.subscriptionPlan.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } })
-        return NextResponse.json({ plans, warning: 'Planos listados sem serviços vinculados. Motivo: ' + (msg || 'falha ao carregar serviços.') })
+        const plans: any[] = await prisma.subscriptionPlan.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } })
+        // Tentar enriquecer com serviços via SQL
+        const ids = plans.map(p => p.id)
+        if (ids.length > 0) {
+          const placeholders = ids.map(() => '?').join(',')
+          const svcRows = await prisma.$queryRawUnsafe<Array<{ planId: string, id: string, name: string }>>(
+            `SELECT link.B as planId, s.id, s.name FROM _ServiceToSubscriptionPlan link JOIN services s ON s.id = link.A WHERE link.B IN (${placeholders})`,
+            ...ids
+          )
+          const byPlan = new Map<string, Array<{ id: string, name: string }>>()
+          for (const r of svcRows) {
+            const arr = byPlan.get(r.planId) || []
+            arr.push({ id: r.id, name: r.name })
+            byPlan.set(r.planId, arr)
+          }
+          for (const p of plans) {
+            p.services = byPlan.get(p.id) || []
+          }
+        }
+        return NextResponse.json({ plans, warning: 'Planos listados sem include de serviços (fallback). Motivo: ' + (msg || 'falha ao carregar serviços.') })
       } catch {
         // Fallback 2: delegate ausente — usar SQL bruto
         const rows = await prisma.$queryRaw<Array<any>>`
@@ -35,7 +53,24 @@ export async function GET(request: NextRequest) {
           WHERE tenantId = ${tenantId}
           ORDER BY createdAt DESC
         `
-        return NextResponse.json({ plans: rows, warning: 'Listagem via SQL bruto (delegate Prisma indisponível). Serviços não incluídos.' })
+        if (rows.length > 0) {
+          const ids = rows.map(r => r.id)
+          const placeholders = ids.map(() => '?').join(',')
+          const svcRows = await prisma.$queryRawUnsafe<Array<{ planId: string, id: string, name: string }>>(
+            `SELECT link.B as planId, s.id, s.name FROM _ServiceToSubscriptionPlan link JOIN services s ON s.id = link.A WHERE link.B IN (${placeholders})`,
+            ...ids
+          )
+          const byPlan = new Map<string, Array<{ id: string, name: string }>>()
+          for (const r of svcRows) {
+            const arr = byPlan.get(r.planId) || []
+            arr.push({ id: r.id, name: r.name })
+            byPlan.set(r.planId, arr)
+          }
+          for (const p of rows as any[]) {
+            p.services = byPlan.get(p.id) || []
+          }
+        }
+        return NextResponse.json({ plans: rows, warning: 'Listagem via SQL bruto (delegate Prisma indisponível).' })
       }
     }
   } catch (error: any) {
@@ -94,7 +129,11 @@ export async function POST(request: NextRequest) {
                 plan.id
               )
             }
-            return NextResponse.json({ plan, warning: 'Serviços vinculados via SQL bruto (fallback). Recomenda-se aplicar a migration e regenerar o Prisma.' }, { status: 201 })
+            // Enriquecer com serviços após inserir via SQL
+            const svcRows = await prisma.$queryRaw<Array<{ id: string, name: string }>>`
+              SELECT s.id, s.name FROM _ServiceToSubscriptionPlan link JOIN services s ON s.id = link.A WHERE link.B = ${plan.id}
+            `
+            return NextResponse.json({ plan: { ...plan, services: svcRows }, warning: 'Serviços vinculados via SQL bruto (fallback). Recomenda-se aplicar a migration e regenerar o Prisma.' }, { status: 201 })
           } catch (sqlErr) {
             const warn = 'Plano criado, mas os serviços não foram vinculados. Verifique se a migração da tabela de junção está aplicada e tente editar o plano para adicionar os serviços.'
             return NextResponse.json({ plan, warning: warn }, { status: 201 })
@@ -121,7 +160,10 @@ export async function POST(request: NextRequest) {
               id
             )
           }
-          return NextResponse.json({ plan, warning: 'Plano criado via SQL bruto; serviços vinculados via SQL. Recomenda-se aplicar a migration e regenerar o Prisma.' }, { status: 201 })
+          const svcRows = await prisma.$queryRaw<Array<{ id: string, name: string }>>`
+            SELECT s.id, s.name FROM _ServiceToSubscriptionPlan link JOIN services s ON s.id = link.A WHERE link.B = ${id}
+          `
+          return NextResponse.json({ plan: { ...plan, services: svcRows }, warning: 'Plano criado via SQL bruto; serviços vinculados via SQL. Recomenda-se aplicar a migration e regenerar o Prisma.' }, { status: 201 })
         } catch (sqlErr) {
           return NextResponse.json({ plan, warning: 'Plano criado via SQL bruto (delegate Prisma indisponível). Serviços não foram vinculados.' }, { status: 201 })
         }
@@ -178,6 +220,22 @@ export async function PUT(request: NextRequest) {
       params.push(id)
       await prisma.$executeRawUnsafe(sql, ...params)
       const plan = { id, name, price, cycleInDays, isActive }
+      // Se serviços foram enviados, tentar regravar via SQL bruto
+      if (Array.isArray(services) && services.length > 0) {
+        try {
+          await prisma.$executeRaw`DELETE FROM _ServiceToSubscriptionPlan WHERE B = ${id}`
+          const valid = await prisma.service.findMany({ where: { id: { in: services }, tenantId: user.tenantId }, select: { id: true } })
+          for (const s of valid) {
+            await prisma.$executeRawUnsafe('INSERT IGNORE INTO _ServiceToSubscriptionPlan (A, B) VALUES (?, ?)', s.id, id)
+          }
+          const svcRows = await prisma.$queryRaw<Array<{ id: string, name: string }>>`
+            SELECT s.id, s.name FROM _ServiceToSubscriptionPlan link JOIN services s ON s.id = link.A WHERE link.B = ${id}
+          `
+          return NextResponse.json({ plan: { ...plan, services: svcRows }, warning: 'Plano atualizado via SQL bruto; serviços regravados via SQL.' })
+        } catch {
+          return NextResponse.json({ plan, warning: 'Plano atualizado via SQL bruto. Não foi possível alterar serviços (fallback).' })
+        }
+      }
       return NextResponse.json({ plan, warning: 'Plano atualizado via SQL bruto (delegate Prisma/join table indisponível). Serviços não foram alterados.' })
     }
   } catch (error: any) {
