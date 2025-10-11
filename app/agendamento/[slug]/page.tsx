@@ -902,14 +902,19 @@ export default function AgendamentoPage() {
   }
 
   // -------- Créditos: helpers e busca pública (combo exato) --------
+  const [isCoveredBySubscription, setIsCoveredBySubscription] = useState(false)
+  const [coverageMessage, setCoverageMessage] = useState<string>("")
+
   const fetchPublicCredits = async () => {
     try {
       if (!selectedServiceId) return
       const rawPhone = customerData.phone.replace(/\D/g, '')
       if (rawPhone.length < 10) return
       setCreditInfoLoading(true)
-      setAvailableCredits(0)
+  setAvailableCredits(0)
       setCreditExpiresAt(null)
+  setIsCoveredBySubscription(false)
+  setCoverageMessage("")
 
       const allServiceIds = [selectedServiceId, ...((addedUpsells || []).map(u => u.id))]
       const url = new URL(`/api/public/client-coverage-combo`, window.location.origin)
@@ -926,14 +931,20 @@ export default function AgendamentoPage() {
       const data = await res.json()
       if (data.coveredBy === 'subscription') {
         // Assinatura cobre totalmente
+        setIsCoveredBySubscription(true)
+        setCoverageMessage(data.message || 'Coberto por assinatura')
         setAvailableCredits(0)
         setCreditExpiresAt(null)
       } else if (data.coveredBy === 'package' && data.package) {
         setAvailableCredits(Number(data.package.creditsRemaining || 0))
         setCreditExpiresAt(data.package.expiresAt || null)
+        setIsCoveredBySubscription(false)
+        setCoverageMessage("")
       } else {
         setAvailableCredits(0)
         setCreditExpiresAt(null)
+        setIsCoveredBySubscription(false)
+        setCoverageMessage("")
       }
     } catch (e) {
       console.error('Erro ao buscar créditos públicos (combo):', e)
@@ -958,13 +969,12 @@ export default function AgendamentoPage() {
   // Total efetivo considerando uso de crédito por combo exato
   const getEffectiveTotalPrice = () => {
     const base = calculateTotals().totalPrice
+    if (isCoveredBySubscription) return 0
     if (availableCredits > 0) {
       // Combo coberto: preço total vira 0
       return 0
     }
     // Assinatura ativa e cobrindo todos os serviços: preço 0
-    // Como não mantemos um state separado aqui, inferimos assinatura quando credits === 0 mas API retornou coveredBy subscription
-    // Para simplificar, o efeito acima já zera por não setar créditos; então mantemos base
     return base
   }
 

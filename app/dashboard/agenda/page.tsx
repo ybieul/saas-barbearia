@@ -306,7 +306,13 @@ export default function AgendaPage() {
         setCreditInfoLoading(true)
         const serviceIds = (selectedServices.length > 0 ? selectedServices : [newAppointment.serviceId]).join(',')
         const sp = new URLSearchParams({ clientId: newAppointment.endUserId, serviceIds })
-        const res = await fetch(`/api/client-coverage-combo?${sp.toString()}`, { headers: { 'Content-Type': 'application/json' } })
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const res = await fetch(`/api/client-coverage-combo?${sp.toString()}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.message || 'Erro ao verificar créditos')
         const wasUsing = usePackageCredit
@@ -3014,17 +3020,25 @@ export default function AgendaPage() {
                             </div>
                             {newAppointment.endUserId && newAppointment.serviceId && (
                               <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={usePackageCredit && availableCredits > 0}
-                                  disabled={creditInfoLoading || availableCredits === 0}
-                                  onCheckedChange={(v)=> setUsePackageCredit(!!v && availableCredits>0)}
-                                />
-                                <span className="text-xs text-[#ededed]">
-                                  {creditInfoLoading ? 'Verificando créditos...'
-                                    : availableCredits > 0
-                                      ? `Usar 1 crédito (${availableCredits} disponível${availableCredits>1?'s':''}${creditExpiresAt?`, validade ${creditExpiresAt.toLocaleDateString('pt-BR')}`:''})`
-                                      : 'Sem créditos para este combo'}
-                                </span>
+                                {isCoveredBySubscription ? (
+                                  <span className="text-xs text-emerald-400">
+                                    {coverageMessage || 'Coberto por assinatura'}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <Switch
+                                      checked={usePackageCredit && availableCredits > 0}
+                                      disabled={creditInfoLoading || availableCredits === 0}
+                                      onCheckedChange={(v)=> setUsePackageCredit(!!v && availableCredits>0)}
+                                    />
+                                    <span className="text-xs text-[#ededed]">
+                                      {creditInfoLoading ? 'Verificando créditos...'
+                                        : availableCredits > 0
+                                          ? `Usar 1 crédito (${availableCredits} disponível${availableCredits>1?'s':''}${creditExpiresAt?`, validade ${creditExpiresAt.toLocaleDateString('pt-BR')}`:''})`
+                                          : 'Sem créditos para este combo'}
+                                    </span>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
