@@ -1376,11 +1376,9 @@ export default function AgendamentoPage() {
                         </h4>
                         <div className="text-right">
                           <div className="font-bold text-2xl text-[#ededed] leading-tight">
-                            {availableCredits > 0 ? (
-                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
-                            ) : (
-                              formatCurrency(calculateTotals().totalPrice)
-                            )}
+                            <span className={(isCoveredBySubscription || availableCredits > 0) ? "text-emerald-400" : undefined}>
+                              {formatCurrency(getEffectiveTotalPrice())}
+                            </span>
                           </div>
                           <div className="text-[#a1a1aa] text-xs font-medium">
                             {calculateTotals().totalDuration} minutos
@@ -1390,6 +1388,11 @@ export default function AgendamentoPage() {
                       {availableCredits > 0 && (
                         <div className="mt-2 text-xs text-emerald-300">
                           Crédito disponível será utilizado neste agendamento {creditExpiresAt ? `(vence em ${formatBrazilDate(new Date(creditExpiresAt))})` : ''}
+                        </div>
+                      )}
+                      {isCoveredBySubscription && (
+                        <div className="mt-2 text-xs text-emerald-300">
+                          Assinatura ativa: você não paga nada neste agendamento
                         </div>
                       )}
                     </div>
@@ -2168,17 +2171,21 @@ export default function AgendamentoPage() {
                         <span className="text-[#ededed] font-medium">{calculateTotals().totalDuration}min</span>
                       </div>
                       
-                      <div className="flex justify-between border-t border-[#3f3f46] pt-3">
-                        <span className="text-[#a1a1aa]">Valor Total:</span>
+                      <div className="flex justify-between items-start gap-3 border-t border-[#3f3f46] pt-3">
+                        <span className="text-[#a1a1aa] mt-1">Valor Total:</span>
                         <div className="text-right">
-                          <div className="text-[#ededed] font-bold text-lg">
-                            {availableCredits > 0 ? (
-                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
-                            ) : (
-                              formatCurrency(calculateTotals().totalPrice)
+                          <div className="text-[#ededed] font-bold text-lg flex items-center gap-2 justify-end">
+                            <span className={(isCoveredBySubscription || availableCredits > 0) ? "text-emerald-400" : undefined}>
+                              {formatCurrency(getEffectiveTotalPrice())}
+                            </span>
+                            {isCoveredBySubscription && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                Coberto pela assinatura
+                              </span>
                             )}
                           </div>
-                          {availableCredits > 0 && (
+                          {/* Mostrar bloco de crédito apenas quando NÃO há cobertura por assinatura */}
+                          {!isCoveredBySubscription && availableCredits > 0 && (
                             <div className="text-xs text-emerald-300 mt-1 space-y-1 text-right">
                               <div>Crédito disponível será utilizado</div>
                               <div className="text-[11px] text-emerald-400/90">
@@ -2189,6 +2196,12 @@ export default function AgendamentoPage() {
                                   Validade do pacote: {new Date(creditExpiresAt).toLocaleDateString('pt-BR')}
                                 </div>
                               )}
+                            </div>
+                          )}
+                          {/* Aviso complementar quando assinatura cobre */}
+                          {isCoveredBySubscription && (
+                            <div className="text-xs text-emerald-300 mt-1 text-right">
+                              Nenhum pagamento agora — sua assinatura cobre este agendamento
                             </div>
                           )}
                         </div>
@@ -2319,15 +2332,24 @@ export default function AgendamentoPage() {
                           <span>Valor Total:</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[#ededed] font-bold text-xl">
-                            {availableCredits > 0 ? (
-                              <span className="text-emerald-400">{formatCurrency(getEffectiveTotalPrice())}</span>
-                            ) : (
-                              formatCurrency(calculateTotals().totalPrice)
+                          <div className="flex items-center gap-2 justify-end">
+                            <span className="text-[#ededed] font-bold text-xl">
+                              <span className={(isCoveredBySubscription || availableCredits > 0) ? "text-emerald-400" : undefined}>
+                                {formatCurrency(getEffectiveTotalPrice())}
+                              </span>
+                            </span>
+                            {isCoveredBySubscription && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                Coberto pela assinatura
+                              </span>
                             )}
-                          </span>
-                          {availableCredits > 0 && (
+                          </div>
+                          {/* Mostrar aviso de crédito apenas quando NÃO há assinatura */}
+                          {!isCoveredBySubscription && availableCredits > 0 && (
                             <div className="text-xs text-emerald-300 mt-1">Crédito utilizado neste agendamento</div>
+                          )}
+                          {isCoveredBySubscription && (
+                            <div className="text-xs text-emerald-300 mt-1">Nenhum pagamento agora — sua assinatura cobre este agendamento</div>
                           )}
                         </div>
                       </div>
@@ -2379,7 +2401,7 @@ export default function AgendamentoPage() {
                         const mainService = getMainService()
                         const allServices = mainService ? [mainService, ...addedUpsells] : []
                         const servicesText = allServices.map(s => s.name).join(', ')
-                        const message = `🎉 Agendamento confirmado!\n\n📅 Data: ${formatBrazilDate(parseDate(selectedDate))}\n⏰ Horário: ${selectedTime}\n✂️ Serviços: ${servicesText}\n👨‍💼 Profissional: ${selectedProfessional?.name || "Qualquer profissional"}\n💰 Valor Total: ${formatCurrency(calculateTotals().totalPrice)}`
+                        const message = `🎉 Agendamento confirmado!\n\n📅 Data: ${formatBrazilDate(parseDate(selectedDate))}\n⏰ Horário: ${selectedTime}\n✂️ Serviços: ${servicesText}\n👨‍💼 Profissional: ${selectedProfessional?.name || "Qualquer profissional"}\n💰 Valor Total: ${formatCurrency(getEffectiveTotalPrice())}`
                         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
                         window.open(whatsappUrl, '_blank')
                       }}
