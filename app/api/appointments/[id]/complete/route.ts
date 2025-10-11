@@ -90,6 +90,43 @@ export async function PATCH(
         shouldCreateFinancialRecord = false
       }
 
+      // Fallback SQL: se ainda não cobriu, checar via join table
+      if (!subCoversAll) {
+        try {
+          const planRows = await tx.$queryRaw<Array<{ planId: string }>>`
+            SELECT cs.planId as planId
+            FROM client_subscriptions cs
+            JOIN subscription_plans sp ON sp.id = cs.planId AND sp.isActive = 1 AND sp.tenantId = ${existingAppointment.tenantId}
+            WHERE cs.clientId = ${existingAppointment.endUserId}
+              AND cs.status = 'ACTIVE'
+              AND cs.startDate <= ${now}
+              AND cs.endDate >= ${now}
+          `
+          if (planRows.length > 0) {
+            const ids = [...new Set(planRows.map(r => r.planId))]
+            const placeholders = ids.map(() => '?').join(',')
+            const allowed = await tx.$queryRawUnsafe<Array<{ planId: string, serviceId: string }>>(
+              `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
+              ...ids
+            )
+            const byPlan = new Map<string, Set<string>>()
+            for (const row of allowed) {
+              const set = byPlan.get(row.planId) || new Set<string>()
+              set.add(row.serviceId)
+              byPlan.set(row.planId, set)
+            }
+            for (const pid of ids) {
+              const set = byPlan.get(pid) || new Set<string>()
+              if (serviceIdsSelected.every(id => set.has(id))) {
+                totalPrice = 0
+                shouldCreateFinancialRecord = false
+                break
+              }
+            }
+          }
+        } catch {}
+      }
+
       // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
       if (wantsToUseCredit && !alreadyDebited) {
         const servicesSelected = existingAppointment.services.map(s => s.id)

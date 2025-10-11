@@ -51,6 +51,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ covered: true, coveredBy: 'subscription', subscription: { planId: coveringSub.plan.id, planName: coveringSub.plan.name } })
     }
 
+    // Fallback SQL: checar assinatura ativa e serviços via join table
+    try {
+      const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
+        SELECT cs.planId as planId
+        FROM client_subscriptions cs
+        JOIN subscription_plans sp ON sp.id = cs.planId AND sp.isActive = 1 AND sp.tenantId = ${tenant.id}
+        WHERE cs.clientId = ${client.id}
+          AND cs.status = 'ACTIVE'
+          AND cs.startDate <= ${now}
+          AND cs.endDate >= ${now}
+      `
+      if (planRows.length > 0) {
+        const ids = [...new Set(planRows.map(r => r.planId))]
+        const placeholders = ids.map(() => '?').join(',')
+        const allowed = await prisma.$queryRawUnsafe<Array<{ planId: string, serviceId: string }>>(
+          `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
+          ...ids
+        )
+        const byPlan = new Map<string, Set<string>>()
+        for (const row of allowed) {
+          const set = byPlan.get(row.planId) || new Set<string>()
+          set.add(row.serviceId)
+          byPlan.set(row.planId, set)
+        }
+        for (const pid of ids) {
+          const set = byPlan.get(pid) || new Set<string>()
+          if (serviceIds.every(id => set.has(id))) {
+            return NextResponse.json({ covered: true, coveredBy: 'subscription', subscription: { planId: pid } })
+          }
+        }
+      }
+    } catch (e) {
+      // Ignora e segue para checagem de pacotes
+    }
+
     // 2) Pacote (combo exato) com saldo
     const packagesBase = await prisma.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
       SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
