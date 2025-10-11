@@ -3,13 +3,16 @@
 import type React from "react"
 
 import { useState } from "react"
+import Image from "next/image" // mantido se houver uso futuro
+import AuthLogo from "@/components/auth-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Scissors, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useNotification } from "@/hooks/use-notification"
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -22,17 +25,18 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const notification = useNotification()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      alert("As senhas não coincidem!")
+      notification.error("As senhas não coincidem!")
       return
     }
 
     if (formData.password.length < 6) {
-      alert("A senha deve ter pelo menos 6 caracteres!")
+      notification.error("A senha deve ter pelo menos 6 caracteres!")
       return
     }
 
@@ -55,18 +59,23 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Salvar dados do usuário e token
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token)
+        // Usar os mesmos nomes que o AuthProvider usa
+        localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
         
-        alert('Conta criada com sucesso!')
-        router.push('/dashboard')
+        // Salvar cookie para o middleware (mesmo padrão do AuthProvider)
+        document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 dias
+        
+        notification.success('Conta criada com sucesso!')
+        
+        // Redirecionar para login para garantir fluxo correto
+        router.push('/login')
       } else {
-        alert(data.message || 'Erro ao criar conta')
+        notification.error(data.message || 'Erro ao criar conta')
       }
     } catch (error) {
       console.error('Erro no registro:', error)
-      alert('Erro interno. Tente novamente.')
+      notification.error('Erro interno. Tente novamente.')
     } finally {
       setIsLoading(false)
     }
@@ -77,19 +86,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-lg flex items-center justify-center shadow-lg shadow-[#10b981]/25">
-            <Scissors className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#18181b] to-[#0a0a0a] p-4">
+      
+      {/* Container centralizado verticalmente */}
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md text-center">
+          
+          {/* Logo vinculada ao card */}
+          <div className="mb-6">
+            <AuthLogo />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#10b981] to-[#fbbf24] bg-clip-text text-transparent">
-            AgendaPro
-          </span>
-        </div>
 
-        <Card className="bg-[#18181b] border-[#27272a] shadow-2xl">
+        <Card className="bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#ededed]">Crie sua conta</CardTitle>
             <CardDescription className="text-[#71717a]">Comece a transformar seu negócio hoje mesmo</CardDescription>
@@ -106,7 +114,7 @@ export default function RegisterPage() {
                   placeholder="Ex: Barbearia do João"
                   value={formData.businessName}
                   onChange={(e) => handleInputChange("businessName", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981]"
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
                   required
                 />
               </div>
@@ -120,7 +128,7 @@ export default function RegisterPage() {
                   placeholder="seu@email.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981]"
+                  className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary"
                   required
                 />
               </div>
@@ -135,7 +143,7 @@ export default function RegisterPage() {
                     placeholder="Mínimo 6 caracteres"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                     minLength={6}
                     required
                   />
@@ -159,7 +167,7 @@ export default function RegisterPage() {
                     placeholder="Digite a senha novamente"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-[#10b981] focus:ring-[#10b981] pr-10"
+                    className="bg-[#3f3f46] border-[#52525b] text-[#ededed] placeholder:text-[#a1a1aa] focus:border-tymer-primary focus:ring-tymer-primary focus-visible:ring-tymer-primary pr-10"
                     required
                   />
                   <button
@@ -173,10 +181,10 @@ export default function RegisterPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white border-0 transition-all duration-200"
+                className="w-full bg-tymer-primary hover:bg-tymer-primary/80 text-white border-0 transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? "Criando conta..." : "Criar Conta Gratuita"}
+                {isLoading ? "Criando conta..." : "Criar Conta"}
               </Button>
             </form>
 
@@ -195,6 +203,8 @@ export default function RegisterPage() {
           <Link href="/" className="text-[#71717a] hover:text-[#ededed] text-sm transition-colors">
             ← Voltar para o site
           </Link>
+        </div>
+        
         </div>
       </div>
     </div>
