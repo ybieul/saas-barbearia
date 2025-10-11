@@ -11,12 +11,12 @@ export async function GET(request: NextRequest) {
 
     // MRR: soma dos preços de planos ativos com alguma assinatura ativa
     const now = new Date()
-    const activeClientSubs = await (prisma as any).clientSubscription.findMany({
+    const activeClientSubs = await prisma.clientSubscription.findMany({
       where: { status: 'ACTIVE', startDate: { lte: now }, endDate: { gte: now }, plan: { isActive: true, tenantId } },
       select: { plan: { select: { price: true } }, clientId: true }
-    }) as Array<{ plan: { price: any }, clientId: string }>
-    const mrr = activeClientSubs.reduce<number>((sum, s) => sum + Number(s.plan.price), 0)
-    const activeSubscriptions = new Set(activeClientSubs.map((s) => s.clientId)).size
+    })
+  const mrr = activeClientSubs.reduce<number>((sum: number, s: { plan: { price: unknown }, clientId: string }) => sum + Number(s.plan.price as number), 0)
+  const activeSubscriptions = new Set(activeClientSubs.map((s: { clientId: string }) => s.clientId)).size
 
     // Pacotes ativos: clientes distintos com pacotes válidos e saldo > 0
     const rows = await prisma.$queryRaw<Array<{ clientId: string }>>`

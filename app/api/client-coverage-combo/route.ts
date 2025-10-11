@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
 
     // 1) Cobertura por assinatura ativa (plano inclui todos os serviços)
-    const subs = await (prisma as any).clientSubscription.findMany({
+    const subs = await prisma.clientSubscription.findMany({
       where: {
         clientId,
         status: 'ACTIVE',
@@ -38,10 +38,9 @@ export async function GET(request: NextRequest) {
         plan: { isActive: true, tenantId: user.tenantId }
       },
       include: { plan: { include: { services: { select: { id: true, name: true } } } } }
-    }) as Array<{ id: string, plan: { id: string, name: string, services: { id: string, name: string }[] } }>
-
-    const coveringSub = subs.find(s => {
-      const allowedSet = new Set(s.plan.services.map(x => x.id))
+    })
+    const coveringSub = subs.find((s: { plan: { id: string; name: string; services?: { id: string; name?: string }[] } }) => {
+      const allowedSet = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
       return serviceIds.every(id => allowedSet.has(id))
     })
     if (coveringSub) {
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest) {
     if (packagesBase.length > 0) {
       const ids = packagesBase.map(p => p.id)
       const placeholders = ids.map(() => '?').join(',')
-      // @ts-ignore
       allowedRows = await prisma.$queryRawUnsafe(
         `SELECT clientPackageId, serviceId FROM client_package_allowed_services WHERE clientPackageId IN (${placeholders})`,
         ...ids

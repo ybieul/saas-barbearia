@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Tenta incluir serviços normalmente; se falhar (ex.: tabela de junção ausente ou permissão), faz fallback sem include
     try {
-      const plans = await prisma.subscriptionPlan.findMany({
+  const plans = await prisma.subscriptionPlan.findMany({
         where: { tenantId },
         include: { services: { select: { id: true, name: true } }, _count: { select: { clientSubscriptions: true } } },
         orderBy: { createdAt: 'desc' }
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ plans })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
-      const plans = await prisma.subscriptionPlan.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } })
+  const plans = await prisma.subscriptionPlan.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } })
       return NextResponse.json({ plans, warning: 'Planos listados sem serviços vinculados. Motivo: ' + (msg || 'falha ao carregar serviços.') })
     }
   } catch (error: any) {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 1) Cria o plano básico
-      let plan = await prisma.subscriptionPlan.create({
+  let plan = await prisma.subscriptionPlan.create({
         data: {
           name: body.name,
           price: body.price,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       const msg = err?.message || ''
       if ((err as Prisma.PrismaClientKnownRequestError)?.code === 'P2021' || (err as Prisma.PrismaClientKnownRequestError)?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
         // Fallback: cria o plano sem relacionar serviços e retorna aviso
-        const plan = await prisma.subscriptionPlan.create({
+  const plan = await prisma.subscriptionPlan.create({
           data: {
             name: body.name,
             price: body.price,
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
     }
 
     try {
-      const plan = await prisma.subscriptionPlan.update({
+  const plan = await prisma.subscriptionPlan.update({
         where: { id },
         data: {
           ...(name !== undefined && { name }),
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
       const msg = err?.message || ''
       if ((err as Prisma.PrismaClientKnownRequestError)?.code === 'P2021' || (err as Prisma.PrismaClientKnownRequestError)?.code === 'P2022' || /doesn't exist|does not exist|Unknown table/i.test(msg)) {
         // Fallback: atualiza somente campos básicos e ignora SET de serviços
-        const plan = await prisma.subscriptionPlan.update({
+  const plan = await prisma.subscriptionPlan.update({
           where: { id },
           data: {
             ...(name !== undefined && { name }),
@@ -163,7 +163,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ message: 'id é obrigatório' }, { status: 400 })
 
-    await prisma.subscriptionPlan.delete({ where: { id } })
+  await prisma.subscriptionPlan.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error: any) {
     const status = error instanceof AuthError ? error.status : 500

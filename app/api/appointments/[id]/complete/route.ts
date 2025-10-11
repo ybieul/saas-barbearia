@@ -71,7 +71,7 @@ export async function PATCH(
       // Antes: verificar cobertura por assinatura (plano que cobre todos os serviços do agendamento)
       const serviceIdsSelected = existingAppointment.services.map(s => s.id)
       const now = new Date()
-      const subs = await (tx as any).clientSubscription.findMany({
+      const subs = await tx.clientSubscription.findMany({
         where: {
           clientId: existingAppointment.endUserId,
           status: 'ACTIVE',
@@ -80,9 +80,9 @@ export async function PATCH(
           plan: { isActive: true, tenantId: existingAppointment.tenantId }
         },
         include: { plan: { include: { services: { select: { id: true } } } } }
-      }) as Array<{ plan: { services: { id: string }[] } }>
-      const subCoversAll = subs.some(s => {
-        const allowed = new Set(s.plan.services.map(x => x.id))
+      })
+      const subCoversAll = subs.some((s: { plan?: { services?: { id: string }[] } }) => {
+        const allowed = new Set((s.plan?.services || []).map((x: { id: string }) => x.id))
         return serviceIdsSelected.every(id => allowed.has(id))
       })
       if (subCoversAll) {
@@ -105,7 +105,7 @@ export async function PATCH(
           const pkg = await tx.clientPackage.findFirst({
             where: { id: markerPackageId, clientId: existingAppointment.endUserId, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
             select: { id: true, purchasedAt: true, expiresAt: true }
-          }) as any
+          })
           if (!pkg) throw new Error('Pacote marcado não encontrado ou expirado')
           const allowedRows = await tx.$queryRaw<Array<{ serviceId: string }>>`
             SELECT serviceId FROM client_package_allowed_services WHERE clientPackageId = ${pkg.id}
@@ -141,7 +141,6 @@ export async function PATCH(
           if (packagesBase.length > 0) {
             const ids = packagesBase.map(p => p.id)
             const placeholders = ids.map(() => '?').join(',')
-            // @ts-ignore
             allowedRows2 = await tx.$queryRawUnsafe(
               `SELECT clientPackageId, serviceId FROM client_package_allowed_services WHERE clientPackageId IN (${placeholders})`,
               ...ids

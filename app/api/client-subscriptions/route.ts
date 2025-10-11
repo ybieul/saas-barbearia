@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Valida tenant e dados
-  const plan = await (prisma as any).subscriptionPlan.findFirst({ where: { id: planId, tenantId: user.tenantId, isActive: true } })
+    const plan = await prisma.subscriptionPlan.findFirst({ where: { id: planId, tenantId: user.tenantId, isActive: true } })
     if (!plan) return NextResponse.json({ message: 'Plano não encontrado' }, { status: 404 })
 
     const client = await prisma.endUser.findFirst({ where: { id: clientId, tenantId: user.tenantId } })
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const priceToCharge = overridePrice != null ? Number(overridePrice) : Number(plan.price)
 
-    const result = await prisma.$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx) => {
       const sub = await tx.clientSubscription.create({
         data: { clientId, planId, startDate: start, endDate: end, status: 'ACTIVE' }
       })
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId')
     if (!clientId) return NextResponse.json({ message: 'clientId é obrigatório' }, { status: 400 })
 
-    const items = await (prisma as any).clientSubscription.findMany({
+    const items = await prisma.clientSubscription.findMany({
       where: { clientId, plan: { tenantId: user.tenantId } },
       orderBy: { startDate: 'desc' },
       include: { plan: true }
