@@ -89,7 +89,7 @@ export default function ClientesPage() {
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
 
   useEffect(() => {
-    fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined }) // Buscar clientes ativos; incluir walk-ins se selecionado
+    fetchClients(true, { includeWalkIn: showWalkIns }) // Buscar clientes ativos; incluir walk-ins se selecionado
   }, [fetchClients, showWalkIns])
 
   // Carrega pacotes disponíveis (apenas para OWNER via API)
@@ -137,13 +137,8 @@ export default function ClientesPage() {
     return () => clearTimeout(timer)
   }, [clients, isCollaborator])
 
-  // Recarregar quando searchTerm mudar (debounce simples opcional futuramente)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined })
-    }, 250)
-    return () => clearTimeout(t)
-  }, [searchTerm, showWalkIns])
+  // Modo clientes inativos: não reconsulta a cada tecla; apenas quando toggles/mount mudam.
+  // A lista é filtrada localmente por `searchTerm`.
 
   // Previne foco automático no modal de novo/editar cliente (apenas no primeiro input)
   useEffect(() => {
@@ -398,11 +393,22 @@ export default function ClientesPage() {
   }
 
   const [filterActivePackagesOnly, setFilterActivePackagesOnly] = useState(false)
-  const filteredClients = (clients || []).filter((c: any) => {
-    if (!filterActivePackagesOnly) return true
-    const status = clientPackagesSummary[c.id]
-    return !!status?.hasActive
-  })
+  const filteredClients = (clients || [])
+    // 1) Filtro local por busca (igual aos inativos)
+    .filter((c: any) => {
+      if (!searchTerm) return true
+      const t = searchTerm.toLowerCase()
+      return (
+        (c.name || '').toLowerCase().includes(t) ||
+        (c.phone || '').includes(searchTerm)
+      )
+    })
+    // 2) Filtro por pacote ativo (se ativado)
+    .filter((c: any) => {
+      if (!filterActivePackagesOnly) return true
+      const status = clientPackagesSummary[c.id]
+      return !!status?.hasActive
+    })
 
   // Em vez de desmontar a tela inteira quando `loading`/`error`, mantemos o layout
   // e mostramos indicadores inline para preservar foco no campo de busca.
