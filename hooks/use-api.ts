@@ -503,6 +503,15 @@ export function useReports() {
     return fetchReports('time-analysis', month, year)
   }, [fetchReports])
 
+  // Novo: lucratividade por período (usa endpoint /api/reports?type=profitability com suporte a from/to via request direto)
+  const fetchProfitability = useCallback((params?: { from?: string, to?: string, professionalId?: string }) => {
+    const sp = new URLSearchParams({ type: 'profitability' })
+    if (params?.from) sp.set('from', params.from)
+    if (params?.to) sp.set('to', params.to)
+    if (params?.professionalId && params.professionalId !== 'all') sp.set('professionalId', params.professionalId)
+    return request(`/api/reports?${sp.toString()}`)
+  }, [request])
+
   return {
     reportsData: data?.data || null,
     loading,
@@ -512,7 +521,8 @@ export function useReports() {
     fetchMonthlyPerformance,
     fetchServicesReport,
     fetchProfessionalsReport,
-    fetchTimeAnalysis
+    fetchTimeAnalysis,
+    fetchProfitability
   }
 }
 

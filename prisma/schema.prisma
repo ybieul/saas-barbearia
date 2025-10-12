@@ -359,6 +359,10 @@ model Appointment {
   paymentStatus PaymentStatus     @default(PENDING)
   // Fonte do pagamento quando pré-pago (PACOTE/ASSINATURA)
   paymentSource String?
+  // Desconto aplicado neste agendamento (snapshot na conclusão):
+  // - Assinatura: 100% do preço do serviço
+  // - Pacote: preço cheio menos custo alocado do crédito utilizado
+  discountApplied Decimal? @db.Decimal(10,2)
   notes         String?           @db.Text
   reminderSent  Boolean           @default(false)
   // Flag para indicar se mensagem de feedback foi enviada

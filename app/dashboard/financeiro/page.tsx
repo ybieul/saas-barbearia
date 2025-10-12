@@ -73,7 +73,7 @@ export default function FinanceiroPage() {
   const { dashboardData, loading: dashboardLoading, fetchDashboardData } = useDashboard()
   const { appointments, loading: appointmentsLoading, fetchAppointmentsRange } = useAppointments()
   const { professionals, loading: professionalsLoading, fetchProfessionals } = useProfessionals()
-  const { fetchProfessionalsReport, fetchTimeAnalysis } = useReports()
+  const { fetchProfessionalsReport, fetchTimeAnalysis, fetchProfitability } = useReports()
   const { getWorkingHoursForDay, workingHours } = useWorkingHours()
   // Dados do estabelecimento (para custos fixos)
   const { businessData, updateBusinessData } = useBusinessData()
@@ -154,6 +154,16 @@ export default function FinanceiroPage() {
   const [monthlyAppointments, setMonthlyAppointments] = useState<any[]>([])
   // Fonte de dados de 12 meses para a Análise Mensal (independe do filtro de período)
   const [appointments12m, setAppointments12m] = useState<any[]>([])
+  // Novo: lucratividade do período
+  const [profitability, setProfitability] = useState<{
+    grossRevenue: number
+    totalDiscounts: number
+    netRevenue: number
+    totalCommissions: number
+    fixedCosts: number
+    netProfit: number
+    perspective?: string
+  } | null>(null)
 
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
@@ -175,6 +185,13 @@ export default function FinanceiroPage() {
           fetchProfessionals(),
           fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
+        if (!isCollaborator && fromStr && toStr) {
+          try {
+            const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
+            const data = (resp as any)?.data?.profitability
+            if (data) setProfitability(data)
+          } catch {}
+        }
       } catch (err) {
         setError('Erro ao carregar dados. Tente novamente.')
       } finally {
@@ -196,6 +213,13 @@ export default function FinanceiroPage() {
           fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
           fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
+        if (!isCollaborator && fromStr && toStr) {
+          try {
+            const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
+            const data = (resp as any)?.data?.profitability
+            if (data) setProfitability(data)
+          } catch {}
+        }
         setLastUpdated(getBrazilNow())
       } catch (err) {
         // silencioso; já há UI de erro
@@ -298,6 +322,13 @@ export default function FinanceiroPage() {
         fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
         fetchProfessionals()
       ])
+      if (!isCollaborator && fromStr && toStr) {
+        try {
+          const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
+          const data = (resp as any)?.data?.profitability
+          if (data) setProfitability(data)
+        } catch {}
+      }
 
       setLastUpdated(getBrazilNow())
       if (process.env.NODE_ENV === 'development') {
@@ -2589,6 +2620,51 @@ export default function FinanceiroPage() {
             <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{prepaidStats.prepaidCount || 0}</p>
             <p className="text-xs sm:text-sm text-[#71717a]">Atendimentos pré-pagos</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )}
+
+  {/* 🧮 Análise de Lucratividade do Período */}
+  {!isCollaborator && profitability && (
+    <Card className="bg-[#18181b] border-[#27272a]">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-tymer-icon" />
+          Análise de Lucratividade do Período
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-sm text-[#71717a]">
+          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos fixos e lucro líquido
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Receita Bruta</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Descontos (Pré-pago)</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalDiscounts || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Comissões</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', 'BRL': 'BRL' } as any).format(profitability.totalCommissions || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Custos Fixos</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.fixedCosts || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
+            <p className={`text-base sm:text-lg font-bold ${Number(profitability.netProfit||0) >= 0 ? 'text-[#10b981]' : 'text-red-400'}`}>
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netProfit || 0)}
+            </p>
           </div>
         </div>
       </CardContent>

@@ -2650,6 +2650,12 @@ export default function AgendaPage() {
                         >
                           {status.label}
                         </Badge>
+                        {/* Badges de origem de pagamento quando concluído */}
+                        {appointment.status === 'COMPLETED' && appointment.paymentSource && (
+                          <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${appointment.paymentSource === 'SUBSCRIPTION' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'}`}>
+                            {appointment.paymentSource === 'SUBSCRIPTION' ? 'Assinatura' : 'Pago com Pacote'}
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="space-y-2">

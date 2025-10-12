@@ -264,6 +264,52 @@ export async function PATCH(
         await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
       }
 
+      // Calcular e persistir discountApplied com base na fonte
+      try {
+        let discount = 0
+        if (source === 'SUBSCRIPTION') {
+          // Assinatura cobre 100% do valor do agendamento
+          discount = Number(totalPrice || 0)
+        } else if (source === 'PACKAGE') {
+          // Estimar custo alocado do crédito usado
+          // Regra: custo por crédito = (preço total do pacote / créditos totais do pacote)
+          // Quando temos debitedPackageId, usar esse pacote; caso contrário (legado crédito por serviço), aplicar desconto total
+          if (debitedPackageId) {
+            try {
+              const rows = await tx.$queryRaw<Array<{ totalPrice: any, creditsTotal: any }>>`
+                SELECT p.totalPrice as totalPrice, cp.creditsTotal as creditsTotal
+                FROM client_packages cp
+                JOIN service_packages p ON p.id = cp.packageId
+                WHERE cp.id = ${debitedPackageId}
+                LIMIT 1
+              `
+              if (rows && rows.length > 0) {
+                const packTotal = Number(rows[0].totalPrice || 0)
+                const creditsTotal = Number(rows[0].creditsTotal || 0)
+                const costPerCredit = creditsTotal > 0 ? (packTotal / creditsTotal) : 0
+                const full = Number(totalPrice || 0)
+                discount = Math.max(0, Number((full - costPerCredit).toFixed(2)))
+              } else {
+                // fallback se não encontrou: considerar desconto total
+                discount = Number(totalPrice || 0)
+              }
+            } catch {
+              discount = Number(totalPrice || 0)
+            }
+          } else if (debitedCreditId) {
+            // caminho legado (por serviço): tratar como pré-pago total
+            discount = Number(totalPrice || 0)
+          }
+        }
+        // Persistir snapshot do desconto
+        if (!isNaN(discount) && discount > 0) {
+          await tx.$executeRaw`UPDATE appointments SET discountApplied = ${discount} WHERE id = ${appointmentId}`
+        }
+      } catch (e) {
+        // Não falhar a transação por causa do desconto; apenas logar
+        console.warn('Falha ao calcular discountApplied para agendamento', appointmentId, e)
+      }
+
       // Operação 2: Atualizar os dados agregados do Cliente
       await tx.endUser.update({
         where: { id: existingAppointment.endUserId },

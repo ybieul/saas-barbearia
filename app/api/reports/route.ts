@@ -79,6 +79,14 @@ export async function GET(request: NextRequest) {
       case 'time-analysis':
   return await getTimeAnalysisReport(user.tenantId, rangeStart || monthStart, rangeEnd || monthEnd, professionalId)
       
+      case 'profitability':
+        return await getProfitabilityReport(user.tenantId, {
+          rangeStart: rangeStart || monthStart,
+          rangeEnd: rangeEnd || monthEnd,
+          professionalId,
+          isCollaborator
+        })
+      
       default:
         return NextResponse.json({ error: "Invalid report type" }, { status: 400 })
     }
@@ -574,6 +582,67 @@ async function getTimeAnalysisReport(tenantId: string, monthStart: Date, monthEn
     success: true,
     data: {
       timeAnalysis
+    }
+  })
+}
+
+// Novo: Relatório de Lucratividade do Período
+async function getProfitabilityReport(tenantId: string, params: { rangeStart: Date, rangeEnd: Date, professionalId?: string, isCollaborator?: boolean }) {
+  const { rangeStart, rangeEnd, professionalId, isCollaborator } = params
+  const where: any = {
+    tenantId,
+    dateTime: { gte: rangeStart, lte: rangeEnd },
+    status: { in: ['COMPLETED', 'IN_PROGRESS'] }
+  }
+  if (professionalId && professionalId !== 'all') where.professionalId = professionalId
+
+  const appointments = await prisma.appointment.findMany({ where, include: { professional: true } })
+
+  const grossRevenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const totalDiscounts = appointments.reduce((sum, apt) => sum + Number((apt as any).discountApplied || 0), 0)
+  const netRevenueOwner = grossRevenue - totalDiscounts
+  const totalCommissions = appointments.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
+
+  // Custos fixos do tenant (Tenant.fixedCosts em JSON) - tentar buscar e distribuir pelo período
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { fixedCosts: true } })
+  let fixedCosts = 0
+  try {
+    const list = Array.isArray(tenant?.fixedCosts) ? (tenant?.fixedCosts as any[]) : []
+    // Regra: somar apenas os RECURRING; e ONE_TIME do mês do intervalo (se rangeStart.month == item.month && rangeStart.year == item.year)
+    const rs = new Date(rangeStart)
+    const year = rs.getFullYear()
+    const month = rs.getMonth() // 0-11
+    for (const item of list) {
+      const recurrence = item?.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
+      const amount = Number(item?.amount || 0)
+      if (!isNaN(amount) && amount > 0) {
+        if (recurrence === 'RECURRING') fixedCosts += amount
+        else if (recurrence === 'ONE_TIME') {
+          if (typeof item?.year === 'number' && typeof item?.month === 'number') {
+            if (item.year === year && item.month === month) fixedCosts += amount
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // OWNER: lucro líquido = receita líquida - comissões - custos fixos
+  // COLLABORATOR: perspectiva de ganhos do colaborador (sem custos fixos do negócio)
+  const netProfitOwner = netRevenueOwner - totalCommissions - fixedCosts
+  const collaboratorEarnings = totalCommissions // soma das comissões no período
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      profitability: {
+        grossRevenue,
+        totalDiscounts,
+        netRevenue: netRevenueOwner,
+        totalCommissions,
+        fixedCosts,
+        netProfit: isCollaborator ? collaboratorEarnings : netProfitOwner,
+        perspective: isCollaborator ? 'COLLABORATOR' : 'OWNER'
+      }
     }
   })
 }
