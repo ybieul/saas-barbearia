@@ -26,9 +26,11 @@ export async function GET(request: NextRequest) {
 
     // Busca por nome / telefone básica (caso exista parâmetro search)
     if (search) {
+      // MySQL não suporta o argumento `mode` nos filtros de string do Prisma.
+      // A sensibilidade de caixa depende da collation da coluna/tabela (ex: utf8mb4_general_ci é case-insensitive).
       whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search } },
+        { phone: { contains: search } }
       ]
     }
 

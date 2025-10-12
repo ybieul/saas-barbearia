@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (specialty) {
+      // Removido `mode: 'insensitive'` pois MySQL não suporta este argumento no Prisma
       where.specialty = {
-        contains: specialty,
-        mode: 'insensitive'
+        contains: specialty
       }
     }
 
