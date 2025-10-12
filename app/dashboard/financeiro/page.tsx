@@ -2654,7 +2654,7 @@ export default function FinanceiroPage() {
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Comissões</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', 'BRL': 'BRL' } as any).format(profitability.totalCommissions || 0)}</p>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalCommissions || 0)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Custos Fixos</h4>
