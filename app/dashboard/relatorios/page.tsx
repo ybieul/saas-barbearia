@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, BarChart3, Download, Calendar, DollarSign, Users, Clock, Star } from "lucide-react"
 import { useDashboard, useAppointments } from "@/hooks/use-api"
+import { utcToBrazil } from "@/lib/timezone"
 
 export default function RelatoriosPage() {
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
@@ -23,22 +24,26 @@ export default function RelatoriosPage() {
   const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
 
   // Filtrar agendamentos do mês atual e anterior
-  const thisMonthAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime)
-    return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear
-  })
+  const thisMonthAppointments = Array.isArray(appointments) ? appointments.filter(apt => {
+    if (!apt?.dateTime) return false
+    const d = utcToBrazil(new Date(apt.dateTime))
+    if (isNaN(d.getTime())) return false
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  }) : []
 
-  const lastMonthAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.dateTime)
-    return aptDate.getMonth() === lastMonth && aptDate.getFullYear() === lastMonthYear
-  })
+  const lastMonthAppointments = Array.isArray(appointments) ? appointments.filter(apt => {
+    if (!apt?.dateTime) return false
+    const d = utcToBrazil(new Date(apt.dateTime))
+    if (isNaN(d.getTime())) return false
+    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear
+  }) : []
 
   // Calcular métricas reais
-  const completedThisMonth = thisMonthAppointments.filter(apt => apt.status === 'completed')
-  const completedLastMonth = lastMonthAppointments.filter(apt => apt.status === 'completed')
+  const completedThisMonth = thisMonthAppointments.filter(apt => ['COMPLETED','IN_PROGRESS'].includes(apt.status))
+  const completedLastMonth = lastMonthAppointments.filter(apt => ['COMPLETED','IN_PROGRESS'].includes(apt.status))
 
-  const thisMonthRevenue = completedThisMonth.reduce((sum, apt) => sum + (apt.totalPrice || 0), 0)
-  const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => sum + (apt.totalPrice || 0), 0)
+  const thisMonthRevenue = completedThisMonth.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
+  const lastMonthRevenue = completedLastMonth.reduce((sum, apt) => sum + (Number(apt.totalPrice) || 0), 0)
 
   const thisMonthAppointmentsCount = thisMonthAppointments.length
   const lastMonthAppointmentsCount = lastMonthAppointments.length
@@ -65,27 +70,30 @@ export default function RelatoriosPage() {
     ]
 
     return timeSlots.map(slot => {
-      let filteredAppointments = appointments
+  let filteredAppointments = Array.isArray(appointments) ? appointments : []
 
       // Filtrar por fim de semana para o período "Sábado"
       if (slot.isWeekend) {
-        filteredAppointments = appointments.filter(apt => {
-          const aptDate = new Date(apt.date)
-          return aptDate.getDay() === 6 // Sábado
+        filteredAppointments = filteredAppointments.filter(apt => {
+          if (!apt?.dateTime) return false
+          const d = utcToBrazil(new Date(apt.dateTime))
+          return d.getDay() === 6 // Sábado
         })
       } else {
         // Filtrar apenas dias úteis (segunda a sexta)
-        filteredAppointments = appointments.filter(apt => {
-          const aptDate = new Date(apt.date)
-          const dayOfWeek = aptDate.getDay()
+        filteredAppointments = filteredAppointments.filter(apt => {
+          if (!apt?.dateTime) return false
+          const d = utcToBrazil(new Date(apt.dateTime))
+          const dayOfWeek = d.getDay()
           return dayOfWeek >= 1 && dayOfWeek <= 5 // Segunda a sexta
         })
       }
 
       // Filtrar por horário
       const slotAppointments = filteredAppointments.filter(apt => {
-        const timeStr = apt.time || "09:00"
-        const hour = parseInt(timeStr.split(':')[0])
+        if (!apt?.dateTime) return false
+        const d = utcToBrazil(new Date(apt.dateTime))
+        const hour = d.getHours()
         return hour >= slot.startHour && hour < slot.endHour
       })
 
