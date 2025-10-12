@@ -141,9 +141,9 @@ export default function ClientesPage() {
   useEffect(() => {
     const t = setTimeout(() => {
       fetchClients(true, { includeWalkIn: showWalkIns, search: searchTerm || undefined })
-    }, 300)
+    }, 250)
     return () => clearTimeout(t)
-  }, [searchTerm, showWalkIns, fetchClients])
+  }, [searchTerm, showWalkIns])
 
   // Previne foco automático no modal de novo/editar cliente (apenas no primeiro input)
   useEffect(() => {
@@ -404,26 +404,8 @@ export default function ClientesPage() {
     return !!status?.hasActive
   })
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
-          <p className="mt-2 text-[#71717a]">Carregando clientes...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-4">
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg">
-          Erro ao carregar clientes: {error}
-        </div>
-      </div>
-    )
-  }
+  // Em vez de desmontar a tela inteira quando `loading`/`error`, mantemos o layout
+  // e mostramos indicadores inline para preservar foco no campo de busca.
 
   return (
     <div className="space-y-6">
@@ -680,6 +662,21 @@ export default function ClientesPage() {
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="p-0">
+          {error && (
+            <div className="p-4">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg">
+                Erro ao carregar clientes: {error}
+              </div>
+            </div>
+          )}
+          {loading && !error && (
+            <div className="flex items-center justify-center h-24">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500 mx-auto"></div>
+                <p className="mt-2 text-[#71717a] text-sm">Carregando clientes...</p>
+              </div>
+            </div>
+          )}
           {/* Header da tabela - apenas desktop */}
           <div className="hidden md:grid grid-cols-12 gap-4 p-4 pr-6 lg:pr-8 border-b border-[#27272a] text-sm font-medium text-[#a1a1aa]">
             <div className="col-span-2">Cliente</div>

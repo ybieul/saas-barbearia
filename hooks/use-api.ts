@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 interface ApiState<T> {
   data: T | null
@@ -13,6 +13,9 @@ export function useApi<T>() {
     error: null
   })
 
+  // Controller persistente por instância do hook para interromper requisições anteriores
+  const controllerRef = useRef<AbortController | null>(null)
+
   const request = useCallback(async (
     url: string,
     options: RequestInit = {}
@@ -21,14 +24,18 @@ export function useApi<T>() {
 
     try {
       const token = localStorage.getItem('auth_token')
-      
+      // Abortar requisição anterior do mesmo hook (buscas rápidas no input)
+      if (controllerRef.current) controllerRef.current.abort()
+      controllerRef.current = new AbortController()
+
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers
-        }
+        },
+        signal: controllerRef.current.signal
       })
 
       const data = await response.json()
@@ -44,6 +51,11 @@ export function useApi<T>() {
       setState(prev => ({ ...prev, data, loading: false }))
       return data
     } catch (error) {
+      // Engole aborts silenciosamente e encerra loading
+      if ((error as any)?.name === 'AbortError') {
+        setState(prev => ({ ...prev, loading: false }))
+        return null
+      }
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro na requisição:', error)
