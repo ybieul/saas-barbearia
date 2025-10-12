@@ -1091,56 +1091,62 @@ export default function FinanceiroPage() {
     }
   }, 300)
   
-  // ✅ USAR DADOS REAIS: Métodos de pagamento baseados no banco de dados
+  // ✅ USAR DADOS REAIS: Métodos de pagamento baseados no banco de dados (+ Pré-pago)
   const paymentStats = useMemo(() => {
-    // Calcular receita total
-    const totalRevenue = completedAppointments.reduce((total, app) => {
+    const baseApps = Array.isArray(currentPeriodAppointments) ? currentPeriodAppointments : []
+
+    // Receita total do período (inclui pré-pagos)
+    const totalRevenue = baseApps.reduce((total, app) => {
       const price = parseFloat(app.totalPrice) || 0
       return total + price
     }, 0)
 
-    // Agrupar por método de pagamento do banco de dados
-    const paymentGroups = completedAppointments.reduce((groups, app) => {
-      // Normalizar o método de pagamento do banco
+    // Separar pré-pagos
+    const isPrepaid = (app: any) => app?.paymentSource === 'PACKAGE' || app?.paymentSource === 'SUBSCRIPTION'
+    const prepaidApps = baseApps.filter(isPrepaid)
+    const nonPrepaidApps = baseApps.filter(app => !isPrepaid(app))
+
+    // Agrupar não-pré-pagos por método de pagamento
+    const paymentGroups = nonPrepaidApps.reduce((groups, app) => {
       let method = app.paymentMethod || 'NULL'
       const price = parseFloat(app.totalPrice) || 0
-      
-      // Mapear valores do banco para nomes padronizados
-      if (method === 'CASH') {
-        method = 'Dinheiro'
-      } else if (method === 'CARD') {
-        method = 'Cartão'
-      } else if (method === 'PIX') {
-        method = 'PIX'
-      } else if (method === 'NULL') {
-        method = 'Não informado'
-      } else {
-        method = 'Outros'
-      }
-      
+
+      // Mapear para nomes padronizados
+      if (method === 'CASH') method = 'Dinheiro'
+      else if (method === 'CARD') method = 'Cartão'
+      else if (method === 'PIX') method = 'PIX'
+      else if (method === 'NULL') method = 'Não informado'
+      else method = 'Outros'
+
       if (!groups[method]) {
-        groups[method] = {
-          count: 0,
-          amount: 0,
-          appointments: []
-        }
+        groups[method] = { count: 0, amount: 0, appointments: [] as any[] }
       }
-      
       groups[method].count++
       groups[method].amount += price
       groups[method].appointments.push(app)
-      
       return groups
     }, {} as Record<string, { count: number; amount: number; appointments: any[] }>)
 
+    // Adicionar bucket "Pré-pago"
+    const prepaidAmount = prepaidApps.reduce((sum, app) => sum + (parseFloat(app.totalPrice) || 0), 0)
+    const prepaidCount = prepaidApps.length
+    if (prepaidCount > 0) {
+      paymentGroups['Pré-pago'] = {
+        count: prepaidCount,
+        amount: prepaidAmount,
+        appointments: prepaidApps
+      }
+    }
+
     // Converter para array com ícones e cores
     const methodConfig = {
-  // Ícones padronizados para cinza tymer-icon
-  'Dinheiro': { icon: Banknote, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
-  'Cartão': { icon: CreditCard, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
-  'PIX': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
-  'Não informado': { icon: HelpCircle, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
-  'Outros': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' }
+      // Ícones padronizados para cinza tymer-icon
+      'Dinheiro': { icon: Banknote, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+      'Cartão': { icon: CreditCard, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+      'PIX': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+      'Não informado': { icon: HelpCircle, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+      'Outros': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
+      'Pré-pago': { icon: CreditCard, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' }
     }
 
     return Object.entries(paymentGroups).map(([method, data]) => ({
@@ -1158,7 +1164,7 @@ export default function FinanceiroPage() {
       // Para os outros, ordenar por valor decrescente
       return b.amount - a.amount
     })
-  }, [completedAppointments])
+  }, [currentPeriodAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
   // Helper para extrair comissão de um agendamento (snapshot ou cálculo fallback)
