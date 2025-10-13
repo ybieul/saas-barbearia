@@ -462,24 +462,8 @@ export async function POST(request: NextRequest) {
       })
     }
     
-  // Montar observação com marcador determinístico
-  // 1) Se assinatura cobre, marcar e NÃO marcar pacote
-  // 2) Caso contrário, respeitar intenção de usar crédito de pacote
-    let finalNotes: string | undefined = notes || undefined
-    if (subscriptionCoveredPlanId) {
-      const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`
-      finalNotes = finalNotes ? `${finalNotes}\n${subMarker}` : subMarker
-    } else if (usePackageCredit === true) {
-      if (Array.isArray(serviceIds) && serviceIds.length > 1) {
-        const csv = serviceIds.join(',')
-        const marker = `[USE_CREDIT_SERVICES:${csv}]`
-        finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
-      } else {
-        const firstService = Array.isArray(serviceIds) && serviceIds.length > 0 ? serviceIds[0] : undefined
-        const marker = firstService ? `[USE_CREDIT:${firstService}]` : `[USE_CREDIT]`
-        finalNotes = finalNotes ? `${finalNotes}\n${marker}` : marker
-      }
-    }
+    // Não inserir marcadores técnicos em notes; manter apenas observação do cliente
+    const finalNotes: string | undefined = notes || undefined
 
     const newAppointment = await prisma.appointment.create({
       data: {
@@ -489,7 +473,7 @@ export async function POST(request: NextRequest) {
         // A baixa financeira real ocorre na conclusão conforme forma de pagamento
   totalPrice: totalPrice,
         status: 'CONFIRMED',
-        notes: finalNotes,
+  notes: finalNotes,
         tenantId: user.tenantId,
         endUserId,
         professionalId: professionalId || null,

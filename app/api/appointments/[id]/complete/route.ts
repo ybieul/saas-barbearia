@@ -64,15 +64,16 @@ export async function PATCH(
 
   // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
   const updatedAppointment = await prisma.$transaction(async (tx) => {
-      // Detectar intenção de uso de crédito e se já foi debitado
-      let notesText = existingAppointment.notes || ''
-      // Se usuário escolheu PREPAID no modal, forçar intenção de usar crédito caso ainda não exista marcador
-      if (paymentMethod === 'PREPAID' && !(/\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText) || /\[USE_CREDIT_SERVICES:[^\]]+\]/.test(notesText))) {
-        notesText = `${notesText ? notesText + '\n' : ''}[USE_CREDIT]`
-      }
-      const wantsToUseCredit = /\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText) || /\[USE_CREDIT_SERVICES:[^\]]+\]/.test(notesText)
-      const alreadyDebited = /\[(DEBITED_CREDIT|DEBITED_PACKAGE):[^\]]+\]/.test(notesText)
-      const subscriptionMarkerMatch = notesText.match(/\[SUBSCRIPTION_COVERED:([^\]]+)\]/)
+      // Observação do cliente (sem marcadores técnicos)
+      const originalNotes = (existingAppointment.notes || '').toString()
+        .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE)|SUBSCRIPTION_COVERED|PACKAGE_(?:COVERED|ELIGIBLE))(?:[^\]]*)\]/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+
+      // Intenção de usar crédito: baseada na escolha do modal (PREPAID)
+      const wantsToUseCredit = paymentMethod === 'PREPAID'
+      const alreadyDebited = false // não persistimos mais markers em notes
+      const subscriptionMarkerMatch = null // não usamos marker salvo em notes
       const hasSubscriptionMarker = !!subscriptionMarkerMatch
   let debitedCreditId: string | null = null
   let debitedPackageId: string | null = null
@@ -125,10 +126,10 @@ export async function PATCH(
       // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
   if (wantsToUseCredit && !alreadyDebited) {
         const servicesSelected = existingAppointment.services.map(s => s.id)
-        const usePackageMarker = notesText.match(/\[USE_CREDIT_PACKAGE:([^\]]+)\]/)
-        const csvMarker = notesText.match(/\[USE_CREDIT_SERVICES:([^\]]+)\]/)
-        const markerPackageId = usePackageMarker?.[1] || null
-        const markerServicesCsv = csvMarker?.[1] || null
+  // Não usamos mais marcadores vindos das notas; faremos detecção automática por combo elegível
+  const usePackageMarker = null
+  const csvMarker = null
+  const markerPackageId = usePackageMarker?.[1] || null
 
         const now = new Date()
 
@@ -155,14 +156,8 @@ export async function PATCH(
           `
           debitedPackageId = pkg.id
           shouldCreateFinancialRecord = false
-        } else if (markerServicesCsv) {
-          // Encontrar pacote elegível por combo exato
-          const markerServices = markerServicesCsv.split(',').filter(Boolean)
-          // Validar que os serviços atuais ainda batem com o marcador
-          if (markerServices.length !== servicesSelected.length) throw new Error('Combo selecionado mudou e não coincide com o marcador')
-          const markerSet = new Set(markerServices)
-          for (const id of servicesSelected) { if (!markerSet.has(id)) throw new Error('Combo selecionado mudou e não coincide com o marcador') }
-
+        } else {
+          // Encontrar pacote elegível por combo exato (detecção automática)
           const packagesBase = await tx.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
             SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
             FROM client_packages
@@ -206,11 +201,11 @@ export async function PATCH(
           `
           debitedPackageId = best.id
           shouldCreateFinancialRecord = false
-        } else {
-          // Compatibilidade legado: consumo por serviço específico
-          const m = notesText.match(/\[USE_CREDIT:([^\]]+)\]/)
-          const markerServiceId = m?.[1]
-          const serviceIdToConsume = markerServiceId || servicesSelected[0]
+        }
+
+        // Compatibilidade legado: se por algum motivo não achamos pacote por combo, tentar por serviço específico
+        if (!debitedPackageId) {
+          const serviceIdToConsume = servicesSelected[0]
           if (!serviceIdToConsume) throw new Error('Serviço para débito de crédito não identificado')
 
           const packages = await tx.clientPackage.findMany({
@@ -249,11 +244,8 @@ export async function PATCH(
           totalPrice: totalPrice, // Mantém preço original no banco
           commissionEarned: commissionEarned,
           // Marcar consumo de crédito (idempotência)
-          notes: debitedPackageId
-            ? `${notesText ? notesText + '\n' : ''}[DEBITED_PACKAGE:${debitedPackageId}]`
-            : (debitedCreditId
-              ? `${notesText ? notesText + '\n' : ''}[DEBITED_CREDIT:${debitedCreditId}]`
-              : notesText)
+          // Salvar apenas a observação do cliente, sem marcadores técnicos
+          notes: originalNotes || null
         },
         include: {
           endUser: true,
