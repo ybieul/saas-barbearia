@@ -34,10 +34,9 @@ export async function PATCH(
       )
     }
 
-  // Calcular preço total baseado nos serviços do agendamento (base)
-  // Usar o total salvo como fonte primária; fallback para soma dos serviços
-  const originalTotalPrice = Number(existingAppointment.totalPrice || 0)
-  let totalPrice = originalTotalPrice
+    // Calcular preço total baseado nos serviços do agendamento (base)
+    // Usar o total salvo como fonte primária; fallback para soma dos serviços
+    let totalPrice = Number(existingAppointment.totalPrice || 0)
     if (!totalPrice || totalPrice <= 0) {
       totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
     }
@@ -73,11 +72,9 @@ export async function PATCH(
 
       // Intenção de usar crédito: baseada na escolha do modal (PREPAID)
       const wantsToUseCredit = paymentMethod === 'PREPAID'
-  const alreadyDebited = false // não persistimos mais markers em notes
+      const alreadyDebited = false // não persistimos mais markers em notes
       const subscriptionMarkerMatch = null // não usamos marker salvo em notes
       const hasSubscriptionMarker = !!subscriptionMarkerMatch
-  // Flag para marcar cobertura por assinatura detectada nesta transação
-  let subscriptionCovered = false
   let debitedCreditId: string | null = null
   let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
@@ -117,9 +114,7 @@ export async function PATCH(
             for (const pid of ids) {
               const set = byPlan.get(pid) || new Set<string>()
               if (serviceIdsSelected.every(id => set.has(id))) {
-                // Assinatura cobre todo o combo selecionado
-                subscriptionCovered = true
-                totalPrice = 0 // não gerar financeiro nem somar em totalSpent
+                totalPrice = 0
                 shouldCreateFinancialRecord = false
                 break
               }
@@ -239,12 +234,11 @@ export async function PATCH(
       }
 
       // Operação 1: Atualizar o Agendamento
-      const appointment = await tx.appointment.update({
+  const appointment = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
           status: "COMPLETED",
-          // PREPAID não é um valor válido no enum PaymentMethod; guardar como null
-          paymentMethod: paymentMethod === 'PREPAID' ? null : (paymentMethod as any),
+          paymentMethod: paymentMethod,
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice, // Mantém preço original no banco
@@ -261,7 +255,7 @@ export async function PATCH(
       })
 
       // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
-      const source = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+      const source = hasSubscriptionMarker ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
       if (source) {
         await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
       }
@@ -270,8 +264,8 @@ export async function PATCH(
       try {
         let discount = 0
         if (source === 'SUBSCRIPTION') {
-          // Assinatura cobre 100% do valor do agendamento: desconto = preço original (antes de zerar)
-          discount = Number(originalTotalPrice || 0)
+          // Assinatura cobre 100% do valor do agendamento
+          discount = Number(totalPrice || 0)
         } else if (source === 'PACKAGE') {
           // Estimar custo alocado do crédito usado
           // Regra: custo por crédito = (preço total do pacote / créditos totais do pacote)
@@ -289,18 +283,18 @@ export async function PATCH(
                 const packTotal = Number(rows[0].totalPrice || 0)
                 const creditsTotal = Number(rows[0].creditsTotal || 0)
                 const costPerCredit = creditsTotal > 0 ? (packTotal / creditsTotal) : 0
-                const full = Number(originalTotalPrice || 0)
+                const full = Number(totalPrice || 0)
                 discount = Math.max(0, Number((full - costPerCredit).toFixed(2)))
               } else {
                 // fallback se não encontrou: considerar desconto total
-                discount = Number(originalTotalPrice || 0)
+                discount = Number(totalPrice || 0)
               }
             } catch {
-              discount = Number(originalTotalPrice || 0)
+              discount = Number(totalPrice || 0)
             }
           } else if (debitedCreditId) {
             // caminho legado (por serviço): tratar como pré-pago total
-            discount = Number(originalTotalPrice || 0)
+            discount = Number(totalPrice || 0)
           }
         }
         // Persistir snapshot do desconto
@@ -361,19 +355,11 @@ export async function PATCH(
       message: "Agendamento concluído com sucesso!"
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao concluir agendamento:", error)
-    // Retornar mensagem clara quando for erro de regra de negócio (ex.: sem créditos, combo não elegível)
-    const message = error instanceof Error ? error.message : 'Erro interno do servidor'
-    const isBusinessError = typeof message === 'string'
-      && (message.toLowerCase().includes('pacote')
-          || message.toLowerCase().includes('crédito')
-          || message.toLowerCase().includes('assinatura')
-          || message.toLowerCase().includes('saldo')
-          || message.toLowerCase().includes('combo'))
     return NextResponse.json(
-      { error: message },
-      { status: isBusinessError ? 400 : 500 }
+      { error: "Erro interno do servidor" },
+      { status: 500 }
     )
   }
 }
