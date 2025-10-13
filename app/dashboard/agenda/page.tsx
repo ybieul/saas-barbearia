@@ -2652,8 +2652,18 @@ export default function AgendaPage() {
                         </Badge>
                         {/* Badges de origem de pagamento quando concluído */}
                         {appointment.status === 'COMPLETED' && appointment.paymentSource && (
-                          <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${appointment.paymentSource === 'SUBSCRIPTION' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'}`}>
-                            {appointment.paymentSource === 'SUBSCRIPTION' ? 'Assinatura' : 'Pago com Pacote'}
+                          <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${appointment.paymentSource === 'SUBSCRIPTION' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'} flex items-center gap-1`}>
+                            {appointment.paymentSource === 'SUBSCRIPTION' ? (
+                              <>
+                                <span>⭐</span>
+                                Assinatura
+                              </>
+                            ) : (
+                              <>
+                                <span>⭐</span>
+                                Pago com Pacote
+                              </>
+                            )}
                           </Badge>
                         )}
                       </div>
@@ -2671,6 +2681,7 @@ export default function AgendaPage() {
                           const willUse = /\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?)(?::[^\]]+)?\]/.test(notesText)
                           const debited = /\[(?:DEBITED_(?:CREDIT|PACKAGE)):[^\]]+\]/.test(notesText)
                           const hasSubscription = /\[SUBSCRIPTION_COVERED:([^\]]+)\]/.test(notesText)
+                          const hasPackageCoverage = /\[(?:PACKAGE_COVERED|PACKAGE_ELIGIBLE)(?::[^\]]+)?\]/.test(notesText)
                           return (
                             <div className="flex flex-wrap gap-2">
                               {hasSubscription && (
@@ -2678,6 +2689,12 @@ export default function AgendaPage() {
                                   {/* Ícone simples via caractere, para evitar dependência adicional */}
                                   <span>⭐</span>
                                   Assinatura cobre
+                                </Badge>
+                              )}
+                              {hasPackageCoverage && (
+                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30 flex items-center gap-1">
+                                  <span>⭐</span>
+                                  Pacote cobre
                                 </Badge>
                               )}
                               {willUse && !debited && (
@@ -2717,7 +2734,7 @@ export default function AgendaPage() {
                           const raw = (appointment.notes || '').toString()
                           // Remover marcadores internos [USE_CREDIT...], [DEBITED_...]
                           const cleaned = raw
-                            .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE))(?:[^\]]*)\]/g, '')
+                            .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE)|SUBSCRIPTION_COVERED|PACKAGE_(?:COVERED|ELIGIBLE))(?:[^\]]*)\]/g, '')
                             .replace(/\s{2,}/g, ' ') // compactar espaços
                             .trim()
                           if (!cleaned) return null
@@ -2735,9 +2752,8 @@ export default function AgendaPage() {
                       <div className="flex flex-col md:text-right">
                         {(() => {
                           const notesText = (appointment.notes || '').toString()
-                          const willUse = /\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?)(?::[^\]]+)?\]/.test(notesText)
-                          const debited = /\[(?:DEBITED_(?:CREDIT|PACKAGE)):[^\]]+\]/.test(notesText)
-                          const displayAmount = (willUse || debited) ? 0 : grossAmount
+                          // Mostrar sempre o valor bruto do agendamento, mesmo quando coberto por assinatura/pacote
+                          const displayAmount = grossAmount
                           if (isCollaborator && appointment.status !== 'CANCELLED') {
                             return (
                               <div className="space-y-0.5">
@@ -3421,6 +3437,7 @@ export default function AgendaPage() {
         }}
         onSelectPayment={handleCompleteWithPayment}
         appointmentData={appointmentToComplete ? {
+          id: (appointmentToComplete as any).id,
           client: appointmentToComplete.client,
           service: appointmentToComplete.service,
           totalPrice: appointmentToComplete.totalPrice || 0,
