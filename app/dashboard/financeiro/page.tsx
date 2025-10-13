@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw, Plus, Trash2 } from "lucide-react"
+import { DollarSign, TrendingUp, TrendingDown, Calendar, CreditCard, Banknote, Download, ChevronLeft, ChevronRight, HelpCircle, Users, AlertTriangle, Clock, Star, RefreshCw, Plus, Trash2, Minus } from "lucide-react"
 import { extractTimeFromDateTime } from '@/lib/timezone'
 import { useDashboard, useAppointments, useProfessionals, useReports } from "@/hooks/use-api"
 import { useAuth } from "@/hooks/use-auth"
@@ -1212,11 +1212,11 @@ export default function FinanceiroPage() {
 
   const previousPeriodData = useMemo(() => {
     try {
-      if (!Array.isArray(appointments)) return { revenue: 0, completedCount: 0, totalCount: 0 }
+      if (!Array.isArray(appointments)) return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
 
       const from = dateRange?.from ? new Date(dateRange.from) : null
       const to = dateRange?.to ? new Date(dateRange.to) : null
-      if (!from || !to) return { revenue: 0, completedCount: 0, totalCount: 0 }
+      if (!from || !to) return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
 
       const msInDay = 24*60*60*1000
       const days = Math.max(1, Math.round((to.setHours(0,0,0,0) - from.setHours(0,0,0,0)) / msInDay) + 1)
@@ -1272,7 +1272,7 @@ export default function FinanceiroPage() {
       if (process.env.NODE_ENV === 'development') {
         console.error('❌ Erro ao calcular período anterior:', err)
       }
-      return { revenue: 0, completedCount: 0, totalCount: 0 }
+      return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
     }
   }, [appointments, dateRange?.from, dateRange?.to, appointmentCommission])
   
@@ -1286,12 +1286,19 @@ export default function FinanceiroPage() {
   // ✅ CORREÇÃO: Ticket médio baseado no período atual
   const currentTicketMedio = currentPeriodAppointments.length > 0 ? 
     currentPeriodRevenue / currentPeriodAppointments.length : 0
+  const currentTicketMedioComissao = currentPeriodAppointments.length > 0 ?
+    (isCollaborator ? (currentPeriodAppointments.reduce((s, app) => s + appointmentCommission(app), 0)) / currentPeriodAppointments.length : 0) : 0
   
   const previousTicketMedio = previousPeriodData.completedCount > 0 ? 
     previousPeriodData.revenue / previousPeriodData.completedCount : 0
+  const previousTicketMedioComissao = previousPeriodData.completedCount > 0 ?
+    (previousPeriodData as any).commissionRevenue / previousPeriodData.completedCount : 0
   
   const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return { change: "Novo", type: "positive" }
+    if (previous === 0) {
+      if (current === 0) return { change: "—", type: "neutral" as const }
+      return { change: "Novo", type: "positive" as const }
+    }
     const changePercent = ((current - previous) / previous) * 100
     const sign = changePercent >= 0 ? "+" : ""
     return {
@@ -1342,7 +1349,9 @@ export default function FinanceiroPage() {
     currentPeriodConversionRate,
     previousPeriodData.totalCount > 0 ? (previousPeriodData.completedCount / previousPeriodData.totalCount) * 100 : 0
   )
-  const ticketChange = calculateChange(currentTicketMedio, previousTicketMedio)
+  const ticketChange = isCollaborator 
+    ? calculateChange(currentTicketMedioComissao, previousTicketMedioComissao)
+    : calculateChange(currentTicketMedio, previousTicketMedio)
 
   // ✅ FUTURO: Função para exportar relatório com sanitização (comentada para implementação futura)
   /*
@@ -1473,25 +1482,8 @@ export default function FinanceiroPage() {
     },
   ]
 
-  // Inserir card "Comissões (Período)" para OWNER, usando valor da API quando existir
-  const financialStats = (() => {
-    const list = [...financialStatsBase]
-    if (!isCollaborator) {
-      const apiCommissions = Number((dashboardData as any)?.stats?.commissionsPaid || 0)
-      const displayed = apiCommissions > 0 ? apiCommissions : currentPeriodCommissionsOwner
-      const commChange = calculateChange(displayed, (previousPeriodData as any).commissionRevenue || 0)
-      const commCard = {
-        title: getPeriodTitle('Comissões (Período)'),
-        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayed),
-        change: commChange.change,
-        changeType: commChange.type,
-        icon: DollarSign,
-      }
-      // Inserir como segundo card para ficar no topo com destaque
-      list.splice(1, 0, commCard)
-    }
-    return list
-  })()
+  // Remover card extra de "Comissões (Período)" no topo para evitar duplicidade
+  const financialStats = financialStatsBase
 
   // ✅ IMPLEMENTAR: Transações recentes com dados reais e sanitização
   const recentTransactions = useMemo(() => {
@@ -1934,10 +1926,12 @@ export default function FinanceiroPage() {
             <CardContent>
               <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
               <p
-                className={`text-xs sm:text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : "text-red-400"} flex items-center`}
+                className={`text-xs sm:text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : stat.changeType === "neutral" ? "text-[#a1a1aa]" : "text-red-400"} flex items-center`}
               >
                 {stat.changeType === "positive" ? (
                   <TrendingUp className="w-3 h-3 mr-1" />
+                ) : stat.changeType === "neutral" ? (
+                  <Minus className="w-3 h-3 mr-1" />
                 ) : (
                   <TrendingDown className="w-3 h-3 mr-1" />
                 )}
