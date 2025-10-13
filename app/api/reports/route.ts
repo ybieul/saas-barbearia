@@ -596,30 +596,61 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   }
   if (professionalId && professionalId !== 'all') where.professionalId = professionalId
 
-  const appointments = await prisma.appointment.findMany({ where, include: { professional: true } })
+  // Incluir services para fallback de comissão quando snapshot estiver ausente
+  const appointments = await prisma.appointment.findMany({ where, include: { professional: true, services: true } })
 
+  // Receita bruta e descontos
   const grossRevenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
   const totalDiscounts = appointments.reduce((sum, apt) => sum + Number((apt as any).discountApplied || 0), 0)
   const netRevenueOwner = grossRevenue - totalDiscounts
-  const totalCommissions = appointments.reduce((sum, apt) => sum + Number(apt.commissionEarned || 0), 0)
 
-  // Custos fixos do tenant (Tenant.fixedCosts em JSON) - tentar buscar e distribuir pelo período
+  // Comissão com fallback: usa snapshot; se ausente/zero, calcula via percentual do profissional
+  const totalCommissions = appointments.reduce((sum, apt) => {
+    const snapshot = Number(apt.commissionEarned || 0)
+    if (snapshot && snapshot > 0) return sum + snapshot
+    const pct = Number((apt as any).professional?.commissionPercentage || 0)
+    if (!(pct > 0)) return sum
+    const aptTotal = Number(apt.totalPrice || 0)
+    const servicesTotal = Array.isArray((apt as any).services) ? (apt as any).services.reduce((s: number, sv: any) => s + Number(sv?.price || 0), 0) : 0
+    const base = aptTotal > 0 ? aptTotal : servicesTotal
+    return sum + (base > 0 ? base * pct : 0)
+  }, 0)
+
+  // Custos fixos do tenant (Tenant.fixedCosts em JSON) - somar por mês dentro do range
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { fixedCosts: true } })
+
+  // Gera a lista de meses (ano/mês) contidos no intervalo [rangeStart, rangeEnd] (inclusivo)
+  const getMonthsInRange = (start: Date, end: Date) => {
+    const months: Array<{ year: number; month: number }> = []
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1)
+    const last = new Date(end.getFullYear(), end.getMonth(), 1)
+    while (cur <= last) {
+      months.push({ year: cur.getFullYear(), month: cur.getMonth() })
+      cur.setMonth(cur.getMonth() + 1)
+    }
+    return months
+  }
+
   let fixedCosts = 0
   try {
     const list = Array.isArray(tenant?.fixedCosts) ? (tenant?.fixedCosts as any[]) : []
-    // Regra: somar apenas os RECURRING; e ONE_TIME do mês do intervalo (se rangeStart.month == item.month && rangeStart.year == item.year)
-    const rs = new Date(rangeStart)
-    const year = rs.getFullYear()
-    const month = rs.getMonth() // 0-11
-    for (const item of list) {
-      const recurrence = item?.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
-      const amount = Number(item?.amount || 0)
-      if (!isNaN(amount) && amount > 0) {
-        if (recurrence === 'RECURRING') fixedCosts += amount
-        else if (recurrence === 'ONE_TIME') {
-          if (typeof item?.year === 'number' && typeof item?.month === 'number') {
-            if (item.year === year && item.month === month) fixedCosts += amount
+    const months = getMonthsInRange(rangeStart, rangeEnd)
+    const recurringTotal = list
+      .filter((i: any) => (i?.recurrence === 'ONE_TIME' ? false : true))
+      .reduce((sum: number, i: any) => sum + (Number(i?.amount) || 0), 0)
+
+    for (const m of months) {
+      // Recorrentes entram todo mês do intervalo
+      fixedCosts += recurringTotal
+      // Pontuais entram somente no mês/ano correspondente
+      for (const item of list) {
+        const recurrence = item?.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
+        if (recurrence !== 'ONE_TIME') continue
+        const amount = Number(item?.amount || 0)
+        if (!(amount > 0)) continue
+        if (typeof item?.year === 'number' && typeof item?.month === 'number') {
+          if (item.year === m.year && item.month === m.month) {
+            fixedCosts += amount
           }
         }
       }
