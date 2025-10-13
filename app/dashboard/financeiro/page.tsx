@@ -165,6 +165,9 @@ export default function FinanceiroPage() {
     perspective?: string
   } | null>(null)
 
+  // Novo: cache de agendamentos do período anterior para calcular variações dos cards superiores
+  const [previousPeriodAppointments, setPreviousPeriodAppointments] = useState<any[]>([])
+
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
 
@@ -185,6 +188,27 @@ export default function FinanceiroPage() {
           fetchProfessionals(),
           fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
+        // Carregar período anterior também no load inicial
+        if (dateRange?.from && dateRange?.to) {
+          const from = new Date(dateRange.from)
+          const to = new Date(dateRange.to)
+          const msInDay = 24 * 60 * 60 * 1000
+          const days = Math.max(1, Math.round((to.setHours(0,0,0,0) - from.setHours(0,0,0,0)) / msInDay) + 1)
+          const previousEnd = new Date(from)
+          previousEnd.setDate(previousEnd.getDate() - 1)
+          previousEnd.setHours(23,59,59,999)
+          const previousStart = new Date(previousEnd)
+          previousStart.setDate(previousEnd.getDate() - (days - 1))
+          previousStart.setHours(0,0,0,0)
+          try {
+            const prevRes = await fetchAppointmentsRaw(toLocalDateString(previousStart), toLocalDateString(previousEnd), effectiveProfessionalId)
+            setPreviousPeriodAppointments(Array.isArray(prevRes?.appointments) ? prevRes.appointments : [])
+          } catch {
+            setPreviousPeriodAppointments([])
+          }
+        } else {
+          setPreviousPeriodAppointments([])
+        }
         if (!isCollaborator && fromStr && toStr) {
           try {
             const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
@@ -213,6 +237,27 @@ export default function FinanceiroPage() {
           fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
           fetchDashboardData('custom', { from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
         ])
+        // Buscar também o período anterior para alimentar os cards de variação
+        if (dateRange?.from && dateRange?.to) {
+          const from = new Date(dateRange.from)
+          const to = new Date(dateRange.to)
+          const msInDay = 24 * 60 * 60 * 1000
+          const days = Math.max(1, Math.round((to.setHours(0,0,0,0) - from.setHours(0,0,0,0)) / msInDay) + 1)
+          const previousEnd = new Date(from)
+          previousEnd.setDate(previousEnd.getDate() - 1)
+          previousEnd.setHours(23,59,59,999)
+          const previousStart = new Date(previousEnd)
+          previousStart.setDate(previousEnd.getDate() - (days - 1))
+          previousStart.setHours(0,0,0,0)
+          try {
+            const prevRes = await fetchAppointmentsRaw(toLocalDateString(previousStart), toLocalDateString(previousEnd), effectiveProfessionalId)
+            setPreviousPeriodAppointments(Array.isArray(prevRes?.appointments) ? prevRes.appointments : [])
+          } catch {
+            setPreviousPeriodAppointments([])
+          }
+        } else {
+          setPreviousPeriodAppointments([])
+        }
         if (!isCollaborator && fromStr && toStr) {
           try {
             const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
@@ -266,6 +311,31 @@ export default function FinanceiroPage() {
     const t = new Date(dateRange.to); t.setHours(0,0,0,0)
     return f.getTime() === t.getTime()
   }, [dateRange?.from, dateRange?.to])
+
+  // Custos fixos integrais: somar o valor mensal de cada mês no intervalo (RECURRING + ONE_TIME daquele mês/ano)
+  const integralFixedCostsForRange = useMemo(() => {
+    try {
+      if (!dateRange?.from || !dateRange?.to) return 0
+      const start = new Date(dateRange.from)
+      const end = new Date(dateRange.to)
+      // Normalizar para início/fim de mês
+      const monthStart = new Date(start.getFullYear(), start.getMonth(), 1)
+      const monthEnd = new Date(end.getFullYear(), end.getMonth(), 1)
+
+      let cursor = new Date(monthStart)
+      let total = 0
+      while (cursor.getFullYear() < monthEnd.getFullYear() || (cursor.getFullYear() === monthEnd.getFullYear() && cursor.getMonth() <= monthEnd.getMonth())) {
+        const y = cursor.getFullYear()
+        const m = cursor.getMonth()
+        const monthlyApplicable = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === y && c.month === m))
+        total += monthlyApplicable.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+        cursor.setMonth(cursor.getMonth() + 1)
+      }
+      return total
+    } catch {
+      return 0
+    }
+  }, [fixedCostsAll, dateRange?.from, dateRange?.to])
 
   // Fetch local para buscar agendamentos de um intervalo sem sobrescrever o hook principal
   const fetchAppointmentsRaw = async (from?: string, to?: string, professional?: string) => {
@@ -322,6 +392,27 @@ export default function FinanceiroPage() {
         fetchAppointmentsRange(fromStr, toStr, effectiveProfessionalId),
         fetchProfessionals()
       ])
+      // Atualizar também o período anterior
+      if (dateRange?.from && dateRange?.to) {
+        const from = new Date(dateRange.from)
+        const to = new Date(dateRange.to)
+        const msInDay = 24 * 60 * 60 * 1000
+        const days = Math.max(1, Math.round((to.setHours(0,0,0,0) - from.setHours(0,0,0,0)) / msInDay) + 1)
+        const previousEnd = new Date(from)
+        previousEnd.setDate(previousEnd.getDate() - 1)
+        previousEnd.setHours(23,59,59,999)
+        const previousStart = new Date(previousEnd)
+        previousStart.setDate(previousEnd.getDate() - (days - 1))
+        previousStart.setHours(0,0,0,0)
+        try {
+          const prevRes = await fetchAppointmentsRaw(toLocalDateString(previousStart), toLocalDateString(previousEnd), effectiveProfessionalId)
+          setPreviousPeriodAppointments(Array.isArray(prevRes?.appointments) ? prevRes.appointments : [])
+        } catch {
+          setPreviousPeriodAppointments([])
+        }
+      } else {
+        setPreviousPeriodAppointments([])
+      }
       if (!isCollaborator && fromStr && toStr) {
         try {
           const resp = await fetchProfitability({ from: fromStr, to: toStr, professionalId: effectiveProfessionalId })
@@ -1212,7 +1303,8 @@ export default function FinanceiroPage() {
 
   const previousPeriodData = useMemo(() => {
     try {
-      if (!Array.isArray(appointments)) return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
+      // Usar a lista carregada especificamente do período anterior; se vazia, retorna zeros
+      if (!Array.isArray(previousPeriodAppointments)) return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
 
       const from = dateRange?.from ? new Date(dateRange.from) : null
       const to = dateRange?.to ? new Date(dateRange.to) : null
@@ -1235,15 +1327,8 @@ export default function FinanceiroPage() {
         })
       }
       
-      const previousAppointments = appointments.filter(app => {
-        if (!app?.dateTime) return false
-        try {
-          const appointmentDate = utcToBrazil(new Date(app.dateTime))
-          return appointmentDate >= previousStart && appointmentDate <= previousEnd
-        } catch {
-          return false
-        }
-      })
+      // Já carregados exatamente no intervalo desejado
+      const previousAppointments = previousPeriodAppointments
       
       const previousCompleted = previousAppointments.filter(app => 
         ['COMPLETED', 'IN_PROGRESS'].includes(app.status) && 
@@ -1274,7 +1359,7 @@ export default function FinanceiroPage() {
       }
       return { revenue: 0, commissionRevenue: 0, completedCount: 0, totalCount: 0 }
     }
-  }, [appointments, dateRange?.from, dateRange?.to, appointmentCommission])
+  }, [previousPeriodAppointments, dateRange?.from, dateRange?.to, appointmentCommission])
   
   // ✅ PERFORMANCE: Receita do período atual usando agendamentos filtrados
   const currentPeriodRevenue = useMemo(() => {
@@ -1917,29 +2002,32 @@ export default function FinanceiroPage() {
 
       {/* Financial Stats */}
       <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        {financialStats.map((stat, index) => (
-          <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
-              <p
-                className={`text-xs sm:text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : stat.changeType === "neutral" ? "text-[#a1a1aa]" : "text-red-400"} flex items-center`}
-              >
-                {stat.changeType === "positive" ? (
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                ) : stat.changeType === "neutral" ? (
-                  <Minus className="w-3 h-3 mr-1" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 mr-1" />
-                )}
-                {stat.change} em relação ao período anterior
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {financialStats.map((stat, index) => {
+          const IconComp = typeof (stat as any)?.icon === 'function' ? (stat as any).icon : DollarSign
+          return (
+            <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm sm:text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+                <IconComp className="h-4 w-4 text-tymer-icon flex-shrink-0" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">{stat.value}</div>
+                <p
+                  className={`text-xs sm:text-xs ${stat.changeType === "positive" ? "text-[#10b981]" : stat.changeType === "neutral" ? "text-[#a1a1aa]" : "text-red-400"} flex items-center`}
+                >
+                  {stat.changeType === "positive" ? (
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                  ) : stat.changeType === "neutral" ? (
+                    <Minus className="w-3 h-3 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 mr-1" />
+                  )}
+                  {stat.change} em relação ao período anterior
+                </p>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
     {/* Daily Revenue Analysis Card */}
@@ -2648,11 +2736,11 @@ export default function FinanceiroPage() {
           Análise de Lucratividade do Período
         </CardTitle>
         <CardDescription className="text-sm sm:text-sm text-[#71717a]">
-          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos fixos e lucro líquido
+          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos mensais integrais e lucro líquido
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Receita Bruta</h4>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
@@ -2670,14 +2758,20 @@ export default function FinanceiroPage() {
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalCommissions || 0)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Custos Fixos</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.fixedCosts || 0)}</p>
+            <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(integralFixedCostsForRange || 0)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
-            <p className={`text-base sm:text-lg font-bold ${Number(profitability.netProfit||0) >= 0 ? 'text-[#10b981]' : 'text-red-400'}`}>
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netProfit || 0)}
-            </p>
+            {(() => {
+              const net = (Number(profitability?.netRevenue || 0) - Number(profitability?.totalCommissions || 0) - Number(integralFixedCostsForRange || 0))
+              const cls = net >= 0 ? 'text-[#10b981]' : 'text-red-400'
+              return (
+                <p className={`text-base sm:text-lg font-bold ${cls}`}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(net)}
+                </p>
+              )
+            })()}
           </div>
         </div>
       </CardContent>
@@ -2858,21 +2952,23 @@ export default function FinanceiroPage() {
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
             </div>
 
-            {/* Cards: Custos Fixos, Comissões (Mês) e Lucro Líquido (Estimado, Mês) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 pt-4">
+            {/* Cards: Custos Fixos e Lucro Líquido (Estimado, Mês) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
               {(() => {
                 const monthlyFixedTotal = fixedCostsAll
                   .filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
                   .reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                const monthRevenue = selectedMonthData?.revenue || 0
-                // Calcular total de comissões do mês selecionado com fallback (snapshot ou percentual)
-                const monthlyCommissions = (() => {
+                // Receita líquida do mês: receita bruta - descontos de pré-pago
+                // Preferir dados agregados se existirem, senão calcular dos agendamentos do mês
+                const monthGross = selectedMonthData?.revenue || 0
+                const monthDiscounts = (() => {
                   try {
-                    const monthApps = Array.isArray(selectedMonthData?.appointments) ? selectedMonthData.appointments : []
-                    return monthApps.reduce((acc: number, app: any) => acc + appointmentCommission(app), 0)
+                    const apps = Array.isArray(selectedMonthData?.appointments) ? selectedMonthData.appointments : []
+                    return apps.reduce((s: number, app: any) => s + (parseFloat(app.discountApplied) || 0), 0)
                   } catch { return 0 }
                 })()
-                const monthlyNetProfit = monthRevenue - monthlyFixedTotal - monthlyCommissions
+                const monthNetRevenue = Math.max(0, monthGross - monthDiscounts)
+                const monthlyNetProfit = monthNetRevenue - monthlyFixedTotal
                 return [
                   {
                     title: 'Custos Fixos (Mensal)',
@@ -2880,27 +2976,25 @@ export default function FinanceiroPage() {
                     icon: Banknote,
                   },
                   {
-                    title: 'Comissões (Mês)',
-                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyCommissions),
-                    icon: DollarSign,
-                  },
-                  {
                     title: 'Lucro Líquido (Estimado, Mês)',
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyNetProfit),
                     icon: TrendingUp,
                   }
                 ]
-              })().map((stat, index) => (
-                <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
-                    <stat.icon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-lg font-bold text-[#ededed] truncate">{stat.value}</div>
-                  </CardContent>
-                </Card>
-              ))}
+              })().map((stat, index) => {
+                const IconComp = typeof (stat as any)?.icon === 'function' ? (stat as any).icon : DollarSign
+                return (
+                  <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
+                      <IconComp className="h-4 w-4 text-tymer-icon flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-lg font-bold text-[#ededed] truncate">{stat.value}</div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </CardContent>
