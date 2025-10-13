@@ -1146,10 +1146,10 @@ export default function FinanceiroPage() {
       'PIX': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
       'Não informado': { icon: HelpCircle, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
       'Outros': { icon: DollarSign, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' },
-      'Pré-pago': { icon: CreditCard, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' }
+      'Pré-pago': { icon: Star, color: 'text-tymer-icon', bgColor: 'bg-tymer-icon' }
     }
 
-    return Object.entries(paymentGroups).map(([method, data]) => ({
+    const list = Object.entries(paymentGroups).map(([method, data]) => ({
       method,
       icon: methodConfig[method as keyof typeof methodConfig]?.icon || DollarSign,
       color: methodConfig[method as keyof typeof methodConfig]?.color || 'text-gray-400',
@@ -1157,13 +1157,26 @@ export default function FinanceiroPage() {
       count: (data as any).count,
       amount: (data as any).amount,
       percentage: totalRevenue > 0 ? Math.round(((data as any).amount / totalRevenue) * 100) : 0
-    })).sort((a, b) => {
-      // Colocar "Não informado" sempre por último
+    }) )
+
+    // Ordenação fixa solicitada: Dinheiro > PIX > Cartão > Pré-pago; "Não informado" sempre por último; demais por valor decrescente
+    const order: Record<string, number> = {
+      'Dinheiro': 1,
+      'PIX': 2,
+      'Cartão': 3,
+      'Pré-pago': 4
+    }
+    list.sort((a, b) => {
       if (a.method === 'Não informado') return 1
       if (b.method === 'Não informado') return -1
-      // Para os outros, ordenar por valor decrescente
+      const ra = order[a.method] ?? 999
+      const rb = order[b.method] ?? 999
+      if (ra !== rb) return ra - rb
+      // mesmos pesos: ordenar por valor decrescente
       return b.amount - a.amount
     })
+
+    return list
   }, [currentPeriodAppointments])
   
   // Calcular mudanças reais comparando com dados anteriores
@@ -2579,7 +2592,7 @@ export default function FinanceiroPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               {paymentStats.map((payment, index) => {
-                const Icon = payment.icon
+                const Icon = (payment && payment.icon) ? payment.icon : DollarSign
                 return (
                   <div key={index} className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50 hover:border-gray-700/50 transition-all duration-200">
                     <Icon className={`w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 ${payment.color}`} />
