@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,13 +9,18 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, DollarSign, Smartphone, CheckCircle2, User, Scissors, Clock, Receipt } from "lucide-react"
+import { CreditCard, DollarSign, Smartphone, CheckCircle2, User, Scissors, Clock, Receipt, Star } from "lucide-react"
+
+// Cache leve em memória para resultados de cobertura por agendamento (TTL curto)
+const COVERAGE_TTL_MS = 20000 // 20s
+const coverageCache = new Map<string, { covered: boolean; ts: number }>()
 
 interface PaymentMethodModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectPayment: (method: string) => void
   appointmentData?: {
+    id?: string
     client: string
     service: string
     totalPrice: number
@@ -30,7 +36,7 @@ export function PaymentMethodModal({
   appointmentData,
   isLoading = false
 }: PaymentMethodModalProps) {
-  const paymentMethods = [
+  const basePaymentMethods = [
     {
       id: "CASH",
       label: "Dinheiro",
@@ -50,6 +56,68 @@ export function PaymentMethodModal({
       description: "Débito ou crédito"
     }
   ]
+
+  const prepaidMethod = {
+    id: "PREPAID",
+    label: "Pré‑pago",
+    icon: Star,
+    description: "Consumir créditos de pacote/assinatura"
+  }
+
+  const [showPrepaid, setShowPrepaid] = React.useState<boolean>(false)
+  const [checkingCoverage, setCheckingCoverage] = React.useState<boolean>(false)
+
+  React.useEffect(() => {
+    const check = async () => {
+      if (!isOpen || !appointmentData) return
+      try {
+        setCheckingCoverage(true)
+        const apptId = (appointmentData as any).id as string | undefined
+
+        // Se não há ID, não conseguimos verificar/cacher
+        if (!apptId) {
+          setShowPrepaid(false)
+          setCheckingCoverage(false)
+          return
+        }
+
+        // Tenta usar cache recente
+        const cached = coverageCache.get(apptId)
+        const now = Date.now()
+        if (cached && now - cached.ts < COVERAGE_TTL_MS) {
+          setShowPrepaid(!!cached.covered)
+          setCheckingCoverage(false)
+          return
+        }
+
+        const res = await fetch('/api/coverage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: (appointmentData as any).id })
+        })
+        if (!res.ok) {
+          setShowPrepaid(false)
+          // Cacheia negativo também para evitar repetição em poucos segundos
+          coverageCache.set(apptId, { covered: false, ts: Date.now() })
+          return
+        }
+        const decision = await res.json()
+        const covered = !!decision?.covered
+        setShowPrepaid(covered)
+        coverageCache.set(apptId, { covered, ts: Date.now() })
+      } catch {
+        setShowPrepaid(false)
+      } finally {
+        setCheckingCoverage(false)
+      }
+    }
+    check()
+    // reavaliar quando abrir/fechar ou trocar de agendamento
+  }, [isOpen, appointmentData?.client, appointmentData?.service, appointmentData?.totalPrice, (appointmentData as any)?.id])
+
+  const paymentMethods = React.useMemo(() => {
+    return showPrepaid ? [...basePaymentMethods, prepaidMethod] : basePaymentMethods
+  }, [showPrepaid])
 
   const handlePaymentSelect = (method: string) => {
     onSelectPayment(method)
@@ -128,6 +196,9 @@ export function PaymentMethodModal({
               </div>
               
               <div className="space-y-2 md:space-y-3">
+                {checkingCoverage && (
+                  <div className="text-xs text-[#71717a]">Verificando créditos disponíveis…</div>
+                )}
                 {paymentMethods.map((method) => {
                   const IconComponent = method.icon
                   return (

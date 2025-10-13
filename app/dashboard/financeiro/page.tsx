@@ -2886,50 +2886,22 @@ export default function FinanceiroPage() {
               })
             })()}
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm text-[#a1a1aa] pt-1">
-              <span>Total mensal:</span>
-              <span className="font-medium">{(() => {
-                // Memo simplificado por fechamento (já que selectedMonth, selectedYear, fixedCostsAll mudam pouco)
-                const monthlyApplicable = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
-                const total = monthlyApplicable.reduce((s,i)=> s + (Number(i.amount) || 0), 0)
-                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)
-              })()}</span>
-            </div>
-
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
               <Button onClick={handleSaveFixedCosts} disabled={savingFixedCosts} className="bg-tymer-primary hover:bg-tymer-primary/80 text-white w-full sm:w-auto">
                 {savingFixedCosts ? 'Salvando...' : 'Salvar alterações'}
               </Button>
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
             </div>
-
-            {/* Card: Custos Fixos (Mensal) */}
-            <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 sm:gap-4 lg:gap-6 pt-4">
-              {(() => {
-                const monthlyFixedTotal = fixedCostsAll
-                  .filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
-                  .reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                return [
-                  {
-                    title: 'Custos Fixos (Mensal)',
-                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyFixedTotal),
-                    icon: Banknote,
-                  }
-                ]
-              })().map((stat, index) => {
-                const IconComp = typeof (stat as any)?.icon === 'function' ? (stat as any).icon : DollarSign
-                return (
-                  <Card key={index} className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">{stat.title}</CardTitle>
-                      <IconComp className="h-4 w-4 text-tymer-icon flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-lg font-bold text-[#ededed] truncate">{stat.value}</div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+            {/* Total mensal, agora abaixo do botão de salvar, com rótulo explícito */}
+            <div className="pt-4 border-t border-[#27272a] mt-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-[#a1a1aa]">Total mensal de custos (mês selecionado):</span>
+                <span className="text-lg font-bold text-[#ededed]">{(() => {
+                  const monthlyApplicable = fixedCostsAll.filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
+                  const total = monthlyApplicable.reduce((s,i)=> s + (Number(i.amount) || 0), 0)
+                  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)
+                })()}</span>
+              </div>
             </div>
           </div>
         </CardContent>

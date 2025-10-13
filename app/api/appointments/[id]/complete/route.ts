@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { paymentMethod } = await request.json()
+  const { paymentMethod } = await request.json()
     const appointmentId = params.id
 
     if (!paymentMethod) {
@@ -63,15 +63,19 @@ export async function PATCH(
     }
 
   // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
-    const updatedAppointment = await prisma.$transaction(async (tx) => {
+  const updatedAppointment = await prisma.$transaction(async (tx) => {
       // Detectar intenção de uso de crédito e se já foi debitado
-      const notesText = existingAppointment.notes || ''
+      let notesText = existingAppointment.notes || ''
+      // Se usuário escolheu PREPAID no modal, forçar intenção de usar crédito caso ainda não exista marcador
+      if (paymentMethod === 'PREPAID' && !(/\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText) || /\[USE_CREDIT_SERVICES:[^\]]+\]/.test(notesText))) {
+        notesText = `${notesText ? notesText + '\n' : ''}[USE_CREDIT]`
+      }
       const wantsToUseCredit = /\[USE_CREDIT(?::[^\]]+)?\]/.test(notesText) || /\[USE_CREDIT_SERVICES:[^\]]+\]/.test(notesText)
       const alreadyDebited = /\[(DEBITED_CREDIT|DEBITED_PACKAGE):[^\]]+\]/.test(notesText)
       const subscriptionMarkerMatch = notesText.match(/\[SUBSCRIPTION_COVERED:([^\]]+)\]/)
       const hasSubscriptionMarker = !!subscriptionMarkerMatch
-      let debitedCreditId: string | null = null
-      let debitedPackageId: string | null = null
+  let debitedCreditId: string | null = null
+  let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
       // Se já houver marker de assinatura, priorizar como pré-pago (sem financeiro)
@@ -80,7 +84,7 @@ export async function PATCH(
       }
 
       // Verificar cobertura por assinatura de forma determinística via SQL (baseada na lógica de pacotes)
-      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
+  const serviceIdsSelected = existingAppointment.services.map(s => s.id)
       const now = new Date()
       if (!hasSubscriptionMarker) {
         try {
@@ -119,7 +123,7 @@ export async function PATCH(
       }
 
       // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
-      if (wantsToUseCredit && !alreadyDebited) {
+  if (wantsToUseCredit && !alreadyDebited) {
         const servicesSelected = existingAppointment.services.map(s => s.id)
         const usePackageMarker = notesText.match(/\[USE_CREDIT_PACKAGE:([^\]]+)\]/)
         const csvMarker = notesText.match(/\[USE_CREDIT_SERVICES:([^\]]+)\]/)
@@ -235,7 +239,7 @@ export async function PATCH(
       }
 
       // Operação 1: Atualizar o Agendamento
-      const appointment = await tx.appointment.update({
+  const appointment = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
           status: "COMPLETED",
