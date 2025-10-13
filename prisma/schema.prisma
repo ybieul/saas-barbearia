@@ -39,6 +39,8 @@ model Tenant {
   planCycle            PlanCycle @default(MONTHLY) // Ciclo de cobrança
   subscriptionStart    DateTime  @default(now())
   subscriptionEnd      DateTime?
+  // Status da assinatura: 'TRIAL', 'ACTIVE', 'INACTIVE', 'CANCELED'
+  subscriptionStatus   String?   @default("TRIAL")
   isActive             Boolean   @default(false)
   kirvanoCustomerId    String?   @unique // ID do cliente na Kirvano
   kirvanoSubscriptionId String?  @unique // ID da assinatura na Kirvano

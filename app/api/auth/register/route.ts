@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Criar tenant (dono da barbearia)
+    // Calcular data de término do TRIAL (15 dias a partir de agora)
+    const trialEnd = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+
+    // Criar tenant (dono da barbearia) em modo de teste
     const tenant = await prisma.tenant.create({
       data: {
         name,
@@ -38,11 +41,16 @@ export async function POST(request: NextRequest) {
         businessName,
         phone,
         role: 'OWNER',
+        // Plano e status do trial
+        businessPlan: 'TRIAL',
+        subscriptionStatus: 'TRIAL',
+        subscriptionEnd: trialEnd,
+        // Ativo durante o período de teste
         isActive: true
       }
     })
 
-    // Gerar JWT token enriquecido (registro inicia como ativo plano implícito BASIC/FREE se configurado)
+    // Gerar JWT token enriquecido (inclui status da assinatura)
     const token = jwt.sign(
       { 
         userId: tenant.id, 
@@ -51,7 +59,8 @@ export async function POST(request: NextRequest) {
         role: tenant.role,
         isActive: tenant.isActive,
         businessPlan: tenant.businessPlan,
-        subscriptionEnd: tenant.subscriptionEnd ? tenant.subscriptionEnd.toISOString() : null
+        subscriptionEnd: tenant.subscriptionEnd ? tenant.subscriptionEnd.toISOString() : null,
+        subscriptionStatus: 'TRIAL'
       },
       process.env.NEXTAUTH_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
@@ -67,7 +76,8 @@ export async function POST(request: NextRequest) {
       tenantId: tenant.id,
       isActive: tenant.isActive,
       businessPlan: tenant.businessPlan,
-      subscriptionEnd: tenant.subscriptionEnd
+      subscriptionEnd: tenant.subscriptionEnd,
+      subscriptionStatus: 'TRIAL'
     }
 
     return NextResponse.json({

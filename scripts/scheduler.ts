@@ -3,12 +3,14 @@ import { sendWhatsappReminders } from './whatsapp-reminders-cron';
 import { cleanupOrphanedInstances } from './whatsapp-instance-gc';
 import { runPreExpireCron } from './subscription-preexpire-cron';
 import { runExpireCron } from './subscription-expirer-cron';
+import { runCheckTrialExpirations } from './check-trial-expirations';
 
 console.log('✅ Agendador (Scheduler) de tarefas foi iniciado com sucesso.');
 console.log('🕐 Executando a cada 5 minutos para verificação de lembretes...');
 console.log('🧹 Executando às 03:00 diariamente para limpeza de instâncias órfãs...');
 console.log('⏰ Executando pré-expiração às 00:05 (emails 3d / 1d).');
 console.log('⏰ Executando expiração (grace) às 00:10.');
+console.log('⏰ Executando verificação de trials às 00:02 (desativa trials vencidos).');
 console.log('🌍 Timezone: America/Sao_Paulo');
 
 // Validar se a expressão cron está correta
@@ -72,6 +74,18 @@ cron.schedule('10 0 * * *', async () => {
     console.log(`[${now}] === ✅ EXPIRAÇÃO CONCLUÍDA ===\n`);
   } catch (e) {
     console.error(`[${now}] === ❌ ERRO NA EXPIRAÇÃO ===`, e);
+  }
+}, { timezone: 'America/Sao_Paulo' });
+
+// EXPIRAÇÃO DE TRIALS (00:02 BR)
+cron.schedule('2 0 * * *', async () => {
+  const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  console.log(`\n[${now}] === ⏱️ INICIANDO VERIFICAÇÃO DE TRIALS EXPIRADOS ===`);
+  try {
+    await runCheckTrialExpirations();
+    console.log(`[${now}] === ✅ VERIFICAÇÃO DE TRIALS CONCLUÍDA ===\n`);
+  } catch (e) {
+    console.error(`[${now}] === ❌ ERRO NA VERIFICAÇÃO DE TRIALS ===`, e);
   }
 }, { timezone: 'America/Sao_Paulo' });
 

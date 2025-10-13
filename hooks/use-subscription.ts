@@ -11,6 +11,7 @@ export interface SubscriptionInfo {
   canAccessFeature: (feature: string) => boolean
   planCycle?: 'MONTHLY' | 'ANNUAL'
   originalPlanName?: string
+  subscriptionStatus?: 'TRIAL' | 'ACTIVE' | 'INACTIVE' | 'CANCELED'
 }
 
 export interface PlanLimits {

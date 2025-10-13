@@ -17,11 +17,13 @@ const whatsapp_reminders_cron_1 = require("./whatsapp-reminders-cron");
 const whatsapp_instance_gc_1 = require("./whatsapp-instance-gc");
 const subscription_preexpire_cron_1 = require("./subscription-preexpire-cron");
 const subscription_expirer_cron_1 = require("./subscription-expirer-cron");
+const check_trial_expirations_1 = require("./check-trial-expirations");
 console.log('✅ Agendador (Scheduler) de tarefas foi iniciado com sucesso.');
 console.log('🕐 Executando a cada 5 minutos para verificação de lembretes...');
 console.log('🧹 Executando às 03:00 diariamente para limpeza de instâncias órfãs...');
 console.log('⏰ Executando pré-expiração às 00:05 (emails 3d / 1d).');
 console.log('⏰ Executando expiração (grace) às 00:10.');
+console.log('⏰ Executando verificação de trials às 00:02 (desativa trials vencidos).');
 console.log('🌍 Timezone: America/Sao_Paulo');
 // Validar se a expressão cron está correta
 if (!node_cron_1.default.validate('*/5 * * * *')) {
@@ -70,6 +72,18 @@ node_cron_1.default.schedule('5 0 * * *', () => __awaiter(void 0, void 0, void 0
     }
     catch (e) {
         console.error(`[${now}] === ❌ ERRO NA PRÉ-EXPIRAÇÃO ===`, e);
+    }
+}), { timezone: 'America/Sao_Paulo' });
+// EXPIRAÇÃO DE TRIALS (00:02 BR)
+node_cron_1.default.schedule('2 0 * * *', () => __awaiter(void 0, void 0, void 0, function* () {
+    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    console.log(`\n[${now}] === ⏱️ INICIANDO VERIFICAÇÃO DE TRIALS EXPIRADOS ===`);
+    try {
+        yield (0, check_trial_expirations_1.runCheckTrialExpirations)();
+        console.log(`[${now}] === ✅ VERIFICAÇÃO DE TRIALS CONCLUÍDA ===\n`);
+    }
+    catch (e) {
+        console.error(`[${now}] === ❌ ERRO NA VERIFICAÇÃO DE TRIALS ===`, e);
     }
 }), { timezone: 'America/Sao_Paulo' });
 // EXPIRAÇÃO (GRACE CHECK) (00:10 BR)

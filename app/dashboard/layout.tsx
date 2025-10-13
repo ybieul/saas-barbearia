@@ -26,6 +26,7 @@ import { usePathname } from "next/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/hooks/use-auth"
 import { useBusinessInfo } from "@/hooks/use-business-info"
+import { useSubscription } from "@/hooks/use-subscription"
 
 interface MenuItem { icon: any; label: string; href: string; description: string; roles?: string[] }
 const baseMenu: MenuItem[] = [
@@ -48,6 +49,7 @@ export default function DashboardLayout({
 }) {
   const { user, logout } = useAuth()
   const { businessInfo, loading: businessLoading } = useBusinessInfo()
+  const { subscriptionInfo } = useSubscription()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const router = useRouter()
@@ -308,6 +310,20 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
+
+        {/* Barra de notificação do TRIAL */}
+        {subscriptionInfo && subscriptionInfo.subscriptionStatus === 'TRIAL' && (
+          <div className="sticky top-16 z-20 w-full bg-amber-500/10 border-b border-amber-500/40 text-amber-200">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-2 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <span className="text-sm">
+                Você tem {typeof subscriptionInfo.daysUntilExpiry === 'number' ? Math.max(subscriptionInfo.daysUntilExpiry, 0) : '--'} dias restantes de teste. Assine agora para não perder o acesso.
+              </span>
+              <Link href="/dashboard/assinatura">
+                <Button size="sm" className="bg-amber-500 text-black hover:bg-amber-400">Assinar Agora</Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Conteúdo da Página */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">

@@ -9,6 +9,7 @@ export interface SubscriptionInfo {
   canAccessFeature: (feature: string) => boolean
   planCycle?: 'MONTHLY' | 'ANNUAL'
   originalPlanName?: string
+  subscriptionStatus?: 'TRIAL' | 'ACTIVE' | 'INACTIVE' | 'CANCELED'
 }
 
 // Recursos por plano (sem plano FREE)
@@ -49,8 +50,8 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       select: {
         businessPlan: true,
         isActive: true,
-  subscriptionEnd: true,
-  planCycle: true
+        subscriptionEnd: true,
+        planCycle: true
       }
     })
 
@@ -68,13 +69,19 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
   const isActiveSubscription = tenant.isActive && !isExpired
   // ✅ Normalizar plano para suportar variantes anuais (ex: 'BASIC Anual', 'PREMIUM Anual')
   let rawPlan = tenant.businessPlan || ''
+  // Se o plano salvo for TRIAL, tratamos como ULTRA para liberar todos os recursos durante o teste
+  const isTrial = (rawPlan || '').toUpperCase() === 'TRIAL'
   const lower = rawPlan.toLowerCase()
   if (lower.includes('basic')) rawPlan = 'BASIC'
   else if (lower.includes('básico')) rawPlan = 'BASIC'
   else if (lower.includes('premium')) rawPlan = 'PREMIUM'
   else if (lower.includes('ultra')) rawPlan = 'ULTRA'
+  else if (lower.includes('trial')) rawPlan = 'TRIAL'
 
-  const effectivePlan = isActiveSubscription ? rawPlan : 'INACTIVE'
+  // Durante o TRIAL e assinatura ativa, expor como ULTRA para features; manter INACTIVE se bloqueado/expirado
+  const effectivePlan = isActiveSubscription 
+    ? (isTrial ? 'ULTRA' : rawPlan) 
+    : 'INACTIVE'
     
     // Só buscar features se a assinatura estiver ativa
     const planFeatures = isActiveSubscription 
@@ -88,6 +95,7 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       daysUntilExpiry: daysUntilExpiry || undefined,
   planCycle: tenant.planCycle || 'MONTHLY',
       originalPlanName: tenant.businessPlan,
+      subscriptionStatus: isActiveSubscription ? (isTrial ? 'TRIAL' : 'ACTIVE') : 'INACTIVE',
       canAccessFeature: (feature: string) => {
         if (!planFeatures) return false
         return planFeatures[feature as keyof typeof planFeatures] === true
@@ -102,6 +110,7 @@ export async function getSubscriptionInfo(tenantId: string): Promise<Subscriptio
       isExpired: true,
       planCycle: 'MONTHLY',
       originalPlanName: undefined,
+      subscriptionStatus: 'INACTIVE',
       canAccessFeature: () => false
     }
   }

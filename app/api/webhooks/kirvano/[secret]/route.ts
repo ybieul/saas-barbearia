@@ -193,6 +193,7 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
       
   const updateData = {
         isActive: true,
+    subscriptionStatus: 'ACTIVE' as const,
         businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
         updatedAt: new Date(),
@@ -246,6 +247,7 @@ async function handleSaleApproved(webhookData: KirvanoWebhookEvent) {
         email: customerEmail,
         password: hashedPassword,
         isActive: true,
+    subscriptionStatus: 'ACTIVE' as const,
         businessPlan: mappedPlan, // ✅ USAR A VARIÁVEL AQUI
         subscriptionEnd,
         planCycle,
@@ -325,6 +327,7 @@ async function handleSubscriptionCanceledOrExpired(webhookData: KirvanoWebhookEv
       where: { id: tenant.id },
       data: {
         isActive: false,
+        subscriptionStatus: 'INACTIVE' as const,
   updatedAt: new Date(),
   // webhookExpiredProcessed: true,
   lastSubscriptionEmailType: eventType === 'SUBSCRIPTION_EXPIRED' ? 'EXPIRED_WEBHOOK' : 'CANCELED'
@@ -385,7 +388,7 @@ async function handleSubscriptionRenewed(webhookData: KirvanoWebhookEvent) {
         subscriptionEnd,
   updatedAt: new Date(),
   // webhookExpiredProcessed: false,
-  lastSubscriptionEmailType: 'RENEWED'
+  lastSubscriptionEmailType: 'WELCOME'
       }
     })
     
@@ -418,6 +421,7 @@ async function handleSubscriptionRefunded(webhookData: KirvanoWebhookEvent) {
       where: { id: tenant.id },
       data: {
         isActive: false,
+        subscriptionStatus: 'INACTIVE' as const,
         businessPlan: 'Reembolsado', // Marca claramente o motivo
         subscriptionEnd: now,
         updatedAt: now,

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarDays, Crown, Shield, AlertCircle, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react'
+import PricingSection from '@/components/landing-page/pricing-section'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -284,6 +285,25 @@ export default function SubscriptionPage() {
   const currentPlanFeatures = subscription.isActive && ['BASIC','PREMIUM','ULTRA'].includes(subscription.plan)
     ? planFeatures[subscription.plan as keyof typeof planFeatures]
     : null
+
+  // Se a conta estiver inativa (após o teste, por exemplo), exibir paywall de planos
+  if (!subscription.isActive) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <Crown className="h-8 w-8 text-yellow-600" />
+          <h1 className="text-3xl font-bold">Minha Assinatura</h1>
+        </div>
+        <div className="bg-tymer-card border border-tymer-border rounded-xl p-6">
+          <h2 className="text-2xl font-semibold mb-2">O seu teste gratuito terminou!</h2>
+          <p className="text-muted-foreground mb-6">
+            Escolha um dos nossos planos abaixo para reativar a sua conta e manter todos os seus dados.
+          </p>
+          <PricingSection />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8"> 
