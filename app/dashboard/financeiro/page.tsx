@@ -2727,56 +2727,7 @@ export default function FinanceiroPage() {
     </Card>
   )}
 
-  {/* 🧮 Análise de Lucratividade do Período */}
-  {!isCollaborator && profitability && (
-    <Card className="bg-[#18181b] border-[#27272a]">
-      <CardHeader>
-        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-tymer-icon" />
-          Análise de Lucratividade do Período
-        </CardTitle>
-        <CardDescription className="text-sm sm:text-sm text-[#71717a]">
-          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos mensais integrais e lucro líquido
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Receita Bruta</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Descontos (Pré-pago)</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalDiscounts || 0)}</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Comissões</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalCommissions || 0)}</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(integralFixedCostsForRange || 0)}</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
-            {(() => {
-              const net = (Number(profitability?.netRevenue || 0) - Number(profitability?.totalCommissions || 0) - Number(integralFixedCostsForRange || 0))
-              const cls = net >= 0 ? 'text-[#10b981]' : 'text-red-400'
-              return (
-                <p className={`text-base sm:text-lg font-bold ${cls}`}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(net)}
-                </p>
-              )
-            })()}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )}
+  {/* 🧮 Análise de Lucratividade do Período (movido para baixo) */}
 
   {/* Custos Mensais (última seção) - oculto para colaborador */}
   {!isCollaborator && (
@@ -2952,33 +2903,17 @@ export default function FinanceiroPage() {
               {saveMsg && <span className="text-xs text-[#71717a]">{saveMsg}</span>}
             </div>
 
-            {/* Cards: Custos Fixos e Lucro Líquido (Estimado, Mês) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 pt-4">
+            {/* Card: Custos Fixos (Mensal) */}
+            <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 sm:gap-4 lg:gap-6 pt-4">
               {(() => {
                 const monthlyFixedTotal = fixedCostsAll
                   .filter(c => c.recurrence === 'RECURRING' || (c.recurrence === 'ONE_TIME' && c.year === selectedYear && c.month === selectedMonth))
                   .reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                // Receita líquida do mês: receita bruta - descontos de pré-pago
-                // Preferir dados agregados se existirem, senão calcular dos agendamentos do mês
-                const monthGross = selectedMonthData?.revenue || 0
-                const monthDiscounts = (() => {
-                  try {
-                    const apps = Array.isArray(selectedMonthData?.appointments) ? selectedMonthData.appointments : []
-                    return apps.reduce((s: number, app: any) => s + (parseFloat(app.discountApplied) || 0), 0)
-                  } catch { return 0 }
-                })()
-                const monthNetRevenue = Math.max(0, monthGross - monthDiscounts)
-                const monthlyNetProfit = monthNetRevenue - monthlyFixedTotal
                 return [
                   {
                     title: 'Custos Fixos (Mensal)',
                     value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyFixedTotal),
                     icon: Banknote,
-                  },
-                  {
-                    title: 'Lucro Líquido (Estimado, Mês)',
-                    value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyNetProfit),
-                    icon: TrendingUp,
                   }
                 ]
               })().map((stat, index) => {
@@ -2998,6 +2933,57 @@ export default function FinanceiroPage() {
             </div>
           </div>
         </CardContent>
+    </Card>
+  )}
+
+  {/* 🧮 Análise de Lucratividade do Período (abaixo da seção de Custos Mensais) */}
+  {!isCollaborator && profitability && (
+    <Card className="bg-[#18181b] border-[#27272a] mt-6">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-tymer-icon" />
+          Análise de Lucratividade do Período
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-sm text-[#71717a]">
+          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos mensais integrais e lucro líquido
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Receita Bruta</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Descontos (Pré-pago)</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalDiscounts || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Comissões</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalCommissions || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(integralFixedCostsForRange || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
+            {(() => {
+              const net = (Number(profitability?.netRevenue || 0) - Number(profitability?.totalCommissions || 0) - Number(integralFixedCostsForRange || 0))
+              const cls = net >= 0 ? 'text-[#10b981]' : 'text-red-400'
+              return (
+                <p className={`text-base sm:text-lg font-bold ${cls}`}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(net)}
+                </p>
+              )
+            })()}
+          </div>
+        </div>
+      </CardContent>
     </Card>
   )}
     </div>
