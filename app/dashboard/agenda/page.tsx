@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -116,15 +116,59 @@ export default function AgendaPage() {
   const isCollaborator = user?.role === 'COLLABORATOR'
   const authProfessionalId = (user as any)?.professionalId
   const { establishment, loading: establishmentLoading, fetchEstablishment } = useEstablishment()
-  const { 
-    workingHours, 
-    loading: workingHoursLoading, 
-    error: workingHoursError, 
+  const {
+    workingHours,
+    loading: workingHoursLoading,
+    error: workingHoursError,
     fetchWorkingHours,
     getWorkingHoursForDay,
     isEstablishmentOpen,
-    isTimeWithinWorkingHours 
+    isTimeWithinWorkingHours
   } = useWorkingHours()
+  
+  // Cobertura por agendamento (assinatura/pacote) para exibir badges SEM depender de tokens em notes
+  type Cov = { covered: boolean; coveredBy?: 'subscription' | 'package'; ts: number }
+  const COVERAGE_TTL_MS = 20000
+  const coverageCacheRef = useRef<Map<string, Cov>>(new Map())
+  const [coverageById, setCoverageById] = useState<Record<string, { coveredBy?: 'subscription' | 'package'; covered: boolean }>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      const candidates = (filteredAppointments || []).filter(apt => apt && apt.id && apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED')
+      const now = Date.now()
+      const updates: Record<string, { coveredBy?: 'subscription' | 'package'; covered: boolean }> = {}
+      for (const apt of candidates) {
+        const id = apt.id as string
+        const cached = coverageCacheRef.current.get(id)
+        if (cached && now - cached.ts < COVERAGE_TTL_MS) {
+          updates[id] = { covered: cached.covered, coveredBy: cached.coveredBy }
+          continue
+        }
+        try {
+          const resp = await fetch('/api/coverage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appointmentId: id }) })
+          if (!resp.ok) {
+            coverageCacheRef.current.set(id, { covered: false, ts: Date.now() })
+            updates[id] = { covered: false }
+            continue
+          }
+          const decision = await resp.json()
+          const covered = !!decision?.covered
+          const coveredBy: 'subscription' | 'package' | undefined = covered ? decision.coveredBy : undefined
+          coverageCacheRef.current.set(id, { covered, coveredBy, ts: Date.now() })
+          updates[id] = { covered, coveredBy }
+        } catch {
+          coverageCacheRef.current.set(id, { covered: false, ts: Date.now() })
+          updates[id] = { covered: false }
+        }
+      }
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setCoverageById(prev => ({ ...prev, ...updates }))
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [appointments?.length || 0, currentDate])
   const { toast } = useToast()
 
   // Fechar picker de serviços ao clicar fora ou pressionar ESC
@@ -2675,36 +2719,21 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
-                        {/* Badges de cobertura (assinatura e pacotes) */}
+                        {/* Badges de cobertura (assinatura e pacotes) via checagem de cobertura */}
                         {(() => {
-                          const notesText = (appointment.notes || '').toString()
-                          const willUse = /\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?)(?::[^\]]+)?\]/.test(notesText)
-                          const debited = /\[(?:DEBITED_(?:CREDIT|PACKAGE)):[^\]]+\]/.test(notesText)
-                          const hasSubscription = /\[SUBSCRIPTION_COVERED:([^\]]+)\]/.test(notesText)
-                          const hasPackageCoverage = /\[(?:PACKAGE_COVERED|PACKAGE_ELIGIBLE)(?::[^\]]+)?\]/.test(notesText)
+                          const cov = coverageById[appointment.id]
                           return (
                             <div className="flex flex-wrap gap-2">
-                              {hasSubscription && (
+                              {cov?.covered && cov?.coveredBy === 'subscription' && (
                                 <Badge className="text-xs px-2 py-0.5 rounded-full border bg-sky-500/15 text-sky-300 border-sky-500/30 flex items-center gap-1">
-                                  {/* Ícone simples via caractere, para evitar dependência adicional */}
                                   <span>⭐</span>
                                   Assinatura cobre
                                 </Badge>
                               )}
-                              {hasPackageCoverage && (
+                              {cov?.covered && cov?.coveredBy === 'package' && (
                                 <Badge className="text-xs px-2 py-0.5 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30 flex items-center gap-1">
                                   <span>⭐</span>
                                   Pacote cobre
-                                </Badge>
-                              )}
-                              {willUse && !debited && (
-                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30">
-                                  Vai usar crédito
-                                </Badge>
-                              )}
-                              {debited && (
-                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
-                                  Crédito usado
                                 </Badge>
                               )}
                             </div>
