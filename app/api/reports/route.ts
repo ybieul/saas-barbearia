@@ -635,14 +635,28 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   try {
     const list = Array.isArray(tenant?.fixedCosts) ? (tenant?.fixedCosts as any[]) : []
     const months = getMonthsInRange(rangeStart, rangeEnd)
-    const recurringTotal = list
+    // Soma mensal dos custos recorrentes
+    const recurringMonthlyTotal = list
       .filter((i: any) => (i?.recurrence === 'ONE_TIME' ? false : true))
       .reduce((sum: number, i: any) => sum + (Number(i?.amount) || 0), 0)
 
     for (const m of months) {
-      // Recorrentes entram todo mês do intervalo
-      fixedCosts += recurringTotal
-      // Pontuais entram somente no mês/ano correspondente
+      const monthStart = new Date(m.year, m.month, 1, 0, 0, 0, 0)
+      const monthEnd = new Date(m.year, m.month + 1, 0, 23, 59, 59, 999)
+      const daysInMonth = new Date(m.year, m.month + 1, 0).getDate()
+
+      const overlapStart = rangeStart > monthStart ? rangeStart : monthStart
+      const overlapEnd = rangeEnd < monthEnd ? rangeEnd : monthEnd
+      if (overlapStart <= overlapEnd) {
+        const msPerDay = 24 * 60 * 60 * 1000
+        // +1 para considerar ambos os extremos inclusivos na contagem de dias
+        const daysCovered = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / msPerDay) + 1
+        const fraction = Math.min(1, Math.max(0, daysCovered / daysInMonth))
+        // Recorrentes são prorrateados por fração de dias do mês cobertos pelo range
+        fixedCosts += recurringMonthlyTotal * fraction
+      }
+
+      // Pontuais entram somente no mês/ano correspondente (inteiros)
       for (const item of list) {
         const recurrence = item?.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
         if (recurrence !== 'ONE_TIME') continue
@@ -650,6 +664,7 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
         if (!(amount > 0)) continue
         if (typeof item?.year === 'number' && typeof item?.month === 'number') {
           if (item.year === m.year && item.month === m.month) {
+            // Inclui o custo pontual integral quando o mês/ano bate
             fixedCosts += amount
           }
         }

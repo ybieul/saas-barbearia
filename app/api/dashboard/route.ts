@@ -352,7 +352,7 @@ export async function GET(request: NextRequest) {
   const revenue = totalRevenue._sum.totalPrice || 0
   const commissionsPaid = Number(totalCommissionsAgg._sum.commissionEarned || 0)
     // Calcular custos fixos do período (pró-rata mensal)
-    let fixedCostsArray: Array<{ id?: string; name: string; amount: number }> = []
+  let fixedCostsArray: Array<{ id?: string; name: string; amount: number; recurrence?: 'RECURRING' | 'ONE_TIME'; year?: number; month?: number }> = []
     try {
       const rawRow = Array.isArray(tenantFixedCostsRaw) ? tenantFixedCostsRaw[0] : null
       const raw = rawRow?.fixedCosts
@@ -364,31 +364,50 @@ export async function GET(request: NextRequest) {
       console.warn('Erro ao parsear fixedCosts do tenant:', e)
     }
 
-    const monthlyFixedTotal = fixedCostsArray.reduce((sum, c) => sum + (Number(c?.amount) || 0), 0)
-    // Número de dias no período selecionado
-    const oneDayMs = 24 * 60 * 60 * 1000
-    const daysInRange = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / oneDayMs) + 1)
-    // Dias no mês de referência: usar média 30 para simplificar pró-rata entre meses; alternativa: somar pró-rata por mês
-    // Vamos usar pró-rata real por calendário: distribuir por cada dia do range considerando o mês de cada dia
-    const proratedFixedCost = (() => {
-      try {
-        // iterar por dias e somar monthlyFixedTotal / daysInMonth desse mês
-        let total = 0
-        const d = new Date(startDate)
-        d.setHours(0,0,0,0)
-        for (let i = 0; i < daysInRange; i++) {
-          const year = d.getFullYear()
-          const month = d.getMonth()
-          const daysInMonth = new Date(year, month + 1, 0).getDate()
-          total += monthlyFixedTotal / daysInMonth
-          d.setDate(d.getDate() + 1)
-        }
-        return total
-      } catch {
-        // fallback simples
-        return (monthlyFixedTotal / 30) * daysInRange
+    // Função auxiliar: meses cobertos pelo range
+    const getMonthsInRange = (start: Date, end: Date) => {
+      const months: Array<{ year: number; month: number }> = []
+      const cur = new Date(start.getFullYear(), start.getMonth(), 1)
+      const last = new Date(end.getFullYear(), end.getMonth(), 1)
+      while (cur <= last) {
+        months.push({ year: cur.getFullYear(), month: cur.getMonth() })
+        cur.setMonth(cur.getMonth() + 1)
       }
-    })()
+      return months
+    }
+
+    const monthsInRange = getMonthsInRange(startDate, endDate)
+    const recurringMonthlyTotal = fixedCostsArray
+      .filter((c: any) => (c?.recurrence === 'ONE_TIME' ? false : true))
+      .reduce((sum, c) => sum + (Number(c?.amount) || 0), 0)
+
+    let proratedFixedCost = 0
+    for (const m of monthsInRange) {
+      const monthStart = new Date(m.year, m.month, 1, 0, 0, 0, 0)
+      const monthEnd = new Date(m.year, m.month + 1, 0, 23, 59, 59, 999)
+      const daysInMonth = new Date(m.year, m.month + 1, 0).getDate()
+
+      const overlapStart = startDate > monthStart ? startDate : monthStart
+      const overlapEnd = endDate < monthEnd ? endDate : monthEnd
+      if (overlapStart <= overlapEnd) {
+        const msPerDay = 24 * 60 * 60 * 1000
+        const daysCovered = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / msPerDay) + 1
+        const fraction = Math.min(1, Math.max(0, daysCovered / daysInMonth))
+        proratedFixedCost += recurringMonthlyTotal * fraction
+      }
+
+      // ONE_TIME entra integral quando o mês/ano batem
+      for (const item of fixedCostsArray) {
+        const isOneTime = item?.recurrence === 'ONE_TIME'
+        const amount = Number(item?.amount || 0)
+        if (!isOneTime || !(amount > 0)) continue
+        if (typeof item?.year === 'number' && typeof item?.month === 'number') {
+          if (item.year === m.year && item.month === m.month) {
+            proratedFixedCost += amount
+          }
+        }
+      }
+    }
   // Para OWNER, considerar comissões como custo variável
   const netProfit = Number(revenue) - proratedFixedCost - (user.role === 'COLLABORATOR' ? 0 : commissionsPaid)
     const conversionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
