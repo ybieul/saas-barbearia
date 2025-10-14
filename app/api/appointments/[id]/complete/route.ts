@@ -10,6 +10,8 @@ export async function PATCH(
   const { paymentMethod } = await request.json()
     const appointmentId = params.id
 
+    console.log('🔵 [COMPLETE] Iniciando conclusão:', { appointmentId, paymentMethod })
+
     if (!paymentMethod) {
       return NextResponse.json(
         { error: "Forma de pagamento é obrigatória" },
@@ -61,11 +63,20 @@ export async function PATCH(
     })
 
     if (!existingAppointment) {
+      console.log('❌ [COMPLETE] Agendamento não encontrado:', appointmentId)
       return NextResponse.json(
         { error: "Agendamento não encontrado" },
         { status: 404 }
       )
     }
+
+    console.log('🟢 [COMPLETE] Agendamento encontrado:', {
+      id: existingAppointment.id,
+      endUserId: existingAppointment.endUserId,
+      tenantId: existingAppointment.tenantId,
+      servicesCount: existingAppointment.services.length,
+      totalPrice: existingAppointment.totalPrice
+    })
 
     // Calcular preço total baseado nos serviços do agendamento (base)
     // Usar o total salvo como fonte primária; fallback para soma dos serviços
@@ -96,7 +107,10 @@ export async function PATCH(
     }
 
   // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
+  console.log('🔵 [COMPLETE] Iniciando transação...')
   const updatedAppointment = await prisma.$transaction(async (tx) => {
+      console.log('🟣 [TRANSACTION] Dentro da transação')
+      
       // Observação do cliente (sem marcadores técnicos)
       const originalNotes = (existingAppointment.notes || '').toString()
         .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE)|SUBSCRIPTION_COVERED|PACKAGE_(?:COVERED|ELIGIBLE))(?:[^\]]*)\]/g, '')
@@ -114,6 +128,12 @@ export async function PATCH(
       let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
+      console.log('🟡 [TRANSACTION] Flags iniciais:', {
+        wantsToUseCredit,
+        hasSubscriptionMarker,
+        shouldCreateFinancialRecord
+      })
+
       // Se já houver marker de assinatura, priorizar como pré-pago (sem financeiro)
       if (hasSubscriptionMarker) {
         shouldCreateFinancialRecord = false
@@ -125,6 +145,12 @@ export async function PATCH(
       const now = new Date()
       
       if (wantsToUseCredit && !hasSubscriptionMarker) {
+        console.log('🔍 [TRANSACTION] Verificando cobertura por assinatura...', {
+          clientId: existingAppointment.endUserId,
+          tenantId: existingAppointment.tenantId,
+          serviceIds: serviceIdsSelected
+        })
+        
         // Verificar cobertura por assinatura de forma determinística via SQL
         try {
           const planRows = await tx.$queryRaw<Array<{ planId: string }>>`
@@ -136,6 +162,7 @@ export async function PATCH(
               AND cs.startDate <= ${now}
               AND cs.endDate >= ${now}
           `
+          console.log('📊 [TRANSACTION] Planos ativos encontrados:', planRows.length)
           if (planRows.length > 0) {
             const ids = [...new Set(planRows.map(r => r.planId))]
             const placeholders = ids.map(() => '?').join(',')
@@ -149,9 +176,12 @@ export async function PATCH(
               set.add(row.serviceId)
               byPlan.set(row.planId, set)
             }
+            console.log('🔍 [TRANSACTION] Serviços permitidos por plano:', Array.from(byPlan.entries()).map(([pid, sids]) => ({ pid, services: Array.from(sids) })))
+            
             for (const pid of ids) {
               const set = byPlan.get(pid) || new Set<string>()
               if (serviceIdsSelected.every(id => set.has(id))) {
+                console.log('✅ [TRANSACTION] Assinatura cobre o combo!', { planId: pid })
                 // Assinatura cobre todo o combo selecionado
                 subscriptionCovered = true
                 // Mantemos o totalPrice original para métricas/relatórios e comissão
@@ -161,7 +191,15 @@ export async function PATCH(
               }
             }
           }
-        } catch {}
+        } catch (error) {
+          console.error('❌ [TRANSACTION] Erro ao verificar assinatura:', error)
+          throw error
+        }
+        
+        console.log('🟢 [TRANSACTION] Após verificação de assinatura:', {
+          subscriptionCovered,
+          shouldCreateFinancialRecord
+        })
       }
 
       // Se deve usar crédito e ainda não debitou (e não foi coberto por assinatura), procurar e debitar pacote
@@ -397,9 +435,12 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error("Erro ao concluir agendamento:", error)
+    console.error("❌❌❌ [COMPLETE] ERRO FATAL:", error)
+    console.error("❌❌❌ [COMPLETE] Stack trace:", (error as Error).stack)
+    console.error("❌❌❌ [COMPLETE] Erro completo:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { error: "Erro interno do servidor: " + (error instanceof Error ? error.message : 'Erro desconhecido') },
       { status: 500 }
     )
   }
