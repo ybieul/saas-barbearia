@@ -202,7 +202,7 @@ model Service {
   // Serviços permitidos (snapshot) para pacotes do cliente (back-relation)
   clientPackageAllowedServices ClientPackageAllowedService[]
   // Relação many-to-many com planos de assinatura
-  subscriptionPlans SubscriptionPlan[] @relation("ServiceSubscriptionPlans")
+  subscriptionPlans SubscriptionPlan[]
 
   @@index([tenantId])
   @@index([tenantId, category])
@@ -225,7 +225,7 @@ model SubscriptionPlan {
   // Relations
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  services   Service[] @relation("ServiceSubscriptionPlans") // Relação many-to-many com os serviços incluídos
+  services   Service[] // Relação many-to-many com os serviços incluídos
   clientSubscriptions ClientSubscription[]
 
   @@index([tenantId])
