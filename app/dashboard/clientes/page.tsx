@@ -1556,10 +1556,10 @@ export default function ClientesPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-600 text-red-400 hover:bg-red-600/10 flex items-center gap-1"
-                                disabled={cancelProcessingId === s.id}
+                                className="border-red-600 text-red-400 hover:bg-red-600/10"
+                                disabled={!!cancelProcessingId}
                                 onClick={async () => {
-                                  if (!s?.id) return
+                                  if (!s?.id || cancelProcessingId) return
                                   const confirm = window.confirm('Cancelar esta assinatura?')
                                   if (!confirm) return
                                   const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum:', '')
@@ -1585,9 +1585,7 @@ export default function ClientesPage() {
                                     setCancelProcessingId(null)
                                   }
                                 }}
-                              >{cancelProcessingId === s.id && (
-                                <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                              )}Cancelar</Button>
+                              >{cancelProcessingId ? 'Processando...' : 'Cancelar'}</Button>
                             )}
                           </div>
                         )
