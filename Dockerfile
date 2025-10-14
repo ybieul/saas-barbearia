@@ -25,12 +25,8 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Cria usuário não-root
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs && \
-    chown -R nextjs:nodejs /app
-
-USER nextjs
+# Configurar permissões (simplificado - sem usuário não-root)
+RUN chmod -R 755 /app
 
 EXPOSE 3000
 
