@@ -243,6 +243,370 @@ export async function sendWelcomeEmail(
   }
 }
 
+// Função para enviar email de boas-vindas ao trial (15 dias grátis)
+export async function sendTrialWelcomeEmail(
+    name: string, 
+    email: string, 
+    temporaryPassword: string,
+    subscriptionEnd: Date
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter()
+    const expiryDisplay = formatBrazilianDate(subscriptionEnd)
+    const loginUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/login`
+    
+    const mailOptions = {
+      from: {
+        name: 'TymerBook',
+        address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com'
+      },
+      to: email,
+      subject: '🎉 Bem-vindo ao TymerBook - 15 dias GRÁTIS de teste!',
+      html: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin:0; padding:0; background-color:#f5f5f5; font-family:Segoe UI, Arial, sans-serif; }
+        .container { max-width:600px; margin:0 auto; background:#ffffff; }
+        .header { background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:40px 20px; text-align:center; }
+        .content { padding:40px 30px; }
+        .badge { display:inline-block; background:#10b981; color:#ffffff; padding:8px 16px; border-radius:20px; font-weight:bold; margin:10px 0; }
+        .credentials { background:#f9fafb; border-left:4px solid #667eea; padding:20px; margin:20px 0; }
+        .button { display:inline-block; background:#667eea; color:#ffffff; padding:14px 30px; text-decoration:none; border-radius:6px; font-weight:bold; margin:20px 0; }
+        .footer { background:#f9fafb; padding:20px; text-align:center; color:#6b7280; font-size:14px; }
+        .highlight { color:#667eea; font-weight:bold; }
+        .warning { background:#fef3c7; border-left:4px solid #f59e0b; padding:15px; margin:20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="color:#ffffff; margin:0; font-size:32px;">🎉 Bem-vindo ao TymerBook!</h1>
+            <p style="color:#e5e5e5; margin:10px 0 0 0; font-size:18px;">Sua conta trial foi criada com sucesso</p>
+        </div>
+        
+        <div class="content">
+            <p style="font-size:18px; color:#1f2937;">Olá <strong>${name}</strong>,</p>
+            
+            <p style="font-size:16px; color:#4b5563; line-height:1.6;">
+                Parabéns! Você acaba de iniciar seu <span class="badge">TESTE GRÁTIS DE 15 DIAS</span> com acesso completo a todos os recursos do <strong>Plano Ultra</strong> do TymerBook! 🚀
+            </p>
+
+            <div class="credentials">
+                <h3 style="margin-top:0; color:#1f2937;">🔑 Suas credenciais de acesso:</h3>
+                <p style="margin:8px 0;"><strong>Email:</strong> ${email}</p>
+                <p style="margin:8px 0;"><strong>Senha temporária:</strong> <code style="background:#e5e7eb; padding:4px 8px; border-radius:4px; font-family:monospace;">${temporaryPassword}</code></p>
+                <p style="margin:8px 0;"><strong>Período de teste até:</strong> ${expiryDisplay}</p>
+            </div>
+
+            <center>
+                <a href="${loginUrl}" class="button">Acessar minha conta agora</a>
+            </center>
+
+            <div class="warning">
+                <strong>⚠️ IMPORTANTE:</strong>
+                <ul style="margin:10px 0; padding-left:20px;">
+                    <li>Altere sua senha no primeiro acesso (Configurações → Alterar Senha)</li>
+                    <li>Não compartilhe sua senha temporária com ninguém</li>
+                    <li>Você tem <strong>15 dias</strong> para testar TODOS os recursos gratuitamente</li>
+                    <li>Sem compromisso! Não pedimos cartão de crédito</li>
+                </ul>
+            </div>
+
+            <h3 style="color:#1f2937;">🎯 Próximos passos para começar:</h3>
+            <ol style="color:#4b5563; line-height:1.8;">
+                <li>Faça login no painel administrativo</li>
+                <li>Cadastre seus profissionais e serviços</li>
+                <li>Configure os horários de atendimento</li>
+                <li>Personalize seu link de agendamento</li>
+                <li>Comece a receber agendamentos automaticamente!</li>
+            </ol>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6; margin-top:30px;">
+                Durante o período de teste, você terá acesso a:
+            </p>
+            <ul style="color:#4b5563; line-height:1.8;">
+                <li>✅ Profissionais ilimitados</li>
+                <li>✅ Clientes ilimitados</li>
+                <li>✅ Agendamentos ilimitados</li>
+                <li>✅ WhatsApp integrado</li>
+                <li>✅ Notificações automáticas</li>
+                <li>✅ Relatórios e estatísticas</li>
+                <li>✅ Suporte técnico completo</li>
+            </ul>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6; margin-top:30px;">
+                Aproveite ao máximo seu período de teste! Se tiver qualquer dúvida, estamos aqui para ajudar. 💜
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p style="margin:5px 0;">© 2025 TymerBook - Sistema de Agendamento Online</p>
+            <p style="margin:5px 0;">Este é um email automático, não responda.</p>
+        </div>
+    </div>
+</body>
+</html>`,
+      text: `🎉 Bem-vindo ao TymerBook - 15 dias GRÁTIS de teste!\n\nOlá ${name},\n\nParabéns! Você acaba de iniciar seu TESTE GRÁTIS DE 15 DIAS com acesso completo ao Plano Ultra!\n\n🔑 Suas credenciais de acesso:\n• Email: ${email}\n• Senha temporária: ${temporaryPassword}\n• Período de teste até: ${expiryDisplay}\n\nAcesse agora: ${loginUrl}\n\n⚠️ IMPORTANTE:\n• Altere sua senha no primeiro acesso (Configurações → Alterar Senha)\n• Você tem 15 dias para testar TODOS os recursos gratuitamente\n• Sem compromisso! Não pedimos cartão de crédito\n\n🎯 Próximos passos:\n1. Faça login no painel\n2. Cadastre seus profissionais e serviços\n3. Configure os horários de atendimento\n4. Personalize seu link de agendamento\n5. Comece a receber agendamentos!\n\nDurante o teste você terá:\n✅ Profissionais ilimitados\n✅ Clientes ilimitados\n✅ Agendamentos ilimitados\n✅ WhatsApp integrado\n✅ Notificações automáticas\n✅ Relatórios e estatísticas\n✅ Suporte técnico completo\n\nAproveite!\nEquipe TymerBook`
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    
+    console.log('✅ Email de boas-vindas TRIAL enviado:', {
+      messageId: info.messageId,
+      to: email
+    })
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de boas-vindas trial:', error)
+    return false
+  }
+}
+
+// Função para enviar lembretes de trial (dia 13 e dia 15)
+export async function sendTrialReminderEmail(
+    name: string, 
+    email: string,
+    daysLeft: number
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter()
+    const pricingUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+    
+    const isLastDay = daysLeft <= 0
+    const isTwoDays = daysLeft === 2
+    
+    let subject = ''
+    let emoji = ''
+    let urgencyColor = ''
+    
+    if (isLastDay) {
+      subject = '⏰ ÚLTIMO DIA do seu teste grátis no TymerBook!'
+      emoji = '⏰'
+      urgencyColor = '#dc2626'
+    } else if (isTwoDays) {
+      subject = '⚠️ Faltam apenas 2 dias para seu teste grátis acabar!'
+      emoji = '⚠️'
+      urgencyColor = '#f59e0b'
+    } else {
+      subject = `⏳ Faltam ${daysLeft} dias para seu teste grátis acabar`
+      emoji = '⏳'
+      urgencyColor = '#f59e0b'
+    }
+    
+    const mailOptions = {
+      from: {
+        name: 'TymerBook',
+        address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com'
+      },
+      to: email,
+      subject: subject,
+      html: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin:0; padding:0; background-color:#f5f5f5; font-family:Segoe UI, Arial, sans-serif; }
+        .container { max-width:600px; margin:0 auto; background:#ffffff; }
+        .header { background:${urgencyColor}; padding:40px 20px; text-align:center; }
+        .content { padding:40px 30px; }
+        .countdown { background:#fef3c7; border:3px solid ${urgencyColor}; padding:20px; text-align:center; margin:30px 0; border-radius:8px; }
+        .button { display:inline-block; background:#667eea; color:#ffffff; padding:16px 40px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:18px; margin:20px 0; }
+        .footer { background:#f9fafb; padding:20px; text-align:center; color:#6b7280; font-size:14px; }
+        .benefit { background:#f0fdf4; border-left:4px solid #10b981; padding:15px; margin:15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="color:#ffffff; margin:0; font-size:36px;">${emoji} ${isLastDay ? 'ÚLTIMO DIA!' : isTwoDays ? 'Faltam 2 dias!' : `Faltam ${daysLeft} dias`}</h1>
+            <p style="color:#ffffff; margin:10px 0 0 0; font-size:18px;">Seu teste grátis está acabando</p>
+        </div>
+        
+        <div class="content">
+            <p style="font-size:18px; color:#1f2937;">Olá <strong>${name}</strong>,</p>
+            
+            <div class="countdown">
+                <h2 style="margin:0; color:${urgencyColor}; font-size:48px;">${daysLeft <= 0 ? 'HOJE' : daysLeft}</h2>
+                <p style="margin:10px 0 0 0; font-size:18px; color:#1f2937;">
+                    ${isLastDay ? 'Seu teste acaba HOJE!' : isTwoDays ? 'dias restantes de teste grátis' : 'dias restantes'}
+                </p>
+            </div>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6;">
+                ${isLastDay 
+                  ? 'Hoje é o <strong>último dia</strong> do seu período de teste grátis de 15 dias! Não perca acesso a todos os recursos que você vem utilizando.' 
+                  : isTwoDays
+                  ? 'Seu período de teste grátis de 15 dias está chegando ao fim. Faltam apenas <strong>2 dias</strong> para você perder acesso a todos os recursos!'
+                  : `Seu teste grátis acaba em breve. Não perca o acesso aos recursos que você está usando!`
+                }
+            </p>
+
+            <h3 style="color:#1f2937;">💎 Continue aproveitando:</h3>
+            <div class="benefit">
+                <p style="margin:5px 0; color:#1f2937;">✅ Profissionais e clientes ilimitados</p>
+            </div>
+            <div class="benefit">
+                <p style="margin:5px 0; color:#1f2937;">✅ Agendamentos automáticos via WhatsApp</p>
+            </div>
+            <div class="benefit">
+                <p style="margin:5px 0; color:#1f2937;">✅ Notificações automáticas e lembretes</p>
+            </div>
+            <div class="benefit">
+                <p style="margin:5px 0; color:#1f2937;">✅ Relatórios e estatísticas completas</p>
+            </div>
+
+            <center>
+                <p style="font-size:18px; color:#1f2937; margin:30px 0 10px 0;">
+                    <strong>Assine agora e garanta acesso vitalício!</strong>
+                </p>
+                <a href="${pricingUrl}" class="button">Ver planos e assinar</a>
+                <p style="font-size:14px; color:#6b7280; margin:10px 0;">
+                    Planos a partir de R$ 29,90/mês
+                </p>
+            </center>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6; margin-top:40px;">
+                Ainda tem dúvidas? Nossa equipe está pronta para ajudar! 💜
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p style="margin:5px 0;">© 2025 TymerBook - Sistema de Agendamento Online</p>
+            <p style="margin:5px 0;">Este é um email automático, não responda.</p>
+        </div>
+    </div>
+</body>
+</html>`,
+      text: `${emoji} ${subject}\n\nOlá ${name},\n\n${isLastDay ? 'Hoje é o ÚLTIMO DIA do seu teste grátis!' : isTwoDays ? 'Faltam apenas 2 DIAS para seu teste grátis acabar!' : `Faltam ${daysLeft} dias para seu teste acabar.`}\n\nNão perca acesso a:\n✅ Profissionais e clientes ilimitados\n✅ Agendamentos automáticos via WhatsApp\n✅ Notificações automáticas e lembretes\n✅ Relatórios e estatísticas completas\n\nAssine agora: ${pricingUrl}\nPlanos a partir de R$ 29,90/mês\n\nEquipe TymerBook`
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    
+    console.log(`✅ Email de lembrete trial (${daysLeft} dias) enviado:`, {
+      messageId: info.messageId,
+      to: email
+    })
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de lembrete trial:', error)
+    return false
+  }
+}
+
+// Função para enviar email "sentimos sua falta" 2 dias após expiração
+export async function sendTrialExpiredMissYouEmail(
+    name: string, 
+    email: string
+): Promise<boolean> {
+  try {
+    const transporter = createTransporter()
+    const pricingUrl = `${process.env.NEXTAUTH_URL || 'https://tymerbook.com'}/dashboard/assinatura`
+    
+    const mailOptions = {
+      from: {
+        name: 'TymerBook',
+        address: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@tymerbook.com'
+      },
+      to: email,
+      subject: '💔 Sentimos sua falta no TymerBook...',
+      html: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin:0; padding:0; background-color:#f5f5f5; font-family:Segoe UI, Arial, sans-serif; }
+        .container { max-width:600px; margin:0 auto; background:#ffffff; }
+        .header { background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:40px 20px; text-align:center; }
+        .content { padding:40px 30px; }
+        .special-offer { background:#fef3c7; border:3px dashed #f59e0b; padding:25px; text-align:center; margin:30px 0; border-radius:8px; }
+        .button { display:inline-block; background:#10b981; color:#ffffff; padding:16px 40px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:18px; margin:20px 0; }
+        .footer { background:#f9fafb; padding:20px; text-align:center; color:#6b7280; font-size:14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="color:#ffffff; margin:0; font-size:32px;">💔 Sentimos sua falta!</h1>
+            <p style="color:#e5e5e5; margin:10px 0 0 0; font-size:18px;">Seu teste grátis expirou</p>
+        </div>
+        
+        <div class="content">
+            <p style="font-size:18px; color:#1f2937;">Olá <strong>${name}</strong>,</p>
+            
+            <p style="font-size:16px; color:#4b5563; line-height:1.6;">
+                Notamos que seu período de teste grátis de 15 dias expirou e você ainda não assinou o TymerBook. 😢
+            </p>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6;">
+                Sabemos o quanto é importante ter um sistema de agendamentos eficiente para seu negócio, e queremos que você volte a ter acesso a todos os recursos que estava usando!
+            </p>
+
+            <div class="special-offer">
+                <h2 style="margin:0 0 15px 0; color:#1f2937;">🎁 Oferta Especial para Você!</h2>
+                <p style="margin:0; font-size:18px; color:#4b5563;">
+                    Assine agora e volte a ter acesso completo aos recursos que você estava aproveitando durante seu teste.
+                </p>
+            </div>
+
+            <h3 style="color:#1f2937;">💎 Você vai recuperar:</h3>
+            <ul style="color:#4b5563; line-height:1.8;">
+                <li>✅ Todos os seus dados salvos (profissionais, clientes, serviços)</li>
+                <li>✅ Agendamentos ilimitados</li>
+                <li>✅ WhatsApp integrado com notificações automáticas</li>
+                <li>✅ Relatórios e estatísticas em tempo real</li>
+                <li>✅ Suporte técnico prioritário</li>
+            </ul>
+
+            <center>
+                <a href="${pricingUrl}" class="button">Reativar minha conta agora</a>
+                <p style="font-size:14px; color:#6b7280; margin:10px 0;">
+                    Planos a partir de R$ 29,90/mês • Sem compromisso
+                </p>
+            </center>
+
+            <p style="font-size:16px; color:#4b5563; line-height:1.6; margin-top:40px;">
+                Estamos aqui para ajudar você a crescer! Se tiver alguma dúvida ou precisar de ajuda, é só responder este email. 💜
+            </p>
+
+            <p style="font-size:14px; color:#6b7280; margin-top:30px; font-style:italic;">
+                P.S.: Seus dados estão seguros e salvos. Quando você assinar, tudo volta exatamente como estava!
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p style="margin:5px 0;">© 2025 TymerBook - Sistema de Agendamento Online</p>
+            <p style="margin:5px 0;">Este é um email automático, não responda.</p>
+        </div>
+    </div>
+</body>
+</html>`,
+      text: `💔 Sentimos sua falta no TymerBook!\n\nOlá ${name},\n\nNotamos que seu período de teste grátis expirou e você ainda não assinou o TymerBook.\n\nSabemos o quanto é importante ter um sistema eficiente para seu negócio!\n\n🎁 OFERTA ESPECIAL PARA VOCÊ!\nAssine agora e volte a ter acesso completo.\n\n💎 Você vai recuperar:\n✅ Todos os seus dados salvos\n✅ Agendamentos ilimitados\n✅ WhatsApp integrado\n✅ Relatórios em tempo real\n✅ Suporte prioritário\n\nReativar agora: ${pricingUrl}\n\nPlanos a partir de R$ 29,90/mês\n\nP.S.: Seus dados estão seguros! Quando assinar, tudo volta como estava.\n\nEquipe TymerBook`
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    
+    console.log('✅ Email "sentimos sua falta" enviado:', {
+      messageId: info.messageId,
+      to: email
+    })
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Erro ao enviar email "sentimos sua falta":', error)
+    return false
+  }
+}
+
 // Função para testar configuração de email
 export async function testEmailConfiguration(): Promise<boolean> {
   try {

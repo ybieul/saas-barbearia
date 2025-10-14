@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendWhatsappReminders = sendWhatsappReminders;
+exports.sendFeedbackRequests = sendFeedbackRequests;
 const client_1 = require("@prisma/client");
 const whatsapp_server_1 = require("../lib/whatsapp-server");
 const timezone_1 = require("../lib/timezone");
@@ -173,9 +174,10 @@ function sendWhatsappReminders() {
         }
         console.log(`[${new Date().toISOString()}] 🎉 MULTI-TENANT: Processamento concluído. Total de lembretes enviados: ${totalSent}`);
         console.log('✅ Lógica de lembretes multi-tenant finalizada.');
+        // Após lembretes, processar pedidos de feedback
         try {
-            const feedbackTotal = yield sendFeedbackRequests();
-            console.log(`📝 [FEEDBACK] Total de mensagens de avaliação enviadas: ${feedbackTotal}`);
+            const feedbackSent = yield sendFeedbackRequests();
+            console.log(`📝 [FEEDBACK] Total de mensagens de avaliação enviadas: ${feedbackSent}`);
         }
         catch (e) {
             console.error('❌ [FEEDBACK] Erro ao processar feedback requests:', e);
@@ -186,16 +188,16 @@ function sendWhatsappReminders() {
 // ===================== FEEDBACK REQUESTS =====================
 function sendFeedbackRequests() {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
         console.log('🔄 [FEEDBACK] Iniciando verificação de agendamentos concluídos para envio de avaliação...');
         const now = (0, timezone_1.getBrazilNow)();
-        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
-        const appointments = yield prisma.appointment.findMany({
+        // Buscar agendamentos COMPLETED nas últimas 6 horas (janela ampla) e filtrar dinamicamente
+        const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        // Como o client local pode não reconhecer a coluna feedbackSent (caso não regenerado), buscamos sem ela e filtramos manualmente via SQL depois
+        const appointmentsBase = yield prisma.appointment.findMany({
             where: {
                 status: 'COMPLETED',
-                // @ts-ignore campo novo
-                feedbackSent: false,
-                completedAt: { gte: oneHourAgo, lte: thirtyMinAgo },
+                completedAt: { gte: sixHoursAgo, lte: now },
                 tenant: {
                     whatsapp_instance_name: { not: null },
                     automationSettings: { some: { automationType: 'feedback_request', isEnabled: true } },
@@ -207,29 +209,98 @@ function sendFeedbackRequests() {
                 services: true
             }
         });
-        console.log(`🔍 [FEEDBACK] Agendamentos candidatos: ${appointments.length}`);
+        // Obter ids que já têm feedbackSent = 1
+        const sentRows = yield prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, sixHoursAgo, now);
+        const sentSet = new Set(sentRows.map(r => r.id));
+        const appointments = appointmentsBase.filter((a) => !sentSet.has(a.id));
+        console.log(`🔍 [FEEDBACK] Candidatos (janela ampla 6h): ${appointments.length}`);
         let sentCount = 0;
         for (const appt of appointments) {
             try {
-                const automation = appt.tenant && appt.tenant.automationSettings && appt.tenant.automationSettings.find(a => a.automationType === 'feedback_request' && a.isEnabled);
+                if (!appt.completedAt)
+                    continue;
+                const automation = (_b = (_a = appt.tenant) === null || _a === void 0 ? void 0 : _a.automationSettings) === null || _b === void 0 ? void 0 : _b.find((a) => a.automationType === 'feedback_request' && a.isEnabled);
                 if (!automation)
                     continue;
-                if (!(appt.endUser && appt.endUser.phone))
+                if (!((_c = appt.endUser) === null || _c === void 0 ? void 0 : _c.phone))
                     continue;
+                const delay = appt.tenant.feedbackDelayMinutes || 45;
+                const tolerance = 5; // minutos de tolerância para janela
+                const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000);
+                const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000);
+                const windowEnd = new Date(targetTime.getTime() + tolerance * 60 * 1000);
+                if (now < windowStart || now > windowEnd) {
+                    continue; // ainda não está no intervalo para este agendamento
+                }
+                // Evitar duplicado: checar se já existe log FEEDBACK para este telefone nas últimas 3h
+                const existingLog = yield prisma.whatsAppLog.findFirst({
+                    where: {
+                        to: appt.endUser.phone,
+                        type: 'FEEDBACK',
+                        createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }
+                    }
+                });
+                if (existingLog) {
+                    console.log(`⚠️ [FEEDBACK] Já existe log FEEDBACK recente para telefone ${appt.endUser.phone}`);
+                    // Não marcar feedbackSent aqui para permitir reenvio se nunca marcou (mas já há log). Mantemos skip.
+                    continue;
+                }
+                // Montar mensagem (apenas placeholders básicos e link de avaliação se existir)
                 const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}';
+                if (!appt.tenant.googleReviewLink && /\{linkAvaliacao\}/.test(template)) {
+                    console.warn(`⚠️ [FEEDBACK] Template contém {linkAvaliacao} mas tenant não tem googleReviewLink (tenantId=${appt.tenantId})`);
+                }
                 const message = template
                     .replace(/\{nomeCliente\}/g, appt.endUser.name)
-                    .replace(/\{nomeBarbearia\}/g, (appt.tenant.businessName || 'nossa barbearia'))
-                    .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '');
+                    .replace(/\{nomeBarbearia\}/g, appt.tenant.businessName || 'nossa barbearia')
+                    .replace(/\{linkAvaliacao\}/g, appt.tenant.googleReviewLink || '')
+                    .replace(/\{linkTracking\}/g, ''); // placeholder removido do sistema
                 const success = yield sendMultiTenantWhatsAppMessage(appt.endUser.phone, message, appt.tenant.whatsapp_instance_name, 'feedback_request');
-                yield prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id);
-                if (success)
+                if (success) {
+                    // Marcar enviado
+                    yield prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id);
+                    // Criar log FEEDBACK
+                    try {
+                        yield prisma.whatsAppLog.create({
+                            data: {
+                                to: appt.endUser.phone,
+                                message,
+                                type: 'FEEDBACK',
+                                status: 'SENT',
+                                sentAt: new Date(),
+                                tenantId: appt.tenantId
+                            }
+                        });
+                    }
+                    catch (logErr) {
+                        console.error('⚠️ [FEEDBACK] Falha ao criar WhatsAppLog (FEEDBACK). Tentando fallback CUSTOM:', logErr);
+                        try {
+                            yield prisma.whatsAppLog.create({
+                                data: {
+                                    to: appt.endUser.phone,
+                                    message,
+                                    type: 'CUSTOM',
+                                    status: 'SENT',
+                                    sentAt: new Date(),
+                                    tenantId: appt.tenantId
+                                }
+                            });
+                        }
+                        catch (fallbackErr) {
+                            console.error('❌ [FEEDBACK] Falha no fallback CUSTOM WhatsAppLog:', fallbackErr);
+                        }
+                    }
                     sentCount++;
+                    console.log(`✅ [FEEDBACK] (${delay}m) Enviada avaliação para agendamento ${appt.id}`);
+                }
+                else {
+                    console.warn(`⚠️ [FEEDBACK] Falha no envio (não marcado como enviado) appt=${appt.id}`);
+                }
                 yield new Promise(r => setTimeout(r, 750));
             }
             catch (e) {
                 console.error('❌ [FEEDBACK] Erro ao enviar feedback para', appt.id, e);
-                yield prisma.$executeRawUnsafe(`UPDATE appointments SET feedbackSent = 1 WHERE id = ?`, appt.id);
+                // Não marcar feedbackSent em erro para permitir nova tentativa na janela
             }
         }
         console.log(`🎉 [FEEDBACK] Processamento concluído. Enviados: ${sentCount}`);
@@ -323,16 +394,16 @@ function sendReminderMessage(appointment, reminderType, instanceName) {
                 message = whatsapp_server_1.whatsappTemplates.reminder24h(templateData);
                 break;
             case 'reminder_12h':
-                message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData);
+                message = whatsapp_server_1.whatsappTemplates.reminder12h(templateData); // ✅ CORRIGIDO: usar template correto
                 break;
             case 'reminder_2h':
                 message = whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
                 break;
             case 'reminder_1h':
-                message = whatsapp_server_1.whatsappTemplates.reminder1h ? whatsapp_server_1.whatsappTemplates.reminder1h(templateData) : whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
+                message = whatsapp_server_1.whatsappTemplates.reminder1h(templateData);
                 break;
             case 'reminder_30min':
-                message = whatsapp_server_1.whatsappTemplates.reminder30min ? whatsapp_server_1.whatsappTemplates.reminder30min(templateData) : whatsapp_server_1.whatsappTemplates.reminder2h(templateData);
+                message = whatsapp_server_1.whatsappTemplates.reminder30min(templateData);
                 break;
             default:
                 throw new Error(`Tipo de lembrete desconhecido: ${reminderType}`);

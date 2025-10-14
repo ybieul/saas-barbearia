@@ -26,7 +26,8 @@
     "gc:test": "node dist/scripts/test-gc.js",
     "cron:expire-subscriptions": "tsx scripts/subscription-expirer-cron.ts",
     "cron:preexpire-subscriptions": "tsx scripts/subscription-preexpire-cron.ts",
-    "cron:check-trials": "tsx scripts/check-trial-expirations.ts"
+    "cron:check-trials": "tsx scripts/check-trial-expirations.ts",
+    "cron:trial-reminders": "tsx scripts/send-trial-reminders.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

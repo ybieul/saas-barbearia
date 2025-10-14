@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendTrialWelcomeEmail, generateSecurePassword } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,6 +80,17 @@ export async function POST(request: NextRequest) {
       subscriptionEnd: tenant.subscriptionEnd,
       subscriptionStatus: 'TRIAL'
     }
+
+    // Enviar email de boas-vindas ao trial (não bloqueia a resposta)
+    sendTrialWelcomeEmail(
+      tenant.name,
+      tenant.email,
+      password, // Senha original (não hasheada) para o email
+      trialEnd
+    ).catch(err => {
+      console.error('Erro ao enviar email de boas-vindas trial:', err)
+      // Não falha o registro se o email falhar
+    })
 
     return NextResponse.json({
       user: userResponse,

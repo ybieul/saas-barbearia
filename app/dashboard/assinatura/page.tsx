@@ -179,7 +179,13 @@ export default function SubscriptionPage() {
   }
 
   // Função para formatear nome do plano
+  // Se estiver em TRIAL, mostra "Trial" ao invés de "Ultra"
   const getPlanDisplayName = (plan: string) => {
+    // Verificar se está em período de trial
+    if (subscription?.subscriptionStatus === 'TRIAL') {
+      return 'Trial (15 dias grátis)'
+    }
+    
     switch (plan) {
       case 'BASIC':
         return 'Básico'

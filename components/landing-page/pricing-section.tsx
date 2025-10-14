@@ -9,16 +9,16 @@ import { Check, X } from "lucide-react";
 // Links diretos de checkout (Kirvano) - substitua pelos definitivos
 const CHECKOUT_LINKS = {
 	BASIC: {
-		monthly: "https://app.kirvano.com/checkout/tymerbook/basic-monthly",
-		annual: "https://app.kirvano.com/checkout/tymerbook/basic-annual",
+		monthly: "https://pay.kirvano.com/bf152053-6863-4439-893d-cce710fbdb05",
+		annual: "https://wa.me/5524981757110?text=Ol%C3%A1!%20Vi%20o%20Plano%20Basico%20Anual%20da%20TymerBook%20e%20quero%20saber%20como%20posso%20contratar.",
 	},
 	PREMIUM: {
-		monthly: "https://app.kirvano.com/checkout/tymerbook/premium-monthly",
-		annual: "https://app.kirvano.com/checkout/tymerbook/premium-annual",
+		monthly: "https://pay.kirvano.com/626f4ba9-4a78-4786-805e-79087bbf72a2",
+		annual: "https://wa.me/5524981757110?text=Ol%C3%A1!%20Vi%20o%20Plano%20Premium%20Anual%20da%20TymerBook%20e%20quero%20saber%20como%20posso%20contratar.",
 	},
 	ULTRA: {
-		monthly: "https://app.kirvano.com/checkout/tymerbook/ultra-monthly",
-		annual: "https://app.kirvano.com/checkout/tymerbook/ultra-annual",
+		monthly: "https://pay.kirvano.com/2c9b85b8-53e7-46c3-967a-b927e1617170",
+		annual: "https://wa.me/5524981757110?text=Ol%C3%A1!%20Vi%20o%20Plano%20Ultra%20Anual%20da%20TymerBook%20e%20quero%20saber%20como%20posso%20contratar.",
 	},
 } as const;
 
