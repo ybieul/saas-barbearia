@@ -313,11 +313,22 @@ export async function PATCH(
       }
 
       // Operação 1: Atualizar o Agendamento
+      // ✅ CORREÇÃO CRÍTICA: PREPAID não existe no enum, mapear para null
+      // Quando é pré-pago, paymentMethod=null e paymentSource indica a origem (SUBSCRIPTION/PACKAGE)
+      const finalPaymentMethod = paymentMethod === 'PREPAID' ? null : paymentMethod
+      
+      console.log('💾 [TRANSACTION] Salvando agendamento:', {
+        paymentMethod: finalPaymentMethod,
+        subscriptionCovered,
+        debitedPackageId,
+        debitedCreditId
+      })
+      
   const appointment = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
           status: "COMPLETED",
-          paymentMethod: paymentMethod,
+          paymentMethod: finalPaymentMethod, // ✅ null quando PREPAID
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice, // Mantém preço original no banco
@@ -334,7 +345,11 @@ export async function PATCH(
       })
 
       // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
-      const source = hasSubscriptionMarker ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+      // ✅ CORREÇÃO: Considerar subscriptionCovered detectado nesta transação
+      const source = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+      
+      console.log('🏷️ [TRANSACTION] Definindo paymentSource:', { source, subscriptionCovered, debitedPackageId, debitedCreditId })
+      
       if (source) {
         await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
       }
@@ -401,12 +416,13 @@ export async function PATCH(
 
       // Operação 3: Criar registro financeiro apenas se NÃO houve uso de crédito
       if (shouldCreateFinancialRecord) {
+        console.log('💰 [TRANSACTION] Criando registro financeiro:', { finalPaymentMethod, totalPrice })
         await tx.financialRecord.create({
           data: {
             type: "INCOME",
             amount: totalPrice,
             description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
-            paymentMethod: paymentMethod,
+            paymentMethod: finalPaymentMethod, // ✅ Usar o paymentMethod mapeado (null para PREPAID)
             reference: appointmentId,
             tenantId: appointment.tenantId,
             date: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
