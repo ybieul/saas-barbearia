@@ -1,6 +1,7 @@
-import { prisma } from '@/lib/prisma'
-import { getBrazilNow } from '@/lib/timezone'
-import { sendTrialReminderEmail, sendTrialExpiredMissYouEmail } from '@/lib/email'
+// IMPORTS AJUSTADOS para execução standalone (sem resolver alias @)
+import { prisma } from '../lib/prisma'
+import { getBrazilNow } from '../lib/timezone'
+import { sendTrialReminderEmail, sendTrialExpiredMissYouEmail } from '../lib/email'
 
 /**
  * Envia lembretes de trial baseado no tempo restante:

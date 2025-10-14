@@ -10,9 +10,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runSendTrialReminders = runSendTrialReminders;
-const prisma_1 = require("@/lib/prisma");
-const timezone_1 = require("@/lib/timezone");
-const email_1 = require("@/lib/email");
+// IMPORTS AJUSTADOS para execução standalone (sem resolver alias @)
+const prisma_1 = require("../lib/prisma");
+const timezone_1 = require("../lib/timezone");
+const email_1 = require("../lib/email");
 /**
  * Envia lembretes de trial baseado no tempo restante:
  * - Dia 13: "Faltam 2 dias" (quando restam exatamente 2 dias)

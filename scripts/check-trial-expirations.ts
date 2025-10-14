@@ -1,5 +1,6 @@
-import { prisma } from '@/lib/prisma'
-import { getBrazilNow } from '@/lib/timezone'
+// IMPORTS AJUSTADOS: usar caminhos relativos para execução fora do Next.js (cron standalone)
+import { prisma } from '../lib/prisma'
+import { getBrazilNow } from '../lib/timezone'
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY

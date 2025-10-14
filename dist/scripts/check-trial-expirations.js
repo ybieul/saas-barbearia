@@ -10,8 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runCheckTrialExpirations = runCheckTrialExpirations;
-const prisma_1 = require("@/lib/prisma");
-const timezone_1 = require("@/lib/timezone");
+// IMPORTS AJUSTADOS: usar caminhos relativos para execução fora do Next.js (cron standalone)
+const prisma_1 = require("../lib/prisma");
+const timezone_1 = require("../lib/timezone");
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
 /**
