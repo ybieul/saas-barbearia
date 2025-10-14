@@ -298,12 +298,16 @@ export default function ClientesPage() {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const res = await fetch(`/api/client-subscriptions?clientId=${clientId}&page=${subscriptionPage}&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
-      if (!res.ok) return
+      if (!res.ok) {
+        setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: [] }))
+        return
+      }
       const data = await res.json()
       setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
       if (data.meta) setSubscriptionMeta(data.meta)
     } catch (e) {
       console.error('Erro ao atualizar assinaturas do cliente', e)
+      setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: [] }))
     }
   }
 
@@ -1522,11 +1526,12 @@ export default function ClientesPage() {
                   {loadingSubscriptions && <span className="text-[10px] text-[#71717a]">Carregando...</span>}
                 </div>
                 {(() => {
-                  const subs = clientSubscriptionsMap[selectedClient.id] || []
+                  const subs = clientSubscriptionsMap[selectedClient.id]
+                  if (!subs || !Array.isArray(subs)) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
                   if (!loadingSubscriptions && subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
                   return (
                     <div className="space-y-2">
-                      {!loadingSubscriptions && subs.map(s => {
+                      {!loadingSubscriptions && Array.isArray(subs) && subs.map(s => {
                         const isActive = s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())
                         const statusLabel = isActive ? 'Ativa' : 'Inativa'
                         const statusClass = isActive ? 'text-blue-300 border-blue-600/30 bg-blue-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
@@ -1554,6 +1559,7 @@ export default function ClientesPage() {
                                 className="border-red-600 text-red-400 hover:bg-red-600/10 flex items-center gap-1"
                                 disabled={cancelProcessingId === s.id}
                                 onClick={async () => {
+                                  if (!s?.id) return
                                   const confirm = window.confirm('Cancelar esta assinatura?')
                                   if (!confirm) return
                                   const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum:', '')
