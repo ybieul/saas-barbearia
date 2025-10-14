@@ -97,10 +97,6 @@ export default function ClientesPage() {
   const [availablePlans, setAvailablePlans] = useState<Array<{ id: string; name: string }>>([])
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
-  const [subscriptionPage, setSubscriptionPage] = useState(1)
-  const [subscriptionMeta, setSubscriptionMeta] = useState<{ page: number; pageSize: number; total: number; hasNext: boolean } | null>(null)
-  const [loadingSubscriptions, setLoadingSubscriptions] = useState(false)
-  const [cancelProcessingId, setCancelProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -275,58 +271,8 @@ export default function ClientesPage() {
   }
   const openSellSubscription = async (client: Client) => {
     setSelectedClient(client)
-    setSubscriptionPage(1)
     await fetchAvailablePlans()
-    try {
-      setLoadingSubscriptions(true)
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const res = await fetch(`/api/client-subscriptions?clientId=${client.id}&page=1&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
-      if (res.ok) {
-        const data = await res.json()
-        setClientSubscriptionsMap(prev => ({ ...prev, [client.id]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
-        if (data.meta) setSubscriptionMeta(data.meta)
-      }
-    } catch (e) {
-      console.error('Erro inicial assinaturas', e)
-    } finally {
-      setLoadingSubscriptions(false)
-    }
     setIsSellSubscriptionOpen(true)
-  }
-
-  const refreshClientSubscriptions = async (clientId: string) => {
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const res = await fetch(`/api/client-subscriptions?clientId=${clientId}&page=${subscriptionPage}&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
-      if (!res.ok) {
-        setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: [] }))
-        return
-      }
-      const data = await res.json()
-      setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
-      if (data.meta) setSubscriptionMeta(data.meta)
-    } catch (e) {
-      console.error('Erro ao atualizar assinaturas do cliente', e)
-      setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: [] }))
-    }
-  }
-
-  const loadSubscriptionsPage = async (page: number) => {
-    if (!selectedClient) return
-    try {
-      setLoadingSubscriptions(true)
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const res = await fetch(`/api/client-subscriptions?clientId=${selectedClient.id}&page=${page}&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
-      if (!res.ok) return
-      const data = await res.json()
-      setSubscriptionPage(page)
-      setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
-      if (data.meta) setSubscriptionMeta(data.meta)
-    } catch (e) {
-      console.error('Erro ao paginar assinaturas', e)
-    } finally {
-      setLoadingSubscriptions(false)
-    }
   }
 
   const fetchAvailablePlans = async () => {
@@ -460,37 +406,30 @@ export default function ClientesPage() {
   // Renomear semanticamente (mantendo compatibilidade) - agora filtra pacote OU assinatura
   const filterActiveAny = filterActivePackagesOnly
 
-  // Carregar assinaturas em batch para todos os clientes
+  // Carregar assinaturas de todos os clientes (simplificado). Poderia ser otimizado com endpoint batch.
   useEffect(() => {
-    if (!clients || clients.length === 0) { setClientSubscriptionsMap({}); return }
+    if (!clients || clients.length === 0) return
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const controller = new AbortController()
-    const fetchBatch = async () => {
-      try {
-        const ids = clients.map(c => c.id)
-        const chunkSize = 40 // evitar URL muito longa
-        const aggregate: Record<string, ClientSubscriptionInfo[]> = {}
-        for (let i = 0; i < ids.length; i += chunkSize) {
-          const slice = ids.slice(i, i + chunkSize)
-            const res = await fetch(`/api/client-subscriptions?clientIds=${slice.join(',')}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal })
-          if (!res.ok) continue
+    const fetchSubs = async () => {
+      const entries = await Promise.all(clients.map(async (c: Client) => {
+        try {
+          const res = await fetch(`/api/client-subscriptions?clientId=${c.id}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal })
+          if (!res.ok) return [c.id, []] as const
           const data = await res.json()
-          const map = data.map || {}
-          Object.entries(map).forEach(([cid, subs]: any) => {
-            aggregate[cid] = (subs || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status }))
-          })
+            const items = (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status }))
+          return [c.id, items] as const
+        } catch {
+          return [c.id, []] as const
         }
-        // Garantir chaves vazias
-        ids.forEach(id => { if (!aggregate[id]) aggregate[id] = [] })
-        setClientSubscriptionsMap(aggregate)
-      } catch (e) {
-        if ((e as any)?.name !== 'AbortError') console.error('Erro batch assinaturas', e)
-      }
+      }))
+      const map: Record<string, ClientSubscriptionInfo[]> = {}
+      entries.forEach(([id, subs]) => { map[id] = subs })
+      setClientSubscriptionsMap(map)
     }
-    fetchBatch()
+    fetchSubs()
     return () => controller.abort()
   }, [clients])
-
   const filteredClients = (clients || [])
     // 1) Filtro local por busca (igual aos inativos)
     .filter((c: any) => {
@@ -683,10 +622,9 @@ export default function ClientesPage() {
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
                 <p className="text-xl sm:text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
-                    const cd = client?.createdAt ? new Date(client.createdAt) : null
-                    if (!cd || isNaN(cd.getTime())) return false
+                    const clientDate = new Date(client.createdAt)
                     const now = getBrazilNow()
-                    return cd.getMonth() === now.getMonth() && cd.getFullYear() === now.getFullYear()
+                    return clientDate.getMonth() === now.getMonth() && clientDate.getFullYear() === now.getFullYear()
                   }).length}
                 </p>
               </div>
@@ -815,7 +753,7 @@ export default function ClientesPage() {
                           {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
                         </h3>
                         <p className="text-xs text-[#71717a]">
-                          {(() => { const cd = client.createdAt ? new Date(client.createdAt) : null; const txt = cd && !isNaN(cd.getTime()) ? formatBrazilDate(cd) : '—'; return `Cliente desde ${txt}` })()}
+                          Cliente desde {formatBrazilDate(new Date(client.createdAt))}
                         </p>
                       </div>
                     </div>
@@ -872,7 +810,7 @@ export default function ClientesPage() {
                     {/* Última Visita */}
                     <div className="col-span-2">
                       <span className="text-[#a1a1aa]">
-                        {lastVisit && !isNaN(lastVisit.getTime()) ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
+                        {lastVisit ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
                       </span>
                     </div>
                     
@@ -953,7 +891,7 @@ export default function ClientesPage() {
                               {client.isActive ? 'Novo' : 'Inativo'}
                             </Badge>
                             <span className="text-xs text-[#71717a]">
-                              {(() => { const cd = client.createdAt ? new Date(client.createdAt) : null; const txt = cd && !isNaN(cd.getTime()) ? formatBrazilDate(cd) : '—'; return `Desde ${txt}` })()}
+                              Desde {formatBrazilDate(new Date(client.createdAt))}
                             </span>
                           </div>
                         </div>
@@ -997,9 +935,7 @@ export default function ClientesPage() {
                         </div>
                         <div className="bg-[#27272a]/50 rounded-lg p-2 text-center">
                           <div className="text-sm font-medium text-[#a1a1aa]">
-                            {lastVisit && !isNaN(lastVisit.getTime())
-                              ? lastVisit.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                              : 'Nunca'}
+                            {lastVisit ? lastVisit.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Nunca'}
                           </div>
                           <div className="text-xs text-[#71717a]">Última Visita</div>
                         </div>
@@ -1161,7 +1097,7 @@ export default function ClientesPage() {
                       <div className="space-y-2">
                         <Label className="text-[#71717a] text-xs">Cliente desde</Label>
                         <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
-                          {(() => { const cd = selectedClient.createdAt ? new Date(selectedClient.createdAt) : null; return (cd && !isNaN(cd.getTime())) ? formatBrazilDate(cd) : '—' })()}
+                          {formatBrazilDate(new Date(selectedClient.createdAt))}
                         </div>
                       </div>
                     </div>
@@ -1210,7 +1146,7 @@ export default function ClientesPage() {
                     <div className="space-y-2">
                       <Label className="text-[#71717a] text-sm">Cliente desde</Label>
                       <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
-                        {(() => { const cd = selectedClient.createdAt ? new Date(selectedClient.createdAt) : null; return (cd && !isNaN(cd.getTime())) ? formatBrazilDate(cd) : '—' })()}
+                        {formatBrazilDate(new Date(selectedClient.createdAt))}
                       </div>
                     </div>
                   </div>
@@ -1452,13 +1388,8 @@ export default function ClientesPage() {
                               <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                             </div>
                             <div className="text-[#a1a1aa] text-xs">
-                              {(() => {
-                                const pd = p.purchasedAt ? new Date(p.purchasedAt) : null
-                                const ed = p.expiresAt ? new Date(p.expiresAt) : null
-                                const pTxt = pd && !isNaN(pd.getTime()) ? pd.toLocaleDateString('pt-BR') : '-'
-                                const eTxt = ed && !isNaN(ed.getTime()) ? ed.toLocaleDateString('pt-BR') : null
-                                return `Comprado em ${pTxt}` + (eTxt ? ` • Válido até ${eTxt}` : ' • Sem validade')
-                              })()}
+                              Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
+                              {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
                             </div>
                             {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
                             {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
@@ -1529,17 +1460,13 @@ export default function ClientesPage() {
             {/* Assinaturas existentes do cliente */}
             {selectedClient && (
               <div className="bg-[#121214] border border-[#27272a] rounded p-3">
-                <div className="text-sm font-medium text-[#ededed] mb-2 flex items-center justify-between">
-                  <span>Assinaturas do cliente</span>
-                  {loadingSubscriptions && <span className="text-[10px] text-[#71717a]">Carregando...</span>}
-                </div>
+                <div className="text-sm font-medium text-[#ededed] mb-2">Assinaturas do cliente</div>
                 {(() => {
-                  const subs = clientSubscriptionsMap[selectedClient.id]
-                  if (!subs || !Array.isArray(subs)) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
-                  if (!loadingSubscriptions && subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
+                  const subs = clientSubscriptionsMap[selectedClient.id] || []
+                  if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
                   return (
                     <div className="space-y-2">
-                      {!loadingSubscriptions && Array.isArray(subs) && subs.map(s => {
+                      {subs.map(s => {
                         const isActive = s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())
                         const statusLabel = isActive ? 'Ativa' : 'Inativa'
                         const statusClass = isActive ? 'text-blue-300 border-blue-600/30 bg-blue-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
@@ -1551,69 +1478,12 @@ export default function ClientesPage() {
                                 <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                               </div>
                               <div className="text-[#a1a1aa] text-xs">
-                                {(() => {
-                                  const sd = s.startDate ? new Date(s.startDate) : null
-                                  const ed = s.endDate ? new Date(s.endDate) : null
-                                  const sTxt = sd && !isNaN(sd.getTime()) ? sd.toLocaleDateString('pt-BR') : '-'
-                                  const eTxt = ed && !isNaN(ed.getTime()) ? ed.toLocaleDateString('pt-BR') : '—'
-                                  return <>Início {sTxt} • Fim {eTxt}</>
-                                })()}
+                                Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            {isActive && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-600 text-red-400 hover:bg-red-600/10"
-                                disabled={!!cancelProcessingId}
-                                onClick={async () => {
-                                  if (!s?.id || cancelProcessingId) return
-                                  const confirm = window.confirm('Cancelar esta assinatura?')
-                                  if (!confirm) return
-                                  const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum:', '')
-                                  try {
-                                    setCancelProcessingId(s.id)
-                                    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-                                    const body: any = { id: s.id, action: 'cancel' }
-                                    if (refundStr) {
-                                      const val = Number(String(refundStr).replace(',', '.'))
-                                      if (!isNaN(val) && val > 0) body.refundAmount = val
-                                    }
-                                    const res = await fetch('/api/client-subscriptions', {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                                      body: JSON.stringify(body)
-                                    })
-                                    if (res.ok && selectedClient) {
-                                      await refreshClientSubscriptions(selectedClient.id)
-                                    }
-                                  } catch (e) {
-                                    console.error('Erro ao cancelar assinatura', e)
-                                  } finally {
-                                    setCancelProcessingId(null)
-                                  }
-                                }}
-                              >{cancelProcessingId ? 'Processando...' : 'Cancelar'}</Button>
-                            )}
                           </div>
                         )
                       })}
-                      {subscriptionMeta && (subscriptionMeta.total > subscriptionMeta.pageSize) && !loadingSubscriptions && (
-                        <div className="flex items-center justify-between pt-3">
-                          <div className="text-xs text-[#a1a1aa]">Total: {subscriptionMeta.total}</div>
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
-                              disabled={subscriptionPage <= 1 || loadingSubscriptions}
-                              onClick={() => loadSubscriptionsPage(subscriptionPage - 1)}
-                            >Anterior</Button>
-                            <div className="text-xs text-[#a1a1aa]">Página {subscriptionMeta.page}</div>
-                            <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
-                              disabled={!subscriptionMeta.hasNext || loadingSubscriptions}
-                              onClick={() => loadSubscriptionsPage(subscriptionPage + 1)}
-                            >Próxima</Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )
                 })()}
