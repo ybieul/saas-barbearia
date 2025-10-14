@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2 } from "lucide-react"
+import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown } from 'lucide-react'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Switch } from "@/components/ui/switch"
 import { useServicePackages } from '@/hooks/use-service-packages'
 import { useAuth } from '@/hooks/use-auth'
@@ -782,25 +783,36 @@ export default function ClientesPage() {
                         >
                           Detalhes
                         </Button>
+                        {/* Botão unificado para vender Pacote ou Assinatura */}
                         {!isCollaborator && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openSellPackage(client)}
-                            className={`shrink-0 ${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-2 py-1 h-8 text-xs`}
-                          >
-                            <DollarSign className="w-3 h-3 mr-1" /> Pacote
-                          </Button>
-                        )}
-                        {!isCollaborator && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openSellSubscription(client)}
-                            className="shrink-0 border-blue-600 text-blue-400 hover:bg-blue-600/10 px-2 py-1 h-8 text-xs"
-                          >
-                            <DollarSign className="w-3 h-3 mr-1" /> Assinatura
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="shrink-0 border-purple-600 text-purple-300 hover:bg-purple-600/10 px-2 py-1 h-8 text-xs flex items-center gap-1"
+                                aria-label="Vender pacote ou assinatura"
+                              >
+                                <DollarSign className="w-3 h-3" /> Vender
+                                {(clientPackagesSummary[client.id]?.hasActive) && (
+                                  <span className="ml-1 inline-block rounded bg-emerald-600/20 text-emerald-400 px-1.5 py-0.5 text-[10px] border border-emerald-600/40">Pacote</span>
+                                )}
+                                {client.hasActiveSubscription && (
+                                  <span className="ml-1 inline-block rounded bg-blue-600/20 text-blue-300 px-1.5 py-0.5 text-[10px] border border-blue-600/40">Assin.</span>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-[#1f1f23] border-[#2f2f33]">
+                              <DropdownMenuItem onClick={() => openSellPackage(client)} className="cursor-pointer flex items-center gap-2 focus:bg-purple-600/10">
+                                <Package className="w-4 h-4 text-purple-300" />
+                                <span>Vender Pacote</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openSellSubscription(client)} className="cursor-pointer flex items-center gap-2 focus:bg-blue-600/10">
+                                <Crown className="w-4 h-4 text-blue-300" />
+                                <span>Vender Assinatura</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                         <Button
                           variant="outline"
@@ -900,24 +912,33 @@ export default function ClientesPage() {
                           Detalhes
                         </Button>
                         {!isCollaborator && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openSellPackage(client)}
-                            className={`${clientPackagesSummary[client.id]?.hasActive ? 'border-emerald-600 text-emerald-400 hover:bg-emerald-600/10' : clientPackagesSummary[client.id]?.hasAny ? 'border-blue-600 text-blue-400 hover:bg-blue-600/10' : 'border-gray-600 text-[#a1a1aa] hover:bg-gray-700'} px-3 h-8 text-xs`}
-                          >
-                            <DollarSign className="w-3 h-3 mr-1" /> Pacote
-                          </Button>
-                        )}
-                        {!isCollaborator && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openSellSubscription(client)}
-                            className="border-blue-600 text-blue-400 hover:bg-blue-600/10 px-3 h-8 text-xs"
-                          >
-                            <DollarSign className="w-3 h-3 mr-1" /> Assinatura
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 border-purple-600 text-purple-300 hover:bg-purple-600/10 px-3 h-8 text-xs flex items-center gap-1"
+                              >
+                                <DollarSign className="w-3 h-3" /> Vender
+                                {(clientPackagesSummary[client.id]?.hasActive) && (
+                                  <span className="ml-1 inline-block rounded bg-emerald-600/20 text-emerald-400 px-1.5 py-0.5 text-[10px] border border-emerald-600/40">Pacote</span>
+                                )}
+                                {client.hasActiveSubscription && (
+                                  <span className="ml-1 inline-block rounded bg-blue-600/20 text-blue-300 px-1.5 py-0.5 text-[10px] border border-blue-600/40">Assin.</span>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-[#1f1f23] border-[#2f2f33]">
+                              <DropdownMenuItem onClick={() => openSellPackage(client)} className="cursor-pointer flex items-center gap-2 focus:bg-purple-600/10">
+                                <Package className="w-4 h-4 text-purple-300" />
+                                <span>Vender Pacote</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openSellSubscription(client)} className="cursor-pointer flex items-center gap-2 focus:bg-blue-600/10">
+                                <Crown className="w-4 h-4 text-blue-300" />
+                                <span>Vender Assinatura</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                         <Button
                           variant="outline"
