@@ -589,6 +589,7 @@ enum PaymentMethod {
   CASH     // Dinheiro
   CARD     // Cartão
   PIX      // PIX
+  PREPAID  // Pré-pago (assinatura/pacote)
   TRANSFER // Transferência
   DEBIT    // Débito
   CREDIT   // Crédito
