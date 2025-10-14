@@ -871,7 +871,7 @@ export default function ClientesPage() {
                     {/* Última Visita */}
                     <div className="col-span-2">
                       <span className="text-[#a1a1aa]">
-                        {lastVisit ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
+                        {lastVisit && !isNaN(lastVisit.getTime()) ? lastVisit.toLocaleDateString('pt-BR') : 'Nunca'}
                       </span>
                     </div>
                     
@@ -996,7 +996,9 @@ export default function ClientesPage() {
                         </div>
                         <div className="bg-[#27272a]/50 rounded-lg p-2 text-center">
                           <div className="text-sm font-medium text-[#a1a1aa]">
-                            {lastVisit ? lastVisit.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Nunca'}
+                            {lastVisit && !isNaN(lastVisit.getTime())
+                              ? lastVisit.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                              : 'Nunca'}
                           </div>
                           <div className="text-xs text-[#71717a]">Última Visita</div>
                         </div>
@@ -1449,8 +1451,13 @@ export default function ClientesPage() {
                               <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                             </div>
                             <div className="text-[#a1a1aa] text-xs">
-                              Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
-                              {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
+                              {(() => {
+                                const pd = p.purchasedAt ? new Date(p.purchasedAt) : null
+                                const ed = p.expiresAt ? new Date(p.expiresAt) : null
+                                const pTxt = pd && !isNaN(pd.getTime()) ? pd.toLocaleDateString('pt-BR') : '-'
+                                const eTxt = ed && !isNaN(ed.getTime()) ? ed.toLocaleDateString('pt-BR') : null
+                                return `Comprado em ${pTxt}` + (eTxt ? ` • Válido até ${eTxt}` : ' • Sem validade')
+                              })()}
                             </div>
                             {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
                             {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
