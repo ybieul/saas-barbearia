@@ -683,9 +683,10 @@ export default function ClientesPage() {
                 <p className="text-[#a1a1aa] text-sm">Novos este Mês</p>
                 <p className="text-xl sm:text-2xl font-bold text-[#ededed]">
                   {clients.filter(client => {
-                    const clientDate = new Date(client.createdAt)
+                    const cd = client?.createdAt ? new Date(client.createdAt) : null
+                    if (!cd || isNaN(cd.getTime())) return false
                     const now = getBrazilNow()
-                    return clientDate.getMonth() === now.getMonth() && clientDate.getFullYear() === now.getFullYear()
+                    return cd.getMonth() === now.getMonth() && cd.getFullYear() === now.getFullYear()
                   }).length}
                 </p>
               </div>
@@ -814,7 +815,7 @@ export default function ClientesPage() {
                           {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
                         </h3>
                         <p className="text-xs text-[#71717a]">
-                          Cliente desde {formatBrazilDate(new Date(client.createdAt))}
+                          {(() => { const cd = client.createdAt ? new Date(client.createdAt) : null; const txt = cd && !isNaN(cd.getTime()) ? formatBrazilDate(cd) : '—'; return `Cliente desde ${txt}` })()}
                         </p>
                       </div>
                     </div>
@@ -952,7 +953,7 @@ export default function ClientesPage() {
                               {client.isActive ? 'Novo' : 'Inativo'}
                             </Badge>
                             <span className="text-xs text-[#71717a]">
-                              Desde {formatBrazilDate(new Date(client.createdAt))}
+                              {(() => { const cd = client.createdAt ? new Date(client.createdAt) : null; const txt = cd && !isNaN(cd.getTime()) ? formatBrazilDate(cd) : '—'; return `Desde ${txt}` })()}
                             </span>
                           </div>
                         </div>
@@ -1160,7 +1161,7 @@ export default function ClientesPage() {
                       <div className="space-y-2">
                         <Label className="text-[#71717a] text-xs">Cliente desde</Label>
                         <div className="bg-[#27272a]/70 border border-emerald-500/30 rounded-md px-3 py-2.5 text-[#ededed] text-sm">
-                          {formatBrazilDate(new Date(selectedClient.createdAt))}
+                          {(() => { const cd = selectedClient.createdAt ? new Date(selectedClient.createdAt) : null; return (cd && !isNaN(cd.getTime())) ? formatBrazilDate(cd) : '—' })()}
                         </div>
                       </div>
                     </div>
@@ -1209,7 +1210,7 @@ export default function ClientesPage() {
                     <div className="space-y-2">
                       <Label className="text-[#71717a] text-sm">Cliente desde</Label>
                       <div className="bg-[#27272a] border border-[#3f3f46] rounded-md px-3 py-2 text-[#ededed] text-base">
-                        {formatBrazilDate(new Date(selectedClient.createdAt))}
+                        {(() => { const cd = selectedClient.createdAt ? new Date(selectedClient.createdAt) : null; return (cd && !isNaN(cd.getTime())) ? formatBrazilDate(cd) : '—' })()}
                       </div>
                     </div>
                   </div>
