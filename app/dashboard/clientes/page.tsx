@@ -1538,7 +1538,13 @@ export default function ClientesPage() {
                                 <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                               </div>
                               <div className="text-[#a1a1aa] text-xs">
-                                Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
+                                {(() => {
+                                  const sd = s.startDate ? new Date(s.startDate) : null
+                                  const ed = s.endDate ? new Date(s.endDate) : null
+                                  const sTxt = sd && !isNaN(sd.getTime()) ? sd.toLocaleDateString('pt-BR') : '-'
+                                  const eTxt = ed && !isNaN(ed.getTime()) ? ed.toLocaleDateString('pt-BR') : '—'
+                                  return <>Início {sTxt} • Fim {eTxt}</>
+                                })()}
                               </div>
                             </div>
                             {isActive && (
