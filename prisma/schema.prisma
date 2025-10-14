@@ -592,6 +592,7 @@ enum PaymentMethod {
   TRANSFER // Transferência
   DEBIT    // Débito
   CREDIT   // Crédito
+  PREPAID  // Pré-pago (Assinatura/Pacote)
 }
 
 enum PaymentStatus {

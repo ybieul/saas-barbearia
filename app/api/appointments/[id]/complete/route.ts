@@ -10,8 +10,6 @@ export async function PATCH(
   const { paymentMethod } = await request.json()
     const appointmentId = params.id
 
-    console.log('🔵 [COMPLETE] Iniciando conclusão:', { appointmentId, paymentMethod })
-
     if (!paymentMethod) {
       return NextResponse.json(
         { error: "Forma de pagamento é obrigatória" },
@@ -63,20 +61,11 @@ export async function PATCH(
     })
 
     if (!existingAppointment) {
-      console.log('❌ [COMPLETE] Agendamento não encontrado:', appointmentId)
       return NextResponse.json(
         { error: "Agendamento não encontrado" },
         { status: 404 }
       )
     }
-
-    console.log('🟢 [COMPLETE] Agendamento encontrado:', {
-      id: existingAppointment.id,
-      endUserId: existingAppointment.endUserId,
-      tenantId: existingAppointment.tenantId,
-      servicesCount: existingAppointment.services.length,
-      totalPrice: existingAppointment.totalPrice
-    })
 
     // Calcular preço total baseado nos serviços do agendamento (base)
     // Usar o total salvo como fonte primária; fallback para soma dos serviços
@@ -84,16 +73,6 @@ export async function PATCH(
     if (!totalPrice || totalPrice <= 0) {
       totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
     }
-
-    console.log('💰 Calculando preço total na conclusão:', {
-      appointmentId,
-      servicesCount: existingAppointment.services.length,
-      servicesPrices: existingAppointment.services.map(s => ({ name: s.name, price: s.price })),
-      totalPrice,
-      paymentMethod,
-      clientId: existingAppointment.endUserId,
-      clientName: existingAppointment.endUser.name
-    })
 
     // Calcular comissão do profissional (snapshot)
     let commissionEarned = null as number | null
@@ -107,10 +86,7 @@ export async function PATCH(
     }
 
   // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
-  console.log('🔵 [COMPLETE] Iniciando transação...')
   const updatedAppointment = await prisma.$transaction(async (tx) => {
-      console.log('🟣 [TRANSACTION] Dentro da transação')
-      
       // Observação do cliente (sem marcadores técnicos)
       const originalNotes = (existingAppointment.notes || '').toString()
         .replace(/\[(?:USE_CREDIT(?:_SERVICES|_PACKAGE)?|DEBITED_(?:CREDIT|PACKAGE)|SUBSCRIPTION_COVERED|PACKAGE_(?:COVERED|ELIGIBLE))(?:[^\]]*)\]/g, '')
@@ -128,12 +104,6 @@ export async function PATCH(
       let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
-      console.log('🟡 [TRANSACTION] Flags iniciais:', {
-        wantsToUseCredit,
-        hasSubscriptionMarker,
-        shouldCreateFinancialRecord
-      })
-
       // Se já houver marker de assinatura, priorizar como pré-pago (sem financeiro)
       if (hasSubscriptionMarker) {
         shouldCreateFinancialRecord = false
@@ -145,12 +115,6 @@ export async function PATCH(
       const now = new Date()
       
       if (wantsToUseCredit && !hasSubscriptionMarker) {
-        console.log('🔍 [TRANSACTION] Verificando cobertura por assinatura...', {
-          clientId: existingAppointment.endUserId,
-          tenantId: existingAppointment.tenantId,
-          serviceIds: serviceIdsSelected
-        })
-        
         // Verificar cobertura por assinatura de forma determinística via SQL
         try {
           const planRows = await tx.$queryRaw<Array<{ planId: string }>>`
@@ -162,7 +126,6 @@ export async function PATCH(
               AND cs.startDate <= ${now}
               AND cs.endDate >= ${now}
           `
-          console.log('📊 [TRANSACTION] Planos ativos encontrados:', planRows.length)
           if (planRows.length > 0) {
             const ids = [...new Set(planRows.map(r => r.planId))]
             const placeholders = ids.map(() => '?').join(',')
@@ -176,12 +139,10 @@ export async function PATCH(
               set.add(row.serviceId)
               byPlan.set(row.planId, set)
             }
-            console.log('🔍 [TRANSACTION] Serviços permitidos por plano:', Array.from(byPlan.entries()).map(([pid, sids]) => ({ pid, services: Array.from(sids) })))
             
             for (const pid of ids) {
               const set = byPlan.get(pid) || new Set<string>()
               if (serviceIdsSelected.every(id => set.has(id))) {
-                console.log('✅ [TRANSACTION] Assinatura cobre o combo!', { planId: pid })
                 // Assinatura cobre todo o combo selecionado
                 subscriptionCovered = true
                 // Mantemos o totalPrice original para métricas/relatórios e comissão
@@ -192,14 +153,8 @@ export async function PATCH(
             }
           }
         } catch (error) {
-          console.error('❌ [TRANSACTION] Erro ao verificar assinatura:', error)
           throw error
         }
-        
-        console.log('🟢 [TRANSACTION] Após verificação de assinatura:', {
-          subscriptionCovered,
-          shouldCreateFinancialRecord
-        })
       }
 
       // Se deve usar crédito e ainda não debitou (e não foi coberto por assinatura), procurar e debitar pacote
@@ -313,22 +268,15 @@ export async function PATCH(
       }
 
       // Operação 1: Atualizar o Agendamento
-      // ✅ CORREÇÃO CRÍTICA: PREPAID não existe no enum, mapear para null
-      // Quando é pré-pago, paymentMethod=null e paymentSource indica a origem (SUBSCRIPTION/PACKAGE)
-      const finalPaymentMethod = paymentMethod === 'PREPAID' ? null : paymentMethod
-      
-      console.log('💾 [TRANSACTION] Salvando agendamento:', {
-        paymentMethod: finalPaymentMethod,
-        subscriptionCovered,
-        debitedPackageId,
-        debitedCreditId
-      })
+      // ✅ PREPAID faz parte do enum - indica pagamento via assinatura/pacote
+      // PaymentSource indica especificamente SUBSCRIPTION ou PACKAGE
+      const finalPaymentMethod = paymentMethod
       
   const appointment = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
           status: "COMPLETED",
-          paymentMethod: finalPaymentMethod, // ✅ null quando PREPAID
+          paymentMethod: finalPaymentMethod, // ✅ PREPAID quando coberto por assinatura/pacote
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice, // Mantém preço original no banco
@@ -345,10 +293,7 @@ export async function PATCH(
       })
 
       // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
-      // ✅ CORREÇÃO: Considerar subscriptionCovered detectado nesta transação
       const source = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
-      
-      console.log('🏷️ [TRANSACTION] Definindo paymentSource:', { source, subscriptionCovered, debitedPackageId, debitedCreditId })
       
       if (source) {
         await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
@@ -357,6 +302,7 @@ export async function PATCH(
       // Calcular e persistir discountApplied com base na fonte
       try {
         let discount = 0
+        
         if (source === 'SUBSCRIPTION') {
           // Assinatura cobre 100% do valor do agendamento
           discount = Number(totalPrice || 0)
@@ -416,13 +362,12 @@ export async function PATCH(
 
       // Operação 3: Criar registro financeiro apenas se NÃO houve uso de crédito
       if (shouldCreateFinancialRecord) {
-        console.log('💰 [TRANSACTION] Criando registro financeiro:', { finalPaymentMethod, totalPrice })
         await tx.financialRecord.create({
           data: {
             type: "INCOME",
             amount: totalPrice,
             description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
-            paymentMethod: finalPaymentMethod, // ✅ Usar o paymentMethod mapeado (null para PREPAID)
+            paymentMethod: finalPaymentMethod,
             reference: appointmentId,
             tenantId: appointment.tenantId,
             date: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
@@ -435,15 +380,6 @@ export async function PATCH(
       return appointment
     })
 
-    console.log('✅ Transação concluída com sucesso:', {
-      appointmentId,
-      totalPrice,
-      commissionEarned,
-      commissionPct: commissionPct?.toString(),
-      clientUpdated: existingAppointment.endUserId,
-      message: 'Cliente atualizado: +1 visita, +' + totalPrice + ' gasto total'
-    })
-
     return NextResponse.json({
       success: true,
       appointment: updatedAppointment,
@@ -451,9 +387,7 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error("❌❌❌ [COMPLETE] ERRO FATAL:", error)
-    console.error("❌❌❌ [COMPLETE] Stack trace:", (error as Error).stack)
-    console.error("❌❌❌ [COMPLETE] Erro completo:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    console.error("Erro ao completar agendamento:", error)
     
     return NextResponse.json(
       { error: "Erro interno do servidor: " + (error instanceof Error ? error.message : 'Erro desconhecido') },
