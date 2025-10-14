@@ -41,6 +41,14 @@ interface Client {
   }>
 }
 
+interface ClientSubscriptionInfo {
+  id: string
+  planName: string
+  startDate: string
+  endDate: string
+  status: string
+}
+
 export default function ClientesPage() {
   const { user } = useAuth()
   const isCollaborator = user?.role === 'COLLABORATOR'
@@ -48,6 +56,7 @@ export default function ClientesPage() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [clientSubscriptionsMap, setClientSubscriptionsMap] = useState<Record<string, ClientSubscriptionInfo[]>>({})
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -394,6 +403,33 @@ export default function ClientesPage() {
   }
 
   const [filterActivePackagesOnly, setFilterActivePackagesOnly] = useState(false)
+  // Renomear semanticamente (mantendo compatibilidade) - agora filtra pacote OU assinatura
+  const filterActiveAny = filterActivePackagesOnly
+
+  // Carregar assinaturas de todos os clientes (simplificado). Poderia ser otimizado com endpoint batch.
+  useEffect(() => {
+    if (!clients || clients.length === 0) return
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    const controller = new AbortController()
+    const fetchSubs = async () => {
+      const entries = await Promise.all(clients.map(async (c: Client) => {
+        try {
+          const res = await fetch(`/api/client-subscriptions?clientId=${c.id}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal })
+          if (!res.ok) return [c.id, []] as const
+          const data = await res.json()
+            const items = (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status }))
+          return [c.id, items] as const
+        } catch {
+          return [c.id, []] as const
+        }
+      }))
+      const map: Record<string, ClientSubscriptionInfo[]> = {}
+      entries.forEach(([id, subs]) => { map[id] = subs })
+      setClientSubscriptionsMap(map)
+    }
+    fetchSubs()
+    return () => controller.abort()
+  }, [clients])
   const filteredClients = (clients || [])
     // 1) Filtro local por busca (igual aos inativos)
     .filter((c: any) => {
@@ -406,9 +442,11 @@ export default function ClientesPage() {
     })
     // 2) Filtro por pacote ativo (se ativado)
     .filter((c: any) => {
-      if (!filterActivePackagesOnly) return true
-      const status = clientPackagesSummary[c.id]
-      return !!status?.hasActive
+      if (!filterActiveAny) return true
+      const pkgStatus = clientPackagesSummary[c.id]
+      const subs = clientSubscriptionsMap[c.id] || []
+      const hasActiveSub = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date()))
+      return !!pkgStatus?.hasActive || hasActiveSub
     })
 
   // Em vez de desmontar a tela inteira quando `loading`/`error`, mantemos o layout
@@ -662,7 +700,7 @@ export default function ClientesPage() {
       {!isCollaborator && (
         <div className="flex items-center gap-2 px-2 sm:px-0">
           <Switch checked={filterActivePackagesOnly} onCheckedChange={(v) => setFilterActivePackagesOnly(Boolean(v))} />
-          <span className="text-sm text-[#a1a1aa]">Com pacote ativo</span>
+          <span className="text-sm text-[#a1a1aa]">Com assinatura/pacote ativo</span>
         </div>
       )}
 
@@ -709,7 +747,11 @@ export default function ClientesPage() {
                     {/* Cliente */}
                     <div className="col-span-2">
                       <div>
-                        <h3 className="font-medium text-white flex items-center gap-2">{client.name}{client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}</h3>
+                        <h3 className="font-medium text-white flex items-center gap-2">{client.name}
+                          {client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}
+                          {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assinatura</span>; return null })()}
+                          {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
+                        </h3>
                         <p className="text-xs text-[#71717a]">
                           Cliente desde {formatBrazilDate(new Date(client.createdAt))}
                         </p>
@@ -794,12 +836,6 @@ export default function ClientesPage() {
                                 aria-label="Vender pacote ou assinatura"
                               >
                                 <DollarSign className="w-3 h-3" /> Vender
-                                {(clientPackagesSummary[client.id]?.hasActive) && (
-                                  <span className="ml-1 inline-block rounded bg-emerald-600/20 text-emerald-400 px-1.5 py-0.5 text-[10px] border border-emerald-600/40">Pacote</span>
-                                )}
-                                {client.hasActiveSubscription && (
-                                  <span className="ml-1 inline-block rounded bg-blue-600/20 text-blue-300 px-1.5 py-0.5 text-[10px] border border-blue-600/40">Assin.</span>
-                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-[#1f1f23] border-[#2f2f33]">
@@ -840,7 +876,11 @@ export default function ClientesPage() {
                       {/* Header do cliente */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-white text-base flex items-center gap-2">{client.name}{client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}</h3>
+                          <h3 className="font-medium text-white text-base flex items-center gap-2">{client.name}
+                            {client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}
+                            {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assin.</span>; return null })()}
+                            {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
+                          </h3>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge 
                               className={`text-xs ${client.isActive 
@@ -920,12 +960,6 @@ export default function ClientesPage() {
                                 className="flex-1 border-purple-600 text-purple-300 hover:bg-purple-600/10 px-3 h-8 text-xs flex items-center gap-1"
                               >
                                 <DollarSign className="w-3 h-3" /> Vender
-                                {(clientPackagesSummary[client.id]?.hasActive) && (
-                                  <span className="ml-1 inline-block rounded bg-emerald-600/20 text-emerald-400 px-1.5 py-0.5 text-[10px] border border-emerald-600/40">Pacote</span>
-                                )}
-                                {client.hasActiveSubscription && (
-                                  <span className="ml-1 inline-block rounded bg-blue-600/20 text-blue-300 px-1.5 py-0.5 text-[10px] border border-blue-600/40">Assin.</span>
-                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-[#1f1f23] border-[#2f2f33]">
@@ -1423,6 +1457,38 @@ export default function ClientesPage() {
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Assinaturas existentes do cliente */}
+            {selectedClient && (
+              <div className="bg-[#121214] border border-[#27272a] rounded p-3">
+                <div className="text-sm font-medium text-[#ededed] mb-2">Assinaturas do cliente</div>
+                {(() => {
+                  const subs = clientSubscriptionsMap[selectedClient.id] || []
+                  if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
+                  return (
+                    <div className="space-y-2">
+                      {subs.map(s => {
+                        const isActive = s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())
+                        const statusLabel = isActive ? 'Ativa' : 'Inativa'
+                        const statusClass = isActive ? 'text-blue-300 border-blue-600/30 bg-blue-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
+                        return (
+                          <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2">
+                            <div className="flex-1 mr-3">
+                              <div className="flex items-center gap-2">
+                                <div className="text-[#ededed] font-medium">{s.planName}</div>
+                                <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
+                              </div>
+                              <div className="text-[#a1a1aa] text-xs">
+                                Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Plano</Label>
               <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
