@@ -27,6 +27,11 @@ interface PaymentMethodModalProps {
     time: string
   }
   isLoading?: boolean
+  coverageInfo?: {
+    covered: boolean
+    coveredBy?: 'subscription' | 'package'
+    packageName?: string
+  }
 }
 
 export function PaymentMethodModal({
@@ -34,7 +39,8 @@ export function PaymentMethodModal({
   onClose,
   onSelectPayment,
   appointmentData,
-  isLoading = false
+  isLoading = false,
+  coverageInfo
 }: PaymentMethodModalProps) {
   const basePaymentMethods = [
     {
@@ -61,27 +67,34 @@ export function PaymentMethodModal({
     id: "PREPAID",
     label: "Pré‑pago",
     icon: Star,
-    description: "Consumir créditos de pacote/assinatura"
+    description: "Coberto por assinatura ou pacote"
   }
 
+  // Se coverageInfo foi passado, usar ele; senão fazer verificação assíncrona
   const [showPrepaid, setShowPrepaid] = React.useState<boolean>(false)
   const [checkingCoverage, setCheckingCoverage] = React.useState<boolean>(false)
 
   React.useEffect(() => {
+    // Se coverageInfo foi passado como prop, usar ele diretamente
+    if (coverageInfo !== undefined) {
+      setShowPrepaid(!!coverageInfo.covered)
+      setCheckingCoverage(false)
+      return
+    }
+
+    // Senão, fazer verificação assíncrona (fallback para compatibilidade)
     const check = async () => {
       if (!isOpen || !appointmentData) return
       try {
         setCheckingCoverage(true)
         const apptId = (appointmentData as any).id as string | undefined
 
-        // Se não há ID, não conseguimos verificar/cacher
         if (!apptId) {
           setShowPrepaid(false)
           setCheckingCoverage(false)
           return
         }
 
-        // Tenta usar cache recente
         const cached = coverageCache.get(apptId)
         const now = Date.now()
         if (cached && now - cached.ts < COVERAGE_TTL_MS) {
@@ -97,7 +110,6 @@ export function PaymentMethodModal({
         })
         if (!res.ok) {
           setShowPrepaid(false)
-          // Cacheia negativo também para evitar repetição em poucos segundos
           coverageCache.set(apptId, { covered: false, ts: Date.now() })
           return
         }
@@ -112,12 +124,15 @@ export function PaymentMethodModal({
       }
     }
     check()
-    // reavaliar quando abrir/fechar ou trocar de agendamento
-  }, [isOpen, appointmentData?.client, appointmentData?.service, appointmentData?.totalPrice, (appointmentData as any)?.id])
+  }, [isOpen, appointmentData?.client, appointmentData?.service, appointmentData?.totalPrice, (appointmentData as any)?.id, coverageInfo])
 
+  // ✅ OPÇÃO 1: Se coberto, mostrar APENAS pré-pago; senão mostrar opções normais
   const paymentMethods = React.useMemo(() => {
-    return showPrepaid ? [...basePaymentMethods, prepaidMethod] : basePaymentMethods
-  }, [showPrepaid])
+    if (coverageInfo?.covered || showPrepaid) {
+      return [prepaidMethod]
+    }
+    return basePaymentMethods
+  }, [coverageInfo, showPrepaid])
 
   const handlePaymentSelect = (method: string) => {
     onSelectPayment(method)
@@ -183,6 +198,28 @@ export function PaymentMethodModal({
                         currency: 'BRL' 
                       }).format(appointmentData.totalPrice)}
                     </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Banner de Cobertura */}
+            {(coverageInfo?.covered || showPrepaid) && (
+              <div className="bg-gradient-to-r from-purple-500/15 to-blue-500/15 border border-purple-500/30 rounded-lg p-3 md:p-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-purple-500/20 rounded-full p-2 flex-shrink-0">
+                    <Star className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-[#ededed] font-semibold text-sm md:text-base mb-1">
+                      {coverageInfo?.coveredBy === 'subscription' ? '✨ Coberto por Assinatura' : '🎁 Coberto por Pacote'}
+                    </h4>
+                    <p className="text-xs md:text-sm text-[#a1a1aa]">
+                      {coverageInfo?.coveredBy === 'subscription' 
+                        ? 'Este atendimento está coberto pela Assinatura Premium do cliente.'
+                        : `Este atendimento está coberto pelo ${coverageInfo?.packageName || 'pacote'} do cliente.`
+                      }
+                    </p>
                   </div>
                 </div>
               </div>

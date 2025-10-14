@@ -135,16 +135,40 @@ export default function AgendaPage() {
   useEffect(() => {
     let cancelled = false
     const run = async () => {
-      const candidates = (filteredAppointments || []).filter(apt => apt && apt.id && apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED')
+      // ✅ CORREÇÃO: Incluir todos os agendamentos, mas com lógica inteligente de skip
+      const candidates = (filteredAppointments || []).filter(apt => apt && apt.id && apt.status !== 'CANCELLED')
       const now = Date.now()
       const updates: Record<string, { coveredBy?: 'subscription' | 'package'; covered: boolean }> = {}
+      
       for (const apt of candidates) {
         const id = apt.id as string
+        
+        // Skip se agendamento está concluído E já tem paymentSource definido
+        // (nesse caso, o badge definitivo de paymentSource será usado)
+        if (apt.status === 'COMPLETED' && (apt as any).paymentSource) {
+          continue
+        }
+        
+        // Usar cache se ainda válido
         const cached = coverageCacheRef.current.get(id)
         if (cached && now - cached.ts < COVERAGE_TTL_MS) {
           updates[id] = { covered: cached.covered, coveredBy: cached.coveredBy }
           continue
         }
+        
+        // Não refetch para agendamentos concluídos há mais de 5 min (já estável)
+        if (apt.status === 'COMPLETED' && apt.completedAt) {
+          const completedTime = new Date(apt.completedAt).getTime()
+          if (now - completedTime > 300000) { // 5 min
+            // Manter valor cached existente ou definir como não coberto
+            const existing = coverageCacheRef.current.get(id)
+            if (existing) {
+              updates[id] = { covered: existing.covered, coveredBy: existing.coveredBy }
+            }
+            continue
+          }
+        }
+        
         try {
           const resp = await fetch('/api/coverage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appointmentId: id }) })
           if (!resp.ok) {
@@ -1410,13 +1434,38 @@ export default function AgendaPage() {
     const appointment = appointments.find(apt => apt.id === appointmentId)
     if (!appointment) return
 
+    // Buscar cobertura do agendamento
+    let coverageInfo: { covered: boolean; coveredBy?: 'subscription' | 'package'; packageName?: string } | undefined
+    try {
+      const res = await fetch('/api/coverage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId })
+      })
+      if (res.ok) {
+        const coverage = await res.json()
+        if (coverage?.covered) {
+          coverageInfo = {
+            covered: true,
+            coveredBy: coverage.coveredBy,
+            packageName: coverage.packageName
+          }
+        }
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Erro ao buscar cobertura:', error)
+      }
+    }
+
     // Preparar dados do agendamento para o modal
     const appointmentData = {
       id: appointmentId,
       client: appointment.endUser?.name || 'Cliente',
       service: appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço',
       totalPrice: Number(appointment.totalPrice) || 0,
-      time: extractTimeFromDateTime(appointment.dateTime)
+      time: extractTimeFromDateTime(appointment.dateTime),
+      coverageInfo
     }
 
     setAppointmentToComplete(appointmentData)
@@ -2694,22 +2743,42 @@ export default function AgendaPage() {
                         >
                           {status.label}
                         </Badge>
-                        {/* Badges de origem de pagamento quando concluído */}
-                        {appointment.status === 'COMPLETED' && appointment.paymentSource && (
-                          <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${appointment.paymentSource === 'SUBSCRIPTION' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'} flex items-center gap-1`}>
-                            {appointment.paymentSource === 'SUBSCRIPTION' ? (
-                              <>
-                                <span>⭐</span>
-                                Assinatura
-                              </>
-                            ) : (
-                              <>
-                                <span>⭐</span>
-                                Pago com Pacote
-                              </>
-                            )}
-                          </Badge>
-                        )}
+                        {/* Badges de cobertura/origem de pagamento - lógica inteligente */}
+                        {(() => {
+                          // Se concluído com paymentSource definido, mostrar badge definitivo
+                          if (appointment.status === 'COMPLETED' && appointment.paymentSource) {
+                            return (
+                              <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${appointment.paymentSource === 'SUBSCRIPTION' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'} flex items-center gap-1`}>
+                                {appointment.paymentSource === 'SUBSCRIPTION' ? (
+                                  <>
+                                    <span>⭐</span>
+                                    Pago: Assinatura
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>⭐</span>
+                                    Pago: Pacote
+                                  </>
+                                )}
+                              </Badge>
+                            )
+                          }
+                          
+                          // Se concluído MAS sem paymentSource, usar coverage como fallback
+                          if (appointment.status === 'COMPLETED') {
+                            const cov = coverageById[appointment.id]
+                            if (cov?.covered) {
+                              return (
+                                <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${cov.coveredBy === 'subscription' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'} flex items-center gap-1`}>
+                                  <span>⭐</span>
+                                  {cov.coveredBy === 'subscription' ? 'Assinatura cobriu' : 'Pacote cobriu'}
+                                </Badge>
+                              )
+                            }
+                          }
+                          
+                          return null
+                        })()}
                       </div>
                       
                       <div className="space-y-2">
@@ -2719,23 +2788,16 @@ export default function AgendaPage() {
                         <p className="text-[#a1a1aa] text-sm md:text-base">
                           <strong>Serviço:</strong> {appointment.services?.map((s: any) => s.name).join(' + ') || 'Serviço'}
                         </p>
-                        {/* Badges de cobertura (assinatura e pacotes) via checagem de cobertura */}
-                        {(() => {
+                        {/* Badge de cobertura para agendamentos NÃO concluídos (previsão) */}
+                        {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (() => {
                           const cov = coverageById[appointment.id]
+                          if (!cov?.covered) return null
                           return (
-                            <div className="flex flex-wrap gap-2">
-                              {cov?.covered && cov?.coveredBy === 'subscription' && (
-                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-sky-500/15 text-sky-300 border-sky-500/30 flex items-center gap-1">
-                                  <span>⭐</span>
-                                  Assinatura cobre
-                                </Badge>
-                              )}
-                              {cov?.covered && cov?.coveredBy === 'package' && (
-                                <Badge className="text-xs px-2 py-0.5 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30 flex items-center gap-1">
-                                  <span>⭐</span>
-                                  Pacote cobre
-                                </Badge>
-                              )}
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              <Badge className="text-xs px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-300 border-amber-500/30 flex items-center gap-1">
+                                <span>💡</span>
+                                {cov.coveredBy === 'subscription' ? 'Assinatura pode cobrir' : 'Pacote pode cobrir'}
+                              </Badge>
                             </div>
                           )
                         })()}
@@ -3472,6 +3534,7 @@ export default function AgendaPage() {
           totalPrice: appointmentToComplete.totalPrice || 0,
           time: appointmentToComplete.time
         } : undefined}
+        coverageInfo={(appointmentToComplete as any)?.coverageInfo}
         isLoading={isCompletingAppointment}
       />
   </div>

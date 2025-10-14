@@ -75,8 +75,10 @@ export async function PATCH(
       const alreadyDebited = false // não persistimos mais markers em notes
       const subscriptionMarkerMatch = null // não usamos marker salvo em notes
       const hasSubscriptionMarker = !!subscriptionMarkerMatch
-  let debitedCreditId: string | null = null
-  let debitedPackageId: string | null = null
+      // Flag para marcar cobertura por assinatura detectada nesta transação
+      let subscriptionCovered = false
+      let debitedCreditId: string | null = null
+      let debitedPackageId: string | null = null
       let shouldCreateFinancialRecord = true
 
       // Se já houver marker de assinatura, priorizar como pré-pago (sem financeiro)
@@ -84,10 +86,13 @@ export async function PATCH(
         shouldCreateFinancialRecord = false
       }
 
-      // Verificar cobertura por assinatura de forma determinística via SQL (baseada na lógica de pacotes)
-  const serviceIdsSelected = existingAppointment.services.map(s => s.id)
+      // ✅ CRÍTICO: Só verificar cobertura se usuário escolheu PREPAID
+      // Se escolheu CASH/PIX/CARD, mesmo tendo assinatura, ele QUER pagar normalmente
+      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
       const now = new Date()
-      if (!hasSubscriptionMarker) {
+      
+      if (wantsToUseCredit && !hasSubscriptionMarker) {
+        // Verificar cobertura por assinatura de forma determinística via SQL
         try {
           const planRows = await tx.$queryRaw<Array<{ planId: string }>>`
             SELECT cs.planId as planId
@@ -114,7 +119,10 @@ export async function PATCH(
             for (const pid of ids) {
               const set = byPlan.get(pid) || new Set<string>()
               if (serviceIdsSelected.every(id => set.has(id))) {
-                totalPrice = 0
+                // Assinatura cobre todo o combo selecionado
+                subscriptionCovered = true
+                // Mantemos o totalPrice original para métricas/relatórios e comissão
+                // A baixa financeira é evitada via shouldCreateFinancialRecord = false
                 shouldCreateFinancialRecord = false
                 break
               }
@@ -123,8 +131,8 @@ export async function PATCH(
         } catch {}
       }
 
-      // Se deve usar crédito e ainda não debitou, procurar e debitar 1 crédito
-  if (wantsToUseCredit && !alreadyDebited) {
+      // Se deve usar crédito e ainda não debitou (e não foi coberto por assinatura), procurar e debitar pacote
+  if (wantsToUseCredit && !alreadyDebited && !subscriptionCovered) {
         const servicesSelected = existingAppointment.services.map(s => s.id)
   // Não usamos mais marcadores vindos das notas; faremos detecção automática por combo elegível
   const usePackageMarker = null
