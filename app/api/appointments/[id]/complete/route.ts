@@ -18,12 +18,45 @@ export async function PATCH(
     }
 
     // Verificar se o agendamento existe
+    // ✅ CORREÇÃO: Usar select para incluir tenantId explicitamente
+    // Sem isso, existingAppointment.tenantId é undefined, causando erro SQL na verificação de assinatura
     const existingAppointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: {
-        endUser: true,
-        professional: true,
-        services: true
+      select: {
+        id: true,
+        endUserId: true,
+        professionalId: true,
+        tenantId: true,
+        dateTime: true,
+        status: true,
+        notes: true,
+        totalPrice: true,
+        duration: true,
+        completedAt: true,
+        endUser: {
+          select: {
+            id: true,
+            name: true,
+            totalVisits: true,
+            totalSpent: true,
+            lastVisit: true
+          }
+        },
+        professional: {
+          select: {
+            id: true,
+            name: true,
+            commissionPercentage: true
+          }
+        },
+        services: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            duration: true
+          }
+        }
       }
     })
 
