@@ -97,6 +97,10 @@ export default function ClientesPage() {
   const [availablePlans, setAvailablePlans] = useState<Array<{ id: string; name: string }>>([])
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
+  const [subscriptionPage, setSubscriptionPage] = useState(1)
+  const [subscriptionMeta, setSubscriptionMeta] = useState<{ page: number; pageSize: number; total: number; hasNext: boolean } | null>(null)
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(false)
+  const [cancelProcessingId, setCancelProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -271,8 +275,54 @@ export default function ClientesPage() {
   }
   const openSellSubscription = async (client: Client) => {
     setSelectedClient(client)
+    setSubscriptionPage(1)
     await fetchAvailablePlans()
+    try {
+      setLoadingSubscriptions(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(`/api/client-subscriptions?clientId=${client.id}&page=1&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+      if (res.ok) {
+        const data = await res.json()
+        setClientSubscriptionsMap(prev => ({ ...prev, [client.id]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
+        if (data.meta) setSubscriptionMeta(data.meta)
+      }
+    } catch (e) {
+      console.error('Erro inicial assinaturas', e)
+    } finally {
+      setLoadingSubscriptions(false)
+    }
     setIsSellSubscriptionOpen(true)
+  }
+
+  const refreshClientSubscriptions = async (clientId: string) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(`/api/client-subscriptions?clientId=${clientId}&page=${subscriptionPage}&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+      if (!res.ok) return
+      const data = await res.json()
+      setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
+      if (data.meta) setSubscriptionMeta(data.meta)
+    } catch (e) {
+      console.error('Erro ao atualizar assinaturas do cliente', e)
+    }
+  }
+
+  const loadSubscriptionsPage = async (page: number) => {
+    if (!selectedClient) return
+    try {
+      setLoadingSubscriptions(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(`/api/client-subscriptions?clientId=${selectedClient.id}&page=${page}&pageSize=5`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+      if (!res.ok) return
+      const data = await res.json()
+      setSubscriptionPage(page)
+      setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status })) }))
+      if (data.meta) setSubscriptionMeta(data.meta)
+    } catch (e) {
+      console.error('Erro ao paginar assinaturas', e)
+    } finally {
+      setLoadingSubscriptions(false)
+    }
   }
 
   const fetchAvailablePlans = async () => {
@@ -406,30 +456,37 @@ export default function ClientesPage() {
   // Renomear semanticamente (mantendo compatibilidade) - agora filtra pacote OU assinatura
   const filterActiveAny = filterActivePackagesOnly
 
-  // Carregar assinaturas de todos os clientes (simplificado). Poderia ser otimizado com endpoint batch.
+  // Carregar assinaturas em batch para todos os clientes
   useEffect(() => {
-    if (!clients || clients.length === 0) return
+    if (!clients || clients.length === 0) { setClientSubscriptionsMap({}); return }
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const controller = new AbortController()
-    const fetchSubs = async () => {
-      const entries = await Promise.all(clients.map(async (c: Client) => {
-        try {
-          const res = await fetch(`/api/client-subscriptions?clientId=${c.id}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal })
-          if (!res.ok) return [c.id, []] as const
+    const fetchBatch = async () => {
+      try {
+        const ids = clients.map(c => c.id)
+        const chunkSize = 40 // evitar URL muito longa
+        const aggregate: Record<string, ClientSubscriptionInfo[]> = {}
+        for (let i = 0; i < ids.length; i += chunkSize) {
+          const slice = ids.slice(i, i + chunkSize)
+            const res = await fetch(`/api/client-subscriptions?clientIds=${slice.join(',')}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal })
+          if (!res.ok) continue
           const data = await res.json()
-            const items = (data.items || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status }))
-          return [c.id, items] as const
-        } catch {
-          return [c.id, []] as const
+          const map = data.map || {}
+          Object.entries(map).forEach(([cid, subs]: any) => {
+            aggregate[cid] = (subs || []).map((it: any) => ({ id: it.id, planName: it.plan?.name || 'Plano', startDate: it.startDate, endDate: it.endDate, status: it.status }))
+          })
         }
-      }))
-      const map: Record<string, ClientSubscriptionInfo[]> = {}
-      entries.forEach(([id, subs]) => { map[id] = subs })
-      setClientSubscriptionsMap(map)
+        // Garantir chaves vazias
+        ids.forEach(id => { if (!aggregate[id]) aggregate[id] = [] })
+        setClientSubscriptionsMap(aggregate)
+      } catch (e) {
+        if ((e as any)?.name !== 'AbortError') console.error('Erro batch assinaturas', e)
+      }
     }
-    fetchSubs()
+    fetchBatch()
     return () => controller.abort()
   }, [clients])
+
   const filteredClients = (clients || [])
     // 1) Filtro local por busca (igual aos inativos)
     .filter((c: any) => {
@@ -1460,13 +1517,16 @@ export default function ClientesPage() {
             {/* Assinaturas existentes do cliente */}
             {selectedClient && (
               <div className="bg-[#121214] border border-[#27272a] rounded p-3">
-                <div className="text-sm font-medium text-[#ededed] mb-2">Assinaturas do cliente</div>
+                <div className="text-sm font-medium text-[#ededed] mb-2 flex items-center justify-between">
+                  <span>Assinaturas do cliente</span>
+                  {loadingSubscriptions && <span className="text-[10px] text-[#71717a]">Carregando...</span>}
+                </div>
                 {(() => {
                   const subs = clientSubscriptionsMap[selectedClient.id] || []
-                  if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
+                  if (!loadingSubscriptions && subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
                   return (
                     <div className="space-y-2">
-                      {subs.map(s => {
+                      {!loadingSubscriptions && subs.map(s => {
                         const isActive = s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())
                         const statusLabel = isActive ? 'Ativa' : 'Inativa'
                         const statusClass = isActive ? 'text-blue-300 border-blue-600/30 bg-blue-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
@@ -1481,9 +1541,61 @@ export default function ClientesPage() {
                                 Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
+                            {isActive && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-600 text-red-400 hover:bg-red-600/10 flex items-center gap-1"
+                                disabled={cancelProcessingId === s.id}
+                                onClick={async () => {
+                                  const confirm = window.confirm('Cancelar esta assinatura?')
+                                  if (!confirm) return
+                                  const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum:', '')
+                                  try {
+                                    setCancelProcessingId(s.id)
+                                    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+                                    const body: any = { id: s.id, action: 'cancel' }
+                                    if (refundStr) {
+                                      const val = Number(String(refundStr).replace(',', '.'))
+                                      if (!isNaN(val) && val > 0) body.refundAmount = val
+                                    }
+                                    const res = await fetch('/api/client-subscriptions', {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                      body: JSON.stringify(body)
+                                    })
+                                    if (res.ok && selectedClient) {
+                                      await refreshClientSubscriptions(selectedClient.id)
+                                    }
+                                  } catch (e) {
+                                    console.error('Erro ao cancelar assinatura', e)
+                                  } finally {
+                                    setCancelProcessingId(null)
+                                  }
+                                }}
+                              >{cancelProcessingId === s.id && (
+                                <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                              )}Cancelar</Button>
+                            )}
                           </div>
                         )
                       })}
+                      {subscriptionMeta && (subscriptionMeta.total > subscriptionMeta.pageSize) && !loadingSubscriptions && (
+                        <div className="flex items-center justify-between pt-3">
+                          <div className="text-xs text-[#a1a1aa]">Total: {subscriptionMeta.total}</div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                              disabled={subscriptionPage <= 1 || loadingSubscriptions}
+                              onClick={() => loadSubscriptionsPage(subscriptionPage - 1)}
+                            >Anterior</Button>
+                            <div className="text-xs text-[#a1a1aa]">Página {subscriptionMeta.page}</div>
+                            <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                              disabled={!subscriptionMeta.hasNext || loadingSubscriptions}
+                              onClick={() => loadSubscriptionsPage(subscriptionPage + 1)}
+                            >Próxima</Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })()}
