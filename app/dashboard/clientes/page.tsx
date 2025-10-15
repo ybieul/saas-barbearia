@@ -43,6 +43,7 @@ interface Client {
 
 interface ClientSubscriptionInfo {
   id: string
+  planId?: string
   planName: string
   startDate: string
   endDate: string
@@ -97,6 +98,8 @@ export default function ClientesPage() {
   const [availablePlans, setAvailablePlans] = useState<Array<{ id: string; name: string }>>([])
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
+  // Ações por assinatura
+  const [processingSubAction, setProcessingSubAction] = useState<string | null>(null)
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -310,6 +313,93 @@ export default function ClientesPage() {
     }
   }
 
+  // --- Assinaturas: helpers de recarga e ações ---
+  const reloadSelectedClientSubscriptions = async () => {
+    if (!selectedClient) return
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const url = new URL('/api/client-subscriptions', window.location.origin)
+      url.searchParams.set('clientId', selectedClient.id)
+      const res = await fetch(url.toString(), { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao carregar assinaturas do cliente')
+      const items = (data.items || []).map((r: any) => ({
+        id: r.id,
+        planId: r.plan?.id || r.planId,
+        planName: r.plan?.name || r.planName,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        status: r.status
+      }))
+      setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: items }))
+    } catch (e) {
+      console.error('Erro ao recarregar assinaturas do cliente:', e)
+    }
+  }
+
+  const cancelClientSubscription = async (id: string) => {
+    if (!selectedClient) return
+    const confirmCancel = window.confirm('Deseja cancelar esta assinatura? Você poderá informar um valor de estorno na próxima etapa.')
+    if (!confirmCancel) return
+    const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum estorno:', '')
+    try {
+      setProcessingSubAction(id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { id, action: 'cancel' }
+      const parsed = refundStr ? Number(String(refundStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
+      const res = await fetch('/api/client-subscriptions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao cancelar assinatura')
+      await reloadSelectedClientSubscriptions()
+    } catch (e) {
+      console.error('Erro ao cancelar assinatura', e)
+    } finally {
+      setProcessingSubAction(null)
+    }
+  }
+
+  const renewClientSubscription = async (subscription: { id: string; planId?: string }) => {
+    if (!selectedClient) return
+    const planId = subscription.planId
+    if (!planId) {
+      // Sem planId no item: recarrega lista para obter planId e tenta novamente
+      await reloadSelectedClientSubscriptions()
+      const refreshed = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscription.id)
+      if (!refreshed?.planId) {
+        console.error('Não foi possível identificar o plano para renovar agora.')
+        return
+      }
+      return renewClientSubscription({ id: refreshed.id, planId: refreshed.planId })
+    }
+    const priceStr = window.prompt('Preço (opcional). Deixe em branco para usar o preço do plano:', '')
+    try {
+      setProcessingSubAction(subscription.id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+      const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      const res = await fetch('/api/client-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar assinatura')
+      await reloadSelectedClientSubscriptions()
+    } catch (e) {
+      console.error('Erro ao renovar assinatura', e)
+    } finally {
+      setProcessingSubAction(null)
+    }
+  }
+
   const deactivateClientPackage = async (id: string) => {
     if (!selectedClient) return
     const confirm = window.confirm('Deseja desativar este pacote? Você pode informar um valor de estorno na próxima etapa.')
@@ -373,6 +463,8 @@ export default function ClientesPage() {
       setIsSellSubscriptionOpen(false)
       setSelectedPlanId('')
       setOverridePlanPrice('')
+      // Recarregar assinaturas para refletir imediatamente no modal (se abrir novamente)
+      await reloadSelectedClientSubscriptions()
     } catch (e) {
       console.error('Erro ao vender assinatura', e)
     } finally {
@@ -1467,9 +1559,16 @@ export default function ClientesPage() {
                   return (
                     <div className="space-y-2">
                       {subs.map(s => {
-                        const isActive = s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())
-                        const statusLabel = isActive ? 'Ativa' : 'Inativa'
-                        const statusClass = isActive ? 'text-blue-300 border-blue-600/30 bg-blue-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
+                        const now = new Date()
+                        const isCanceled = s.status === 'CANCELED'
+                        const isExpired = !isCanceled && s.endDate && new Date(s.endDate) < now
+                        const isActive = s.status === 'ACTIVE' && !isExpired
+                        const statusLabel = isCanceled ? 'Cancelada' : (isExpired ? 'Expirada' : 'Ativa')
+                        const statusClass = isCanceled
+                          ? 'bg-red-600/15 text-red-300 border-red-600/30'
+                          : isExpired
+                          ? 'bg-[#3f3f46]/20 text-[#a1a1aa] border-[#3f3f46]'
+                          : 'bg-blue-600/20 text-blue-300 border-blue-600/40'
                         return (
                           <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2">
                             <div className="flex-1 mr-3">
@@ -1480,6 +1579,22 @@ export default function ClientesPage() {
                               <div className="text-[#a1a1aa] text-xs">
                                 Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
                               </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-600 text-red-400 hover:bg-red-600/10"
+                                disabled={!isActive || processingSubAction === s.id}
+                                onClick={() => cancelClientSubscription(s.id)}
+                              >{processingSubAction === s.id ? 'Processando...' : 'Cancelar'}</Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                                disabled={processingSubAction === s.id}
+                                onClick={() => renewClientSubscription({ id: s.id, planId: (s as any).planId })}
+                              >{processingSubAction === s.id ? 'Processando...' : 'Renovar agora'}</Button>
                             </div>
                           </div>
                         )
