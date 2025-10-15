@@ -1503,7 +1503,7 @@ export default function ClientesPage() {
           })
         }
       }}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col rounded-xl">
           {/* Header Fixo */}
           <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -1579,7 +1579,7 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Pacote */}
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Pacote</DialogTitle>
             <DialogDescription>Gerenciar pacotes do cliente {selectedClient?.name}</DialogDescription>
@@ -1594,7 +1594,7 @@ export default function ClientesPage() {
                 <div className="text-[#71717a] text-sm">Nenhum pacote encontrado</div>
               ) : (
                 <>
-                  <div className="space-y-2 max-h-[40vh] sm:max-h-[50vh] overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
                     {clientPackagesList.map((p) => {
                       const remaining = Math.max((Number(p.creditsTotal || 0) - Number(p.usedCredits || 0)), 0)
                       const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() < Date.now() : false
@@ -1602,10 +1602,10 @@ export default function ClientesPage() {
                       const statusLabel = isActive ? 'Ativo' : 'Expirado'
                       const statusClass = isActive ? 'text-emerald-400 border-emerald-600/30 bg-emerald-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
                       return (
-                        <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2">
-                          <div className="flex-1 mr-3">
-                            <div className="flex items-center gap-2">
-                              <div className="text-[#ededed] font-medium">{p.name}</div>
+                        <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
+                          <div className="flex-1 mr-3 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="text-[#ededed] font-medium truncate">{p.name}</div>
                               <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                             </div>
                             <div className="text-[#a1a1aa] text-xs">
@@ -1619,15 +1619,15 @@ export default function ClientesPage() {
                             <div className={`text-xs font-semibold ${remaining > 0 && !isExpired ? 'text-emerald-400' : 'text-[#a1a1aa]'}`}>
                               Saldo: {remaining}
                             </div>
-                            <div className="flex flex-col gap-1 items-stretch shrink-0 w-full sm:min-w-[150px] sm:w-auto">
+                            <div className="flex flex-col gap-1 items-start shrink-0 sm:min-w-[150px]">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] w-full h-8 text-xs"
+                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
                                 disabled={processingAction === p.id}
                                 onClick={() => setRenewPkgDialog({ open: true, clientPackageId: p.id, packageId: p.packageId, price: '' })}
                               >{processingAction === p.id ? 'Processando...' : 'Renovar'}</Button>
-                              <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 w-full h-8 text-xs"
+                              <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
                                 disabled={processingAction === p.id || !isActive}
                                 onClick={() => deactivateClientPackage(p.id)}
                               >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
@@ -1695,7 +1695,7 @@ export default function ClientesPage() {
                   const subs = clientSubscriptionsMap[selectedClient.id] || []
                   if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
                   return (
-                    <div className="space-y-2 max-h-[40vh] sm:max-h-[50vh] overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
                       {subs.map(s => {
                         const now = new Date()
                         const isCanceled = s.status === 'CANCELED'
@@ -1708,28 +1708,28 @@ export default function ClientesPage() {
                           ? 'bg-[#3f3f46]/20 text-[#a1a1aa] border-[#3f3f46]'
                           : 'bg-blue-600/20 text-blue-300 border-blue-600/40'
                         return (
-                          <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2">
-                            <div className="flex-1 mr-3">
-                              <div className="flex items-center gap-2">
-                                <div className="text-[#ededed] font-medium">{s.planName}</div>
+                          <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
+                            <div className="flex-1 mr-3 min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="text-[#ededed] font-medium truncate">{s.planName}</div>
                                 <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
                               </div>
                               <div className="text-[#a1a1aa] text-xs">
                                 Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            <div className="flex flex-col gap-2 items-stretch shrink-0 w-full sm:min-w-[150px] sm:w-auto">
+                            <div className="flex flex-col gap-2 items-start shrink-0 sm:min-w-[150px]">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-600 text-red-400 hover:bg-red-600/10 w-full"
+                                className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
                                 disabled={!isActive || processingSubAction === s.id}
                                 onClick={() => setCancelSubDialog({ open: true, subscriptionId: s.id, refund: '' })}
                               >{processingSubAction === s.id ? 'Processando...' : 'Cancelar'}</Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] w-full h-8 text-xs"
+                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
                                 disabled={processingSubAction === s.id}
                                 onClick={() => setRenewSubDialog({ open: true, subscriptionId: s.id, planId: (s as any).planId, price: '' })}
                               >{processingSubAction === s.id ? 'Processando...' : 'Renovar'}</Button>
