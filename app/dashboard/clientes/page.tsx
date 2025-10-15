@@ -5,7 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+// Dialog imports (mantidos únicos)
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown } from 'lucide-react'
@@ -89,7 +100,7 @@ export default function ClientesPage() {
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
   const [selling, setSelling] = useState(false)
-  const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number }>>([])
+  const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; packageId?: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number }>>([])
   const [loadingClientPackages, setLoadingClientPackages] = useState(false)
   const [clientPackagesMeta, setClientPackagesMeta] = useState<{ total: number; page: number; pageSize: number; hasNext: boolean } | null>(null)
   const [clientPackagesPage, setClientPackagesPage] = useState(1)
@@ -100,6 +111,10 @@ export default function ClientesPage() {
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
   // Ações por assinatura
   const [processingSubAction, setProcessingSubAction] = useState<string | null>(null)
+  // AlertDialogs de confirmação/estorno
+  const [cancelSubDialog, setCancelSubDialog] = useState<{ open: boolean; subscriptionId: string; refund: string }>({ open: false, subscriptionId: '', refund: '' })
+  const [deactivatePackageDialog, setDeactivatePackageDialog] = useState<{ open: boolean; clientPackageId: string; refund: string }>({ open: false, clientPackageId: '', refund: '' })
+  // Diálogos de confirmação (com estorno): assinatura e pacote
 
   useEffect(() => {
     fetchClients(true, { includeWalkIn: showWalkIns }) // Buscar clientes ativos; incluir walk-ins se selecionado
@@ -258,7 +273,7 @@ export default function ClientesPage() {
         if (!res.ok) { setClientPackagesList([]); setClientPackagesMeta(null) }
         else {
           const data = await res.json()
-          const items = (data.items || []).map((it: any) => ({ id: it.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+          const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
           setClientPackagesList(items)
           setClientPackagesMeta(data.meta || null)
         }
@@ -302,7 +317,7 @@ export default function ClientesPage() {
       const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
       if (!res.ok) { return }
       const data = await res.json()
-      const items = (data.items || []).map((it: any) => ({ id: it.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+  const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
       setClientPackagesList(items)
       setClientPackagesMeta(data.meta || null)
       setClientPackagesPage(page)
@@ -339,14 +354,17 @@ export default function ClientesPage() {
 
   const cancelClientSubscription = async (id: string) => {
     if (!selectedClient) return
-    const confirmCancel = window.confirm('Deseja cancelar esta assinatura? Você poderá informar um valor de estorno na próxima etapa.')
-    if (!confirmCancel) return
-    const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum estorno:', '')
+    // Abre diálogo para confirmar e coletar estorno
+    setCancelSubDialog({ open: true, subscriptionId: id, refund: '' })
+  }
+  const confirmCancelSubscription = async () => {
+    const { subscriptionId, refund } = cancelSubDialog
+    if (!subscriptionId) { setCancelSubDialog({ open: false, subscriptionId: '', refund: '' }); return }
     try {
-      setProcessingSubAction(id)
+      setProcessingSubAction(subscriptionId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { id, action: 'cancel' }
-      const parsed = refundStr ? Number(String(refundStr).replace(',', '.')) : undefined
+  const body: any = { id: subscriptionId, action: 'cancel' }
+      const parsed = refund ? Number(String(refund).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
       const res = await fetch('/api/client-subscriptions', {
         method: 'PUT',
@@ -361,6 +379,7 @@ export default function ClientesPage() {
       console.error('Erro ao cancelar assinatura', e)
     } finally {
       setProcessingSubAction(null)
+      setCancelSubDialog({ open: false, subscriptionId: '', refund: '' })
     }
   }
 
@@ -400,16 +419,53 @@ export default function ClientesPage() {
     }
   }
 
+  // Renovar (vender novamente) um pacote baseado no pacote listado
+  const renewClientPackage = async (pkg: { id: string; packageId?: string }, priceStr?: string) => {
+    if (!selectedClient) return
+    let packageId = pkg.packageId
+    if (!packageId) {
+      await loadClientPackagesPage(clientPackagesPage)
+      const refreshed = (clientPackagesList || []).find((p: any) => p.id === pkg.id)
+      packageId = refreshed?.packageId
+      if (!packageId) {
+        console.error('Não foi possível identificar o pacote para renovar agora.')
+        return
+      }
+    }
+    try {
+      setProcessingAction(pkg.id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { clientId: selectedClient.id, packageId }
+      const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      const res = await fetch('/api/client-packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar pacote')
+      await loadClientPackagesPage(1)
+    } catch (e) {
+      console.error('Erro ao renovar pacote', e)
+    } finally {
+      setProcessingAction(null)
+    }
+  }
+
   const deactivateClientPackage = async (id: string) => {
     if (!selectedClient) return
-    const confirm = window.confirm('Deseja desativar este pacote? Você pode informar um valor de estorno na próxima etapa.')
-    if (!confirm) return
-    const refundStr = window.prompt('Valor de estorno (opcional). Deixe em branco para nenhum estorno:', '')
+    setDeactivatePackageDialog({ open: true, clientPackageId: id, refund: '' })
+  }
+  const confirmDeactivatePackage = async () => {
+    const { clientPackageId, refund } = deactivatePackageDialog
+    if (!clientPackageId) { setDeactivatePackageDialog({ open: false, clientPackageId: '', refund: '' }); return }
     try {
-      setProcessingAction(id)
+      setProcessingAction(clientPackageId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { id, action: 'deactivate' }
-      const parsed = refundStr ? Number(String(refundStr).replace(',', '.')) : undefined
+  const body: any = { id: clientPackageId, action: 'deactivate' }
+      const parsed = refund ? Number(String(refund).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
       const res = await fetch('/api/client-packages', {
         method: 'PUT',
@@ -424,6 +480,7 @@ export default function ClientesPage() {
       console.error('Erro ao desativar pacote', e)
     } finally {
       setProcessingAction(null)
+      setDeactivatePackageDialog({ open: false, clientPackageId: '', refund: '' })
     }
   }
 
@@ -1486,12 +1543,22 @@ export default function ClientesPage() {
                             {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
                             {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <div className={`text-xs font-semibold ${remaining > 0 && !isExpired ? 'text-emerald-400' : 'text-[#a1a1aa]'}`}>
                               Saldo: {remaining}
                             </div>
-                            <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10"
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
                               disabled={processingAction === p.id}
+                              onClick={() => {
+                                const priceStr = window.prompt('Preço (opcional). Deixe em branco para usar o preço do pacote:', '')
+                                renewClientPackage({ id: p.id, packageId: p.packageId }, priceStr || undefined)
+                              }}
+                            >{processingAction === p.id ? 'Processando...' : 'Renovar agora'}</Button>
+                            <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10"
+                              disabled={processingAction === p.id || (isExpired && remaining === 0)}
                               onClick={() => deactivateClientPackage(p.id)}
                             >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
                           </div>
@@ -1586,7 +1653,7 @@ export default function ClientesPage() {
                                 variant="outline"
                                 className="border-red-600 text-red-400 hover:bg-red-600/10"
                                 disabled={!isActive || processingSubAction === s.id}
-                                onClick={() => cancelClientSubscription(s.id)}
+                                onClick={() => setCancelSubDialog({ open: true, subscriptionId: s.id, refund: '' })}
                               >{processingSubAction === s.id ? 'Processando...' : 'Cancelar'}</Button>
                               <Button
                                 size="sm"
@@ -1624,6 +1691,60 @@ export default function ClientesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog: Cancelar assinatura com estorno */}
+      <AlertDialog open={cancelSubDialog.open}>
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação cancela a assinatura imediatamente. Você pode informar um valor de estorno abaixo (opcional).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Valor de estorno (opcional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={cancelSubDialog.refund}
+              onChange={(e) => setCancelSubDialog(prev => ({ ...prev, refund: e.target.value }))}
+              className="bg-[#27272a] border-[#3f3f46]"
+              placeholder="0,00"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelSubDialog({ open: false, subscriptionId: '', refund: '' })}>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelSubscription}>Confirmar cancelamento</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog: Desativar pacote com estorno */}
+      <AlertDialog open={deactivatePackageDialog.open}>
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar pacote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação expira o pacote agora. Você pode informar um valor de estorno abaixo (opcional).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Valor de estorno (opcional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={deactivatePackageDialog.refund}
+              onChange={(e) => setDeactivatePackageDialog(prev => ({ ...prev, refund: e.target.value }))}
+              className="bg-[#27272a] border-[#3f3f46]"
+              placeholder="0,00"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeactivatePackageDialog({ open: false, clientPackageId: '', refund: '' })}>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeactivatePackage}>Confirmar desativação</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
