@@ -1765,7 +1765,7 @@ export default function ClientesPage() {
 
       {/* AlertDialog: Cancelar assinatura com estorno */}
       <AlertDialog open={cancelSubDialog.open}>
-        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-full sm:max-w-[420px]">
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1792,7 +1792,7 @@ export default function ClientesPage() {
 
       {/* AlertDialog: Desativar pacote com estorno */}
       <AlertDialog open={deactivatePackageDialog.open}>
-        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-full sm:max-w-[420px]">
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar pacote?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1819,7 +1819,7 @@ export default function ClientesPage() {
 
       {/* AlertDialog: Renovar assinatura (preço opcional) */}
       <AlertDialog open={renewSubDialog.open}>
-        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-full sm:max-w-[420px]">
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Renovar assinatura</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1846,7 +1846,7 @@ export default function ClientesPage() {
 
       {/* AlertDialog: Renovar pacote (preço opcional) */}
       <AlertDialog open={renewPkgDialog.open}>
-        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-full sm:max-w-[420px]">
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Renovar pacote</AlertDialogTitle>
             <AlertDialogDescription>
