@@ -198,6 +198,8 @@ model Appointment {
   cancelledAt   DateTime?
   cancelReason  String?          @db.Text
   completedAt   DateTime?
+  // Marcador persistente de cobertura (fallback visual): 'SUB:<planId>' | 'PKG:<clientPackageId>'
+  coverageToken String?
   
   // Relations
   tenantId       String

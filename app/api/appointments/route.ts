@@ -348,7 +348,8 @@ export async function POST(request: NextRequest) {
 
   // 🔰 Assinatura tem prioridade sobre pacote: se cobrir todos os serviços, marcar nas notas (preço no banco permanece original)
     // Implementação baseada no fluxo de pacotes (consulta SQL direta e determinística)
-    let subscriptionCoveredPlanId: string | null = null
+  let subscriptionCoveredPlanId: string | null = null
+  let chosenClientPackageId: string | null = null
     try {
       const now = new Date()
       const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
@@ -383,6 +384,52 @@ export async function POST(request: NextRequest) {
       }
     } catch (e) {
       // Em caso de erro, segue fluxo normal (sem cobertura)
+    }
+
+    // Detectar pacote elegível (se nenhuma assinatura cobriu)
+    if (!subscriptionCoveredPlanId) {
+      try {
+        const now = new Date()
+        // Pacotes válidos do cliente com saldo
+        const packagesBase = await prisma.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
+          SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
+          FROM client_packages
+          WHERE clientId = ${endUserId}
+            AND (expiresAt IS NULL OR expiresAt > ${now})
+        `
+        if (packagesBase.length > 0) {
+          const ids = packagesBase.map(p => p.id)
+          const placeholders = ids.map(() => '?').join(',')
+          const allowedRows = await prisma.$queryRawUnsafe<Array<{ clientPackageId: string, serviceId: string }>>(
+            `SELECT clientPackageId, serviceId FROM client_package_allowed_services WHERE clientPackageId IN (${placeholders})`,
+            ...ids
+          )
+          const allowedMap = new Map<string, string[]>()
+          for (const row of allowedRows) {
+            const arr = allowedMap.get(row.clientPackageId) || []
+            arr.push(row.serviceId)
+            allowedMap.set(row.clientPackageId, arr)
+          }
+          const withRemaining = packagesBase.filter(p => ((p.creditsTotal || 0) - (p.usedCredits || 0)) > 0)
+          const eligible = withRemaining.filter(p => {
+            const allowed = allowedMap.get(p.id) || []
+            if (allowed.length !== (serviceIds as string[]).length) return false
+            const set = new Set(allowed)
+            return (serviceIds as string[]).every(id => set.has(id))
+          })
+          if (eligible.length > 0) {
+            eligible.sort((a, b) => {
+              const ax = a.expiresAt ? a.expiresAt.getTime() : Number.POSITIVE_INFINITY
+              const bx = b.expiresAt ? b.expiresAt.getTime() : Number.POSITIVE_INFINITY
+              if (ax !== bx) return ax - bx
+              return a.purchasedAt.getTime() - b.purchasedAt.getTime()
+            })
+            chosenClientPackageId = eligible[0].id
+          }
+        }
+      } catch (e) {
+        // Silenciar e seguir fluxo normal
+      }
     }
 
     // Não zerar o totalPrice aqui: manter valor original para relatórios;
@@ -465,7 +512,7 @@ export async function POST(request: NextRequest) {
     // Não inserir marcadores técnicos em notes; manter apenas observação do cliente
     const finalNotes: string | undefined = notes || undefined
 
-    const newAppointment = await prisma.appointment.create({
+    const newAppointment: any = await (prisma as any).appointment.create({
       data: {
         dateTime: dateTimeForSave, // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
         duration: totalDuration,
@@ -477,6 +524,8 @@ export async function POST(request: NextRequest) {
         tenantId: user.tenantId,
         endUserId,
         professionalId: professionalId || null,
+        // Gravar token persistente simples para fallback visual/gestão
+        coverageToken: subscriptionCoveredPlanId ? `SUB:${subscriptionCoveredPlanId}` : (chosenClientPackageId ? `PKG:${chosenClientPackageId}` : null),
         // ✅ NOVO: Conectar múltiplos serviços
         services: {
           connect: serviceIds.map(id => ({ id }))
@@ -529,7 +578,7 @@ export async function POST(request: NextRequest) {
         const emailHtml = newAppointmentNotificationEmail({
           clientName: newAppointment.endUser.name,
             professionalName: newAppointment.professional?.name || 'Não especificado',
-          services: newAppointment.services.map(s => s.name).join(', '),
+          services: newAppointment.services.map((s: any) => s.name).join(', '),
           date: formatBrazilDate(new Date(newAppointment.dateTime)),
           time: formatBrazilTime(new Date(newAppointment.dateTime), 'HH:mm'),
           totalPrice: `R$ ${Number(newAppointment.totalPrice).toFixed(2).replace('.', ',')}`,

@@ -407,6 +407,7 @@ export async function POST(request: NextRequest) {
     // Nota: Usar 'any' é necessário devido ao cache de tipos do Prisma local
     // Em produção, após deploy + migrate, os tipos estarão corretos
   let appointmentNotes = notes || null
+  let subscriptionCoveredPlanId: string | null = null
     // Novo: combo exato - se requisitado, marcar serviços selecionados e tentar fixar pacote
     let chosenClientPackageId: string | null = null
     if (usePackageCredit && services && Array.isArray(services) && services.length > 0) {
@@ -500,8 +501,7 @@ export async function POST(request: NextRequest) {
           }
         }
         if (subscriptionCoveredPlanId) {
-          // Não zerar total no banco; apenas marcar e limpar markers de pacote
-          const subMarker = `[SUBSCRIPTION_COVERED:${subscriptionCoveredPlanId}]`
+          // Não inserir markers nas notas; apenas limpar markers técnicos existentes
           if (appointmentNotes) {
             appointmentNotes = appointmentNotes
               .replace(/\[USE_CREDIT_SERVICES:[^\]]+\]/g, '')
@@ -509,7 +509,6 @@ export async function POST(request: NextRequest) {
               .replace(/\[USE_CREDIT(?::[^\]]+)?\]/g, '')
               .trim()
           }
-          appointmentNotes = appointmentNotes ? `${appointmentNotes} ${subMarker}` : subMarker
         }
       }
     } catch (e) {
@@ -525,6 +524,9 @@ export async function POST(request: NextRequest) {
   totalPrice: totalPrice,
       status: 'CONFIRMED',
   notes: appointmentNotes,
+      coverageToken: (typeof subscriptionCoveredPlanId === 'string' && subscriptionCoveredPlanId)
+        ? `SUB:${subscriptionCoveredPlanId}`
+        : (chosenClientPackageId ? `PKG:${chosenClientPackageId}` : null),
       paymentStatus: 'PENDING',
       // ✅ CONECTAR SERVIÇOS: Many-to-Many relationship
       services: {

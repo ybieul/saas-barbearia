@@ -2776,7 +2776,36 @@ export default function AgendaPage() {
                               )
                             }
                           }
-                          
+
+                          // Não concluído: preferir cobertura em tempo real
+                          const cov = coverageById[appointment.id]
+                          if (cov?.covered) {
+                            return (
+                              <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border ${cov.coveredBy === 'subscription' ? 'bg-sky-500/15 text-sky-300 border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'}`}>
+                                {cov.coveredBy === 'subscription' ? 'Coberto por assinatura' : 'Crédito de pacote'}
+                              </Badge>
+                            )
+                          }
+
+                          // Fallback visual: usar token persistente do agendamento
+                          const token: string | undefined = (appointment as any).coverageToken
+                          if (token && typeof token === 'string') {
+                            if (token.startsWith('SUB:')) {
+                              return (
+                                <Badge className="w-fit text-xs px-2 py-1 rounded-full font-medium border bg-sky-500/15 text-sky-300 border-sky-500/30">
+                                  Assinatura (marcado)
+                                </Badge>
+                              )
+                            }
+                            if (token.startsWith('PKG:')) {
+                              return (
+                                <Badge className="w-fit text-xs px-2 py-1 rounded-full font-medium border bg-purple-500/15 text-purple-300 border-purple-500/30">
+                                  Pacote (marcado)
+                                </Badge>
+                              )
+                            }
+                          }
+
                           return null
                         })()}
                       </div>

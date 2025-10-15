@@ -361,6 +361,8 @@ model Appointment {
   paymentStatus PaymentStatus     @default(PENDING)
   // Fonte do pagamento quando pré-pago (PACOTE/ASSINATURA)
   paymentSource String?
+  // Marcador persistente de cobertura (fallback visual): 'SUB:<planId>' | 'PKG:<clientPackageId>'
+  coverageToken String?
   // Desconto aplicado neste agendamento (snapshot na conclusão):
   // - Assinatura: 100% do preço do serviço
   // - Pacote: preço cheio menos custo alocado do crédito utilizado
