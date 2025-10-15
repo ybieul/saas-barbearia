@@ -1543,24 +1543,26 @@ export default function ClientesPage() {
                             {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
                             {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <div className={`text-xs font-semibold ${remaining > 0 && !isExpired ? 'text-emerald-400' : 'text-[#a1a1aa]'}`}>
                               Saldo: {remaining}
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
-                              disabled={processingAction === p.id}
-                              onClick={() => {
-                                const priceStr = window.prompt('Preço (opcional). Deixe em branco para usar o preço do pacote:', '')
-                                renewClientPackage({ id: p.id, packageId: p.packageId }, priceStr || undefined)
-                              }}
-                            >{processingAction === p.id ? 'Processando...' : 'Renovar agora'}</Button>
-                            <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10"
-                              disabled={processingAction === p.id || (isExpired && remaining === 0)}
-                              onClick={() => deactivateClientPackage(p.id)}
-                            >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
+                            <div className="flex flex-col gap-2 items-stretch shrink-0 w-full sm:min-w-[150px] sm:w-auto">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] w-full"
+                                disabled={processingAction === p.id}
+                                onClick={() => {
+                                  const priceStr = window.prompt('Preço (opcional). Deixe em branco para usar o preço do pacote:', '')
+                                  renewClientPackage({ id: p.id, packageId: p.packageId }, priceStr || undefined)
+                                }}
+                              >{processingAction === p.id ? 'Processando...' : 'Renovar agora'}</Button>
+                              <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 w-full"
+                                disabled={processingAction === p.id || (isExpired && remaining === 0)}
+                                onClick={() => deactivateClientPackage(p.id)}
+                              >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
+                            </div>
                           </div>
                         </div>
                       )
@@ -1647,18 +1649,18 @@ export default function ClientesPage() {
                                 Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex flex-col gap-2 items-stretch shrink-0 w-full sm:min-w-[150px] sm:w-auto">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-600 text-red-400 hover:bg-red-600/10"
+                                className="border-red-600 text-red-400 hover:bg-red-600/10 w-full"
                                 disabled={!isActive || processingSubAction === s.id}
                                 onClick={() => setCancelSubDialog({ open: true, subscriptionId: s.id, refund: '' })}
                               >{processingSubAction === s.id ? 'Processando...' : 'Cancelar'}</Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
+                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] w-full"
                                 disabled={processingSubAction === s.id}
                                 onClick={() => renewClientSubscription({ id: s.id, planId: (s as any).planId })}
                               >{processingSubAction === s.id ? 'Processando...' : 'Renovar agora'}</Button>
