@@ -11,8 +11,17 @@ export async function GET(request: NextRequest) {
     const tenantId = user.tenantId
     if (!tenantId) return NextResponse.json({ message: 'Tenant não encontrado' }, { status: 404 })
 
+    const url = new URL(request.url)
+    const sp = url.searchParams
     const now = getBrazilNow()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+    const fromParam = sp.get('from')
+    const toParam = sp.get('to')
+    const parsedFrom = fromParam ? new Date(fromParam) : null
+    const parsedTo = toParam ? new Date(toParam) : null
+    const periodFrom = parsedFrom && !isNaN(parsedFrom.getTime()) ? parsedFrom : defaultFrom
+    const periodTo = parsedTo && !isNaN(parsedTo.getTime()) ? parsedTo : now
+    const firstOfMonth = defaultFrom
 
     // MRR e contagem de assinaturas ativas
     const subsRows = await prisma.$queryRaw<Array<{ planId: string; planName: string; planPrice: any }>>`
@@ -70,7 +79,8 @@ export async function GET(request: NextRequest) {
       JOIN end_users eu ON eu.id = cp.clientId
       JOIN service_packages sp ON sp.id = cp.packageId
       WHERE eu.tenantId = ${tenantId}
-        AND cp.purchasedAt >= ${firstOfMonth}
+        AND cp.purchasedAt >= ${periodFrom}
+        AND cp.purchasedAt <= ${periodTo}
     `
     const packageSalesThisMonth = {
       count: salesRows.length,
@@ -96,7 +106,8 @@ export async function GET(request: NextRequest) {
       FROM appointments a
       WHERE a.tenantId = ${tenantId}
         AND a.status = 'COMPLETED'
-        AND a.completedAt >= ${firstOfMonth}
+        AND a.completedAt >= ${periodFrom}
+        AND a.completedAt <= ${periodTo}
         AND (
           a.paymentMethod = 'PREPAID' OR
           (a.paymentSource IS NOT NULL AND a.paymentSource LIKE '%PACOTE%') OR
@@ -104,6 +115,22 @@ export async function GET(request: NextRequest) {
         )
     `
     const creditsUsedThisMonth = Number(creditsUsedRows[0]?.c || 0)
+
+    // ---------------------------
+    // Financeiro (mês corrente)
+    // ---------------------------
+    const finRows = await prisma.$queryRaw<Array<{ category: string | null; type: string; amount: any }>>`
+      SELECT fr.category as category, fr.type as type, fr.amount as amount
+      FROM financial_records fr
+      WHERE fr.tenantId = ${tenantId}
+        AND fr.date >= ${periodFrom}
+        AND fr.date <= ${periodTo}
+    `
+    const sum = (items: typeof finRows, where: (r: any) => boolean) => items.filter(where).reduce((acc, r) => acc + Number(r.amount || 0), 0)
+    const revenueSubscriptions = sum(finRows, r => r.type === 'INCOME' && (r.category || '').toLowerCase().includes('assin'))
+    const revenuePackages = sum(finRows, r => r.type === 'INCOME' && (r.category || '').toLowerCase().includes('pacote'))
+    const refunds = sum(finRows, r => r.type === 'EXPENSE' && (r.category || '').toLowerCase().includes('estorno'))
+    const netRevenue = revenueSubscriptions + revenuePackages - refunds
 
     return NextResponse.json({
       mrr,
@@ -113,7 +140,13 @@ export async function GET(request: NextRequest) {
       topSellingPackages,
       packageSalesThisMonth,
       creditsUsedThisMonth,
-      retentionRate
+      retentionRate,
+      financialSummary: {
+        revenueSubscriptions,
+        revenuePackages,
+        refunds,
+        netRevenue
+      }
     })
   } catch (error: any) {
     const status = error instanceof AuthError ? error.status : (error?.message?.includes('Token') ? 401 : 500)

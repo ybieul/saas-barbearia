@@ -43,6 +43,12 @@ export default function MembershipsPage() {
     packageSalesThisMonth: { count: number; revenue: number }
     creditsUsedThisMonth: number
     retentionRate?: number | null
+    financialSummary?: {
+      revenueSubscriptions: number
+      revenuePackages: number
+      refunds: number
+      netRevenue: number
+    }
   }
   const [stats, setStats] = useState<Stats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
@@ -70,6 +76,40 @@ export default function MembershipsPage() {
   const [formServices, setFormServices] = useState<{ serviceId: string; quantity: number }[]>([])
   const [submitting, setSubmitting] = useState(false)
 
+  // Filtro de período
+  type PeriodOption = 'this-month' | 'last-month' | 'last-7d' | 'custom'
+  const [period, setPeriod] = useState<PeriodOption>('this-month')
+  const [customFrom, setCustomFrom] = useState<string>('')
+  const [customTo, setCustomTo] = useState<string>('')
+
+  function getPeriodRange(): { from?: string; to?: string } {
+    const now = new Date()
+    if (period === 'this-month') {
+      const f = new Date(now.getFullYear(), now.getMonth(), 1)
+      return { from: f.toISOString(), to: now.toISOString() }
+    }
+    if (period === 'last-month') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const last = new Date(now.getFullYear(), now.getMonth(), 0)
+      last.setHours(23, 59, 59, 999)
+      return { from: first.toISOString(), to: last.toISOString() }
+    }
+    if (period === 'last-7d') {
+      const f = new Date(now.getTime() - 6 * 86400000)
+      f.setHours(0,0,0,0)
+      return { from: f.toISOString(), to: now.toISOString() }
+    }
+    if (period === 'custom' && customFrom && customTo) {
+      try {
+        const f = new Date(customFrom)
+        const t = new Date(customTo)
+        t.setHours(23,59,59,999)
+        return { from: f.toISOString(), to: t.toISOString() }
+      } catch {}
+    }
+    return {}
+  }
+
   useEffect(() => {
     const controller = new AbortController()
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
@@ -77,7 +117,12 @@ export default function MembershipsPage() {
     async function load() {
       try {
         setLoadingStats(true)
-        const res = await fetch('/api/memberships/stats', { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+        const { from, to } = getPeriodRange()
+        const qs = new URLSearchParams()
+        if (from) qs.set('from', from)
+        if (to) qs.set('to', to)
+        const res = await fetch(`/api/memberships/stats${qs.toString() ? `?${qs.toString()}` : ''}`,
+          { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
         const data = await res.json()
         if (res.ok) setStats(data)
       } catch (e) {
@@ -93,7 +138,7 @@ export default function MembershipsPage() {
 
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [period, customFrom, customTo])
 
   async function fetchPlans() {
     try {
@@ -272,7 +317,79 @@ export default function MembershipsPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Assinaturas e Pacotes</h1>
           <p className="text-[#3f3f46]">Gerencie os planos de fidelização</p>
         </div>
-        <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
+            <Label className="text-xs text-[#a1a1aa]">Período</Label>
+            <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
+              <SelectTrigger className="h-8 w-[160px] bg-[#27272a] border-[#3f3f46]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this-month">Este mês</SelectItem>
+                <SelectItem value="last-month">Mês passado</SelectItem>
+                <SelectItem value="last-7d">Últimos 7 dias</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+            {period === 'custom' && (
+              <div className="flex items-center gap-2">
+                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 bg-[#27272a] border-[#3f3f46]"/>
+                <span className="text-[#a1a1aa]">—</span>
+                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 bg-[#27272a] border-[#3f3f46]"/>
+              </div>
+            )}
+          </div>
+          <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
+          <Button variant="outline" onClick={() => openCreate('PACKAGE')}>Criar Pacote</Button>
+        </div>
+      </div>
+
+      {/* Cards financeiros do mês */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Assinaturas (mês)</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenueSubscriptions || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Pacotes (mês)</CardTitle>
+            <PackageIcon className="h-4 w-4 text-tymer-icon" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenuePackages || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Estornos (mês)</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.refunds || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Líquida (mês)</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.netRevenue || 0)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Cards topo */}
@@ -380,12 +497,15 @@ export default function MembershipsPage() {
               ) : (
                 <div className="space-y-2">
                   {plans.map(p => (
-                    <div key={p.id} className="flex items-center justify-between border border-[#27272a] rounded-md p-3">
-                      <div>
-                        <div className="font-medium text-[#ededed]">{p.name}</div>
+                    <div key={p.id} className="flex items-center justify-between rounded-md px-3 py-2 bg-[#111114] border border-[#27272a]">
+                      <div className="min-w-0">
+                        <div className="font-medium text-[#ededed] truncate">{p.name}</div>
                         <div className="text-sm text-[#a1a1aa]">{formatPrice(p.price)} • ciclo {p.cycleInDays} dias</div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {p._count?.clientSubscriptions != null && (
+                          <Badge variant="secondary" className="bg-[#1f1f23] text-[#ededed] border border-[#2b2b30]">{p._count.clientSubscriptions}</Badge>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => openEditPlan(p)}>Editar</Button>
                         <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(p.id)}>Remover</Button>
                       </div>
@@ -467,9 +587,9 @@ export default function MembershipsPage() {
               ) : (
                 <div className="space-y-2">
                   {packages.map((pkg: ServicePackageDto) => (
-                    <div key={pkg.id} className="flex items-center justify-between border border-[#27272a] rounded-md p-3">
-                      <div>
-                        <div className="font-medium text-[#ededed]">{pkg.name}</div>
+                    <div key={pkg.id} className="flex items-center justify-between rounded-md px-3 py-2 bg-[#111114] border border-[#27272a]">
+                      <div className="min-w-0">
+                        <div className="font-medium text-[#ededed] truncate">{pkg.name}</div>
                         <div className="text-sm text-[#a1a1aa]">{formatPrice(pkg.totalPrice)}{pkg.validDays ? ` • validade ${pkg.validDays} dias` : ''}</div>
                       </div>
                       <div className="flex items-center gap-2">
