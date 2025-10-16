@@ -745,6 +745,14 @@ export default function ConfiguracoesPage() {
       })
       return
     }
+    if (!newProfessional.phone.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Telefone (WhatsApp) do profissional é obrigatório!",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       const result = await createProfessional({
@@ -796,6 +804,14 @@ export default function ConfiguracoesPage() {
       toast({
         title: "Erro de validação",
         description: "Nome do profissional é obrigatório!",
+        variant: "destructive",
+      })
+      return
+    }
+    if (!editProfessional.phone.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Telefone (WhatsApp) do profissional é obrigatório!",
         variant: "destructive",
       })
       return
@@ -1757,7 +1773,7 @@ export default function ConfiguracoesPage() {
                               <div className="space-y-3 md:space-y-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="professionalPhone" className="text-[#ededed] text-sm font-medium">
-                                    Telefone
+                                    Telefone (WhatsApp) *
                                   </Label>
                                   <Input
                                     id="professionalPhone"
@@ -1765,7 +1781,9 @@ export default function ConfiguracoesPage() {
                                     onChange={(e) => setNewProfessional({ ...newProfessional, phone: e.target.value })}
                                     className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                                     placeholder="(11) 99999-9999"
+                                    required
                                   />
+                                  <p className="text-xs text-[#71717a]">Este número será usado para enviar notificações de novos agendamentos.</p>
                                 </div>
                                 
                                 <div className="space-y-2">
@@ -2063,7 +2081,7 @@ export default function ConfiguracoesPage() {
                         <div className="space-y-3 md:space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="editProfessionalPhone" className="text-[#ededed] text-sm font-medium">
-                              Telefone
+                              Telefone (WhatsApp) *
                             </Label>
                             <Input
                               id="editProfessionalPhone"
@@ -2071,7 +2089,9 @@ export default function ConfiguracoesPage() {
                               onChange={(e) => setEditProfessional({ ...editProfessional, phone: e.target.value })}
                               className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
                               placeholder="(11) 99999-9999"
+                              required
                             />
+                            <p className="text-xs text-[#71717a]">Este número será usado para enviar notificações de novos agendamentos.</p>
                           </div>
                           
                           <div className="space-y-2">

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { newAppointmentNotificationEmail } from '@/utils/emailTemplates'
+import { sendWhatsAppMessage as sendGlobalWhatsApp } from '@/utils/whatsapp'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime, parseBirthDate } from '@/lib/timezone'
 import { whatsappTemplates } from '@/lib/whatsapp-server'
@@ -563,12 +564,47 @@ export async function POST(request: NextRequest) {
       dateTimeBrazil: appointment.dateTime.toString()
     })
 
-    // ✅ NOVO: GATILHO DE CONFIRMAÇÃO AUTOMÁTICA VIA WHATSAPP
+    // ✅ NOVO: GATILHO DE CONFIRMAÇÃO AUTOMÁTICA VIA WHATSAPP (Cliente)
     try {
       await sendPublicConfirmationMessage(appointment, appointmentClient, appointmentProfessional, appointmentServices, business, totalDuration, totalPrice)
     } catch (whatsappError) {
       console.error('❌ Erro ao enviar confirmação WhatsApp:', whatsappError)
       // Não falhar a criação do agendamento por erro do WhatsApp
+    }
+
+    // ✅ NOVO: Notificação por WhatsApp para o PROFISSIONAL (instância global TymerBook)
+    try {
+      const professional = appointmentProfessional
+      if (professional && professional.phone) {
+        const dateStr = formatBrazilDate(appointment.dateTime)
+        const timeStr = formatBrazilTime(appointment.dateTime, 'HH:mm')
+        const servicesStr = appointmentServices.map(s => s.name).join(', ')
+        const totalStr = `R$ ${totalPrice}`
+        const clientName = appointmentClient?.name || 'Cliente'
+        const professionalName = professional.name || 'Profissional'
+
+        // Mensagem amigável para WhatsApp (texto puro)
+        const message = [
+          '🎉 Novo Agendamento Recebido!\n',
+          'Você tem um novo agendamento na sua barbearia.\n',
+          '*Detalhes do Agendamento:*',
+          `• Cliente: ${clientName}`,
+          `• Serviços: ${servicesStr}`,
+          `• Profissional: ${professionalName}`,
+          `• Data: ${dateStr}`,
+          `• Hora: ${timeStr}`,
+          `• Valor Total: ${totalStr}`,
+          '',
+          'Acesse a sua agenda no painel da TymerBook para mais detalhes.',
+          '— Equipe TymerBook'
+        ].join('\n')
+
+        await sendGlobalWhatsApp({ to: professional.phone, message })
+        console.log(`✅ Notificação WhatsApp enviada ao profissional ${professionalName} (${professional.phone})`)
+      }
+    } catch (whatsappError) {
+      console.error('⚠️ Falha ao enviar notificação de WhatsApp para o profissional:', whatsappError)
+      // Secundário: não falhar a criação
     }
 
     // ✅ NOVO: NOTIFICAÇÃO POR E-MAIL PARA O DONO (TENANT)
