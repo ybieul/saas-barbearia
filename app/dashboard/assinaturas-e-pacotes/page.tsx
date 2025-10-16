@@ -15,7 +15,9 @@ import { formatPrice } from '@/lib/api-utils'
 import { useServicePackages, ServicePackageDto } from '@/hooks/use-service-packages'
 import { useServices } from '@/hooks/use-services'
 import { Switch } from '@/components/ui/switch'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, DollarSign, Users, Package as PackageIcon } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 
 interface SubscriptionPlanDto {
   id: string
@@ -276,8 +278,9 @@ export default function MembershipsPage() {
       {/* Cards topo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Receita Recorrente Mensal (MRR)</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Recorrente Mensal (MRR)</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
@@ -286,8 +289,9 @@ export default function MembershipsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes com Assinatura Ativa</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes com Assinatura Ativa</CardTitle>
+            <Users className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
@@ -296,8 +300,9 @@ export default function MembershipsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes com Pacotes Ativos</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes com Pacotes Ativos</CardTitle>
+            <PackageIcon className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
@@ -330,7 +335,7 @@ export default function MembershipsPage() {
                 ) : (stats?.topSubscriptionPlans?.length ? (
                   <div className="space-y-2">
                     {stats.topSubscriptionPlans.map((p, idx) => (
-                      <div key={idx} className="flex items-center justify-between border border-[#27272a] rounded-md px-3 py-2">
+                      <div key={idx} className="flex items-center justify-between rounded-md px-3 py-2 bg-[#111114] border border-[#27272a]">
                         <div className="text-sm text-[#ededed]">{p.name}</div>
                         <div className="text-sm font-medium">{formatPrice(p.revenue || 0)}</div>
                       </div>
@@ -349,7 +354,14 @@ export default function MembershipsPage() {
                 {loadingStats ? (
                   <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/>
                 ) : (
-                  <div className="text-2xl font-semibold">{retentionPctDisplay}</div>
+                  <div>
+                    <div className="text-2xl font-semibold">{retentionPctDisplay}</div>
+                    {typeof stats?.retentionRate === 'number' && (
+                      <div className="mt-3">
+                        <Progress value={(stats.retentionRate || 0) * 100} />
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div className="text-xs text-[#a1a1aa] mt-1">Estimativa baseada nas assinaturas ativas no início do mês e churn até agora.</div>
               </CardContent>
@@ -420,9 +432,9 @@ export default function MembershipsPage() {
                 ) : (stats?.topSellingPackages?.length ? (
                   <div className="space-y-2">
                     {stats.topSellingPackages.map((p, idx) => (
-                      <div key={idx} className="flex items-center justify-between border border-[#27272a] rounded-md px-3 py-2">
+                      <div key={idx} className="flex items-center justify-between rounded-md px-3 py-2 bg-[#111114] border border-[#27272a]">
                         <div className="text-sm text-[#ededed]">{p.name}</div>
-                        <div className="text-sm font-medium">{p.count}</div>
+                        <Badge variant="secondary" className="bg-[#1f1f23] text-[#ededed] border border-[#2b2b30]">{p.count}</Badge>
                       </div>
                     ))}
                   </div>
