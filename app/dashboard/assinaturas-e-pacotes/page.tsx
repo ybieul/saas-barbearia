@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,7 +32,17 @@ export default function MembershipsPage() {
   const { toast } = useToast()
 
   // Stats
-  const [stats, setStats] = useState<{ mrr: number; activeSubscriptions: number; activePackages: number } | null>(null)
+  type Stats = {
+    mrr: number
+    activeSubscriptionsCount: number
+    activePackagesCount: number
+    topSubscriptionPlans: { name: string; revenue: number }[]
+    topSellingPackages: { name: string; count: number }[]
+    packageSalesThisMonth: { count: number; revenue: number }
+    creditsUsedThisMonth: number
+    retentionRate?: number | null
+  }
+  const [stats, setStats] = useState<Stats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
   // Packages
@@ -109,6 +120,10 @@ export default function MembershipsPage() {
   }
 
   const mrrDisplay = useMemo(() => formatPrice(stats?.mrr || 0), [stats])
+  const retentionPctDisplay = useMemo(() => {
+    if (stats?.retentionRate == null) return '—'
+    return `${Math.round((stats.retentionRate || 0) * 100)}%`
+  }, [stats])
 
   function resetForms() {
     setPkgForm({ name: '', description: '', totalPrice: '', discount: '0', validDays: '', isActive: true, defaultCredits: '1' })
@@ -265,7 +280,9 @@ export default function MembershipsPage() {
             <CardTitle>Receita Recorrente Mensal (MRR)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{loadingStats ? 'Carregando...' : mrrDisplay}</div>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-32 bg-[#2a2a2e]"/> : mrrDisplay}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -273,7 +290,9 @@ export default function MembershipsPage() {
             <CardTitle>Clientes com Assinatura Ativa</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{loadingStats ? '...' : (stats?.activeSubscriptions ?? 0)}</div>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-12 bg-[#2a2a2e]"/> : (stats?.activeSubscriptionsCount ?? 0)}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -281,7 +300,9 @@ export default function MembershipsPage() {
             <CardTitle>Clientes com Pacotes Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{loadingStats ? '...' : (stats?.activePackages ?? 0)}</div>
+            <div className="text-2xl font-semibold">
+              {loadingStats ? <Skeleton className="h-7 w-12 bg-[#2a2a2e]"/> : (stats?.activePackagesCount ?? 0)}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -293,6 +314,48 @@ export default function MembershipsPage() {
         </TabsList>
 
         <TabsContent value="subscriptions" className="space-y-4">
+          {/* Cards de análise - Assinaturas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>MRR por Plano</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {loadingStats ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-2/3 bg-[#2a2a2e]"/>
+                    <Skeleton className="h-5 w-1/2 bg-[#2a2a2e]"/>
+                    <Skeleton className="h-5 w-3/4 bg-[#2a2a2e]"/>
+                  </div>
+                ) : (stats?.topSubscriptionPlans?.length ? (
+                  <div className="space-y-2">
+                    {stats.topSubscriptionPlans.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between border border-[#27272a] rounded-md px-3 py-2">
+                        <div className="text-sm text-[#ededed]">{p.name}</div>
+                        <div className="text-sm font-medium">{formatPrice(p.revenue || 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-[#a1a1aa]">Sem dados de MRR por plano ainda.</div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Taxa de Retenção (mês)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/>
+                ) : (
+                  <div className="text-2xl font-semibold">{retentionPctDisplay}</div>
+                )}
+                <div className="text-xs text-[#a1a1aa] mt-1">Estimativa baseada nas assinaturas ativas no início do mês e churn até agora.</div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Planos de Assinatura</CardTitle>
@@ -323,6 +386,65 @@ export default function MembershipsPage() {
         </TabsContent>
 
         <TabsContent value="packages" className="space-y-4">
+          {/* Cards de análise - Pacotes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pacotes Vendidos (este mês)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-24 bg-[#2a2a2e]"/>
+                    <Skeleton className="h-5 w-28 bg-[#2a2a2e]"/>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-2xl font-semibold">{stats?.packageSalesThisMonth?.count ?? 0}</div>
+                    <div className="text-xs text-[#a1a1aa]">Receita: {formatPrice(stats?.packageSalesThisMonth?.revenue || 0)}</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Pacotes Mais Vendidos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-2/3 bg-[#2a2a2e]"/>
+                    <Skeleton className="h-5 w-1/2 bg-[#2a2a2e]"/>
+                    <Skeleton className="h-5 w-3/4 bg-[#2a2a2e]"/>
+                  </div>
+                ) : (stats?.topSellingPackages?.length ? (
+                  <div className="space-y-2">
+                    {stats.topSellingPackages.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between border border-[#27272a] rounded-md px-3 py-2">
+                        <div className="text-sm text-[#ededed]">{p.name}</div>
+                        <div className="text-sm font-medium">{p.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-[#a1a1aa]">Sem dados de vendas ainda.</div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Créditos Usados (este mês)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/>
+                ) : (
+                  <div className="text-2xl font-semibold">{stats?.creditsUsedThisMonth ?? 0}</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Pacotes de Créditos</CardTitle>
