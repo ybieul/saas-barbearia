@@ -18,6 +18,9 @@ import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2, DollarSign, Users, Package as PackageIcon } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import type { DateRange } from 'react-day-picker'
 
 interface SubscriptionPlanDto {
   id: string
@@ -76,38 +79,19 @@ export default function MembershipsPage() {
   const [formServices, setFormServices] = useState<{ serviceId: string; quantity: number }[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Filtro de período
-  type PeriodOption = 'this-month' | 'last-month' | 'last-7d' | 'custom'
-  const [period, setPeriod] = useState<PeriodOption>('this-month')
-  const [customFrom, setCustomFrom] = useState<string>('')
-  const [customTo, setCustomTo] = useState<string>('')
+  // Filtro de período (igual ao Financeiro): DateRange via Calendar + Popover
+  const nowLocal = new Date()
+  const initialFrom = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1, 0, 0, 0, 0)
+  const initialTo = new Date(nowLocal.getFullYear(), nowLocal.getMonth() + 1, 0, 23, 59, 59, 999)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: initialFrom, to: initialTo })
 
   function getPeriodRange(): { from?: string; to?: string } {
-    const now = new Date()
-    if (period === 'this-month') {
-      const f = new Date(now.getFullYear(), now.getMonth(), 1)
-      return { from: f.toISOString(), to: now.toISOString() }
-    }
-    if (period === 'last-month') {
-      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const last = new Date(now.getFullYear(), now.getMonth(), 0)
-      last.setHours(23, 59, 59, 999)
-      return { from: first.toISOString(), to: last.toISOString() }
-    }
-    if (period === 'last-7d') {
-      const f = new Date(now.getTime() - 6 * 86400000)
-      f.setHours(0,0,0,0)
-      return { from: f.toISOString(), to: now.toISOString() }
-    }
-    if (period === 'custom' && customFrom && customTo) {
-      try {
-        const f = new Date(customFrom)
-        const t = new Date(customTo)
-        t.setHours(23,59,59,999)
-        return { from: f.toISOString(), to: t.toISOString() }
-      } catch {}
-    }
-    return {}
+    const from = dateRange?.from ? new Date(dateRange.from) : undefined
+    const to = dateRange?.to ? new Date(dateRange.to) : from
+    if (!from || !to) return {}
+    const toAdj = new Date(to)
+    toAdj.setHours(23,59,59,999)
+    return { from: from.toISOString(), to: toAdj.toISOString() }
   }
 
   useEffect(() => {
@@ -138,7 +122,7 @@ export default function MembershipsPage() {
 
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, customFrom, customTo])
+  }, [dateRange])
 
   async function fetchPlans() {
     try {
@@ -318,29 +302,24 @@ export default function MembershipsPage() {
           <p className="text-[#3f3f46]">Gerencie os planos de fidelização</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2">
-            <Label className="text-xs text-[#a1a1aa]">Período</Label>
-            <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-              <SelectTrigger className="h-8 w-[160px] bg-[#27272a] border-[#3f3f46]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="this-month">Este mês</SelectItem>
-                <SelectItem value="last-month">Mês passado</SelectItem>
-                <SelectItem value="last-7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-            {period === 'custom' && (
-              <div className="flex items-center gap-2">
-                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 bg-[#27272a] border-[#3f3f46]"/>
-                <span className="text-[#a1a1aa]">—</span>
-                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 bg-[#27272a] border-[#3f3f46]"/>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-9">
+                Selecionar período
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <div className="p-3">
+                <ShadcnCalendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
               </div>
-            )}
-          </div>
+            </PopoverContent>
+          </Popover>
           <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
-          <Button variant="outline" onClick={() => openCreate('PACKAGE')}>Criar Pacote</Button>
         </div>
       </div>
 

@@ -109,7 +109,6 @@ export async function GET(request: NextRequest) {
         AND a.completedAt >= ${periodFrom}
         AND a.completedAt <= ${periodTo}
         AND (
-          a.paymentMethod = 'PREPAID' OR
           (a.paymentSource IS NOT NULL AND a.paymentSource LIKE '%PACOTE%') OR
           (a.coverageToken IS NOT NULL AND a.coverageToken LIKE 'PKG:%')
         )
