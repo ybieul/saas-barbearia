@@ -1827,7 +1827,7 @@ export default function ConfiguracoesPage() {
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div className="space-y-2">
-                                  <Label className="text-[#ededed] text-sm font-medium">Comissão para Serviços de Assinatura/Pacote</Label>
+                                  <Label className="text-[#ededed] text-sm font-medium">Comissão para Serviços de Assinatura</Label>
                                   <Select
                                     value={newProfessional.subscriptionCommissionType}
                                     onValueChange={(val: 'PERCENTAGE' | 'FIXED') => setNewProfessional({ ...newProfessional, subscriptionCommissionType: val })}
