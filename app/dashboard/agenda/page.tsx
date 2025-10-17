@@ -2703,26 +2703,72 @@ export default function AgendaPage() {
             const status = getStatusBadge(appointment.status)
             // Parse seguro do dateTime do banco (sem conversão UTC automática)
             const appointmentTime = extractTimeFromDateTime(appointment.dateTime) // HH:mm sem UTC
-            // Cálculo de comissão (snapshot -> fallback pct * total) com fallback para professionalsData
+            // Cálculo de comissão (snapshot -> previsão usando regras de assinatura quando aplicável -> fallback pct padrão)
             const grossAmount = Number(appointment.totalPrice || 0)
             let commissionAmount = 0
             const snap = (appointment as any)?.commissionEarned
             if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
+              // Se já há snapshot (agendamento concluído), usar sempre
               commissionAmount = parseFloat(String(snap))
             } else {
-              let pct: number | null = null
-              const pctRaw = (appointment as any)?.professional?.commissionPercentage
-              if (pctRaw !== undefined && pctRaw !== null && !isNaN(parseFloat(String(pctRaw)))) {
-                pct = parseFloat(String(pctRaw))
-              } else if (appointment.professionalId && Array.isArray(professionalsData)) {
-                const prof = professionalsData.find(p => p.id === appointment.professionalId)
-                const profPct = prof?.commissionPercentage
-                if (profPct !== undefined && profPct !== null && !isNaN(parseFloat(String(profPct)))) {
-                  pct = parseFloat(String(profPct))
+              // Previsão: se a cobertura prevista é por assinatura, aplicar regra de assinatura do profissional
+              const cov = coverageById[appointment.id]
+              const token: string | undefined = (appointment as any)?.coverageToken
+              const shouldUseSubscriptionRule = !!(
+                appointment.status !== 'COMPLETED' && (
+                  (cov?.covered && cov.coveredBy === 'subscription') ||
+                  (token && typeof token === 'string' && token.startsWith('SUB:'))
+                )
+              )
+
+              if (shouldUseSubscriptionRule) {
+                // Buscar tipo/valor de comissão de assinatura no profissional do agendamento
+                const profInline: any = (appointment as any)?.professional || null
+                const profFromList: any = appointment.professionalId && Array.isArray(professionalsData)
+                  ? professionalsData.find(p => p.id === appointment.professionalId)
+                  : null
+
+                const subTypeRaw = (profInline?.subscriptionCommissionType ?? profFromList?.subscriptionCommissionType) as string | undefined
+                const subValRaw = (profInline?.subscriptionCommissionValue ?? profFromList?.subscriptionCommissionValue) as number | string | undefined
+
+                const subValNum = subValRaw !== undefined && subValRaw !== null && !isNaN(parseFloat(String(subValRaw)))
+                  ? parseFloat(String(subValRaw))
+                  : null
+
+                if ((subTypeRaw === 'FIXED' || subTypeRaw === 'PERCENTAGE') && subValNum !== null) {
+                  if (subTypeRaw === 'FIXED') {
+                    commissionAmount = parseFloat(Number(subValNum).toFixed(2))
+                  } else {
+                    // PERCENTAGE: valor em porcentagem (ex: 50 => 50%)
+                    commissionAmount = parseFloat((grossAmount * (subValNum / 100)).toFixed(2))
+                  }
+                } else {
+                  // Fallback para percentual padrão caso algo esteja ausente
+                  let pct: number | null = null
+                  const pctRaw = profInline?.commissionPercentage ?? profFromList?.commissionPercentage
+                  if (pctRaw !== undefined && pctRaw !== null && !isNaN(parseFloat(String(pctRaw)))) {
+                    pct = parseFloat(String(pctRaw))
+                  }
+                  if (pct !== null) {
+                    commissionAmount = parseFloat((grossAmount * pct).toFixed(2))
+                  }
                 }
-              }
-              if (pct !== null) {
-                commissionAmount = parseFloat((grossAmount * pct).toFixed(2))
+              } else {
+                // Sem cobertura por assinatura prevista: usar percentual padrão do profissional (fração ex: 0.3)
+                let pct: number | null = null
+                const pctRaw = (appointment as any)?.professional?.commissionPercentage
+                if (pctRaw !== undefined && pctRaw !== null && !isNaN(parseFloat(String(pctRaw)))) {
+                  pct = parseFloat(String(pctRaw))
+                } else if (appointment.professionalId && Array.isArray(professionalsData)) {
+                  const prof = professionalsData.find(p => p.id === appointment.professionalId)
+                  const profPct = prof?.commissionPercentage
+                  if (profPct !== undefined && profPct !== null && !isNaN(parseFloat(String(profPct)))) {
+                    pct = parseFloat(String(profPct))
+                  }
+                }
+                if (pct !== null) {
+                  commissionAmount = parseFloat((grossAmount * pct).toFixed(2))
+                }
               }
             }
 
