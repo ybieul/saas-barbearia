@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
 
+// Flag simples para exibir/ocultar o seletor de ciclo (Mensal/Anual)
+// Para reativar no futuro, altere para true
+const SHOW_CYCLE_SWITCH = false;
+
 // Links diretos de checkout (Kirvano) - substitua pelos definitivos
 const CHECKOUT_LINKS = {
 	BASIC: {
@@ -93,22 +97,24 @@ export default function PricingSection() {
 				<p className="mt-3 text-muted-foreground">Escolha o plano ideal para o momento do seu negócio. Desde planos mensais a planos anuais.</p>
 			</div>
 
-			<div className="mt-6 flex justify-center">
-				<div className="inline-flex items-center rounded-full border border-border bg-background p-1 text-sm">
-					{["monthly", "annual"].map((c) => (
-						<button
-							key={c}
-							onClick={() => setCycle(c as Cycle)}
-							className={`px-4 py-2 rounded-full transition-colors ${
-								cycle === c ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-							}`}
-							aria-pressed={cycle === c}
-						>
-							{c === "monthly" ? "Mensal" : "Anual"}
-						</button>
-					))}
-				</div>
-			</div>
+					{SHOW_CYCLE_SWITCH && (
+						<div className="mt-6 flex justify-center">
+							<div className="inline-flex items-center rounded-full border border-border bg-background p-1 text-sm">
+								{["monthly", "annual"].map((c) => (
+									<button
+										key={c}
+										onClick={() => setCycle(c as Cycle)}
+										className={`px-4 py-2 rounded-full transition-colors ${
+											cycle === c ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+										}`}
+										aria-pressed={cycle === c}
+									>
+										{c === "monthly" ? "Mensal" : "Anual"}
+									</button>
+								))}
+							</div>
+						</div>
+					)}
 
 			<div className="mt-8 grid gap-6 md:grid-cols-3">
 				{plans.map((p) => {
