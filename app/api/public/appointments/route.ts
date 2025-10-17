@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { resolveCoverageForServices, buildCoverageToken } from '@/lib/coverage-logic'
 import { sendEmail } from '@/lib/email'
 import { newAppointmentNotificationEmail } from '@/utils/emailTemplates'
 import { sendWhatsAppMessage as sendGlobalWhatsApp } from '@/utils/whatsapp'
@@ -535,6 +536,15 @@ export async function POST(request: NextRequest) {
           ? services.map((serviceId: string) => ({ id: serviceId }))
           : [{ id: serviceId }]
       }
+    }
+
+    // ✅ Determinar cobertura com util centralizada e gravar token
+    try {
+      const serviceIdsAll = (services && Array.isArray(services) && services.length > 0) ? services : [serviceId]
+      const res = await resolveCoverageForServices(prisma as any, { tenantId: business.id, clientId: client.id, serviceIds: serviceIdsAll })
+      appointmentData.coverageToken = buildCoverageToken(res)
+    } catch {
+      // Em caso de falha, segue com coverageToken já calculado previamente (se houver)
     }
 
     // ✅ CRIAR AGENDAMENTO (sem include para evitar conflitos de tipos)

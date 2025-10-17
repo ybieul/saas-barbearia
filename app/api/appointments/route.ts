@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
 import { whatsappTemplates } from '@/lib/whatsapp-server'
+import { resolveCoverageForServices, buildCoverageToken } from '@/lib/coverage-logic'
 import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
 import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
 import { randomBytes } from 'crypto'
@@ -346,91 +347,13 @@ export async function POST(request: NextRequest) {
     const totalDuration = services.reduce((sum, service) => sum + service.duration, 0)
     let totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0)
 
-  // 🔰 Assinatura tem prioridade sobre pacote: se cobrir todos os serviços, marcar nas notas (preço no banco permanece original)
-    // Implementação baseada no fluxo de pacotes (consulta SQL direta e determinística)
-  let subscriptionCoveredPlanId: string | null = null
-  let chosenClientPackageId: string | null = null
-    try {
-      const now = new Date()
-      const planRows = await prisma.$queryRaw<Array<{ planId: string }>>`
-        SELECT cs.planId as planId
-        FROM client_subscriptions cs
-        JOIN subscription_plans sp ON sp.id = cs.planId AND sp.isActive = 1 AND sp.tenantId = ${user.tenantId}
-        WHERE cs.clientId = ${endUserId}
-          AND cs.status = 'ACTIVE'
-          AND cs.startDate <= ${now}
-          AND cs.endDate >= ${now}
-      `
-      if (planRows.length > 0) {
-        const ids = [...new Set(planRows.map(r => r.planId))]
-        const placeholders = ids.map(() => '?').join(',')
-        const allowed = await prisma.$queryRawUnsafe<Array<{ planId: string, serviceId: string }>>(
-          `SELECT link.B as planId, link.A as serviceId FROM _ServiceToSubscriptionPlan link WHERE link.B IN (${placeholders})`,
-          ...ids
-        )
-        const byPlan = new Map<string, Set<string>>()
-        for (const row of allowed) {
-          const set = byPlan.get(row.planId) || new Set<string>()
-          set.add(row.serviceId)
-          byPlan.set(row.planId, set)
-        }
-        for (const pid of ids) {
-          const set = byPlan.get(pid) || new Set<string>()
-          if ((serviceIds as string[]).every(id => set.has(id))) {
-            subscriptionCoveredPlanId = pid
-            break
-          }
-        }
-      }
-    } catch (e) {
-      // Em caso de erro, segue fluxo normal (sem cobertura)
-    }
-
-    // Detectar pacote elegível (se nenhuma assinatura cobriu)
-    if (!subscriptionCoveredPlanId) {
-      try {
-        const now = new Date()
-        // Pacotes válidos do cliente com saldo
-        const packagesBase = await prisma.$queryRaw<Array<{ id: string, purchasedAt: Date, expiresAt: Date | null, creditsTotal: number, usedCredits: number }>>`
-          SELECT id, purchasedAt, expiresAt, creditsTotal, usedCredits
-          FROM client_packages
-          WHERE clientId = ${endUserId}
-            AND (expiresAt IS NULL OR expiresAt > ${now})
-        `
-        if (packagesBase.length > 0) {
-          const ids = packagesBase.map(p => p.id)
-          const placeholders = ids.map(() => '?').join(',')
-          const allowedRows = await prisma.$queryRawUnsafe<Array<{ clientPackageId: string, serviceId: string }>>(
-            `SELECT clientPackageId, serviceId FROM client_package_allowed_services WHERE clientPackageId IN (${placeholders})`,
-            ...ids
-          )
-          const allowedMap = new Map<string, string[]>()
-          for (const row of allowedRows) {
-            const arr = allowedMap.get(row.clientPackageId) || []
-            arr.push(row.serviceId)
-            allowedMap.set(row.clientPackageId, arr)
-          }
-          const withRemaining = packagesBase.filter(p => ((p.creditsTotal || 0) - (p.usedCredits || 0)) > 0)
-          const eligible = withRemaining.filter(p => {
-            const allowed = allowedMap.get(p.id) || []
-            if (allowed.length !== (serviceIds as string[]).length) return false
-            const set = new Set(allowed)
-            return (serviceIds as string[]).every(id => set.has(id))
-          })
-          if (eligible.length > 0) {
-            eligible.sort((a, b) => {
-              const ax = a.expiresAt ? a.expiresAt.getTime() : Number.POSITIVE_INFINITY
-              const bx = b.expiresAt ? b.expiresAt.getTime() : Number.POSITIVE_INFINITY
-              if (ax !== bx) return ax - bx
-              return a.purchasedAt.getTime() - b.purchasedAt.getTime()
-            })
-            chosenClientPackageId = eligible[0].id
-          }
-        }
-      } catch (e) {
-        // Silenciar e seguir fluxo normal
-      }
-    }
+    // Centralizar a decisão de cobertura (assinatura tem prioridade sobre pacote)
+    const resolution = await resolveCoverageForServices(prisma as any, {
+      tenantId: user.tenantId,
+      clientId: endUserId,
+      serviceIds: serviceIds as string[]
+    })
+    const coverageToken = buildCoverageToken(resolution)
 
     // Não zerar o totalPrice aqui: manter valor original para relatórios;
     // a UI pode exibir 0 via badge/marcador e na conclusão registramos paymentSource
@@ -525,7 +448,7 @@ export async function POST(request: NextRequest) {
         endUserId,
         professionalId: professionalId || null,
         // Gravar token persistente simples para fallback visual/gestão
-        coverageToken: subscriptionCoveredPlanId ? `SUB:${subscriptionCoveredPlanId}` : (chosenClientPackageId ? `PKG:${chosenClientPackageId}` : null),
+  coverageToken: coverageToken,
         // ✅ NOVO: Conectar múltiplos serviços
         services: {
           connect: serviceIds.map(id => ({ id }))
