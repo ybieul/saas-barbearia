@@ -677,8 +677,10 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   const netProfitOwner = netRevenueOwner - totalCommissions - fixedCosts
   const collaboratorEarnings = totalCommissions // soma das comissões no período
 
-  // ✅ NOVO: Vendas de Planos (Assinaturas + Pacotes) no período
-  // Considera registros financeiros de receita (INCOME) nas categorias específicas dentro do intervalo
+  // ✅ Vendas de Planos (Assinaturas + Pacotes) no período
+  // Precisão: considerar SOMENTE registros de venda com referência explícita
+  // reference: 'clientSubscription:<id>' ou 'clientPackage:<id>'
+  // Deduplicar por referência (1 venda = 1 referência), somando o primeiro registro por data
   let planSalesRevenue = 0
   let planSalesCount = 0
   try {
@@ -687,12 +689,24 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
         tenantId,
         type: 'INCOME',
         date: { gte: rangeStart, lte: rangeEnd },
-        category: { in: ['Assinaturas', 'Pacotes de Serviços'] }
+        reference: { not: null },
+        OR: [
+          { reference: { startsWith: 'clientSubscription:' } },
+          { reference: { startsWith: 'clientPackage:' } }
+        ]
       },
-      select: { amount: true, id: true }
+      select: { id: true, reference: true, amount: true, date: true },
+      orderBy: { date: 'asc' }
     })
-    planSalesRevenue = planIncome.reduce((s, r) => s + Number(r.amount || 0), 0)
-    planSalesCount = planIncome.length
+    const firstByRef = new Map<string, { amount: number }>()
+    for (const r of planIncome) {
+      const ref = (r.reference || '').toString()
+      if (!firstByRef.has(ref)) {
+        firstByRef.set(ref, { amount: Number(r.amount || 0) })
+      }
+    }
+    planSalesCount = firstByRef.size
+    planSalesRevenue = Array.from(firstByRef.values()).reduce((s, v) => s + (Number(v.amount) || 0), 0)
   } catch {}
 
   return NextResponse.json({
