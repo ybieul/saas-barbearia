@@ -677,6 +677,24 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   const netProfitOwner = netRevenueOwner - totalCommissions - fixedCosts
   const collaboratorEarnings = totalCommissions // soma das comissões no período
 
+  // ✅ NOVO: Vendas de Planos (Assinaturas + Pacotes) no período
+  // Considera registros financeiros de receita (INCOME) nas categorias específicas dentro do intervalo
+  let planSalesRevenue = 0
+  let planSalesCount = 0
+  try {
+    const planIncome = await prisma.financialRecord.findMany({
+      where: {
+        tenantId,
+        type: 'INCOME',
+        date: { gte: rangeStart, lte: rangeEnd },
+        category: { in: ['Assinaturas', 'Pacotes de Serviços'] }
+      },
+      select: { amount: true, id: true }
+    })
+    planSalesRevenue = planIncome.reduce((s, r) => s + Number(r.amount || 0), 0)
+    planSalesCount = planIncome.length
+  } catch {}
+
   return NextResponse.json({
     success: true,
     data: {
@@ -687,7 +705,9 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
         totalCommissions,
         fixedCosts,
         netProfit: isCollaborator ? collaboratorEarnings : netProfitOwner,
-        perspective: isCollaborator ? 'COLLABORATOR' : 'OWNER'
+        perspective: isCollaborator ? 'COLLABORATOR' : 'OWNER',
+        planSalesRevenue,
+        planSalesCount
       }
     }
   })

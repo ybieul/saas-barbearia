@@ -163,6 +163,8 @@ export default function FinanceiroPage() {
     fixedCosts: number
     netProfit: number
     perspective?: string
+    planSalesRevenue?: number
+    planSalesCount?: number
   } | null>(null)
 
   // Novo: cache de agendamentos do período anterior para calcular variações dos cards superiores
@@ -2715,12 +2717,41 @@ export default function FinanceiroPage() {
             <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(prepaidStats.prepaidAmount || 0)}
             </p>
-            <p className="text-xs sm:text-sm text-[#71717a]">Valor no período</p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Valor de Serviços Cobertos</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{prepaidStats.prepaidCount || 0}</p>
             <p className="text-xs sm:text-sm text-[#71717a]">Atendimentos pré-pagos</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )}
+
+  {/* ✅ NOVO: Vendas de Planos (Assinaturas + Pacotes) no período */}
+  {!isCollaborator && profitability && (
+    <Card className="bg-[#18181b] border-[#27272a] mt-4">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
+          <Banknote className="w-5 h-5 text-tymer-icon" />
+          Vendas de Planos (no período)
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-sm text-[#71717a]">Assinaturas e pacotes vendidos neste período</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
+            <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.planSalesRevenue || 0))}
+            </p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Receita de Vendas de Planos</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{Number(profitability?.planSalesCount || 0)}</p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Planos vendidos</p>
           </div>
         </div>
       </CardContent>
