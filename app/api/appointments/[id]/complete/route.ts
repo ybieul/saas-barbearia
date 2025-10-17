@@ -46,7 +46,8 @@ export async function PATCH(
           select: {
             id: true,
             name: true,
-            commissionPercentage: true
+            commissionPercentage: true,
+            // Os campos abaixo podem não estar no tipo gerado ainda; o cast será feito adiante
           }
         },
         services: {
@@ -74,16 +75,13 @@ export async function PATCH(
       totalPrice = existingAppointment.services.reduce((total, service) => total + Number(service.price || 0), 0)
     }
 
-    // Calcular comissão do profissional (snapshot)
-    let commissionEarned = null as number | null
-    const commissionPct = existingAppointment.professional?.commissionPercentage
-    if (commissionPct !== null && commissionPct !== undefined) {
-      // commissionPercentage armazenado como fração (ex: 0.4 = 40%)
-      const pct = Number(commissionPct)
-      if (!isNaN(pct) && pct > 0) {
-        commissionEarned = Number((totalPrice * pct).toFixed(2))
-      }
-    }
+    // Comissão padrão (pré-cálculo como fallback). commissionPercentage armazenado como fração (ex: 0.4 = 40%)
+  const defaultCommissionPct = (existingAppointment as any).professional?.commissionPercentage
+    const defaultCommission = (() => {
+      const pct = Number(defaultCommissionPct)
+      if (!isNaN(pct) && pct > 0) return Number((totalPrice * pct).toFixed(2))
+      return null
+    })()
 
   // ✅ TRANSAÇÃO PARA GARANTIR A INTEGRIDADE (appointment + cliente + financeiro + créditos)
   const updatedAppointment = await prisma.$transaction(async (tx) => {
@@ -111,7 +109,7 @@ export async function PATCH(
 
       // ✅ CRÍTICO: Só verificar cobertura se usuário escolheu PREPAID
       // Se escolheu CASH/PIX/CARD, mesmo tendo assinatura, ele QUER pagar normalmente
-      const serviceIdsSelected = existingAppointment.services.map(s => s.id)
+  const serviceIdsSelected = (existingAppointment as any).services.map((s: any) => s.id)
       const now = new Date()
       
       if (wantsToUseCredit && !hasSubscriptionMarker) {
@@ -142,7 +140,7 @@ export async function PATCH(
             
             for (const pid of ids) {
               const set = byPlan.get(pid) || new Set<string>()
-              if (serviceIdsSelected.every(id => set.has(id))) {
+              if (serviceIdsSelected.every((id: string) => set.has(id))) {
                 // Assinatura cobre todo o combo selecionado
                 subscriptionCovered = true
                 // Mantemos o totalPrice original para métricas/relatórios e comissão
@@ -159,7 +157,7 @@ export async function PATCH(
 
       // Se deve usar crédito e ainda não debitou (e não foi coberto por assinatura), procurar e debitar pacote
   if (wantsToUseCredit && !alreadyDebited && !subscriptionCovered) {
-        const servicesSelected = existingAppointment.services.map(s => s.id)
+  const servicesSelected = (existingAppointment as any).services.map((s: any) => s.id)
   // Não usamos mais marcadores vindos das notas; faremos detecção automática por combo elegível
   const usePackageMarker = null
   const csvMarker = null
@@ -272,6 +270,32 @@ export async function PATCH(
       // PaymentSource indica especificamente SUBSCRIPTION ou PACKAGE
       const finalPaymentMethod = paymentMethod
       
+      // Determinar origem (prevista) para cálculo de comissão
+      const predictedSource = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+
+      // Calcular comissão com base nas regras de assinatura ou padrão
+      let commissionCalculated: number | null = null
+      const prof = existingAppointment.professional
+      if (prof) {
+        if (predictedSource === 'SUBSCRIPTION') {
+          const subType = (prof as any).subscriptionCommissionType as string | null
+          const raw = (prof as any).subscriptionCommissionValue as any
+          const subVal = raw != null ? Number(raw) : null
+          if (subType === 'FIXED' && subVal != null && !isNaN(subVal)) {
+            commissionCalculated = Number(subVal.toFixed(2))
+          } else if (subType === 'PERCENTAGE' && subVal != null && !isNaN(subVal)) {
+            commissionCalculated = Number((totalPrice * (subVal / 100)).toFixed(2))
+          } else if (defaultCommission !== null) {
+            commissionCalculated = defaultCommission
+          }
+        } else {
+          // NORMAL ou PACKAGE -> usar comissão padrão
+          if (defaultCommission !== null) {
+            commissionCalculated = defaultCommission
+          }
+        }
+      }
+
   const appointment = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
@@ -280,7 +304,7 @@ export async function PATCH(
           paymentStatus: "PAID",
           completedAt: toLocalISOString(getBrazilNow()), // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
           totalPrice: totalPrice, // Mantém preço original no banco
-          commissionEarned: commissionEarned,
+          commissionEarned: commissionCalculated,
           // Marcar consumo de crédito (idempotência)
           // Salvar apenas a observação do cliente, sem marcadores técnicos
           notes: originalNotes || null
@@ -292,11 +316,41 @@ export async function PATCH(
         }
       })
 
-      // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
-      const source = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
+  // Indicar fonte do pagamento quando pré-pago (SQL direto para evitar conflito de tipos locais do Prisma)
+  const source = (hasSubscriptionMarker || subscriptionCovered) ? 'SUBSCRIPTION' : (debitedPackageId || debitedCreditId ? 'PACKAGE' : null)
       
       if (source) {
         await tx.$executeRaw`UPDATE appointments SET paymentSource = ${source} WHERE id = ${appointmentId}`
+      }
+
+      // Se necessário, recalcular comissão com base na origem usando dados completos do appointment
+      try {
+        if (appointment && appointment.professional) {
+          const profAny = appointment.professional as any
+          const defaultPctNow = Number(profAny.commissionPercentage || 0)
+          let computed: number | null = null
+          if (source === 'SUBSCRIPTION') {
+            const t = profAny.subscriptionCommissionType as string | undefined
+            const vRaw = profAny.subscriptionCommissionValue
+            const v = vRaw != null ? Number(vRaw) : NaN
+            if (t === 'FIXED' && !isNaN(v)) {
+              computed = Number(v.toFixed(2))
+            } else if (t === 'PERCENTAGE' && !isNaN(v)) {
+              computed = Number((Number(totalPrice) * (v / 100)).toFixed(2))
+            } else if (defaultPctNow > 0) {
+              computed = Number((Number(totalPrice) * defaultPctNow).toFixed(2))
+            }
+          } else {
+            if (defaultPctNow > 0) {
+              computed = Number((Number(totalPrice) * defaultPctNow).toFixed(2))
+            }
+          }
+          if (computed !== null) {
+            await tx.$executeRaw`UPDATE appointments SET commissionEarned = ${computed} WHERE id = ${appointmentId}`
+          }
+        }
+      } catch (e) {
+        console.warn('Falha ao recalcular comissão do agendamento', appointmentId, e)
       }
 
       // Calcular e persistir discountApplied com base na fonte
@@ -340,7 +394,7 @@ export async function PATCH(
           data: {
             type: "INCOME",
             amount: totalPrice,
-            description: `Pagamento do agendamento - ${existingAppointment.endUser.name}`,
+            description: `Pagamento do agendamento - ${(existingAppointment as any).endUser.name}`,
             paymentMethod: finalPaymentMethod,
             reference: appointmentId,
             tenantId: appointment.tenantId,

@@ -407,7 +407,10 @@ export default function ConfiguracoesPage() {
     email: "",
     phone: "",
     specialty: "",
-    commissionPercentage: "" // valor em % exibido
+    commissionPercentage: "", // valor em % exibido
+    // Novos campos para comissão em assinatura/pacote
+    subscriptionCommissionType: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED',
+    subscriptionCommissionValue: ""
   })
 
   // Estados para edição de profissionais
@@ -428,7 +431,10 @@ export default function ConfiguracoesPage() {
     email: "",
     phone: "",
     specialty: "",
-    commissionPercentage: "" // valor em % exibido
+    commissionPercentage: "", // valor em % exibido
+    // Novos campos para comissão em assinatura/pacote
+    subscriptionCommissionType: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED',
+    subscriptionCommissionValue: ""
   })
 
   // Estados para upload de avatar
@@ -761,10 +767,15 @@ export default function ConfiguracoesPage() {
         phone: newProfessional.phone.trim(),
         specialty: newProfessional.specialty.trim(),
         commissionPercentage: newProfessional.commissionPercentage ? Number(newProfessional.commissionPercentage) : undefined,
+        // Novos campos de comissão de assinatura
+        ...( {
+          subscriptionCommissionType: newProfessional.subscriptionCommissionType,
+          subscriptionCommissionValue: newProfessional.subscriptionCommissionValue !== "" ? Number(newProfessional.subscriptionCommissionValue) : undefined,
+        } as any)
       })
 
       if (result) {
-  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
+  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "", subscriptionCommissionType: 'PERCENTAGE', subscriptionCommissionValue: "" })
         setIsNewProfessionalOpen(false)
         toast({
           title: "Profissional adicionado!",
@@ -795,7 +806,7 @@ export default function ConfiguracoesPage() {
   }
 
   const handleCancelAddProfessional = () => {
-  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
+  setNewProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "", subscriptionCommissionType: 'PERCENTAGE', subscriptionCommissionValue: "" })
     setIsNewProfessionalOpen(false)
   }
 
@@ -825,11 +836,16 @@ export default function ConfiguracoesPage() {
         phone: editProfessional.phone.trim(),
         specialty: editProfessional.specialty.trim(),
         commissionPercentage: editProfessional.commissionPercentage ? Number(editProfessional.commissionPercentage) : undefined,
+        // Campos extras de comissão de assinatura
+        ...( {
+          subscriptionCommissionType: editProfessional.subscriptionCommissionType,
+          subscriptionCommissionValue: editProfessional.subscriptionCommissionValue !== "" ? Number(editProfessional.subscriptionCommissionValue) : undefined,
+        } as any)
       })
       
       setIsEditProfessionalOpen(false)
       setEditingProfessional(null)
-  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
+  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "", subscriptionCommissionType: 'PERCENTAGE', subscriptionCommissionValue: "" })
       
       toast({
         title: "Profissional atualizado!",
@@ -854,7 +870,9 @@ export default function ConfiguracoesPage() {
       email: professional.email || "",
       phone: professional.phone || "",
       specialty: professional.specialty || "",
-      commissionPercentage: professional.commissionPercentage ? String(Number(professional.commissionPercentage) * 100) : ""
+      commissionPercentage: professional.commissionPercentage ? String(Number(professional.commissionPercentage) * 100) : "",
+      subscriptionCommissionType: (professional.subscriptionCommissionType === 'FIXED' || professional.subscriptionCommissionType === 'PERCENTAGE') ? professional.subscriptionCommissionType : 'PERCENTAGE',
+      subscriptionCommissionValue: professional.subscriptionCommissionValue != null ? String(Number(professional.subscriptionCommissionValue)) : ""
     })
     setIsEditProfessionalOpen(true)
     
@@ -870,7 +888,7 @@ export default function ConfiguracoesPage() {
   const handleCancelEditProfessional = () => {
     setIsEditProfessionalOpen(false)
     setEditingProfessional(null)
-  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "" })
+  setEditProfessional({ name: "", email: "", phone: "", specialty: "", commissionPercentage: "", subscriptionCommissionType: 'PERCENTAGE', subscriptionCommissionValue: "" })
   }
 
   // Função para lidar com upload de avatar do profissional
@@ -1800,6 +1818,56 @@ export default function ConfiguracoesPage() {
                                 </div>
                               </div>
                             </div>
+
+                            {/* Seção: Regras de Comissão (Assinatura/Pacote) no Novo Profissional */}
+                            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:bg-tymer-card/50 space-y-3 md:space-y-4">
+                              <div className="flex items-center gap-2 mb-2 md:mb-3">
+                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full"></div>
+                                <h3 className="text-[#ededed] font-medium text-sm md:text-base">Regras de Comissão</h3>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[#ededed] text-sm font-medium">Comissão para Serviços de Assinatura/Pacote</Label>
+                                  <Select
+                                    value={newProfessional.subscriptionCommissionType}
+                                    onValueChange={(val: 'PERCENTAGE' | 'FIXED') => setNewProfessional({ ...newProfessional, subscriptionCommissionType: val })}
+                                  >
+                                    <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                                      <SelectValue placeholder="Selecione o tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                                      <SelectItem value="PERCENTAGE">Percentagem</SelectItem>
+                                      <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="newSubCommissionValue" className="text-[#ededed] text-sm font-medium">
+                                    {newProfessional.subscriptionCommissionType === 'FIXED' ? 'Valor Fixo (R$)' : 'Percentagem (%)'}
+                                  </Label>
+                                  <Input
+                                    id="newSubCommissionValue"
+                                    type="number"
+                                    min={0}
+                                    max={newProfessional.subscriptionCommissionType === 'PERCENTAGE' ? 100 : undefined}
+                                    step={newProfessional.subscriptionCommissionType === 'PERCENTAGE' ? 0.1 : 0.01}
+                                    value={newProfessional.subscriptionCommissionValue}
+                                    onChange={(e) => {
+                                      const v = e.target.value
+                                      const regex = newProfessional.subscriptionCommissionType === 'PERCENTAGE'
+                                        ? /^\d{0,3}([\.,]\d{0,2})?$/
+                                        : /^\d{0,6}([\.,]\d{0,2})?$/
+                                      if (v === '' || regex.test(v)) {
+                                        setNewProfessional({ ...newProfessional, subscriptionCommissionValue: v.replace(',', '.') })
+                                      }
+                                    }}
+                                    className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                                    placeholder={newProfessional.subscriptionCommissionType === 'FIXED' ? 'Ex: 10,00' : 'Ex: 20 (para 20%)'}
+                                  />
+                                  <p className="text-xs text-[#71717a]">Define uma comissão especial quando o atendimento é coberto por assinatura ou pacote.</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         
@@ -2067,6 +2135,56 @@ export default function ConfiguracoesPage() {
                               placeholder="Ex: 40 (para 40%)"
                             />
                             <p className="text-xs text-[#71717a]">Se alterado, novos cálculos de comissão usarão este valor nos agendamentos concluídos.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Seção: Regras de Comissão para Assinatura/Pacote */}
+                      <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-3 md:p-4 rounded-lg border border-emerald-500/20 md:bg-tymer-card/50 space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-2 mb-2 md:mb-3">
+                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full"></div>
+                          <h3 className="text-[#ededed] font-medium text-sm md:text-base">Regras de Comissão</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-[#ededed] text-sm font-medium">Comissão para Serviços de Assinatura/Pacote</Label>
+                            <Select
+                              value={editProfessional.subscriptionCommissionType}
+                              onValueChange={(val: 'PERCENTAGE' | 'FIXED') => setEditProfessional({ ...editProfessional, subscriptionCommissionType: val })}
+                            >
+                              <SelectTrigger className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11">
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#18181b] border-[#27272a] text-[#ededed]">
+                                <SelectItem value="PERCENTAGE">Percentagem</SelectItem>
+                                <SelectItem value="FIXED">Valor Fixo (R$)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="editSubCommissionValue" className="text-[#ededed] text-sm font-medium">
+                              {editProfessional.subscriptionCommissionType === 'FIXED' ? 'Valor Fixo (R$)' : 'Percentagem (%)'}
+                            </Label>
+                            <Input
+                              id="editSubCommissionValue"
+                              type="number"
+                              min={0}
+                              max={editProfessional.subscriptionCommissionType === 'PERCENTAGE' ? 100 : undefined}
+                              step={editProfessional.subscriptionCommissionType === 'PERCENTAGE' ? 0.1 : 0.01}
+                              value={editProfessional.subscriptionCommissionValue}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                const regex = editProfessional.subscriptionCommissionType === 'PERCENTAGE'
+                                  ? /^\d{0,3}([\.,]\d{0,2})?$/
+                                  : /^\d{0,6}([\.,]\d{0,2})?$/
+                                if (v === '' || regex.test(v)) {
+                                  setEditProfessional({ ...editProfessional, subscriptionCommissionValue: v.replace(',', '.') })
+                                }
+                              }}
+                              className="bg-[#27272a]/50 md:bg-[#27272a] border-[#3f3f46] text-[#ededed] h-10 md:h-11"
+                              placeholder={editProfessional.subscriptionCommissionType === 'FIXED' ? 'Ex: 10,00' : 'Ex: 20 (para 20%)'}
+                            />
+                            <p className="text-xs text-[#71717a]">Define uma comissão especial quando o atendimento é coberto por assinatura ou pacote.</p>
                           </div>
                         </div>
                       </div>

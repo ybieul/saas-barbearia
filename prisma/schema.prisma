@@ -146,6 +146,13 @@ model Professional {
   commission Decimal? @db.Decimal(5,2) // Porcentagem de comissão
   // Comissão padrão (%) para novos agendamentos (ex: 0.40 = 40%)
   commissionPercentage Decimal? @db.Decimal(5,2)
+  // NOVOS CAMPOS PARA COMISSÃO DE ASSINATURA
+  // Tipo de comissão aplicada quando o serviço foi realizado no âmbito de uma assinatura/pacote
+  // Valores possíveis: 'PERCENTAGE' (usa subscriptionCommissionValue como % inteiro) ou 'FIXED' (valor fixo em R$)
+  subscriptionCommissionType  String?  @default("PERCENTAGE")
+  // Valor da comissão para assinatura. Se o tipo for 'PERCENTAGE', armazenar como percentual (ex: 30.00 para 30%).
+  // Se o tipo for 'FIXED', armazenar o valor fixo em reais.
+  subscriptionCommissionValue Decimal? @db.Decimal(10, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

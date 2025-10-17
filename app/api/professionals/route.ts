@@ -95,6 +95,9 @@ export async function POST(request: NextRequest) {
       specialty, 
       commission, 
       commissionPercentage, // novo campo (padrão em %) vindo do front
+      // Novos campos para comissão em assinaturas/pacotes
+      subscriptionCommissionType,
+      subscriptionCommissionValue,
       serviceIds,
       workingHours 
     } = await request.json()
@@ -253,21 +256,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Normalização/validação de comissão de assinatura
+    const normalizedSubType = (subscriptionCommissionType === 'FIXED' || subscriptionCommissionType === 'PERCENTAGE')
+      ? subscriptionCommissionType
+      : 'PERCENTAGE'
+    let normalizedSubValue: number | undefined = undefined
+    if (subscriptionCommissionValue !== undefined && subscriptionCommissionValue !== null && subscriptionCommissionValue !== '') {
+      const num = Number(subscriptionCommissionValue)
+      if (!isNaN(num) && num >= 0) {
+        // Para PERCENTAGE, esperamos valor em % (0..100). Para FIXED, é o valor em R$.
+        if (normalizedSubType === 'PERCENTAGE') {
+          if (num <= 100) normalizedSubValue = Number(num.toFixed(2))
+        } else {
+          normalizedSubValue = Number(num.toFixed(2))
+        }
+      }
+    }
+
     const professional = await prisma.professional.create({
-      data: {
+      data: ({
         name,
         email,
         phone,
         specialty,
         commission: commission || 0,
         commissionPercentage: normalizedCommissionPercentage,
+        subscriptionCommissionType: normalizedSubType,
+        subscriptionCommissionValue: normalizedSubValue,
         workingHours: workingHours || {},
         isActive: true,
         tenantId: user.tenantId,
         services: serviceIds && serviceIds.length > 0 ? {
           connect: serviceIds.map((id: string) => ({ id }))
         } : undefined
-      },
+      } as any),
       include: {
         services: {
           select: {
@@ -312,6 +334,8 @@ export async function PUT(request: NextRequest) {
       specialty, 
       commission, 
       commissionPercentage, // novo
+      subscriptionCommissionType,
+      subscriptionCommissionValue,
       serviceIds,
       workingHours,
       isActive,
@@ -392,32 +416,56 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Normalização/validação dos novos campos de comissão de assinatura
+    // Preparar valores para atualização (aplicar apenas se enviados)
+    const willSetSubType = (subscriptionCommissionType === 'FIXED' || subscriptionCommissionType === 'PERCENTAGE')
+      ? subscriptionCommissionType
+      : undefined
+    const willSetSubValue = (() => {
+      if (subscriptionCommissionValue === undefined || subscriptionCommissionValue === null || subscriptionCommissionValue === '') {
+        return undefined
+      }
+      const num = Number(subscriptionCommissionValue)
+      if (!isNaN(num) && num >= 0) {
+        if (willSetSubType === 'PERCENTAGE') {
+          if (num <= 100) return Number(num.toFixed(2))
+          return undefined
+        }
+        return Number(num.toFixed(2))
+      }
+      return undefined
+    })()
+
+    const updateData: any = {
+      name: name || existingProfessional.name,
+      email: email || existingProfessional.email,
+      phone: phone || existingProfessional.phone,
+      specialty: specialty || existingProfessional.specialty,
+      commission: commission !== undefined ? commission : existingProfessional.commission,
+      // Normalizar commissionPercentage (se enviado). Se não enviado, manter o existente.
+      commissionPercentage: (() => {
+        if (commissionPercentage === undefined || commissionPercentage === null || commissionPercentage === '') {
+          return existingProfessional.commissionPercentage
+        }
+        const num = Number(commissionPercentage)
+          if (!isNaN(num) && num >= 0 && num <= 100) {
+            return Number((num / 100).toFixed(4))
+          }
+        return existingProfessional.commissionPercentage
+      })(),
+      workingHours: workingHours || existingProfessional.workingHours,
+      isActive: isActive !== undefined ? isActive : existingProfessional.isActive,
+      avatar: avatar !== undefined ? avatar : existingProfessional.avatar,
+      services: serviceIds ? {
+        set: serviceIds.map((serviceId: string) => ({ id: serviceId }))
+      } : undefined
+    }
+    if (willSetSubType) updateData.subscriptionCommissionType = willSetSubType
+    if (willSetSubValue !== undefined) updateData.subscriptionCommissionValue = willSetSubValue
+
     const professional = await prisma.professional.update({
       where: { id },
-      data: {
-        name: name || existingProfessional.name,
-        email: email || existingProfessional.email,
-        phone: phone || existingProfessional.phone,
-        specialty: specialty || existingProfessional.specialty,
-        commission: commission !== undefined ? commission : existingProfessional.commission,
-        // Normalizar commissionPercentage (se enviado). Se não enviado, manter o existente.
-        commissionPercentage: (() => {
-          if (commissionPercentage === undefined || commissionPercentage === null || commissionPercentage === '') {
-            return existingProfessional.commissionPercentage
-          }
-          const num = Number(commissionPercentage)
-            if (!isNaN(num) && num >= 0 && num <= 100) {
-              return Number((num / 100).toFixed(4))
-            }
-          return existingProfessional.commissionPercentage
-        })(),
-        workingHours: workingHours || existingProfessional.workingHours,
-        isActive: isActive !== undefined ? isActive : existingProfessional.isActive,
-        avatar: avatar !== undefined ? avatar : existingProfessional.avatar,
-        services: serviceIds ? {
-          set: serviceIds.map((serviceId: string) => ({ id: serviceId }))
-        } : undefined
-      },
+      data: updateData as any,
       include: {
         services: {
           select: {
