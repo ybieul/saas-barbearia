@@ -2957,29 +2957,20 @@ export default function FinanceiroPage() {
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <div className="flex items-center justify-center gap-1">
               <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
-              <Tooltip open={netRevenueTooltipOpen} onOpenChange={setNetRevenueTooltipOpen}>
-                <TooltipTrigger asChild>
+              <Popover open={netRevenueTooltipOpen} onOpenChange={setNetRevenueTooltipOpen}>
+                <PopoverTrigger asChild>
                   <button
                     className="text-[#a1a1aa] hover:text-white p-1"
                     aria-label="Ajuda sobre Receita Líquida"
                     aria-expanded={netRevenueTooltipOpen}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setNetRevenueTooltipOpen((v) => !v)
-                    }}
-                    onTouchStart={(e) => {
-                      // Evita duplo disparo (touch + click) em mobile
-                      e.preventDefault()
-                      setNetRevenueTooltipOpen((v) => !v)
-                    }}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                   </button>
-                </TooltipTrigger>
-                <TooltipContent className="bg-[#27272a] text-[#ededed] border-[#3f3f46] max-w-xs">
+                </PopoverTrigger>
+                <PopoverContent side="top" align="center" className="bg-[#27272a] text-[#ededed] border-[#3f3f46] max-w-xs text-sm">
                   A Receita Líquida é o valor total do seu faturamento de serviços mais as vendas de planos, subtraindo os descontos dados nos agendamentos pré-pagos.
-                </TooltipContent>
-              </Tooltip>
+                </PopoverContent>
+              </Popover>
             </div>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
           </div>
