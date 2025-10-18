@@ -18,6 +18,7 @@ import { useWorkingHours } from "@/hooks/use-working-hours"
 import { useBusinessData } from "@/hooks/use-business-data"
 // Date Range Picker (react-day-picker já está no projeto via shadcn Calendar)
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { DateRange } from "react-day-picker"
 import { useToast } from "@/hooks/use-toast"
@@ -157,14 +158,16 @@ export default function FinanceiroPage() {
   // Novo: lucratividade do período
   const [profitability, setProfitability] = useState<{
     grossRevenue: number
+    planSalesRevenue?: number
     totalDiscounts: number
     netRevenue: number
     totalCommissions: number
     fixedCosts: number
     netProfit: number
     perspective?: string
-    planSalesRevenue?: number
     planSalesCount?: number
+    prepaidServicesValue?: number
+    prepaidServicesCount?: number
   } | null>(null)
 
   // Novo: cache de agendamentos do período anterior para calcular variações dos cards superiores
@@ -2711,52 +2714,32 @@ export default function FinanceiroPage() {
         <CardDescription className="text-sm sm:text-sm text-[#71717a]">Agendamentos pagos via crédito de pacote ou assinatura</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
             <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(prepaidStats.prepaidAmount || 0)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.prepaidServicesValue ?? prepaidStats.prepaidAmount ?? 0))}
             </p>
             <p className="text-xs sm:text-sm text-[#71717a]">Valor de Serviços Cobertos</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{prepaidStats.prepaidCount || 0}</p>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{Number(profitability?.prepaidServicesCount ?? prepaidStats.prepaidCount ?? 0)}</p>
             <p className="text-xs sm:text-sm text-[#71717a]">Atendimentos pré-pagos</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <TrendingDown className="w-6 h-6 sm:w-7 sm:h-7 text-red-400 mx-auto mb-2" />
+            <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.totalDiscounts || 0))}
+            </p>
+            <p className="text-xs sm:text-sm text-[#71717a]">Descontos (Pré-pago)</p>
           </div>
         </div>
       </CardContent>
     </Card>
   )}
 
-  {/* ✅ NOVO: Vendas de Planos (Assinaturas + Pacotes) no período */}
-  {!isCollaborator && profitability && (
-    <Card className="bg-[#18181b] border-[#27272a] mt-4">
-      <CardHeader>
-        <CardTitle className="text-lg sm:text-xl text-[#a1a1aa] flex items-center gap-2">
-          <Banknote className="w-5 h-5 text-tymer-icon" />
-          Vendas de Planos (no período)
-        </CardTitle>
-        <CardDescription className="text-sm sm:text-sm text-[#71717a]">Assinaturas e pacotes vendidos neste período</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
-            <p className="text-base sm:text-lg font-bold text-[#ededed] truncate">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.planSalesRevenue || 0))}
-            </p>
-            <p className="text-xs sm:text-sm text-[#71717a]">Receita de Vendas de Planos</p>
-          </div>
-          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <Users className="w-6 h-6 sm:w-7 sm:h-7 text-tymer-icon mx-auto mb-2" />
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{Number(profitability?.planSalesCount || 0)}</p>
-            <p className="text-xs sm:text-sm text-[#71717a]">Planos vendidos</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )}
+  {/* Vendas de Planos movidas para a "Análise de Lucratividade" */}
 
   {/* 🧮 Análise de Lucratividade do Período (movido para baixo) */}
 
@@ -2939,7 +2922,7 @@ export default function FinanceiroPage() {
     </Card>
   )}
 
-  {/* 🧮 Análise de Lucratividade do Período (abaixo da seção de Custos Mensais) */}
+  {/* 🧮 Análise de Lucratividade do Período */}
   {!isCollaborator && profitability && (
     <Card className="bg-[#18181b] border-[#27272a] mt-6">
       <CardHeader>
@@ -2948,7 +2931,7 @@ export default function FinanceiroPage() {
           Análise de Lucratividade do Período
         </CardTitle>
         <CardDescription className="text-sm sm:text-sm text-[#71717a]">
-          Receita bruta, descontos de pré-pago, receita líquida, comissões, custos mensais integrais e lucro líquido
+          Receita bruta, vendas de planos, descontos de pré-pago, receita líquida, comissões, custos mensais e lucro líquido
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -2958,11 +2941,23 @@ export default function FinanceiroPage() {
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Descontos (Pré-pago)</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalDiscounts || 0)}</p>
+            <h4 className="text-xs text-[#71717a] mb-1">Receita de Vendas de Planos</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.planSalesRevenue || 0))}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
-            <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
+            <div className="flex items-center justify-center gap-1">
+              <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-[#a1a1aa]" aria-label="Ajuda sobre Receita Líquida">ℹ️</button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-[#27272a] text-[#ededed] border-[#3f3f46] max-w-xs">
+                    A Receita Líquida é o valor total do seu faturamento de serviços mais as vendas de planos, subtraindo os descontos dados nos agendamentos pré-pagos.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
@@ -2971,12 +2966,12 @@ export default function FinanceiroPage() {
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(integralFixedCostsForRange || 0)}</p>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.fixedCosts || 0))}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
             {(() => {
-              const net = (Number(profitability?.netRevenue || 0) - Number(profitability?.totalCommissions || 0) - Number(integralFixedCostsForRange || 0))
+              const net = Number(profitability?.netProfit || 0)
               const cls = net >= 0 ? 'text-[#10b981]' : 'text-red-400'
               return (
                 <p className={`text-base sm:text-lg font-bold ${cls}`}>

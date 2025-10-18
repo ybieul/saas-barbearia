@@ -589,10 +589,11 @@ async function getTimeAnalysisReport(tenantId: string, monthStart: Date, monthEn
 // Novo: Relatório de Lucratividade do Período
 async function getProfitabilityReport(tenantId: string, params: { rangeStart: Date, rangeEnd: Date, professionalId?: string, isCollaborator?: boolean }) {
   const { rangeStart, rangeEnd, professionalId, isCollaborator } = params
+  // Apenas agendamentos CONCLUÍDOS no período (visão operacional de serviços realizados)
   const where: any = {
     tenantId,
     dateTime: { gte: rangeStart, lte: rangeEnd },
-    status: { in: ['COMPLETED', 'IN_PROGRESS'] }
+    status: { in: ['COMPLETED'] }
   }
   if (professionalId && professionalId !== 'all') where.professionalId = professionalId
 
@@ -602,7 +603,6 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   // Receita bruta e descontos
   const grossRevenue = appointments.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
   const totalDiscounts = appointments.reduce((sum, apt) => sum + Number((apt as any).discountApplied || 0), 0)
-  const netRevenueOwner = grossRevenue - totalDiscounts
 
   // Comissão com fallback: usa snapshot; se ausente/zero, calcula via percentual do profissional
   const totalCommissions = appointments.reduce((sum, apt) => {
@@ -616,71 +616,22 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
     return sum + (base > 0 ? base * pct : 0)
   }, 0)
 
-  // Custos fixos do tenant (Tenant.fixedCosts em JSON) - somar por mês dentro do range
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { fixedCosts: true } })
-
-  // Gera a lista de meses (ano/mês) contidos no intervalo [rangeStart, rangeEnd] (inclusivo)
-  const getMonthsInRange = (start: Date, end: Date) => {
-    const months: Array<{ year: number; month: number }> = []
-    const cur = new Date(start.getFullYear(), start.getMonth(), 1)
-    const last = new Date(end.getFullYear(), end.getMonth(), 1)
-    while (cur <= last) {
-      months.push({ year: cur.getFullYear(), month: cur.getMonth() })
-      cur.setMonth(cur.getMonth() + 1)
-    }
-    return months
-  }
-
+  // Custos fixos (Regime de Caixa): somar FinancialRecord do tipo EXPENSE no período
   let fixedCosts = 0
   try {
-    const list = Array.isArray(tenant?.fixedCosts) ? (tenant?.fixedCosts as any[]) : []
-    const months = getMonthsInRange(rangeStart, rangeEnd)
-    // Soma mensal dos custos recorrentes
-    const recurringMonthlyTotal = list
-      .filter((i: any) => (i?.recurrence === 'ONE_TIME' ? false : true))
-      .reduce((sum: number, i: any) => sum + (Number(i?.amount) || 0), 0)
-
-    for (const m of months) {
-      const monthStart = new Date(m.year, m.month, 1, 0, 0, 0, 0)
-      const monthEnd = new Date(m.year, m.month + 1, 0, 23, 59, 59, 999)
-      const daysInMonth = new Date(m.year, m.month + 1, 0).getDate()
-
-      const overlapStart = rangeStart > monthStart ? rangeStart : monthStart
-      const overlapEnd = rangeEnd < monthEnd ? rangeEnd : monthEnd
-      if (overlapStart <= overlapEnd) {
-        const msPerDay = 24 * 60 * 60 * 1000
-        // +1 para considerar ambos os extremos inclusivos na contagem de dias
-        const daysCovered = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / msPerDay) + 1
-        const fraction = Math.min(1, Math.max(0, daysCovered / daysInMonth))
-        // Recorrentes são prorrateados por fração de dias do mês cobertos pelo range
-        fixedCosts += recurringMonthlyTotal * fraction
-      }
-
-      // Pontuais entram somente no mês/ano correspondente (inteiros)
-      for (const item of list) {
-        const recurrence = item?.recurrence === 'ONE_TIME' ? 'ONE_TIME' : 'RECURRING'
-        if (recurrence !== 'ONE_TIME') continue
-        const amount = Number(item?.amount || 0)
-        if (!(amount > 0)) continue
-        if (typeof item?.year === 'number' && typeof item?.month === 'number') {
-          if (item.year === m.year && item.month === m.month) {
-            // Inclui o custo pontual integral quando o mês/ano bate
-            fixedCosts += amount
-          }
-        }
-      }
-    }
+    const expenseRecords = await prisma.financialRecord.findMany({
+      where: {
+        tenantId,
+        type: 'EXPENSE',
+        date: { gte: rangeStart, lte: rangeEnd }
+      },
+      select: { amount: true }
+    })
+    fixedCosts = expenseRecords.reduce((sum, r) => sum + Number(r.amount || 0), 0)
   } catch {}
 
-  // OWNER: lucro líquido = receita líquida - comissões - custos fixos
-  // COLLABORATOR: perspectiva de ganhos do colaborador (sem custos fixos do negócio)
-  const netProfitOwner = netRevenueOwner - totalCommissions - fixedCosts
-  const collaboratorEarnings = totalCommissions // soma das comissões no período
-
-  // ✅ Vendas de Planos (Assinaturas + Pacotes) no período
-  // Precisão: considerar SOMENTE registros de venda com referência explícita
-  // reference: 'clientSubscription:<id>' ou 'clientPackage:<id>'
-  // Deduplicar por referência (1 venda = 1 referência), somando o primeiro registro por data
+  // ✅ Vendas de Planos (Assinaturas + Pacotes) no período (Regime de Caixa)
+  // Considerar registros de INCOME com referência a vendas de planos/pacotes
   let planSalesRevenue = 0
   let planSalesCount = 0
   try {
@@ -695,33 +646,40 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
           { reference: { startsWith: 'clientPackage:' } }
         ]
       },
-      select: { id: true, reference: true, amount: true, date: true },
-      orderBy: { date: 'asc' }
+      select: { id: true, reference: true, amount: true }
     })
-    const firstByRef = new Map<string, { amount: number }>()
-    for (const r of planIncome) {
-      const ref = (r.reference || '').toString()
-      if (!firstByRef.has(ref)) {
-        firstByRef.set(ref, { amount: Number(r.amount || 0) })
-      }
-    }
-    planSalesCount = firstByRef.size
-    planSalesRevenue = Array.from(firstByRef.values()).reduce((s, v) => s + (Number(v.amount) || 0), 0)
+    planSalesRevenue = planIncome.reduce((s, r) => s + Number(r.amount || 0), 0)
+    planSalesCount = planIncome.length
   } catch {}
+
+  // Receita Líquida (Híbrida): serviços (operacional) + vendas de planos (caixa) - descontos (operacional)
+  const netRevenueOwner = (grossRevenue + planSalesRevenue) - totalDiscounts
+
+  // OWNER: lucro líquido = receita líquida - comissões - custos fixos
+  // COLLABORATOR: perspectiva de ganhos do colaborador (sem custos fixos do negócio)
+  const netProfitOwner = netRevenueOwner - totalCommissions - fixedCosts
+  const collaboratorEarnings = totalCommissions // soma das comissões no período
+
+  // Métricas operacionais de pré-pago (serviços cobertos por pacote/assinatura)
+  const prepaidServices = appointments.filter(apt => (apt as any).paymentSource === 'PACKAGE' || (apt as any).paymentSource === 'SUBSCRIPTION')
+  const prepaidServicesValue = prepaidServices.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
+  const prepaidServicesCount = prepaidServices.length
 
   return NextResponse.json({
     success: true,
     data: {
       profitability: {
         grossRevenue,
+        planSalesRevenue,
         totalDiscounts,
         netRevenue: netRevenueOwner,
         totalCommissions,
         fixedCosts,
         netProfit: isCollaborator ? collaboratorEarnings : netProfitOwner,
         perspective: isCollaborator ? 'COLLABORATOR' : 'OWNER',
-        planSalesRevenue,
-        planSalesCount
+        planSalesCount,
+        prepaidServicesValue,
+        prepaidServicesCount
       }
     }
   })
