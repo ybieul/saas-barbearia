@@ -172,6 +172,8 @@ export default function FinanceiroPage() {
 
   // Novo: cache de agendamentos do período anterior para calcular variações dos cards superiores
   const [previousPeriodAppointments, setPreviousPeriodAppointments] = useState<any[]>([])
+  // Controle do tooltip de Receita Líquida (abre via clique também no mobile)
+  const [netRevenueTooltipOpen, setNetRevenueTooltipOpen] = useState(false)
 
   // ✅ TRATAMENTO DE ERROS: Estado de loading consolidado
   const loading = dashboardLoading || appointmentsLoading || professionalsLoading
@@ -1825,7 +1827,7 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={0}>
     <div className="space-y-8">
       {/* Header com filtro por profissional */}
       <div className="flex flex-col gap-4">
@@ -2955,9 +2957,22 @@ export default function FinanceiroPage() {
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <div className="flex items-center justify-center gap-1">
               <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
-              <Tooltip>
+              <Tooltip open={netRevenueTooltipOpen} onOpenChange={setNetRevenueTooltipOpen}>
                 <TooltipTrigger asChild>
-                  <button className="text-[#a1a1aa] hover:text-white p-1" aria-label="Ajuda sobre Receita Líquida">
+                  <button
+                    className="text-[#a1a1aa] hover:text-white p-1"
+                    aria-label="Ajuda sobre Receita Líquida"
+                    aria-expanded={netRevenueTooltipOpen}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setNetRevenueTooltipOpen((v) => !v)
+                    }}
+                    onTouchStart={(e) => {
+                      // Evita duplo disparo (touch + click) em mobile
+                      e.preventDefault()
+                      setNetRevenueTooltipOpen((v) => !v)
+                    }}
+                  >
                     <HelpCircle className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
