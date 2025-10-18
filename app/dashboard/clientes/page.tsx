@@ -133,7 +133,9 @@ export default function ClientesPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
-        if (isCollaborator) { setClientPackagesSummary({}); return }
+        // Colaboradores também precisam visualizar o badge de "Pacote" dos clientes.
+        // Antes havia um early-return aqui para colaboradores, o que impedia o fetch
+        // e ocultava o badge de Pacote. Removido para garantir consistência visual.
         if (!clients || clients.length === 0) { setClientPackagesSummary({}); return }
         const ids = clients.map((c: any) => c.id)
         const key = ids.sort().join(',')
