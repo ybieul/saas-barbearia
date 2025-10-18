@@ -104,6 +104,59 @@ async function sendConfirmationMessage(appointment: any) {
   }
 }
 
+// 🚀 NOVO: Enviar confirmação/aviso para o PROFISSIONAL via WhatsApp após criação do agendamento
+async function sendProfessionalNewAppointmentMessage(appointment: any) {
+  try {
+    console.log(`📧 [PROF-CONFIRM] Preparando envio para profissional do agendamento: ${appointment.id}`)
+
+    // Verificações básicas
+    if (!appointment.professional || !appointment.professional.id) {
+      console.log('⚠️ [PROF-CONFIRM] Agendamento sem profissional atribuído – WhatsApp não será enviado')
+      return
+    }
+    const professionalPhone = appointment.professional.phone
+    if (!professionalPhone) {
+      console.log(`⚠️ [PROF-CONFIRM] Profissional ${appointment.professional.name} não possui telefone cadastrado`)
+      return
+    }
+
+    // Buscar instância configurada do tenant
+    const tenantConfig = await getTenantWhatsAppConfig(appointment.tenantId)
+    if (!tenantConfig?.instanceName) {
+      console.log(`⚠️ [PROF-CONFIRM] Tenant ${appointment.tenantId} sem instância WhatsApp configurada`)
+      return
+    }
+
+    // Montar mensagem simples e objetiva para o profissional
+    const apptDate = new Date(appointment.dateTime)
+    const servicesList = appointment.services?.map((s: any) => s.name).join(', ') || 'Serviço'
+    const msg = [
+      `📅 Novo agendamento para você`,
+      `Cliente: ${appointment.endUser?.name || 'Cliente'}`,
+      `Serviços: ${servicesList}`,
+      `Data: ${formatBrazilDate(apptDate)} às ${formatBrazilTime(apptDate, 'HH:mm')}`,
+      appointment.notes ? `Obs.: ${appointment.notes}` : null,
+      `Estabelecimento: ${tenantConfig.businessName}`
+    ].filter(Boolean).join('\n')
+
+    console.log(`📤 [PROF-CONFIRM] Enviando via instância ${tenantConfig.instanceName} para ${appointment.professional.name}`)
+    const ok = await sendMultiTenantWhatsAppMessage({
+      to: professionalPhone,
+      message: msg,
+      instanceName: tenantConfig.instanceName,
+      type: 'custom'
+    })
+
+    if (ok) {
+      console.log('✅ [PROF-CONFIRM] Mensagem enviada ao profissional com sucesso')
+    } else {
+      console.error('❌ [PROF-CONFIRM] Falha ao enviar WhatsApp para o profissional')
+    }
+  } catch (err) {
+    console.error('❌ [PROF-CONFIRM] Erro inesperado ao enviar mensagem ao profissional:', err)
+  }
+}
+
 // GET - Listar agendamentos do tenant
 export async function GET(request: NextRequest) {
   try {
@@ -477,7 +530,8 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             specialty: true,
-            email: true
+            email: true,
+            phone: true
           }
         }
       }
@@ -489,6 +543,13 @@ export async function POST(request: NextRequest) {
     } catch (whatsappError) {
       console.error('❌ Erro ao enviar confirmação WhatsApp:', whatsappError)
       // Não falhar a criação do agendamento por erro do WhatsApp
+    }
+
+    // ✅ Enviar confirmação/aviso para o profissional (não bloqueante)
+    try {
+      await sendProfessionalNewAppointmentMessage(newAppointment)
+    } catch (e) {
+      console.error('⚠️ Falha ao enviar WhatsApp para o profissional', e)
     }
 
     // Enviar email interno para owner e colaborador (se existir email)
