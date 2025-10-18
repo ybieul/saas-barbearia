@@ -342,6 +342,13 @@ export default function FinanceiroPage() {
     }
   }, [fixedCostsAll, dateRange?.from, dateRange?.to])
 
+  // Valor de custos mensais a exibir na análise: usa API (caixa) quando houver, senão faz fallback para os custos configurados no painel
+  const displayedFixedCosts = useMemo(() => {
+    const apiCosts = Number(profitability?.fixedCosts || 0)
+    if (apiCosts > 0) return apiCosts
+    return Number(integralFixedCostsForRange || 0)
+  }, [profitability?.fixedCosts, integralFixedCostsForRange])
+
   // Fetch local para buscar agendamentos de um intervalo sem sobrescrever o hook principal
   const fetchAppointmentsRaw = async (from?: string, to?: string, professional?: string) => {
     const params = new URLSearchParams()
@@ -1818,6 +1825,7 @@ export default function FinanceiroPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       {/* Header com filtro por profissional */}
       <div className="flex flex-col gap-4">
@@ -2947,16 +2955,16 @@ export default function FinanceiroPage() {
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <div className="flex items-center justify-center gap-1">
               <h4 className="text-xs text-[#71717a] mb-1">Receita Líquida</h4>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-[#a1a1aa]" aria-label="Ajuda sobre Receita Líquida">ℹ️</button>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-[#27272a] text-[#ededed] border-[#3f3f46] max-w-xs">
-                    A Receita Líquida é o valor total do seu faturamento de serviços mais as vendas de planos, subtraindo os descontos dados nos agendamentos pré-pagos.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-[#a1a1aa] hover:text-white p-1" aria-label="Ajuda sobre Receita Líquida">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-[#27272a] text-[#ededed] border-[#3f3f46] max-w-xs">
+                  A Receita Líquida é o valor total do seu faturamento de serviços mais as vendas de planos, subtraindo os descontos dados nos agendamentos pré-pagos.
+                </TooltipContent>
+              </Tooltip>
             </div>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.netRevenue || 0)}</p>
           </div>
@@ -2966,12 +2974,17 @@ export default function FinanceiroPage() {
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>
-            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.fixedCosts || 0))}</p>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayedFixedCosts)}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Lucro Líquido</h4>
             {(() => {
-              const net = Number(profitability?.netProfit || 0)
+              // Se a API não trouxe custos (0), recomputamos lucro com fallback de custos configurados
+              const apiNet = Number(profitability?.netProfit || 0)
+              const needsFallback = (Number(profitability?.fixedCosts || 0) === 0) && (displayedFixedCosts > 0)
+              const net = needsFallback
+                ? (Number(profitability?.netRevenue || 0) - Number(profitability?.totalCommissions || 0) - displayedFixedCosts)
+                : apiNet
               const cls = net >= 0 ? 'text-[#10b981]' : 'text-red-400'
               return (
                 <p className={`text-base sm:text-lg font-bold ${cls}`}>
@@ -2985,5 +2998,6 @@ export default function FinanceiroPage() {
     </Card>
   )}
     </div>
+    </TooltipProvider>
   )
 }
