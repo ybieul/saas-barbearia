@@ -194,9 +194,10 @@ export async function POST(request: NextRequest) {
     // ✅ SUPORTE A PLANOS ANUAIS: tratar variantes "<Plano> Anual" como equivalentes
     const rawPlan = tenant.businessPlan || ''
     const normalizedPlan = rawPlan.toLowerCase()
-    const isBasic = ['basic', 'básico', 'básico anual', 'basic anual'].includes(normalizedPlan)
-    const isPremium = ['premium', 'premium anual'].includes(normalizedPlan)
-    const isUltra = ['ultra', 'ultra anual'].includes(normalizedPlan)
+  const isBasic = ['basic', 'básico', 'básico anual', 'basic anual'].includes(normalizedPlan)
+  const isPremium = ['premium', 'premium anual'].includes(normalizedPlan)
+  const isUltra = ['ultra', 'ultra anual'].includes(normalizedPlan)
+  const isTrial = normalizedPlan.includes('trial') // ✅ Trial deve refletir Ultra (ilimitado)
 
     if (isBasic) {
       limit = 1
@@ -204,9 +205,11 @@ export async function POST(request: NextRequest) {
     } else if (isPremium) {
       limit = 3
       planDisplayName = rawPlan.includes('Anual') ? 'Premium (Anual)' : 'Premium'
-    } else if (isUltra) {
+    } else if (isUltra || isTrial) {
       limit = Infinity
-      planDisplayName = rawPlan.includes('Anual') ? 'Ultra (Anual)' : 'Ultra'
+      planDisplayName = isTrial
+        ? 'Trial (15 dias grátis)'
+        : (rawPlan.includes('Anual') ? 'Ultra (Anual)' : 'Ultra')
     } else {
       // Plano não reconhecido - fallback seguro
       limit = 1
