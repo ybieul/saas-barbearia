@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTrialWelcomeEmail, generateSecurePassword } from '@/lib/email'
+import { sendTrialWelcomeEmail, generateSecurePassword, sendEmail } from '@/lib/email'
+import { welcomeTrialEmail } from '@/utils/emailTemplates'
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +52,20 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Disparar e-mail de boas-vindas e onboarding (agradecimento + próximos passos)
+    try {
+      const html = welcomeTrialEmail({ tenantName: tenant.name })
+      await sendEmail({
+        to: tenant.email,
+        subject: `🎉 Bem-vindo ao TymerBook, ${tenant.name}!`,
+        html
+      })
+      console.log(`✅ E-mail de boas-vindas (onboarding) enviado para ${tenant.email}`)
+    } catch (emailError) {
+      console.error('⚠️ Falha ao enviar e-mail de boas-vindas (onboarding), mas o registro foi criado:', emailError)
+      // Não retornar erro: o usuário já foi criado com sucesso
+    }
+
     // Gerar JWT token enriquecido (inclui status da assinatura)
     const token = jwt.sign(
       { 
@@ -81,7 +96,7 @@ export async function POST(request: NextRequest) {
       subscriptionStatus: 'TRIAL'
     }
 
-    // Enviar email de boas-vindas ao trial (não bloqueia a resposta)
+    // Enviar email de boas-vindas ao trial com credenciais (não bloqueia a resposta)
     sendTrialWelcomeEmail(
       tenant.name,
       tenant.email,
