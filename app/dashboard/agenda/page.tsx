@@ -34,6 +34,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react"
+import { DollarSign, Smartphone, CreditCard, Star } from "lucide-react"
 import { useProfessionals } from "@/hooks/use-api"
 import { useAuth } from "@/hooks/use-auth"
 import { useAppointments, useClients, useServices, useEstablishment } from "@/hooks/use-api"
@@ -2789,6 +2790,36 @@ export default function AgendaPage() {
                         >
                           {status.label}
                         </Badge>
+                        {/* Badge de forma de pagamento (apenas para concluídos) */}
+                        {appointment.status === 'COMPLETED' && (() => {
+                          const pm = (appointment as any).paymentMethod as string | undefined
+                          let label = 'Pagamento'
+                          let color = 'bg-zinc-700/20 text-zinc-300 border-zinc-600/30'
+                          let Icon: any = null
+                          if (pm === 'CASH') {
+                            label = 'Dinheiro'
+                            color = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            Icon = DollarSign
+                          } else if (pm === 'PIX') {
+                            label = 'PIX'
+                            color = 'bg-teal-500/15 text-teal-300 border-teal-500/30'
+                            Icon = Smartphone
+                          } else if (pm === 'CARD') {
+                            label = 'Cartão'
+                            color = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            Icon = CreditCard
+                          } else if (pm === 'PREPAID') {
+                            label = 'Pré‑pago'
+                            color = 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                            Icon = Star
+                          }
+                          return (
+                            <Badge className={`w-fit text-xs px-2 py-1 rounded-full font-medium border flex items-center gap-1 ${color}`}>
+                              {Icon ? <Icon className="w-3 h-3" /> : null}
+                              {label}
+                            </Badge>
+                          )
+                        })()}
                         {/* Badges de cobertura/origem de pagamento - lógica inteligente */}
                         {(() => {
                           // Se concluído com paymentSource definido, mostrar badge definitivo

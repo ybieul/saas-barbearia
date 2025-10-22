@@ -648,7 +648,9 @@ export async function GET(request: NextRequest) {
           service: apt.services?.length > 0 ? apt.services.map(s => s.name).join(' + ') : 'Serviço não informado',
           professional: apt.professional?.name || 'Sem profissional',
           status: apt.status,
-          totalPrice: apt.totalPrice || 0
+          totalPrice: apt.totalPrice || 0,
+          paymentMethod: (apt as any).paymentMethod || null,
+          paymentSource: (apt as any).paymentSource || null
         })),
         nextAppointment: nextAppointment ? {
           id: nextAppointment.id,

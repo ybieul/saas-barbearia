@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin, Zap } from "lucide-react"
+import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin, Zap, Smartphone, CreditCard, Star } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
 import { useAppointments } from "@/hooks/use-api"
 import { useBusinessData } from "@/hooks/use-business-data"
@@ -479,7 +479,8 @@ export default function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-base sm:text-lg lg:text-xl font-semibold text-[#ededed]">{appointment.time}</span>
-                            <Badge
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                              <Badge
                               className={`text-xs lg:text-sm ${
                                 appointment.status === "COMPLETED"
                                   ? "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"
@@ -487,13 +488,31 @@ export default function DashboardPage() {
                                   ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                                   : "bg-blue-500/10 text-blue-400 border-blue-500/20"
                               }`}
-                            >
-                              {appointment.status === "COMPLETED"
-                                ? "Concluído"
-                                : appointment.status === "IN_PROGRESS"
-                                ? "Em andamento"
-                                : "Confirmado"}
-                            </Badge>
+                              >
+                                {appointment.status === "COMPLETED"
+                                  ? "Concluído"
+                                  : appointment.status === "IN_PROGRESS"
+                                  ? "Em andamento"
+                                  : "Confirmado"}
+                              </Badge>
+                              {/* Badge de forma de pagamento quando concluído */}
+                              {appointment.status === 'COMPLETED' && (() => {
+                                const pm = (appointment as any).paymentMethod as string | undefined
+                                let label = 'Pagamento'
+                                let color = 'bg-zinc-700/20 text-zinc-300 border-zinc-600/30'
+                                let Icon: any = null
+                                if (pm === 'CASH') { label = 'Dinheiro'; color = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'; Icon = DollarSign }
+                                else if (pm === 'PIX') { label = 'PIX'; color = 'bg-teal-500/15 text-teal-300 border-teal-500/30'; Icon = Smartphone }
+                                else if (pm === 'CARD') { label = 'Cartão'; color = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'; Icon = CreditCard }
+                                else if (pm === 'PREPAID') { label = 'Pré‑pago'; color = 'bg-purple-500/15 text-purple-300 border-purple-500/30'; Icon = Star }
+                                return (
+                                  <Badge className={`text-xs lg:text-sm border flex items-center gap-1 ${color}`}>
+                                    {Icon ? <Icon className="w-3 h-3" /> : null}
+                                    {label}
+                                  </Badge>
+                                )
+                              })()}
+                            </div>
                           </div>
                           <p className="text-[#ededed] font-medium text-sm sm:text-base lg:text-lg truncate">{appointment.client}</p>
                           <p className="text-xs sm:text-sm lg:text-base text-[#a1a1aa] truncate">
