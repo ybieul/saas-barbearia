@@ -2708,6 +2708,12 @@ export default function AgendaPage() {
             const appointmentTime = extractTimeFromDateTime(appointment.dateTime) // HH:mm sem UTC
             // Cálculo de comissão (snapshot -> previsão usando regras de assinatura quando aplicável -> fallback pct padrão)
             const grossAmount = Number(appointment.totalPrice || 0)
+            // 🧮 Produtos vendidos (snapshot salvo no agendamento)
+            const sold = Array.isArray((appointment as any)?.soldProducts)
+              ? ((appointment as any).soldProducts as Array<{ salePrice?: number; quantity?: number; name?: string }>)
+              : []
+            const productsTotal = sold.reduce((s, it) => s + (Number(it?.salePrice ?? 0) * Number(it?.quantity ?? 0)), 0)
+            const generalTotal = grossAmount + productsTotal
             let commissionAmount = 0
             const snap = (appointment as any)?.commissionEarned
             if (snap !== undefined && snap !== null && !isNaN(parseFloat(String(snap)))) {
@@ -2943,6 +2949,36 @@ export default function AgendaPage() {
                             </p>
                           )
                         })()}
+                        {/* 🧾 Produtos Vendidos (detalhe) */}
+                        {(() => {
+                          if (!sold || sold.length === 0) return null
+                          return (
+                            <div className="mt-3 pt-3 border-t border-[#27272a]">
+                              <h4 className="text-[#ededed] font-medium text-sm mb-2">Produtos Vendidos</h4>
+                              <ul className="space-y-1">
+                                {sold.map((it, idx) => {
+                                  const lineTotal = Number(it?.salePrice ?? 0) * Number(it?.quantity ?? 0)
+                                  const name = it?.name || 'Produto'
+                                  const qty = Number(it?.quantity ?? 0)
+                                  return (
+                                    <li key={idx} className="text-xs text-[#a1a1aa] flex justify-between">
+                                      <span>{name} ({qty}x)</span>
+                                      <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lineTotal)}</span>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                              <div className="mt-2 text-xs text-[#ededed] flex justify-between">
+                                <span>Total Produtos</span>
+                                <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(productsTotal)}</span>
+                              </div>
+                              <div className="text-xs text-[#ededed] flex justify-between">
+                                <span>Total Geral do Atendimento</span>
+                                <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generalTotal)}</span>
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
 
@@ -2951,8 +2987,8 @@ export default function AgendaPage() {
                       <div className="flex flex-col md:text-right">
                         {(() => {
                           const notesText = (appointment.notes || '').toString()
-                          // Mostrar sempre o valor bruto do agendamento, mesmo quando coberto por assinatura/pacote
-                          const displayAmount = grossAmount
+                          // Mostrar o total geral (serviço + produtos)
+                          const displayAmount = generalTotal
                           if (isCollaborator && appointment.status !== 'CANCELLED') {
                             return (
                               <div className="space-y-0.5">
@@ -2962,9 +2998,14 @@ export default function AgendaPage() {
                             )
                           }
                           return (
-                            <p className="text-[#10b981] font-semibold text-lg md:text-base">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
-                            </p>
+                            <div className="flex flex-col items-start md:items-end">
+                              <p className="text-[#10b981] font-semibold text-lg md:text-base">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayAmount)}
+                              </p>
+                              {productsTotal > 0 && (
+                                <p className="text-xs text-[#a1a1aa] mt-0.5">(Serviço: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(grossAmount)} + Produtos: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(productsTotal)})</p>
+                              )}
+                            </div>
                           )
                         })()}
                         <p className="text-[#a1a1aa] text-sm">
