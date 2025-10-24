@@ -190,6 +190,9 @@ export function PaymentMethodModal({
 
   const soldProducts = useMemo(() => cart.map(i => ({ productId: i.productId, quantity: i.quantity })), [cart])
   const cartTotal = useMemo(() => cart.reduce((s, i) => s + (i.salePrice * i.quantity), 0), [cart])
+  const computedTotal = useMemo(() => {
+    return (appointmentData?.totalPrice || 0) + (cartTotal || 0)
+  }, [appointmentData?.totalPrice, cartTotal])
 
   const handlePaymentSelect = (method: string) => {
     if (enableProductSelection && onComplete) {
@@ -253,12 +256,17 @@ export function PaymentMethodModal({
                       <Receipt className="w-3 h-3 md:w-4 md:h-4" />
                       Total:
                     </span>
-                    <Badge className="bg-tymer-primary/20 text-tymer-primary border border-tymer-primary/30 text-xs md:text-sm">
-                      {new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(appointmentData.totalPrice)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {cartTotal > 0 && (
+                        <span className="text-[10px] md:text-xs text-[#a1a1aa]">(+ produtos {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)})</span>
+                      )}
+                      <Badge className="bg-tymer-primary/20 text-tymer-primary border border-tymer-primary/30 text-xs md:text-sm">
+                        {new Intl.NumberFormat('pt-BR', { 
+                          style: 'currency', 
+                          currency: 'BRL' 
+                        }).format(computedTotal)}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -286,7 +294,44 @@ export function PaymentMethodModal({
               </div>
             )}
 
-            {/* Seleção de Produtos (opcional) */}
+            {/* Seção de Formas de Pagamento */}
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-center gap-2 md:hidden">
+                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <h3 className="text-[#ededed] font-medium text-sm">Forma de Pagamento</h3>
+              </div>
+              
+              <div className="space-y-2 md:space-y-3">
+                {checkingCoverage && (
+                  <div className="text-xs text-[#71717a]">Verificando créditos disponíveis…</div>
+                )}
+                {paymentMethods.map((method) => {
+                  const IconComponent = method.icon
+                  return (
+                    <Button
+                      key={method.id}
+                      onClick={() => handlePaymentSelect(method.id)}
+                      disabled={isLoading}
+                      variant="ghost"
+                      type="button"
+                      className={`bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 shadow-lg text-[#ededed] w-full h-auto justify-start gap-3`}
+                    >
+                      <div className="bg-[#2d2d30] rounded-full p-1.5 md:p-2 flex-shrink-0 border border-[#3a3a3d]">
+                        <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-tymer-icon" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className="font-semibold text-sm md:text-base flex items-center gap-2 text-[#ededed]">
+                          {method.label}
+                        </div>
+                        <div className="text-xs md:text-sm text-tymer-icon">{method.description}</div>
+                      </div>
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Seleção de Produtos (opcional) - MOVIDO ABAIXO DAS FORMAS DE PAGAMENTO */}
             {enableProductSelection && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -350,43 +395,6 @@ export function PaymentMethodModal({
                 )}
               </div>
             )}
-
-            {/* Seção de Formas de Pagamento */}
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex items-center gap-2 md:hidden">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-                <h3 className="text-[#ededed] font-medium text-sm">Forma de Pagamento</h3>
-              </div>
-              
-              <div className="space-y-2 md:space-y-3">
-                {checkingCoverage && (
-                  <div className="text-xs text-[#71717a]">Verificando créditos disponíveis…</div>
-                )}
-                {paymentMethods.map((method) => {
-                  const IconComponent = method.icon
-                  return (
-                    <Button
-                      key={method.id}
-                      onClick={() => handlePaymentSelect(method.id)}
-                      disabled={isLoading}
-                      variant="ghost"
-                      type="button"
-                      className={`bg-gradient-to-r from-[#27272a]/80 to-[#3f3f46]/60 border border-[#3f3f46]/50 rounded-lg p-4 shadow-lg text-[#ededed] w-full h-auto justify-start gap-3`}
-                    >
-                      <div className="bg-[#2d2d30] rounded-full p-1.5 md:p-2 flex-shrink-0 border border-[#3a3a3d]">
-                        <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-tymer-icon" />
-                      </div>
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-sm md:text-base flex items-center gap-2 text-[#ededed]">
-                          {method.label}
-                        </div>
-                        <div className="text-xs md:text-sm text-tymer-icon">{method.description}</div>
-                      </div>
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
           </div>
         </div>
         

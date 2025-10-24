@@ -756,6 +756,7 @@ export default function DashboardPage() {
         enableProductSelection
         onComplete={handleCompleteWithPayment}
         appointmentData={appointmentToComplete ? {
+          id: appointmentToComplete.id,
           client: appointmentToComplete.client,
           service: appointmentToComplete.service,
           totalPrice: appointmentToComplete.totalPrice || 0,

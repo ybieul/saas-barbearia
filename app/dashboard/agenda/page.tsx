@@ -1473,30 +1473,32 @@ export default function AgendaPage() {
     setIsPaymentModalOpen(true)
   }
 
-  // Função para concluir agendamento com forma de pagamento
-  const handleCompleteWithPayment = async (paymentMethod: string) => {
+  // Função para concluir agendamento com forma de pagamento e (opcional) produtos vendidos
+  const handleCompleteWithPayment = async ({ paymentMethod, soldProducts }: { paymentMethod: string, soldProducts: Array<{ productId: string, quantity: number }> }) => {
     if (!appointmentToComplete) return
 
     setIsCompletingAppointment(true)
     try {
-      // Chamar nova API de conclusão com pagamento
-      const response = await fetch(`/api/appointments/${appointmentToComplete.id}/complete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentMethod })
+      // Usar o mesmo endpoint unificado do dashboard para concluir e registrar venda de produtos
+      const resp = await fetch('/api/appointments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: appointmentToComplete.id,
+          status: 'COMPLETED',
+          paymentMethod,
+          paymentStatus: 'PAID',
+          soldProducts
+        })
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao concluir agendamento')
+      const data = await resp.json()
+      if (!resp.ok) {
+        throw new Error(data?.message || data?.error || 'Erro ao concluir agendamento')
       }
 
       toast({
         title: "✅ Sucesso",
-        description: "Agendamento concluído e pagamento registrado!",
+        description: (soldProducts?.length ? "Agendamento concluído com venda de produto registrada!" : "Agendamento concluído e pagamento registrado!"),
       })
       
       // Fechar modal e limpar estado
@@ -3632,7 +3634,9 @@ export default function AgendaPage() {
           setIsPaymentModalOpen(false)
           setAppointmentToComplete(null)
         }}
-        onSelectPayment={handleCompleteWithPayment}
+        onSelectPayment={(method) => handleCompleteWithPayment({ paymentMethod: method, soldProducts: [] })}
+        enableProductSelection
+        onComplete={handleCompleteWithPayment}
         appointmentData={appointmentToComplete ? {
           id: (appointmentToComplete as any).id,
           client: appointmentToComplete.client,
