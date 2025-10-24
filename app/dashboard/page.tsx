@@ -146,9 +146,36 @@ export default function DashboardPage() {
     setIsProductSaleOpen(true)
   }
 
-  // Função para abrir modal de pagamento
-  const handleCompleteAppointment = (appointment: any) => {
-    setAppointmentToComplete(appointment)
+  // Função para abrir modal de pagamento (com verificação de cobertura igual à Agenda)
+  const handleCompleteAppointment = async (appointment: any) => {
+    let coverageInfo: { covered: boolean; coveredBy?: 'subscription' | 'package'; packageName?: string } | undefined
+    try {
+      if (appointment?.id) {
+        const res = await fetch('/api/coverage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: appointment.id })
+        })
+        if (res.ok) {
+          const coverage = await res.json()
+          if (coverage?.covered) {
+            coverageInfo = {
+              covered: true,
+              coveredBy: coverage.coveredBy,
+              packageName: coverage.packageName
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Erro ao buscar cobertura (dashboard):', err)
+      }
+    }
+
+    // Anexar coverageInfo ao objeto usado pelo modal (sem alterar o shape esperado)
+    const modalAppt = { ...appointment, coverageInfo }
+    setAppointmentToComplete(modalAppt)
     setIsPaymentModalOpen(true)
   }
 
@@ -762,6 +789,7 @@ export default function DashboardPage() {
           totalPrice: appointmentToComplete.totalPrice || 0,
           time: appointmentToComplete.time
         } : undefined}
+        coverageInfo={(appointmentToComplete as any)?.coverageInfo}
         isLoading={isCompletingAppointment}
       />
 

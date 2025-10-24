@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import type { Prisma } from "@prisma/client"
 import { utcToBrazil, getBrazilNow } from "@/lib/timezone"
 
 export async function GET(request: NextRequest) {
@@ -166,8 +167,9 @@ async function getOverviewReport(tenantId: string, params: any) {
     const periodEnd = currentWhere.dateTime.lte
     frWhere.date = { gte: periodStart, lte: periodEnd }
     if (professionalId && professionalId !== 'all') frWhere.professionalId = professionalId
-    const prodFr = await prisma.financialRecord.findMany({ where: frWhere, select: { commissionEarned: true } })
-    thisMonthCommission += prodFr.reduce((s, r) => s + Number(r.commissionEarned || 0), 0)
+  type FRCommission = { commissionEarned: Prisma.Decimal | null }
+  const prodFr = await prisma.financialRecord.findMany({ where: frWhere }) as unknown as FRCommission[]
+  thisMonthCommission += prodFr.reduce((s, r) => s + Number(r.commissionEarned ?? 0), 0)
   } catch {}
 
   // Se usuário é colaborador, a métrica principal de "revenue" vira sua comissão
@@ -184,8 +186,9 @@ async function getOverviewReport(tenantId: string, params: any) {
     const frWherePrev: any = { tenantId, type: 'INCOME', recordSource: 'PRODUCT_SALE_INCOME' }
     frWherePrev.date = { gte: previousWhere.dateTime.gte, lte: previousWhere.dateTime.lte }
     if (professionalId && professionalId !== 'all') frWherePrev.professionalId = professionalId
-    const prodFrPrev = await prisma.financialRecord.findMany({ where: frWherePrev, select: { commissionEarned: true } })
-    lastMonthCommission += prodFrPrev.reduce((s, r) => s + Number(r.commissionEarned || 0), 0)
+  type FRCommissionPrev = { commissionEarned: Prisma.Decimal | null }
+  const prodFrPrev = await prisma.financialRecord.findMany({ where: frWherePrev }) as unknown as FRCommissionPrev[]
+  lastMonthCommission += prodFrPrev.reduce((s, r) => s + Number(r.commissionEarned ?? 0), 0)
   } catch {}
   const lastMonthRevenue = isCollaborator ? lastMonthCommission : lastMonthRevenueRaw
 
@@ -698,10 +701,16 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
     }
     if (professionalId && professionalId !== 'all') whereFR.professionalId = professionalId
 
+    type FRProduct = {
+      productId: string | null
+      amount: Prisma.Decimal
+      costPrice: Prisma.Decimal | null
+      quantity: number | null
+      commissionEarned: Prisma.Decimal | null
+    }
     const fr = await prisma.financialRecord.findMany({
-      where: whereFR,
-      select: { productId: true, amount: true, costPrice: true, quantity: true, commissionEarned: true }
-    })
+      where: whereFR
+    }) as unknown as FRProduct[]
 
     const byProduct = new Map<string, { revenue: number; cost: number; quantity: number }>()
     for (const r of fr) {
@@ -721,8 +730,12 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
 
     // Enriquecer com nomes dos produtos
     const productIds = Array.from(byProduct.keys()).filter(k => k !== 'unknown')
-    const products = productIds.length > 0 ? await (prisma as any).product.findMany({ where: { id: { in: productIds }, tenantId }, select: { id: true, name: true } }) : []
-    const nameMap = new Map<string, string>(products.map((p: any) => [p.id, p.name]))
+  type ProductRecord = { id: string; name: string }
+  type ProductFindManyArgs = { where: { id: { in: string[] }, tenantId: string }, select: { id: true; name: true } }
+  type PrismaWithProduct = typeof prisma & { product: { findMany: (args: ProductFindManyArgs) => Promise<ProductRecord[]> } }
+  const prismaWithProduct = prisma as unknown as PrismaWithProduct
+  const products = productIds.length > 0 ? await prismaWithProduct.product.findMany({ where: { id: { in: productIds }, tenantId }, select: { id: true, name: true } }) : []
+  const nameMap = new Map<string, string>(products.map((p: ProductRecord) => [p.id, p.name]))
 
     topProfitableProducts = Array.from(byProduct.entries()).map(([productId, v]) => ({
       productId,
