@@ -588,7 +588,7 @@ export default function MembershipsPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent
           onOpenAutoFocus={(e) => { e.preventDefault() }}
-          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[85vh] flex flex-col p-0"
+          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[85vh] flex flex-col p-0 rounded-xl"
         >
           <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 px-4 sm:px-6 pt-4 flex-shrink-0">
             <DialogTitle>{createType === 'SUBSCRIPTION' ? 'Nova Assinatura' : 'Novo Pacote'}</DialogTitle>
@@ -700,7 +700,7 @@ export default function MembershipsPage() {
             </div>
           </div>
 
-          <DialogFooter className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a]">
+          <DialogFooter className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a] sm:border-t-0">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)} disabled={submitting}>Cancelar</Button>
             <Button onClick={handleCreate} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={submitting}>{submitting ? 'Salvando…' : (editingId ? 'Atualizar' : 'Salvar')}</Button>
           </DialogFooter>
