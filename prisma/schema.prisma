@@ -72,6 +72,8 @@ model Tenant {
   servicePackages     ServicePackage[]
   financialRecords    FinancialRecord[]
   workingHours        WorkingHours[]
+  // Produtos (estoque)
+  products            Product[]
   // Planos de assinatura deste tenant
   subscriptionPlans   SubscriptionPlan[]
 
@@ -153,6 +155,8 @@ model Professional {
   // Valor da comissão para assinatura. Se o tipo for 'PERCENTAGE', armazenar como percentual (ex: 30.00 para 30%).
   // Se o tipo for 'FIXED', armazenar o valor fixo em reais.
   subscriptionCommissionValue Decimal? @db.Decimal(10, 2)
+  // Comissão específica sobre venda de produtos (ex: 0.10 = 10%)
+  productCommissionPercentage Decimal? @db.Decimal(5, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -177,6 +181,32 @@ model Professional {
 
   @@index([tenantId])
   @@map("professionals")
+}
+
+// ============================================
+// PRODUTOS / ESTOQUE
+// ============================================
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?  @db.Text
+  costPrice      Decimal  @db.Decimal(10, 2)
+  salePrice      Decimal  @db.Decimal(10, 2)
+  stockQuantity  Int      @default(0)
+  minStockAlert  Int?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Back-relations
+  financialRecords FinancialRecord[]
+
+  @@index([tenantId])
+  @@map("products")
 }
 
 model Service {
@@ -387,6 +417,8 @@ model Appointment {
   completedAt   DateTime?
   // Valor da comissão efetivamente ganho (snapshot no momento da conclusão)
   commissionEarned Decimal? @db.Decimal(10,2)
+  // Produtos vendidos vinculados a este atendimento (snapshot)
+  soldProducts Json? @default("[]") // [{ productId: '...', quantity: 1, salePrice: 30.00, costPrice: 15.00, commissionEarned: 3.00 }]
   
   // Relations
   tenantId       String
@@ -419,6 +451,20 @@ model FinancialRecord {
   // Dados do pagamento
   paymentMethod PaymentMethod?
   reference     String?         // Referência externa (ex: ID do agendamento)
+  // Origem detalhada desta receita/despesa. Ex.: 'SERVICE_INCOME', 'PRODUCT_SALE_INCOME', 'PACKAGE_SALE_INCOME', 'SUBSCRIPTION_SALE_INCOME'
+  recordSource  String?         @default("SERVICE_INCOME")
+
+  // Detalhes de venda de produto (quando aplicável)
+  productId       String?
+  product         Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  quantity        Int?
+  costPrice       Decimal?       @db.Decimal(10, 2)
+  commissionEarned Decimal?      @db.Decimal(10, 2)
+  // Vínculos para relatórios
+  professionalId  String?
+  professional    Professional?  @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  endUserId       String?
+  endUser         EndUser?       @relation(fields: [endUserId], references: [id], onDelete: SetNull)
   
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -427,9 +473,13 @@ model FinancialRecord {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([productId])
+  @@index([professionalId])
+  @@index([endUserId])
   @@index([tenantId])
   @@index([tenantId, date])
   @@index([tenantId, type])
+  @@index([tenantId, recordSource])
   @@map("financial_records")
 }
 

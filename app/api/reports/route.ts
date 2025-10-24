@@ -156,9 +156,19 @@ async function getOverviewReport(tenantId: string, params: any) {
     return sum + Number(apt.totalPrice || 0)
   }, 0)
   // Soma de comissão (snapshot)
-  const thisMonthCommission = completedThisMonth.reduce((sum, apt) => {
+  let thisMonthCommission = completedThisMonth.reduce((sum, apt) => {
     return sum + Number(apt.commissionEarned || 0)
   }, 0)
+  // Somar comissões de produtos no período atual
+  try {
+    const frWhere: any = { tenantId, type: 'INCOME', recordSource: 'PRODUCT_SALE_INCOME' }
+    const periodStart = currentWhere.dateTime.gte
+    const periodEnd = currentWhere.dateTime.lte
+    frWhere.date = { gte: periodStart, lte: periodEnd }
+    if (professionalId && professionalId !== 'all') frWhere.professionalId = professionalId
+    const prodFr = await prisma.financialRecord.findMany({ where: frWhere, select: { commissionEarned: true } })
+    thisMonthCommission += prodFr.reduce((s, r) => s + Number(r.commissionEarned || 0), 0)
+  } catch {}
 
   // Se usuário é colaborador, a métrica principal de "revenue" vira sua comissão
   const thisMonthRevenue = isCollaborator ? thisMonthCommission : thisMonthRevenueRaw
@@ -166,9 +176,17 @@ async function getOverviewReport(tenantId: string, params: any) {
   const lastMonthRevenueRaw = completedLastMonth.reduce((sum, apt) => {
     return sum + Number(apt.totalPrice || 0)
   }, 0)
-  const lastMonthCommission = completedLastMonth.reduce((sum, apt) => {
+  let lastMonthCommission = completedLastMonth.reduce((sum, apt) => {
     return sum + Number(apt.commissionEarned || 0)
   }, 0)
+  // Somar comissões de produtos no período anterior
+  try {
+    const frWherePrev: any = { tenantId, type: 'INCOME', recordSource: 'PRODUCT_SALE_INCOME' }
+    frWherePrev.date = { gte: previousWhere.dateTime.gte, lte: previousWhere.dateTime.lte }
+    if (professionalId && professionalId !== 'all') frWherePrev.professionalId = professionalId
+    const prodFrPrev = await prisma.financialRecord.findMany({ where: frWherePrev, select: { commissionEarned: true } })
+    lastMonthCommission += prodFrPrev.reduce((s, r) => s + Number(r.commissionEarned || 0), 0)
+  } catch {}
   const lastMonthRevenue = isCollaborator ? lastMonthCommission : lastMonthRevenueRaw
 
   // 4. Contagem de agendamentos (todos os status exceto CANCELLED)
@@ -665,6 +683,56 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
   const prepaidServicesValue = prepaidServices.reduce((sum, apt) => sum + Number(apt.totalPrice || 0), 0)
   const prepaidServicesCount = prepaidServices.length
 
+  // ==============================
+  // Produtos: lucratividade e ranking
+  // ==============================
+  let productGrossProfit = 0
+  let productCommissions = 0
+  let topProfitableProducts: Array<{ productId: string; name: string; profit: number; revenue: number; quantity: number }>= []
+  try {
+    const whereFR: any = {
+      tenantId,
+      type: 'INCOME',
+      recordSource: 'PRODUCT_SALE_INCOME',
+      date: { gte: rangeStart, lte: rangeEnd }
+    }
+    if (professionalId && professionalId !== 'all') whereFR.professionalId = professionalId
+
+    const fr = await prisma.financialRecord.findMany({
+      where: whereFR,
+      select: { productId: true, amount: true, costPrice: true, quantity: true, commissionEarned: true }
+    })
+
+    const byProduct = new Map<string, { revenue: number; cost: number; quantity: number }>()
+    for (const r of fr) {
+      const qty = Number(r.quantity || 0)
+      const amount = Number(r.amount || 0)
+      const unitCost = Number(r.costPrice || 0)
+      const costTotal = unitCost * qty
+      productCommissions += Number(r.commissionEarned || 0)
+      productGrossProfit += (amount - costTotal)
+      const key = r.productId || 'unknown'
+      if (!byProduct.has(key)) byProduct.set(key, { revenue: 0, cost: 0, quantity: 0 })
+      const agg = byProduct.get(key)!
+      agg.revenue += amount
+      agg.cost += costTotal
+      agg.quantity += qty
+    }
+
+    // Enriquecer com nomes dos produtos
+    const productIds = Array.from(byProduct.keys()).filter(k => k !== 'unknown')
+    const products = productIds.length > 0 ? await (prisma as any).product.findMany({ where: { id: { in: productIds }, tenantId }, select: { id: true, name: true } }) : []
+    const nameMap = new Map<string, string>(products.map((p: any) => [p.id, p.name]))
+
+    topProfitableProducts = Array.from(byProduct.entries()).map(([productId, v]) => ({
+      productId,
+      name: nameMap.get(productId) || 'Produto',
+      profit: v.revenue - v.cost,
+      revenue: v.revenue,
+      quantity: v.quantity,
+    })).sort((a, b) => b.profit - a.profit).slice(0, 10)
+  } catch {}
+
   return NextResponse.json({
     success: true,
     data: {
@@ -679,7 +747,11 @@ async function getProfitabilityReport(tenantId: string, params: { rangeStart: Da
         perspective: isCollaborator ? 'COLLABORATOR' : 'OWNER',
         planSalesCount,
         prepaidServicesValue,
-        prepaidServicesCount
+        prepaidServicesCount,
+        // Novos campos para produtos
+        productGrossProfit,
+        productCommissions,
+        topProfitableProducts
       }
     }
   })

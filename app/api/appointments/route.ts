@@ -591,7 +591,8 @@ export async function PUT(request: NextRequest) {
       status, 
       notes,
       paymentMethod,
-      paymentStatus
+      paymentStatus,
+      soldProducts // [{ productId, quantity }]
     } = await request.json()
 
     if (!id) {
@@ -848,6 +849,70 @@ export async function PUT(request: NextRequest) {
 
     // Atualizar estatísticas do cliente se o agendamento foi concluído
     if (status === 'COMPLETED') {
+      // Processar vendas de produtos vinculadas (opcional)
+      if (soldProducts && Array.isArray(soldProducts) && soldProducts.length > 0) {
+        // Executar em transação: baixa de estoque + registro financeiro + salvar snapshot no agendamento
+        await prisma.$transaction(async (tx) => {
+          const itemsSummary: any[] = []
+
+          for (const item of soldProducts) {
+            if (!item?.productId || !item?.quantity || item.quantity <= 0) {
+              throw new Error('Item de produto inválido (productId e quantity > 0 são obrigatórios)')
+            }
+
+            const product = await (tx as any).product.findFirst({ where: { id: item.productId, tenantId: user.tenantId } })
+            if (!product) throw new Error('Produto não encontrado')
+            if ((product.stockQuantity ?? 0) < item.quantity) {
+              throw new Error(`Estoque insuficiente para ${product.name}`)
+            }
+
+            const qty = Number(item.quantity)
+            const saleAmount = Number(product.salePrice) * qty
+            const unitCost = Number(product.costPrice)
+            const profId = appointment.professional?.id || appointment.professionalId || null
+            let commissionPct = 0
+            if (profId) {
+              const prof = await tx.professional.findFirst({ where: { id: String(profId), tenantId: user.tenantId } })
+              commissionPct = prof?.productCommissionPercentage ? Number(prof.productCommissionPercentage) : 0
+            }
+            const commission = saleAmount * commissionPct
+
+            // Baixa de estoque
+            await (tx as any).product.update({ where: { id: product.id }, data: { stockQuantity: Math.max(0, Number(product.stockQuantity || 0) - qty) } })
+
+            // Registro financeiro
+            await tx.financialRecord.create({
+              data: {
+                type: 'INCOME',
+                recordSource: 'PRODUCT_SALE_INCOME',
+                amount: saleAmount,
+                description: `Venda de ${qty}x ${product.name} (Agendamento ${appointment.id})`,
+                category: 'VENDAS',
+                productId: product.id,
+                quantity: qty,
+                costPrice: unitCost, // unit cost
+                commissionEarned: commission,
+                professionalId: profId,
+                endUserId: appointment.endUserId,
+                tenantId: user.tenantId
+              }
+            })
+
+            itemsSummary.push({
+              productId: product.id,
+              name: product.name,
+              quantity: qty,
+              salePrice: Number(product.salePrice),
+              costPrice: unitCost,
+              commissionEarned: commission
+            })
+          }
+
+          // Persistir snapshot na própria tabela de agendamentos
+          await tx.appointment.update({ where: { id: appointment.id }, data: { soldProducts: itemsSummary as any } })
+        })
+      }
+
       const clientStats = await prisma.appointment.aggregate({
         where: {
           endUserId: appointment.endUserId,

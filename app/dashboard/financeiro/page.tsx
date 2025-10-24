@@ -2945,7 +2945,7 @@ export default function FinanceiroPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 sm:gap-4 lg:gap-6">
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Receita Bruta</h4>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.grossRevenue || 0)}</p>
@@ -2953,6 +2953,10 @@ export default function FinanceiroPage() {
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Receita de Vendas de Planos</h4>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(profitability?.planSalesRevenue || 0))}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Lucro Bruto de Produtos</h4>
+            <p className="text-base sm:text-lg font-bold text-[#10b981]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number((profitability as any)?.productGrossProfit || 0))}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <div className="flex items-center justify-center gap-1">
@@ -2977,6 +2981,10 @@ export default function FinanceiroPage() {
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Comissões</h4>
             <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profitability.totalCommissions || 0)}</p>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
+            <h4 className="text-xs text-[#71717a] mb-1">Comissões de Produtos</h4>
+            <p className="text-base sm:text-lg font-bold text-[#ededed]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number((profitability as any)?.productCommissions || 0))}</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-gray-900/50 rounded-lg border border-gray-800/50">
             <h4 className="text-xs text-[#71717a] mb-1">Custos Mensais</h4>

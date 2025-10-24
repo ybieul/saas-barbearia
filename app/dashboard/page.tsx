@@ -14,11 +14,13 @@ import { Sparkline } from "@/components/ui/sparkline"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
+import { ProductSaleModal } from "@/components/ui/product-sale-modal"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [isProductSaleOpen, setIsProductSaleOpen] = useState(false)
   const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
   const { updateAppointment } = useAppointments()
@@ -76,6 +78,10 @@ export default function DashboardPage() {
 
   const handleReports = () => {
     router.push('/dashboard/financeiro')
+  }
+
+  const handleQuickProductSale = () => {
+    setIsProductSaleOpen(true)
   }
 
   // Função para abrir modal de pagamento
@@ -649,6 +655,18 @@ export default function DashboardPage() {
                 </button>
                 
                 <button 
+                  onClick={handleQuickProductSale}
+                  className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                      <DollarSign className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                    <p className="text-xs lg:text-sm font-medium text-foreground">Venda de Produto</p>
+                  </div>
+                </button>
+
+                <button 
                   onClick={handleReports}
                   className="group relative p-4 bg-primary/20 border border-primary/30 rounded-xl hover:bg-primary/25 hover:border-primary/40 transition-all duration-300 hover:scale-105"
                 >
@@ -680,6 +698,17 @@ export default function DashboardPage() {
           time: appointmentToComplete.time
         } : undefined}
         isLoading={isCompletingAppointment}
+      />
+
+      {/* Modal: Registrar Venda de Produto */}
+      <ProductSaleModal
+        isOpen={isProductSaleOpen}
+        onClose={() => setIsProductSaleOpen(false)}
+        onSuccess={async () => {
+          toast({ title: "✅ Sucesso", description: "Venda registrada!" })
+          await fetchDashboardData('today')
+        }}
+        professionals={(dashboardData?.professionals || []).map((p: any) => ({ id: p.id, name: p.name }))}
       />
     </div>
   )
