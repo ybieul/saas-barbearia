@@ -16,6 +16,68 @@ import Image from "next/image"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { ProductSaleModal } from "@/components/ui/product-sale-modal"
 
+function CollaboratorProductsWidget() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [commission, setCommission] = useState(0)
+  const [top, setTop] = useState<Array<{ name: string; quantity?: number }>>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const u = typeof window !== 'undefined' ? localStorage.getItem('user') : null
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const profId = u ? (JSON.parse(u)?.professionalId) : null
+        if (!profId) { setLoading(false); return }
+        const res = await fetch(`/api/reports?type=profitability&professionalId=${encodeURIComponent(profId)}`, {
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json?.message || 'Erro ao carregar')
+        const p = json?.data?.profitability || {}
+        setCommission(Number(p?.productCommissions || 0))
+        const list = Array.isArray(json?.data?.topProfitableProducts) ? json.data.topProfitableProducts : []
+        setTop(list.slice(0, 5))
+      } catch (e: any) {
+        setError(e?.message || 'Erro')
+        setCommission(0)
+        setTop([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="text-[#71717a] text-sm">Carregando…</div>
+  if (error) return <div className="text-red-400 text-sm">{error}</div>
+
+  return (
+    <div className="space-y-3">
+      <div className="text-2xl font-bold text-[#ededed]">
+        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commission)}
+      </div>
+      <div>
+        <p className="text-sm text-[#a1a1aa] mb-2">Meus Produtos Mais Vendidos</p>
+        {top.length === 0 ? (
+          <p className="text-xs text-[#71717a]">Sem vendas de produtos no período</p>
+        ) : (
+          <div className="space-y-2">
+            {top.map((p, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span className="text-[#ededed] truncate pr-2">{p.name}</span>
+                <span className="text-[#a1a1aa]">{p.quantity || 0}x</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [isCompletingAppointment, setIsCompletingAppointment] = useState(false)
@@ -90,37 +152,24 @@ export default function DashboardPage() {
     setIsPaymentModalOpen(true)
   }
 
-  // Função para concluir agendamento com forma de pagamento
-  const handleCompleteWithPayment = async (paymentMethod: string) => {
+  // Função para concluir agendamento com forma de pagamento e (opcional) produtos vendidos
+  const handleCompleteWithPayment = async ({ paymentMethod, soldProducts }: { paymentMethod: string, soldProducts: Array<{ productId: string, quantity: number }> }) => {
     if (!appointmentToComplete) return
-
     setIsCompletingAppointment(true)
     try {
-      // Chamar nova API de conclusão com pagamento
-      const response = await fetch(`/api/appointments/${appointmentToComplete.id}/complete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentMethod })
+      await updateAppointment({
+        id: appointmentToComplete.id,
+        status: 'COMPLETED',
+        paymentMethod,
+        paymentStatus: 'PAID',
+        soldProducts
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao concluir agendamento')
-      }
-
       toast({
         title: "✅ Sucesso",
-        description: "Agendamento concluído e pagamento registrado!",
+        description: soldProducts?.length ? "Agendamento concluído com venda de produto registrada!" : "Agendamento concluído e pagamento registrado!",
       })
-      
-      // Fechar modal e limpar estado
       setIsPaymentModalOpen(false)
       setAppointmentToComplete(null)
-      
-      // Recarregar dados do dashboard
       await fetchDashboardData('today')
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -503,7 +552,7 @@ export default function DashboardPage() {
                               </Badge>
                               {/* Badge de forma de pagamento quando concluído */}
                               {appointment.status === 'COMPLETED' && (() => {
-                                const pm = (appointment as any).paymentMethod as string | undefined
+                                const pm = appointment?.paymentMethod as string | undefined
                                 let label = 'Pagamento'
                                 let color = 'bg-zinc-700/20 text-zinc-300 border-zinc-600/30'
                                 let Icon: any = null
@@ -680,6 +729,19 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Colaborador: Produtos e Comissões */}
+          {user?.role === 'COLLABORATOR' && (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-foreground text-base lg:text-lg font-semibold">Minhas Comissões de Produtos</CardTitle>
+                <CardDescription className="text-muted-foreground text-xs lg:text-sm">Comissões geradas por vendas de produtos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CollaboratorProductsWidget />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -690,7 +752,9 @@ export default function DashboardPage() {
           setIsPaymentModalOpen(false)
           setAppointmentToComplete(null)
         }}
-        onSelectPayment={handleCompleteWithPayment}
+        onSelectPayment={(method) => handleCompleteWithPayment({ paymentMethod: method, soldProducts: [] })}
+        enableProductSelection
+        onComplete={handleCompleteWithPayment}
         appointmentData={appointmentToComplete ? {
           client: appointmentToComplete.client,
           service: appointmentToComplete.service,

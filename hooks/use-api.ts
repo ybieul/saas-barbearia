@@ -232,6 +232,7 @@ export function useAppointments() {
     notes?: string
     paymentMethod?: string
     paymentStatus?: string
+    soldProducts?: Array<{ productId: string, quantity: number }>
   }) => {
     return request('/api/appointments', {
       method: 'PUT',

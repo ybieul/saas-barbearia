@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { getBrazilDayOfWeek, getBrazilDayNameEn, debugTimezone, toLocalISOString, parseDatabaseDateTime, getBrazilNow, formatBrazilDate, formatBrazilTime } from '@/lib/timezone'
@@ -853,14 +854,22 @@ export async function PUT(request: NextRequest) {
       if (soldProducts && Array.isArray(soldProducts) && soldProducts.length > 0) {
         // Executar em transação: baixa de estoque + registro financeiro + salvar snapshot no agendamento
         await prisma.$transaction(async (tx) => {
-          const itemsSummary: any[] = []
+          const itemsSummary: Array<{
+            productId: string
+            name: string
+            quantity: number
+            salePrice: number
+            costPrice: number
+            commissionEarned: number
+          }> = []
 
           for (const item of soldProducts) {
             if (!item?.productId || !item?.quantity || item.quantity <= 0) {
               throw new Error('Item de produto inválido (productId e quantity > 0 são obrigatórios)')
             }
 
-            const product = await (tx as any).product.findFirst({ where: { id: item.productId, tenantId: user.tenantId } })
+            // @ts-expect-error Prisma Client local types podem estar desatualizados; model Product existe após a migração
+            const product = await tx.product.findFirst({ where: { id: item.productId, tenantId: user.tenantId } })
             if (!product) throw new Error('Produto não encontrado')
             if ((product.stockQuantity ?? 0) < item.quantity) {
               throw new Error(`Estoque insuficiente para ${product.name}`)
@@ -873,17 +882,19 @@ export async function PUT(request: NextRequest) {
             let commissionPct = 0
             if (profId) {
               const prof = await tx.professional.findFirst({ where: { id: String(profId), tenantId: user.tenantId } })
-              commissionPct = prof?.productCommissionPercentage ? Number(prof.productCommissionPercentage) : 0
+              commissionPct = Number((prof as unknown as { productCommissionPercentage?: number })?.productCommissionPercentage || 0)
             }
             const commission = saleAmount * commissionPct
 
             // Baixa de estoque
-            await (tx as any).product.update({ where: { id: product.id }, data: { stockQuantity: Math.max(0, Number(product.stockQuantity || 0) - qty) } })
+            // @ts-expect-error Prisma Client local types podem estar desatualizados; model Product existe após a migração
+            await tx.product.update({ where: { id: product.id }, data: { stockQuantity: Math.max(0, Number(product.stockQuantity || 0) - qty) } })
 
             // Registro financeiro
             await tx.financialRecord.create({
               data: {
                 type: 'INCOME',
+                // @ts-expect-error Campo recordSource existe após a migração
                 recordSource: 'PRODUCT_SALE_INCOME',
                 amount: saleAmount,
                 description: `Venda de ${qty}x ${product.name} (Agendamento ${appointment.id})`,
@@ -909,7 +920,8 @@ export async function PUT(request: NextRequest) {
           }
 
           // Persistir snapshot na própria tabela de agendamentos
-          await tx.appointment.update({ where: { id: appointment.id }, data: { soldProducts: itemsSummary as any } })
+          // @ts-expect-error Campo soldProducts (JSON) existe após a migração
+          await tx.appointment.update({ where: { id: appointment.id }, data: { soldProducts: itemsSummary as unknown as Prisma.InputJsonValue } })
         })
       }
 

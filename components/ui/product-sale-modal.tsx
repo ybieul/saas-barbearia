@@ -48,6 +48,10 @@ export function ProductSaleModal({
   const [quantity, setQuantity] = React.useState<number>(1)
   const [selectedProfessional, setSelectedProfessional] = React.useState<string | undefined>(defaultProfessionalId)
   const [clientId, setClientId] = React.useState<string>("")
+  const [clientSearch, setClientSearch] = React.useState<string>("")
+  const [clientsLoading, setClientsLoading] = React.useState(false)
+  const [clientResults, setClientResults] = React.useState<Array<{ id: string, name: string, phone?: string }>>([])
+  const [selectedClientLabel, setSelectedClientLabel] = React.useState<string>("")
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -96,6 +100,24 @@ export function ProductSaleModal({
     }, 250)
     return () => { if (debouncedRef.current) clearTimeout(debouncedRef.current) }
   }, [isOpen, search, fetchProducts])
+
+  // Buscar clientes por nome/telefone (debounce)
+  React.useEffect(() => {
+    if (!isOpen) return
+    const term = clientSearch.trim()
+    if (term.length < 2) { setClientResults([]); return }
+    const t = setTimeout(async () => {
+      try {
+        setClientsLoading(true)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        const sp = new URLSearchParams({ active: 'true', search: term })
+        const res = await fetch(`/api/clients?${sp.toString()}`, { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+        const data = await res.json()
+        setClientResults(Array.isArray(data?.clients) ? data.clients.map((c:any)=>({ id: c.id, name: c.name, phone: c.phone })) : [])
+      } catch { setClientResults([]) } finally { setClientsLoading(false) }
+    }, 250)
+    return () => clearTimeout(t)
+  }, [isOpen, clientSearch])
 
   const canSubmit = React.useMemo(() => {
     if (!selectedProduct) return false
@@ -260,16 +282,48 @@ export function ProductSaleModal({
               </Select>
             </div>
             <div>
-              <label className="block text-xs text-[#a1a1aa] mb-1">Cliente (opcional, ID)</label>
-              <div className="relative">
-                <User className="w-4 h-4 absolute left-2 top-2.5 text-[#71717a]" />
-                <Input
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  placeholder="ID do cliente (opcional)"
-                  className="pl-8 bg-[#27272a] border-[#3f3f46] text-[#ededed]"
-                />
-              </div>
+              <label className="block text-xs text-[#a1a1aa] mb-1">Cliente (opcional)</label>
+              {clientId ? (
+                <div className="flex items-center justify-between gap-2 p-2 rounded-md border border-[#27272a] bg-[#0f0f10]">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-tymer-icon" />
+                    <span className="text-sm text-[#ededed] truncate">{selectedClientLabel || clientId}</span>
+                  </div>
+                  <Button variant="outline" size="sm" className="border-[#3f3f46]" onClick={()=>{ setClientId(""); setSelectedClientLabel("") }}>Trocar</Button>
+                </div>
+              ) : (
+                <div>
+                  <div className="relative">
+                    <User className="w-4 h-4 absolute left-2 top-2.5 text-[#71717a]" />
+                    <Input
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      placeholder="Buscar por nome ou telefone..."
+                      className="pl-8 bg-[#27272a] border-[#3f3f46] text-[#ededed]"
+                    />
+                  </div>
+                  {clientSearch.length >= 2 && (
+                    <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-[#27272a] bg-[#0f0f10]">
+                      {clientsLoading ? (
+                        <div className="p-2 text-xs text-[#71717a]">Buscando clientes…</div>
+                      ) : clientResults.length === 0 ? (
+                        <div className="p-2 text-xs text-[#71717a]">Nenhum cliente encontrado</div>
+                      ) : (
+                        <ul className="divide-y divide-[#1f1f23]">
+                          {clientResults.map((c) => (
+                            <li key={c.id}>
+                              <button type="button" onClick={()=>{ setClientId(c.id); setSelectedClientLabel(`${c.name}${c.phone ? ` • ${c.phone}`: ''}`) }} className="w-full text-left p-2 hover:bg-[#1a1a1e]">
+                                <div className="text-sm text-[#ededed]">{c.name}</div>
+                                {c.phone && <div className="text-xs text-[#a1a1aa]">{c.phone}</div>}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
