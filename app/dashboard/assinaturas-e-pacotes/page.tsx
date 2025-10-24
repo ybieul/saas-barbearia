@@ -584,10 +584,13 @@ export default function MembershipsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal de criação (fiel ao de pacotes com seletor de tipo) */}
+      {/* Modal de criação (padronizado com o modal de agendamento) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="bg-[#18181b] border-[#3f3f46] text-[#ededed] max-w-2xl">
-          <DialogHeader>
+        <DialogContent
+          onOpenAutoFocus={(e) => { e.preventDefault() }}
+          className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-2xl mx-auto h-full sm:h-auto sm:max-h-[85vh] flex flex-col p-0"
+        >
+          <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 px-4 sm:px-6 pt-4 flex-shrink-0">
             <DialogTitle>{createType === 'SUBSCRIPTION' ? 'Nova Assinatura' : 'Novo Pacote'}</DialogTitle>
             <DialogDescription>
               {createType === 'SUBSCRIPTION'
@@ -596,7 +599,8 @@ export default function MembershipsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          {/* Corpo scrollável */}
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 space-y-4 mt-3">
             <div>
               <Label>Tipo</Label>
               <Select value={createType} onValueChange={(v: any) => setCreateType(v)}>
@@ -696,7 +700,7 @@ export default function MembershipsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex gap-3 p-4 sm:p-6 flex-shrink-0 pt-4 md:pt-2 border-t border-[#27272a]">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)} disabled={submitting}>Cancelar</Button>
             <Button onClick={handleCreate} className="bg-tymer-primary hover:bg-tymer-primary/80" disabled={submitting}>{submitting ? 'Salvando…' : (editingId ? 'Atualizar' : 'Salvar')}</Button>
           </DialogFooter>
