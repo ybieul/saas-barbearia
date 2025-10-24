@@ -129,6 +129,9 @@ model EndUser {
   // Assinaturas do cliente (back-relation)
   clientSubscriptions ClientSubscription[]
 
+  // Back-relation para registros financeiros onde este cliente aparece como comprador
+  financialRecords FinancialRecord[] @relation("FinancialRecordEndUser")
+
   // Índices para performance
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -178,6 +181,9 @@ model Professional {
   scheduleExceptions ScheduleException[]
   // Clientes criados por este profissional
   createdClients     EndUser[] @relation("ProfessionalCreatedClients")
+
+  // Back-relation para registros financeiros onde este profissional está vinculado (comissões, vendas, etc.)
+  financialRecords   FinancialRecord[] @relation("FinancialRecordProfessional")
 
   @@index([tenantId])
   @@map("professionals")
@@ -462,9 +468,9 @@ model FinancialRecord {
   commissionEarned Decimal?      @db.Decimal(10, 2)
   // Vínculos para relatórios
   professionalId  String?
-  professional    Professional?  @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  professional    Professional?  @relation("FinancialRecordProfessional", fields: [professionalId], references: [id], onDelete: SetNull)
   endUserId       String?
-  endUser         EndUser?       @relation(fields: [endUserId], references: [id], onDelete: SetNull)
+  endUser         EndUser?       @relation("FinancialRecordEndUser", fields: [endUserId], references: [id], onDelete: SetNull)
   
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
