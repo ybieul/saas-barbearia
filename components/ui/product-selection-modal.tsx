@@ -28,7 +28,13 @@ interface ProductSelectionModalProps {
 export function ProductSelectionModal({ open, onOpenChange, cart, onCartChange }: ProductSelectionModalProps) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<any[]>([])
+  interface ProductSearchResult {
+    id: string
+    name: string
+    salePrice?: number
+    stockQuantity?: number
+  }
+  const [results, setResults] = useState<ProductSearchResult[]>([])
 
   // Reset minimal quando fecha
   useEffect(() => {
@@ -52,7 +58,18 @@ export function ProductSelectionModal({ open, onOpenChange, cart, onCartChange }
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
         })
         const data = await res.json()
-        setResults(Array.isArray((data as any)?.products) ? (data as any).products : [])
+        const productsUnknown = (data as unknown as { products?: unknown }).products
+        const arr = Array.isArray(productsUnknown) ? productsUnknown : []
+        const mapped: ProductSearchResult[] = arr.map((x) => {
+          const o = x as Record<string, unknown>
+          return {
+            id: String(o['id']),
+            name: String(o['name'] ?? ''),
+            salePrice: Number(o['salePrice'] ?? 0),
+            stockQuantity: Number(o['stockQuantity'] ?? 0),
+          }
+        })
+        setResults(mapped)
       } catch {
         setResults([])
       } finally {
@@ -62,13 +79,13 @@ export function ProductSelectionModal({ open, onOpenChange, cart, onCartChange }
     return () => clearTimeout(t)
   }, [open, search])
 
-  const addToCart = (p: any) => {
+  const addToCart = (p: ProductSearchResult) => {
     onCartChange((() => {
       const exists = cart.find(i => i.productId === p.id)
       if (exists) {
         return cart.map(i => i.productId === p.id ? { ...i, quantity: Math.min(i.quantity + 1, Number(p.stockQuantity ?? 0)) } : i)
       }
-      return [...cart, { productId: p.id, name: p.name, salePrice: Number(p.salePrice || 0), stock: Number(p.stockQuantity ?? 0), quantity: 1 }]
+      return [...cart, { productId: p.id, name: p.name, salePrice: Number(p.salePrice ?? 0), stock: Number(p.stockQuantity ?? 0), quantity: 1 }]
     })())
   }
 
@@ -110,7 +127,7 @@ export function ProductSelectionModal({ open, onOpenChange, cart, onCartChange }
               <div className="p-3 text-sm text-[#71717a]">Nenhum produto encontrado</div>
             ) : (
               <ul className="divide-y divide-[#1f1f23]">
-                {results.map((p: any) => (
+                {results.map((p) => (
                   <li key={p.id}>
                     <button type="button" onClick={() => addToCart(p)} className="w-full text-left p-3 hover:bg-[#1a1a1e] flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -120,7 +137,7 @@ export function ProductSelectionModal({ open, onOpenChange, cart, onCartChange }
                           <div className="text-xs text-[#a1a1aa]">Estoque: {Number(p.stockQuantity ?? 0)}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.salePrice || 0))}</div>
+                      <div className="text-sm font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.salePrice ?? 0))}</div>
                     </button>
                   </li>
                 ))}

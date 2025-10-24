@@ -259,6 +259,37 @@ export function PaymentMethodModal({
               </div>
             )}
 
+            {/* Seleção de Produtos (opcional) - agora acima dos botões de pagamento */}
+            {enableProductSelection && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                    <h3 className="text-[#ededed] font-medium text-sm">Produtos vendidos (opcional)</h3>
+                  </div>
+                  {cart.length > 0 && (
+                    <span className="text-xs text-[#a1a1aa]">
+                      {cart.length} item(s) • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setProductModalOpen(true)}
+                  className="w-full justify-between bg-blue-500/10 hover:bg-blue-500/20 text-[#ededed] border border-blue-500/30 focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <span className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-blue-400" />
+                    Selecionar produtos
+                  </span>
+                  <span className="text-sm font-medium">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
+                  </span>
+                </Button>
+              </div>
+            )}
+
             {/* Seção de Formas de Pagamento */}
             <div className="space-y-3 md:space-y-4">
               <div className="flex items-center gap-2 md:hidden">
@@ -295,37 +326,6 @@ export function PaymentMethodModal({
                 })}
               </div>
             </div>
-
-            {/* Seleção de Produtos (opcional) - agora em sub-modal compacto */}
-            {enableProductSelection && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                    <h3 className="text-[#ededed] font-medium text-sm">Produtos vendidos (opcional)</h3>
-                  </div>
-                  {cart.length > 0 && (
-                    <span className="text-xs text-[#a1a1aa]">
-                      {cart.length} item(s) • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setProductModalOpen(true)}
-                  className="w-full justify-between border-[#3f3f46] bg-[#0f0f10] text-[#ededed]"
-                >
-                  <span className="flex items-center gap-2">
-                    <ShoppingCart className="w-4 h-4 text-tymer-icon" />
-                    Selecionar produtos
-                  </span>
-                  <span className="text-sm font-medium">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
-                  </span>
-                </Button>
-              </div>
-            )}
           </div>
         </div>
 
