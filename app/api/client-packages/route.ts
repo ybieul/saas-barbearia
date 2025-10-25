@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
     if (expiresAt) {
       expiresDate = new Date(expiresAt)
     } else if (preferredRenewalDay) {
-      const nextPref = nextOccurrenceOfDay(start, preferredRenewalDay)
+      const base = pkg.validDays ? new Date(start.getTime() + pkg.validDays * 24 * 60 * 60 * 1000) : start
+      const nextPref = nextOccurrenceOfDay(base, preferredRenewalDay)
       const dayBefore = new Date(nextPref)
       dayBefore.setDate(dayBefore.getDate() - 1)
       expiresDate = getBrazilEndOfDay(dayBefore)

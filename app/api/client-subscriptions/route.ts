@@ -84,12 +84,13 @@ export async function POST(request: NextRequest) {
       start = now
     }
 
-    // End date logic
+    // End date logic (alinhado ao dia preferido após (start + ciclo))
     let end: Date
     if (endDate) {
       end = new Date(endDate)
     } else if (preferredRenewalDay) {
-      const nextPref = nextOccurrenceOfDay(start, preferredRenewalDay)
+      const base = new Date(start.getTime() + plan.cycleInDays * 24 * 60 * 60 * 1000)
+      const nextPref = nextOccurrenceOfDay(base, preferredRenewalDay)
       const dayBefore = new Date(nextPref)
       dayBefore.setDate(dayBefore.getDate() - 1)
       end = getBrazilEndOfDay(dayBefore)
