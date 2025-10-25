@@ -282,6 +282,8 @@ model ClientSubscription {
 
   startDate DateTime
   endDate   DateTime
+  // Dia do mês preferido para renovação (1-31)
+  preferredRenewalDay Int?
   status    String           @default("ACTIVE") // "ACTIVE", "EXPIRED", "CANCELED"
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
@@ -345,6 +347,8 @@ model ClientPackage {
 
   purchasedAt DateTime       @default(now())
   expiresAt   DateTime?
+  // Dia do mês preferido para renovação/validade (1-31)
+  preferredRenewalDay Int?
 
   // Relations
   client      EndUser        @relation(fields: [clientId], references: [id], onDelete: Cascade)

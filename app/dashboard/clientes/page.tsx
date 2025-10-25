@@ -99,6 +99,8 @@ export default function ClientesPage() {
   const [isSellSubscriptionOpen, setIsSellSubscriptionOpen] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
+  const [preferredRenewalDayPkg, setPreferredRenewalDayPkg] = useState<string>('')
+  const [allowImmediateUsePkg, setAllowImmediateUsePkg] = useState<boolean>(true)
   const [selling, setSelling] = useState(false)
   const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; packageId?: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number }>>([])
   const [loadingClientPackages, setLoadingClientPackages] = useState(false)
@@ -109,6 +111,8 @@ export default function ClientesPage() {
   const [availablePlans, setAvailablePlans] = useState<Array<{ id: string; name: string }>>([])
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
+  const [preferredRenewalDaySub, setPreferredRenewalDaySub] = useState<string>('')
+  const [allowImmediateUseSub, setAllowImmediateUseSub] = useState<boolean>(true)
   // Ações por assinatura
   const [processingSubAction, setProcessingSubAction] = useState<string | null>(null)
   // AlertDialogs de confirmação/estorno
@@ -264,6 +268,8 @@ export default function ClientesPage() {
     setSelectedClient(client)
     setSelectedPackageId('')
     setOverridePrice('')
+    setPreferredRenewalDayPkg('')
+    setAllowImmediateUsePkg(true)
     setClientPackagesPage(1)
     // Carregar pacotes já vendidos para este cliente
     ;(async () => {
@@ -278,7 +284,7 @@ export default function ClientesPage() {
         if (!res.ok) { setClientPackagesList([]); setClientPackagesMeta(null) }
         else {
           const data = await res.json()
-          const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+          const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits, preferredRenewalDay: it.preferredRenewalDay }))
           setClientPackagesList(items)
           setClientPackagesMeta(data.meta || null)
         }
@@ -295,6 +301,8 @@ export default function ClientesPage() {
   const openSellSubscription = async (client: Client) => {
     setSelectedClient(client)
     await fetchAvailablePlans()
+    setPreferredRenewalDaySub('')
+    setAllowImmediateUseSub(true)
     setIsSellSubscriptionOpen(true)
   }
 
@@ -321,8 +329,8 @@ export default function ClientesPage() {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
       if (!res.ok) { return }
-      const data = await res.json()
-  const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits }))
+    const data = await res.json()
+  const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits, preferredRenewalDay: it.preferredRenewalDay }))
       setClientPackagesList(items)
       setClientPackagesMeta(data.meta || null)
       setClientPackagesPage(page)
@@ -349,7 +357,8 @@ export default function ClientesPage() {
         planName: r.plan?.name || r.planName,
         startDate: r.startDate,
         endDate: r.endDate,
-        status: r.status
+        status: r.status,
+        preferredRenewalDay: r.preferredRenewalDay
       }))
       setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: items }))
     } catch (e) {
@@ -405,7 +414,9 @@ export default function ClientesPage() {
     try {
       setProcessingSubAction(subscription.id)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+  const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+  const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscription.id)
+  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
       const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
       const res = await fetch('/api/client-subscriptions', {
@@ -440,7 +451,9 @@ export default function ClientesPage() {
     try {
       setProcessingAction(pkg.id)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, packageId }
+  const body: any = { clientId: selectedClient.id, packageId }
+  const current = (clientPackagesList || []).find((p: any) => p.id === pkg.id)
+  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
       const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
       const res = await fetch('/api/client-packages', {
@@ -503,7 +516,9 @@ export default function ClientesPage() {
       }
       setProcessingSubAction(subscriptionId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+  const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+  const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscriptionId)
+  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
       const parsed = price ? Number(String(price).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
       const res = await fetch('/api/client-subscriptions', {
@@ -537,7 +552,9 @@ export default function ClientesPage() {
       }
       setProcessingAction(clientPackageId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, packageId }
+  const body: any = { clientId: selectedClient.id, packageId }
+  const current = (clientPackagesList || []).find((p: any) => p.id === clientPackageId)
+  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
       const parsed = price ? Number(String(price).replace(',', '.')) : undefined
       if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
       const res = await fetch('/api/client-packages', {
@@ -563,11 +580,14 @@ export default function ClientesPage() {
       if (selling) return
       setSelling(true)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { clientId: selectedClient.id, packageId: selectedPackageId, overridePrice: overridePrice || undefined }
+      if (preferredRenewalDayPkg) body.preferredRenewalDay = Number(preferredRenewalDayPkg)
+      body.allowImmediateUse = Boolean(allowImmediateUsePkg)
       const res = await fetch('/api/client-packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         credentials: 'include',
-        body: JSON.stringify({ clientId: selectedClient.id, packageId: selectedPackageId, overridePrice: overridePrice || undefined })
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Erro ao vender pacote')
@@ -583,16 +603,21 @@ export default function ClientesPage() {
     try {
       setSelling(true)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const body: any = { clientId: selectedClient.id, planId: selectedPlanId, overridePrice: overridePlanPrice ? Number(overridePlanPrice) : undefined }
+      if (preferredRenewalDaySub) body.preferredRenewalDay = Number(preferredRenewalDaySub)
+      body.allowImmediateUse = Boolean(allowImmediateUseSub)
       const res = await fetch('/api/client-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ clientId: selectedClient.id, planId: selectedPlanId, overridePrice: overridePlanPrice ? Number(overridePlanPrice) : undefined })
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Erro ao vender assinatura')
       setIsSellSubscriptionOpen(false)
       setSelectedPlanId('')
       setOverridePlanPrice('')
+      setPreferredRenewalDaySub('')
+      setAllowImmediateUseSub(true)
       // Recarregar assinaturas para refletir imediatamente no modal (se abrir novamente)
       await reloadSelectedClientSubscriptions()
     } catch (e) {
@@ -1673,6 +1698,30 @@ export default function ClientesPage() {
               <Label>Preço (opcional)</Label>
               <Input type="number" step="0.01" placeholder="Usar preço do pacote" value={overridePrice} onChange={e => setOverridePrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
             </div>
+            <div className="space-y-2">
+              <Label>Dia preferencial para renovação/vencimento</Label>
+              <select
+                className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
+                value={preferredRenewalDayPkg}
+                onChange={(e) => setPreferredRenewalDayPkg(e.target.value)}
+              >
+                <option value="">Não definir</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={String(d)}>{d}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[#71717a]">Se definido, a validade será alinhada ao dia escolhido. Para iniciar apenas no próximo dia escolhido, desmarque "Permitir uso imediato".</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="allow-immediate-pkg"
+                type="checkbox"
+                checked={allowImmediateUsePkg}
+                onChange={(e) => setAllowImmediateUsePkg(e.target.checked)}
+                className="h-4 w-4 rounded border-[#3f3f46] bg-[#27272a] text-tymer-primary focus:ring-tymer-primary"
+              />
+              <label htmlFor="allow-immediate-pkg" className="text-sm text-[#a1a1aa]">Permitir uso imediato</label>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
             <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
@@ -1756,6 +1805,30 @@ export default function ClientesPage() {
             <div className="space-y-2">
               <Label>Preço (opcional)</Label>
               <Input type="number" step="0.01" placeholder="Usar preço do plano" value={overridePlanPrice} onChange={e => setOverridePlanPrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+            </div>
+            <div className="space-y-2">
+              <Label>Dia preferencial para renovação/vencimento</Label>
+              <select
+                className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
+                value={preferredRenewalDaySub}
+                onChange={(e) => setPreferredRenewalDaySub(e.target.value)}
+              >
+                <option value="">Não definir</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={String(d)}>{d}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[#71717a]">Se definido, os ciclos serão alinhados a esse dia. Para iniciar apenas no próximo dia escolhido, desmarque "Permitir uso imediato".</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="allow-immediate-sub"
+                type="checkbox"
+                checked={allowImmediateUseSub}
+                onChange={(e) => setAllowImmediateUseSub(e.target.checked)}
+                className="h-4 w-4 rounded border-[#3f3f46] bg-[#27272a] text-tymer-primary focus:ring-tymer-primary"
+              />
+              <label htmlFor="allow-immediate-sub" className="text-sm text-[#a1a1aa]">Permitir uso imediato</label>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">

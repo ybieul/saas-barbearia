@@ -3,9 +3,27 @@ import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import type { Prisma } from '@prisma/client'
 import { verifyToken } from '@/lib/auth'
+import { getBrazilEndOfDay, getBrazilNow } from '@/lib/timezone'
+
+function clampPreferredDay(day?: any): number | undefined {
+  const n = Number(day)
+  if (!Number.isFinite(n)) return undefined
+  if (n < 1 || n > 31) return undefined
+  return Math.floor(n)
+}
+
+function nextOccurrenceOfDay(base: Date, day: number): Date {
+  const d = new Date(base)
+  const year = d.getFullYear()
+  const month = d.getMonth()
+  if (d.getDate() < day) {
+    return new Date(year, month, day, 0, 0, 0, 0)
+  }
+  return new Date(year, month + 1, day, 0, 0, 0, 0)
+}
 
 // POST /api/client-packages - vender um pacote para um cliente
-// body: { clientId, packageId, expiresAt?, overridePrice? }
+// body: { clientId, packageId, expiresAt?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean }
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -13,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Apenas o dono pode vender pacotes' }, { status: 403 })
     }
 
-    const { clientId, packageId, expiresAt, overridePrice } = await request.json()
+    const { clientId, packageId, expiresAt, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse } = await request.json()
     if (!clientId || !packageId) {
       return NextResponse.json({ message: 'clientId e packageId são obrigatórios' }, { status: 400 })
     }
@@ -30,14 +48,53 @@ export async function POST(request: NextRequest) {
     if (!client) return NextResponse.json({ message: 'Cliente não encontrado' }, { status: 404 })
 
     const priceToCharge = overridePrice != null ? Number(overridePrice) : Number(pkg.totalPrice)
-    const expiresDate = expiresAt ? new Date(expiresAt) : (pkg.validDays ? new Date(Date.now() + pkg.validDays * 24 * 60 * 60 * 1000) : null)
+    let preferredRenewalDay = clampPreferredDay(prefDayRaw)
+
+    // Fallback: se não enviado, recuperar do último pacote deste cliente para o mesmo packageId
+    if (preferredRenewalDay == null) {
+      try {
+        const last = await prisma.clientPackage.findFirst({
+          where: { clientId, packageId },
+          orderBy: { purchasedAt: 'desc' },
+          select: { preferredRenewalDay: true }
+        })
+        if (last?.preferredRenewalDay != null) preferredRenewalDay = last.preferredRenewalDay
+      } catch {
+        // fallback via SQL cru não é necessário aqui, findFirst deve funcionar
+      }
+    }
+
+    const now = getBrazilNow()
+    // Determine start (purchasedAt) and expiresAt
+    let start: Date
+    if (allowImmediateUse === false && preferredRenewalDay) {
+      start = nextOccurrenceOfDay(now, preferredRenewalDay)
+    } else {
+      start = now
+    }
+
+    let expiresDate: Date | null
+    if (expiresAt) {
+      expiresDate = new Date(expiresAt)
+    } else if (preferredRenewalDay) {
+      const nextPref = nextOccurrenceOfDay(start, preferredRenewalDay)
+      const dayBefore = new Date(nextPref)
+      dayBefore.setDate(dayBefore.getDate() - 1)
+      expiresDate = getBrazilEndOfDay(dayBefore)
+    } else if (pkg.validDays) {
+      expiresDate = new Date(start.getTime() + pkg.validDays * 24 * 60 * 60 * 1000)
+    } else {
+      expiresDate = null
+    }
 
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const cp = await tx.clientPackage.create({
         data: ({
           clientId,
           packageId,
+          purchasedAt: start,
           expiresAt: expiresDate,
+          preferredRenewalDay: preferredRenewalDay,
           // Créditos unificados por pacote
           creditsTotal: Number.isFinite(Number((pkg as any).defaultCredits)) ? Math.max(parseInt(String((pkg as any).defaultCredits), 10) || 1, 1) : 1,
           usedCredits: 0

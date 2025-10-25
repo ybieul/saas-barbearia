@@ -2,9 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
+import { getBrazilEndOfDay, getBrazilNow } from '@/lib/timezone'
+
+function clampPreferredDay(day?: any): number | undefined {
+  const n = Number(day)
+  if (!Number.isFinite(n)) return undefined
+  if (n < 1 || n > 31) return undefined
+  return Math.floor(n)
+}
+
+function nextOccurrenceOfDay(base: Date, day: number): Date {
+  const d = new Date(base)
+  // always consider strictly after base date
+  const year = d.getFullYear()
+  const month = d.getMonth()
+  if (d.getDate() < day) {
+    return new Date(year, month, day, 0, 0, 0, 0)
+  }
+  return new Date(year, month + 1, day, 0, 0, 0, 0)
+}
 
 // POST /api/client-subscriptions - vender uma assinatura para um cliente
-// body: { clientId, planId, startDate?, endDate?, overridePrice? }
+// body: { clientId, planId, startDate?, endDate?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean }
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -12,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Apenas o dono pode vender assinaturas' }, { status: 403 })
     }
 
-    const { clientId, planId, startDate, endDate, overridePrice } = await request.json()
+  const { clientId, planId, startDate, endDate, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse } = await request.json()
     if (!clientId || !planId) {
       return NextResponse.json({ message: 'clientId e planId são obrigatórios' }, { status: 400 })
     }
@@ -32,14 +51,57 @@ export async function POST(request: NextRequest) {
     const client = await prisma.endUser.findFirst({ where: { id: clientId, tenantId: user.tenantId } })
     if (!client) return NextResponse.json({ message: 'Cliente não encontrado' }, { status: 404 })
 
-    const start = startDate ? new Date(startDate) : new Date()
-    const end = endDate ? new Date(endDate) : new Date(start.getTime() + plan.cycleInDays * 24 * 60 * 60 * 1000)
+    let preferredRenewalDay = clampPreferredDay(prefDayRaw)
+
+    // Fallback: se não foi enviado, recuperar do último registro deste cliente+plano
+    if (preferredRenewalDay == null) {
+      try {
+        const last = await (prisma as any).clientSubscription.findFirst({
+          where: { clientId, planId },
+          orderBy: { startDate: 'desc' },
+          select: { preferredRenewalDay: true }
+        })
+        if (last?.preferredRenewalDay != null) preferredRenewalDay = last.preferredRenewalDay
+      } catch {
+        const rows = await prisma.$queryRaw<Array<{ preferredRenewalDay: number | null }>>`
+          SELECT preferredRenewalDay FROM client_subscriptions
+          WHERE clientId = ${clientId} AND planId = ${planId}
+          ORDER BY startDate DESC
+          LIMIT 1
+        `
+        if (rows.length && rows[0]?.preferredRenewalDay != null) preferredRenewalDay = rows[0].preferredRenewalDay as any
+      }
+    }
+
+    // Start date logic
+    const now = getBrazilNow()
+    let start: Date
+    if (startDate) {
+      start = new Date(startDate)
+    } else if (allowImmediateUse === false && preferredRenewalDay) {
+      start = nextOccurrenceOfDay(now, preferredRenewalDay)
+    } else {
+      start = now
+    }
+
+    // End date logic
+    let end: Date
+    if (endDate) {
+      end = new Date(endDate)
+    } else if (preferredRenewalDay) {
+      const nextPref = nextOccurrenceOfDay(start, preferredRenewalDay)
+      const dayBefore = new Date(nextPref)
+      dayBefore.setDate(dayBefore.getDate() - 1)
+      end = getBrazilEndOfDay(dayBefore)
+    } else {
+      end = new Date(start.getTime() + plan.cycleInDays * 24 * 60 * 60 * 1000)
+    }
 
     const priceToCharge = overridePrice != null ? Number(overridePrice) : Number(plan.price)
 
     const result = await prisma.$transaction(async (tx) => {
   const sub = await (tx as any).clientSubscription.create({
-        data: { clientId, planId, startDate: start, endDate: end, status: 'ACTIVE' }
+    data: { clientId, planId, startDate: start, endDate: end, status: 'ACTIVE', preferredRenewalDay: preferredRenewalDay }
       })
 
       await tx.financialRecord.create({
@@ -100,7 +162,7 @@ export async function GET(request: NextRequest) {
               ORDER BY cs.startDate DESC
               LIMIT ${pageSize} OFFSET ${skip}
             `
-            return rows.map(r => ({ id: r.id, clientId: r.clientId, planId: r.planId, startDate: r.startDate, endDate: r.endDate, status: r.status, plan: { id: r.planId, name: r.planName, price: r.planPrice, cycleInDays: r.cycleInDays } }))
+              return rows.map(r => ({ id: r.id, clientId: r.clientId, planId: r.planId, startDate: r.startDate, endDate: r.endDate, status: r.status, preferredRenewalDay: r.preferredRenewalDay, plan: { id: r.planId, name: r.planName, price: r.planPrice, cycleInDays: r.cycleInDays } }))
           }),
           delegate?.count ? delegate.count({ where }).catch(async () => {
             const cnt = await prisma.$queryRaw<Array<any>>`
@@ -139,6 +201,7 @@ export async function GET(request: NextRequest) {
           startDate: r.startDate,
           endDate: r.endDate,
             status: r.status,
+          preferredRenewalDay: r.preferredRenewalDay,
           plan: { id: r.planId, name: r.planName, price: r.planPrice, cycleInDays: r.cycleInDays }
         }))
         return NextResponse.json({ items, meta: { page, pageSize, total, hasNext: total > page * pageSize }, warning: 'Listagem via SQL bruto (delegate indisponível).' })
@@ -170,6 +233,7 @@ export async function GET(request: NextRequest) {
         startDate: r.startDate,
         endDate: r.endDate,
         status: r.status,
+        preferredRenewalDay: r.preferredRenewalDay,
         plan: { id: r.planId, name: r.planName, price: r.planPrice, cycleInDays: r.cycleInDays }
       }))
     }
