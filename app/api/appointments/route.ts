@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { finalizeAppointmentCore } from '@/lib/finalize-appointment'
 import type { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
@@ -813,9 +814,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    if (status === 'COMPLETED') {
-      updateData.completedAt = new Date()
-    }
+    // completedAt será definido pelo núcleo de conclusão para manter consistência de timezone
 
     const appointment = await prisma.appointment.update({
       where: { id },
@@ -848,33 +847,22 @@ export async function PUT(request: NextRequest) {
       }
     })
 
-    // Atualizar estatísticas do cliente se o agendamento foi concluído
+    // Conclusão transacional (produtos + serviço + origem PREPAID)
     if (status === 'COMPLETED') {
-      // Processar vendas de produtos vinculadas (opcional)
-      if (soldProducts && Array.isArray(soldProducts) && soldProducts.length > 0) {
-        // Executar em transação: baixa de estoque + registro financeiro + salvar snapshot no agendamento
-        await prisma.$transaction(async (tx) => {
-          const itemsSummary: Array<{
-            productId: string
-            name: string
-            quantity: number
-            salePrice: number
-            costPrice: number
-            commissionEarned: number
-          }> = []
-
+      const finalized = await prisma.$transaction(async (tx) => {
+        // 1) Vendas de produtos (opcional)
+        if (soldProducts && Array.isArray(soldProducts) && soldProducts.length > 0) {
+          const itemsSummary: Array<{ productId: string; name: string; quantity: number; salePrice: number; costPrice: number; commissionEarned: number }>= []
           for (const item of soldProducts) {
             if (!item?.productId || !item?.quantity || item.quantity <= 0) {
               throw new Error('Item de produto inválido (productId e quantity > 0 são obrigatórios)')
             }
-
             // @ts-expect-error Prisma Client local types podem estar desatualizados; model Product existe após a migração
             const product = await tx.product.findFirst({ where: { id: item.productId, tenantId: user.tenantId } })
             if (!product) throw new Error('Produto não encontrado')
             if ((product.stockQuantity ?? 0) < item.quantity) {
               throw new Error(`Estoque insuficiente para ${product.name}`)
             }
-
             const qty = Number(item.quantity)
             const saleAmount = Number(product.salePrice) * qty
             const unitCost = Number(product.costPrice)
@@ -885,12 +873,10 @@ export async function PUT(request: NextRequest) {
               commissionPct = Number((prof as unknown as { productCommissionPercentage?: number })?.productCommissionPercentage || 0)
             }
             const commission = saleAmount * commissionPct
-
             // Baixa de estoque
             // @ts-expect-error Prisma Client local types podem estar desatualizados; model Product existe após a migração
             await tx.product.update({ where: { id: product.id }, data: { stockQuantity: Math.max(0, Number(product.stockQuantity || 0) - qty) } })
-
-            // Registro financeiro
+            // Registro financeiro (produto)
             await tx.financialRecord.create({
               data: {
                 type: 'INCOME',
@@ -901,49 +887,27 @@ export async function PUT(request: NextRequest) {
                 category: 'VENDAS',
                 productId: product.id,
                 quantity: qty,
-                costPrice: unitCost, // unit cost
+                costPrice: unitCost,
                 commissionEarned: commission,
                 professionalId: profId,
                 endUserId: appointment.endUserId,
                 tenantId: user.tenantId
               }
             })
-
-            itemsSummary.push({
-              productId: product.id,
-              name: product.name,
-              quantity: qty,
-              salePrice: Number(product.salePrice),
-              costPrice: unitCost,
-              commissionEarned: commission
-            })
+            itemsSummary.push({ productId: product.id, name: product.name, quantity: qty, salePrice: Number(product.salePrice), costPrice: unitCost, commissionEarned: commission })
           }
-
-          // Persistir snapshot na própria tabela de agendamentos
+          // Snapshot no agendamento
           // @ts-expect-error Campo soldProducts (JSON) existe após a migração
           await tx.appointment.update({ where: { id: appointment.id }, data: { soldProducts: itemsSummary as unknown as Prisma.InputJsonValue } })
-        })
-      }
-
-      const clientStats = await prisma.appointment.aggregate({
-        where: {
-          endUserId: appointment.endUserId,
-          status: 'COMPLETED'
-        },
-        _count: true,
-        _sum: {
-          totalPrice: true
         }
+
+        // 2) Concluir serviço (paymentSource/discount/commission/etc)
+        const methodToUse = paymentMethod || appointment.paymentMethod || 'CASH'
+        const finalizedAppointment = await finalizeAppointmentCore(tx, { appointmentId: id, paymentMethod: String(methodToUse) })
+        return finalizedAppointment
       })
 
-      await prisma.endUser.update({
-        where: { id: appointment.endUserId },
-        data: {
-          totalVisits: clientStats._count,
-          totalSpent: clientStats._sum.totalPrice || 0,
-          lastVisit: toLocalISOString(getBrazilNow()) // 🇧🇷 CORREÇÃO CRÍTICA: String em vez de Date object
-        }
-      })
+      return NextResponse.json({ appointment: finalized, message: 'Agendamento atualizado com sucesso' })
     }
 
     return NextResponse.json({ appointment, message: 'Agendamento atualizado com sucesso' })
