@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { useState, useEffect, createContext, useContext } from "react"
+import { DndContext, closestCenter, type DragEndEvent, useSensors, useSensor, MouseSensor, TouchSensor } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -60,17 +60,50 @@ import {
   Check,
 } from "lucide-react"
 
-// Wrapper de item ordenável para Drag-and-Drop dos serviços
+// Contexto para expor o handle (ativador) do item ordenável
+const SortableItemCtx = createContext<{
+  attributes: any
+  listeners: any
+  setActivatorNodeRef: (element: HTMLElement | null) => void
+} | null>(null)
+
+// Wrapper de item ordenável: aplica transformações ao container e expõe o handle via contexto
 function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <div ref={setNodeRef} style={style}>
+      <SortableItemCtx.Provider value={{ attributes, listeners, setActivatorNodeRef }}>
+        {children}
+      </SortableItemCtx.Provider>
     </div>
+  )
+}
+
+// Botão de "grip" que ativa o drag (handle-only)
+function DragHandleButton({ className = "", title = "Arraste para reordenar" }: { className?: string; title?: string }) {
+  const ctx = useContext(SortableItemCtx)
+  return (
+    <button
+      type="button"
+      aria-label="Arraste para reordenar"
+      title={title}
+      ref={ctx ? ctx.setActivatorNodeRef : undefined}
+      {...(ctx?.attributes || {})}
+      {...(ctx?.listeners || {})}
+      className={
+        "flex items-center justify-center touch-none cursor-grab active:cursor-grabbing " +
+        "w-8 h-8 rounded-full bg-[#27272a] border border-[#3f3f46] text-[#a1a1aa] shadow-md " +
+        className
+      }
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 7h.01M9 12h.01M9 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
   )
 }
 
@@ -434,6 +467,12 @@ export default function ConfiguracoesPage() {
       setOrderedServices(orderedServices)
     }
   }
+
+  // Sensores DnD: garantem suporte confiável no mobile (touch) e desktop (mouse)
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  )
 
   // Carrega dados iniciais
   useEffect(() => {
@@ -2472,7 +2511,12 @@ export default function ConfiguracoesPage() {
               <Card className="bg-[#18181b] border-[#27272a]">
               <CardHeader>
                 <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-                  <CardTitle className="text-lg sm:text-xl text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl text-[#a1a1aa]">Serviços Oferecidos</CardTitle>
+                    <p className="text-xs sm:text-sm text-[#71717a] mt-1">
+                      Arraste o grip no canto superior direito de cada card para definir a ordem exibida na Página Pública. As alterações são salvas automaticamente.
+                    </p>
+                  </div>
                   <Dialog open={isNewServiceOpen} onOpenChange={setIsNewServiceOpen}>
                     <DialogTrigger asChild>
                       <Button className="bg-tymer-primary hover:bg-tymer-primary/80 text-white w-full sm:w-auto">
@@ -2642,7 +2686,7 @@ export default function ConfiguracoesPage() {
                       <p className="text-sm">Clique em "Novo Serviço" para adicionar o primeiro serviço.</p>
                     </div>
                   ) : (
-                    <DndContext collisionDetection={closestCenter} onDragEnd={handleServicesDragEnd}>
+                    <DndContext collisionDetection={closestCenter} onDragEnd={handleServicesDragEnd} sensors={sensors}>
                       <SortableContext items={orderedServices.map((s:any) => s.id)} strategy={verticalListSortingStrategy}>
                     {orderedServices.map((service) => (
                       <SortableItem key={service.id} id={service.id}>
@@ -2666,17 +2710,10 @@ export default function ConfiguracoesPage() {
                                 {service.description || "Descrição não informada"}
                               </p>
                             </div>
-                            {/* o grip ficará posicionado fora do card (à direita), visível também no mobile */}
-                            <button
-                              type="button"
-                              aria-label="Arraste para reordenar"
-                              className="flex items-center justify-center absolute right-[-10px] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#27272a] border border-[#3f3f46] text-[#a1a1aa] shadow-md cursor-grab active:cursor-grabbing"
-                              title="Arraste para reordenar"
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9 7h.01M9 12h.01M9 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </button>
+                            {/* Grip posicionado no canto superior direito do card (mobile e desktop) */}
+                            <div className="absolute top-2 right-2">
+                              <DragHandleButton />
+                            </div>
                           </div>
                           
                           {/* Ações - Mobile em coluna (texto visível), desktop permanece horizontal */}

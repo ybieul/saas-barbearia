@@ -2,6 +2,11 @@ declare module '@dnd-kit/core' {
   export const DndContext: any
   export const closestCenter: any
   export type DragEndEvent = any
+  // Shims adicionais para uso no mobile/desktop
+  export const useSensors: any
+  export const useSensor: any
+  export const MouseSensor: any
+  export const TouchSensor: any
 }
 
 declare module '@dnd-kit/sortable' {

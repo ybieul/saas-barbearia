@@ -37,7 +37,7 @@ const baseMenu: MenuItem[] = [
   { icon: Users, label: "Clientes", href: "/dashboard/clientes", description: "Base de clientes" },
   { icon: UserX, label: "Clientes Inativos", href: "/dashboard/clientes-inativos", description: "Reativar clientes" },
   { icon: DollarSign, label: "Relatório e Financeiro", href: "/dashboard/financeiro", description: "Receitas, relatórios e análises" },
-  { icon: Boxes, label: "Estoque", href: "/dashboard/estoque", description: "Gestão de produtos e estoque", roles: ['OWNER'] },
+  { icon: Boxes, label: "Estoque (Manutenção)", href: "/dashboard/estoque", description: "Gestão de produtos e estoque", roles: ['OWNER'] },
   { icon: MessageCircle, label: "WhatsApp", href: "/dashboard/whatsapp", description: "Automação de mensagens", roles: ['OWNER'] },
   { icon: Crown, label: "Minha Assinatura", href: "/dashboard/assinatura", description: "Gerenciar plano e assinatura", roles: ['OWNER'] },
   { icon: Layers, label: "Assinaturas e Pacotes", href: "/dashboard/assinaturas-e-pacotes", description: "Gerenciar planos e pacotes", roles: ['OWNER'] },
