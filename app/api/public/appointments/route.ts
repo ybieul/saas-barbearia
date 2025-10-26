@@ -201,7 +201,8 @@ export async function POST(request: NextRequest) {
         where: { 
           id: { in: services },
           tenantId: business.id 
-        }
+        },
+        orderBy: { displayOrder: 'asc' }
       })
 
       if (allServices.length !== services.length) {

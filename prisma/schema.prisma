@@ -226,6 +226,8 @@ model Service {
   isActive    Boolean  @default(true)
   // Controle de visibilidade na página pública de agendamento
   isVisibleOnPublicPage Boolean @default(true)
+  // Ordem de exibição na listagem pública e interna (menor primeiro)
+  displayOrder Int? @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -16,7 +16,10 @@ export async function GET(request: NextRequest) {
         ...(active !== null && { isActive: active === 'true' }),
         ...(category && { category })
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { displayOrder: 'asc' },
+        { createdAt: 'asc' }
+      ],
       include: {
         professionals: {
           select: {

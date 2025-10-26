@@ -55,8 +55,8 @@ export async function GET(
         category: true
       },
       orderBy: [
-        { category: 'asc' },
-        { price: 'asc' }
+        { displayOrder: 'asc' },
+        { name: 'asc' }
       ]
     })
 

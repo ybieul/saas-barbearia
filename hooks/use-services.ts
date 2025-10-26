@@ -10,6 +10,7 @@ interface Service {
   image?: string | null
   isActive: boolean
   isVisibleOnPublicPage?: boolean
+  displayOrder?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -23,6 +24,7 @@ interface UseServicesReturn {
   updateServiceImage: (serviceId: string, imageBase64: string | null) => Promise<Service | null>
   deleteService: (id: string) => Promise<Service | null>
   fetchServices: () => Promise<void>
+  reorderServices: (serviceIds: string[]) => Promise<boolean>
 }
 
 export function useServices(): UseServicesReturn {
@@ -209,6 +211,31 @@ export function useServices(): UseServicesReturn {
     await fetchServicesInternal(signal)
   }, [fetchServicesInternal])
 
+  const reorderServices = async (serviceIds: string[]): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch('/api/services/reorder', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ serviceIds }),
+        credentials: 'include'
+      })
+      if (!res.ok) return false
+      // Atualiza estado local conforme nova ordem
+      setServices(prev => {
+        const map = new Map(prev.map(s => [s.id, s]))
+        return serviceIds.map((id, index) => ({ ...(map.get(id) as Service), displayOrder: index }))
+      })
+      return true
+    } catch (e) {
+      if (process.env.NODE_ENV === 'development') console.error('Erro ao reordenar serviços:', e)
+      return false
+    }
+  }
+
   useEffect(() => {
     // Executa no mount e cancela em unmount
     const controller = new AbortController()
@@ -225,5 +252,6 @@ export function useServices(): UseServicesReturn {
     updateServiceImage,
     deleteService,
     fetchServices,
+    reorderServices,
   }
 }

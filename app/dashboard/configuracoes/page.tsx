@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +59,20 @@ import {
   EyeOff,
   Check,
 } from "lucide-react"
+
+// Wrapper de item ordenável para Drag-and-Drop dos serviços
+function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  )
+}
 
 // Componente para alteração de senha
 function ChangePasswordSection() {
@@ -392,8 +409,31 @@ export default function ConfiguracoesPage() {
     updateService,
     updateServiceImage,
     deleteService,
-    fetchServices
+    fetchServices,
+    reorderServices
   } = useServices()
+
+  // Lista ordenável local dos serviços
+  const [orderedServices, setOrderedServices] = useState<any[]>([])
+  useEffect(() => {
+    const sorted = [...(dbServices || [])].sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+    setOrderedServices(sorted)
+  }, [dbServices])
+
+  const handleServicesDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = orderedServices.findIndex((s) => s.id === active.id)
+    const newIndex = orderedServices.findIndex((s) => s.id === over.id)
+    const newOrder = arrayMove(orderedServices, oldIndex, newIndex)
+    setOrderedServices(newOrder)
+    // persistir
+    const ok = await reorderServices(newOrder.map((s: any) => s.id))
+    if (!ok) {
+      // rollback simples se falhar
+      setOrderedServices(orderedServices)
+    }
+  }
 
   // Carrega dados iniciais
   useEffect(() => {
@@ -2602,9 +2642,11 @@ export default function ConfiguracoesPage() {
                       <p className="text-sm">Clique em "Novo Serviço" para adicionar o primeiro serviço.</p>
                     </div>
                   ) : (
-                    dbServices.map((service) => (
+                    <DndContext collisionDetection={closestCenter} onDragEnd={handleServicesDragEnd}>
+                      <SortableContext items={orderedServices.map((s:any) => s.id)} strategy={verticalListSortingStrategy}>
+                    {orderedServices.map((service) => (
+                      <SortableItem key={service.id} id={service.id}>
                       <div
-                        key={service.id}
                         className="p-3 sm:p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
                       >
                         {/* Header com imagem e ações - Mobile-friendly */}
@@ -2623,6 +2665,13 @@ export default function ConfiguracoesPage() {
                               <p className="text-xs text-[#71717a] truncate">
                                 {service.description || "Descrição não informada"}
                               </p>
+                            </div>
+                            <div className="hidden sm:flex items-center text-[#71717a]">
+                              <span className="cursor-grab active:cursor-grabbing p-2" aria-label="Arraste para reordenar">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M9 7h.01M9 12h.01M9 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </span>
                             </div>
                           </div>
                           
@@ -2708,7 +2757,10 @@ export default function ConfiguracoesPage() {
                           )}
                         </div>
                       </div>
-                    ))
+                      </SortableItem>
+                    ))}
+                      </SortableContext>
+                    </DndContext>
                   )}
                 </div>
               </CardContent>
