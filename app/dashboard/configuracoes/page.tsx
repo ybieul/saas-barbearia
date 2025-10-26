@@ -2647,7 +2647,7 @@ export default function ConfiguracoesPage() {
                     {orderedServices.map((service) => (
                       <SortableItem key={service.id} id={service.id}>
                       <div
-                        className="p-3 sm:p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
+                        className="relative p-3 sm:p-4 bg-tymer-card/50 rounded-lg border border-tymer-border hover:bg-tymer-card/70 transition-colors"
                       >
                         {/* Header com imagem e ações - Mobile-friendly */}
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -2666,13 +2666,17 @@ export default function ConfiguracoesPage() {
                                 {service.description || "Descrição não informada"}
                               </p>
                             </div>
-                            <div className="hidden sm:flex items-center text-[#71717a]">
-                              <span className="cursor-grab active:cursor-grabbing p-2" aria-label="Arraste para reordenar">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M9 7h.01M9 12h.01M9 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </span>
-                            </div>
+                            {/* o grip ficará posicionado fora do card (à direita), visível também no mobile */}
+                            <button
+                              type="button"
+                              aria-label="Arraste para reordenar"
+                              className="flex items-center justify-center absolute right-[-10px] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#27272a] border border-[#3f3f46] text-[#a1a1aa] shadow-md cursor-grab active:cursor-grabbing"
+                              title="Arraste para reordenar"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 7h.01M9 12h.01M9 17h.01M15 7h.01M15 12h.01M15 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
                           </div>
                           
                           {/* Ações - Mobile em coluna (texto visível), desktop permanece horizontal */}
