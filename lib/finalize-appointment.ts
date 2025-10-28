@@ -1,6 +1,7 @@
 import { toLocalISOString, getBrazilNow } from '@/lib/timezone'
 import { Prisma, WhatsAppStatus, WhatsAppType } from '@prisma/client'
-import { formatPhoneNumber } from '@/lib/whatsapp-server'
+import { getTenantWhatsAppConfig, isAutomationEnabled } from '@/lib/whatsapp-tenant-helper'
+import { sendMultiTenantWhatsAppMessage } from '@/lib/whatsapp-multi-tenant'
 
 // Núcleo único de conclusão de agendamento.
 // Responsável por:
@@ -330,30 +331,6 @@ export async function finalizeAppointmentCore(tx: any, params: FinalizeParams) {
 }
 
 // ===================== FEEDBACK IMEDIATO AO CONCLUIR =====================
-async function sendEvolutionText(instanceName: string, toRaw: string, text: string): Promise<boolean> {
-  const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
-  const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) return false
-
-  const number = formatPhoneNumber(toRaw)
-  try {
-    const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': EVOLUTION_API_KEY,
-        },
-        body: JSON.stringify({ number, text, delay: 500 })
-      }
-    )
-    if (!res.ok) return false
-    // const data = await res.json().catch(() => null)
-    return true
-  } catch {
-    return false
-  }
-}
 
 type TenantAutomationLite = Prisma.TenantGetPayload<{
   select: {
@@ -372,12 +349,19 @@ export async function maybeSendImmediateFeedback(tx: any, appointment: Prisma.Ap
   // Pré-condições
   if (!appointment?.endUser?.phone) return
 
-  // Carregar tenant e automação de feedback
+  // 1) Config multi-tenant (mesmo pipeline da confirmação)
+  const config = await getTenantWhatsAppConfig(appointment.tenantId)
+  if (!config || !config.instanceName) return
+
+  // 2) Automação habilitada
+  const enabled = await isAutomationEnabled(appointment.tenantId, 'feedback_request')
+  if (!enabled) return
+
+  // 3) Checar delay=0 e obter template/link do tenant
   const tenant: TenantAutomationLite | null = await tx.tenant.findUnique({
     where: { id: appointment.tenantId },
     select: {
       businessName: true,
-      whatsapp_instance_name: true,
       googleReviewLink: true,
       feedbackDelayMinutes: true,
       automationSettings: {
@@ -386,11 +370,8 @@ export async function maybeSendImmediateFeedback(tx: any, appointment: Prisma.Ap
       }
     }
   })
-
   if (!tenant) return
-  if (!tenant.whatsapp_instance_name) return
-  if (tenant.feedbackDelayMinutes !== 0) return
-
+  if ((tenant.feedbackDelayMinutes ?? 45) !== 0) return
   const automation = tenant.automationSettings?.[0]
   if (!automation || !automation.isEnabled) return
 
@@ -413,7 +394,13 @@ export async function maybeSendImmediateFeedback(tx: any, appointment: Prisma.Ap
     .replace(/\{linkAvaliacao\}/g, tenant.googleReviewLink || '')
     .replace(/\{linkTracking\}/g, '')
 
-  const sent = await sendEvolutionText(tenant.whatsapp_instance_name, appointment.endUser.phone, message)
+  // 4) Enviar via pipeline multi-tenant unificado
+  const sent = await sendMultiTenantWhatsAppMessage({
+    to: appointment.endUser.phone,
+    message,
+    instanceName: config.instanceName,
+    type: 'custom',
+  })
   if (!sent) return
 
   // Marcar como enviado + criar log
