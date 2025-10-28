@@ -375,16 +375,9 @@ export async function maybeSendImmediateFeedback(tx: any, appointment: Prisma.Ap
   const automation = tenant.automationSettings?.[0]
   if (!automation || !automation.isEnabled) return
 
-  // Evitar duplicado: checar log FEEDBACK nas últimas 3h
-  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000)
-  const existing = await tx.whatsAppLog.findFirst({
-    where: {
-      to: appointment.endUser.phone,
-      type: WhatsAppType.FEEDBACK,
-      createdAt: { gte: threeHoursAgo }
-    }
-  })
-  if (existing) return
+  // Evitar duplicado por agendamento: se já foi marcado como enviado, não reenviar
+  const apptState = await tx.appointment.findUnique({ where: { id: appointment.id }, select: { feedbackSent: true } })
+  if (apptState?.feedbackSent) return
 
   // Montar mensagem
   const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
