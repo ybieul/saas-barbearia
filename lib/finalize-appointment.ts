@@ -1,4 +1,6 @@
 import { toLocalISOString, getBrazilNow } from '@/lib/timezone'
+import { Prisma, WhatsAppStatus, WhatsAppType } from '@prisma/client'
+import { formatPhoneNumber } from '@/lib/whatsapp-server'
 
 // Núcleo único de conclusão de agendamento.
 // Responsável por:
@@ -317,5 +319,113 @@ export async function finalizeAppointmentCore(tx: any, params: FinalizeParams) {
     })
   }
 
+  // 11) Feedback imediato (delay=0) se automação habilitada
+  try {
+    await maybeSendImmediateFeedback(tx, appointment)
+  } catch (_) {
+    // não bloquear a conclusão por falha no envio
+  }
+
   return appointment
+}
+
+// ===================== FEEDBACK IMEDIATO AO CONCLUIR =====================
+async function sendEvolutionText(instanceName: string, toRaw: string, text: string): Promise<boolean> {
+  const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
+  const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) return false
+
+  const number = formatPhoneNumber(toRaw)
+  try {
+    const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({ number, text, delay: 500 })
+      }
+    )
+    if (!res.ok) return false
+    // const data = await res.json().catch(() => null)
+    return true
+  } catch {
+    return false
+  }
+}
+
+type TenantAutomationLite = Prisma.TenantGetPayload<{
+  select: {
+    businessName: true
+    whatsapp_instance_name: true
+    googleReviewLink: true
+    feedbackDelayMinutes: true
+    automationSettings: {
+      where: { automationType: string }
+      select: { isEnabled: true, messageTemplate: true }
+    }
+  }
+}>
+
+export async function maybeSendImmediateFeedback(tx: any, appointment: Prisma.AppointmentGetPayload<{ include: { endUser: true } }>) {
+  // Pré-condições
+  if (!appointment?.endUser?.phone) return
+
+  // Carregar tenant e automação de feedback
+  const tenant: TenantAutomationLite | null = await tx.tenant.findUnique({
+    where: { id: appointment.tenantId },
+    select: {
+      businessName: true,
+      whatsapp_instance_name: true,
+      googleReviewLink: true,
+      feedbackDelayMinutes: true,
+      automationSettings: {
+        where: { automationType: 'feedback_request' },
+        select: { isEnabled: true, messageTemplate: true }
+      }
+    }
+  })
+
+  if (!tenant) return
+  if (!tenant.whatsapp_instance_name) return
+  if (tenant.feedbackDelayMinutes !== 0) return
+
+  const automation = tenant.automationSettings?.[0]
+  if (!automation || !automation.isEnabled) return
+
+  // Evitar duplicado: checar log FEEDBACK nas últimas 3h
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const existing = await tx.whatsAppLog.findFirst({
+    where: {
+      to: appointment.endUser.phone,
+      type: WhatsAppType.FEEDBACK,
+      createdAt: { gte: threeHoursAgo }
+    }
+  })
+  if (existing) return
+
+  // Montar mensagem
+  const template = automation.messageTemplate || 'Olá {nomeCliente}! Obrigado por escolher a {nomeBarbearia}. Deixe sua avaliação: {linkAvaliacao}'
+  const message = template
+    .replace(/\{nomeCliente\}/g, appointment.endUser.name)
+    .replace(/\{nomeBarbearia\}/g, tenant.businessName || 'nossa barbearia')
+    .replace(/\{linkAvaliacao\}/g, tenant.googleReviewLink || '')
+    .replace(/\{linkTracking\}/g, '')
+
+  const sent = await sendEvolutionText(tenant.whatsapp_instance_name, appointment.endUser.phone, message)
+  if (!sent) return
+
+  // Marcar como enviado + criar log
+  await tx.$executeRaw`UPDATE appointments SET feedbackSent = 1 WHERE id = ${appointment.id}`
+  await tx.whatsAppLog.create({
+    data: {
+      to: appointment.endUser.phone,
+      message,
+      type: WhatsAppType.FEEDBACK,
+      status: WhatsAppStatus.SENT,
+      sentAt: new Date(),
+      tenantId: appointment.tenantId,
+    }
+  })
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma, WhatsAppType, WhatsAppStatus } from '@prisma/client'
 import { whatsappTemplates } from '../lib/whatsapp-server'
 import { getBrazilNow, formatBrazilDate, formatBrazilTime, addTimeToBrazilDate } from '../lib/timezone'
 import { randomBytes } from 'crypto'
@@ -209,7 +209,15 @@ export async function sendFeedbackRequests() {
   const now = getBrazilNow()
   // Janela ampla 6h e filtragem dinâmica por delay configurado
   const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000)
-  const appointmentsBase = await prisma.appointment.findMany({
+  type AppointmentWithAutomation = Prisma.AppointmentGetPayload<{
+    include: {
+      tenant: { include: { automationSettings: true } },
+      endUser: true,
+      services: true,
+    }
+  }>;
+
+  const appointmentsBase: AppointmentWithAutomation[] = await prisma.appointment.findMany({
     where: {
       status: 'COMPLETED',
   completedAt: { gte: sixHoursAgo, lte: now },
@@ -223,21 +231,29 @@ export async function sendFeedbackRequests() {
       endUser: true,
       services: true
     }
-  }) as any
-  const sentRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`, sixHoursAgo, now)
-  const sentSet = new Set(sentRows.map(r => r.id))
-  const appointments = appointmentsBase.filter((a: any) => !sentSet.has(a.id))
+  })
+  const sentRows: Array<{ id: string }> = await prisma.$queryRawUnsafe(
+    `SELECT id FROM appointments WHERE feedbackSent = 1 AND completedAt >= ? AND completedAt <= ?`,
+    sixHoursAgo,
+    now
+  )
+  const sentSet = new Set(sentRows.map((r) => r.id))
+  const appointments = appointmentsBase.filter((a) => !sentSet.has(a.id))
   console.log(`🔍 [FEEDBACK] Candidatos (6h, filtrados sem enviados): ${appointments.length}`)
   let sentCount = 0
   for (const appt of appointments) {
     try {
       if (!appt.completedAt) continue
-      const automation = appt.tenant?.automationSettings?.find((a: any) => a.automationType === 'feedback_request' && a.isEnabled)
+    const automation = appt.tenant?.automationSettings?.find((a) => a.automationType === 'feedback_request' && a.isEnabled)
       if (!automation) continue
       if (!appt.endUser?.phone) continue
 
   // Respeitar 0 (imediato): usar nullish coalescing em vez de OR
-  const delay = (appt.tenant as any).feedbackDelayMinutes ?? 45
+  const delay = appt.tenant.feedbackDelayMinutes ?? 45
+      // Cron não processa imediatos (< 15 min); envio imediato é feito no ato da conclusão
+      if (delay < 15) {
+        continue
+      }
       const tolerance = 5
       const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000)
       const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000)
@@ -247,10 +263,10 @@ export async function sendFeedbackRequests() {
       const existingLog = await prisma.whatsAppLog.findFirst({
         where: {
           to: appt.endUser.phone,
-          type: 'FEEDBACK' as any,
+          type: WhatsAppType.FEEDBACK,
           createdAt: { gte: new Date(now.getTime() - 3 * 60 * 60 * 1000) }
         }
-      }) as any
+      })
       if (existingLog) {
         console.log(`⚠️ [FEEDBACK] Já existe log FEEDBACK recente para telefone ${appt.endUser.phone}`)
         continue
@@ -273,8 +289,8 @@ export async function sendFeedbackRequests() {
             data: {
               to: appt.endUser.phone,
               message,
-              type: 'FEEDBACK' as any,
-              status: 'SENT' as any,
+              type: WhatsAppType.FEEDBACK,
+              status: WhatsAppStatus.SENT,
               sentAt: new Date(),
               tenantId: appt.tenantId
             }
@@ -286,8 +302,8 @@ export async function sendFeedbackRequests() {
               data: {
                 to: appt.endUser.phone,
                 message,
-                type: 'CUSTOM' as any,
-                status: 'SENT' as any,
+                type: WhatsAppType.CUSTOM,
+                status: WhatsAppStatus.SENT,
                 sentAt: new Date(),
                 tenantId: appt.tenantId
               }
@@ -384,7 +400,16 @@ async function sendMultiTenantWhatsAppMessage(
   }
 }
 
-async function sendReminderMessage(appointment: any, reminderType: string, instanceName: string) {
+type AppointmentForReminder = Prisma.AppointmentGetPayload<{
+  include: {
+    tenant: true,
+    endUser: { select: { id: true; name: true; phone: true } },
+    services: { select: { id: true; name: true; price: true; duration: true } },
+    professional: { select: { id: true; name: true } },
+  }
+}>
+
+async function sendReminderMessage(appointment: AppointmentForReminder, reminderType: string, instanceName: string) {
   console.log(`📧 [REMINDER] Iniciando envio de lembrete ${reminderType} para ${appointment.endUser.name}`)
   
   if (!appointment.endUser.phone) {
@@ -396,11 +421,11 @@ async function sendReminderMessage(appointment: any, reminderType: string, insta
   const templateData = {
     clientName: appointment.endUser.name,
     businessName: appointment.tenant.businessName || 'Nossa Barbearia',
-    service: appointment.services.map((s: any) => s.name).join(', ') || 'Serviço',
+    service: appointment.services.map((s) => s.name).join(', ') || 'Serviço',
     professional: appointment.professional?.name || 'Profissional',
     date: formatBrazilDate(appointmentDate),
     time: formatBrazilTime(appointmentDate),
-    totalTime: appointment.services.reduce((total: number, s: any) => total + s.duration, 0),
+    totalTime: appointment.services.reduce((total, s) => total + s.duration, 0),
     price: appointment.totalPrice,
     businessPhone: appointment.tenant.businessPhone || '',
   }

@@ -228,6 +228,9 @@ function sendFeedbackRequests() {
                 const delay = (appt.tenant && appt.tenant.feedbackDelayMinutes !== undefined && appt.tenant.feedbackDelayMinutes !== null)
                     ? appt.tenant.feedbackDelayMinutes
                     : 45;
+                if (delay < 15) {
+                    continue;
+                }
                 const tolerance = 5; // minutos de tolerância para janela
                 const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000);
                 const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000);
