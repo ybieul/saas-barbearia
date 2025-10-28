@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { finalizeAppointmentCore } from "@/lib/finalize-appointment"
+import { finalizeAppointmentCore, maybeSendImmediateFeedback } from "@/lib/finalize-appointment"
 
 export async function PATCH(
   request: NextRequest,
@@ -20,6 +20,13 @@ export async function PATCH(
     const appointment = await prisma.$transaction(async (tx) => {
       return finalizeAppointmentCore(tx, { appointmentId, paymentMethod })
     })
+
+    // Garantia: disparo imediato de feedback quando delay=0
+    try {
+      await maybeSendImmediateFeedback(prisma, appointment)
+    } catch (_) {
+      // não bloquear a conclusão por falha no envio
+    }
 
     return NextResponse.json({
       success: true,
