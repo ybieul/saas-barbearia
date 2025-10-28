@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { ProductSaleModal } from "@/components/ui/product-sale-modal"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 function CollaboratorProductsWidget() {
   const [loading, setLoading] = useState(true)
@@ -861,33 +861,22 @@ export default function DashboardPage() {
         professionals={(dashboardData?.professionals || []).map((p: any) => ({ id: p.id, name: p.name }))}
       />
 
-      {/* Dialogo de confirmação de cancelamento */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(open ? confirmDialog : { isOpen: false })}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Cancelar Agendamento</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja cancelar este agendamento?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1 text-sm">
-            {confirmDialog.clientName && (
-              <p className="text-foreground"><span className="text-[#a1a1aa]">Cliente:</span> {confirmDialog.clientName}</p>
-            )}
-            {confirmDialog.serviceName && (
-              <p className="text-foreground"><span className="text-[#a1a1aa]">Serviço:</span> {confirmDialog.serviceName}</p>
-            )}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" className="border-[#27272a] hover:bg-[#27272a]" onClick={() => setConfirmDialog({ isOpen: false })}>
-              Voltar
-            </Button>
-            <Button onClick={confirmCancel} disabled={isCancellingAppointment} className="bg-red-500 hover:bg-red-600 text-white">
-              {isCancellingAppointment ? 'Cancelando...' : 'Cancelar Agendamento'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialogo de confirmação de cancelamento (padronizado) */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false })}
+        onConfirm={confirmCancel}
+        title="Cancelar Agendamento"
+        description="Tem certeza que deseja cancelar este agendamento?"
+        confirmText={isCancellingAppointment ? 'Cancelando...' : 'Cancelar Agendamento'}
+        confirmVariant="destructive"
+        cancelText="Voltar"
+        type="default"
+        itemName={[
+          confirmDialog.clientName ? `Cliente: ${confirmDialog.clientName}` : undefined,
+          confirmDialog.serviceName ? `Serviço: ${confirmDialog.serviceName}` : undefined,
+        ].filter(Boolean).join(' • ')}
+      />
     </div>
   )
 }
