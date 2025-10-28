@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin, Zap, Smartphone, CreditCard, Star } from "lucide-react"
+import { DollarSign, Users, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle, ChevronRight, User, MapPin, Zap, Smartphone, CreditCard, Star, XCircle } from "lucide-react"
 import { useDashboard } from "@/hooks/use-api"
 import { useAppointments } from "@/hooks/use-api"
 import { useBusinessData } from "@/hooks/use-business-data"
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentMethodModal } from "@/components/ui/payment-method-modal"
 import { ProductSaleModal } from "@/components/ui/product-sale-modal"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 function CollaboratorProductsWidget() {
   const [loading, setLoading] = useState(true)
@@ -84,6 +85,10 @@ export default function DashboardPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isProductSaleOpen, setIsProductSaleOpen] = useState(false)
   const [appointmentToComplete, setAppointmentToComplete] = useState<any>(null)
+  const [isCancellingAppointment, setIsCancellingAppointment] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; appointmentId?: string; clientName?: string; serviceName?: string }>(
+    { isOpen: false }
+  )
   const { dashboardData, loading, error, fetchDashboardData } = useDashboard()
   const { updateAppointment } = useAppointments()
   const { businessData } = useBusinessData()
@@ -228,6 +233,32 @@ export default function DashboardPage() {
         </div>
       </div>
     )
+  }
+
+  // Abrir diálogo de confirmação para cancelar
+  const handleCancelAppointment = (appointment: any) => {
+    setConfirmDialog({
+      isOpen: true,
+      appointmentId: appointment?.id,
+      clientName: appointment?.client || 'Cliente',
+      serviceName: appointment?.service || 'Serviço'
+    })
+  }
+
+  // Confirmar cancelamento
+  const confirmCancel = async () => {
+    if (!confirmDialog.appointmentId) return
+    try {
+      setIsCancellingAppointment(true)
+      await updateAppointment({ id: confirmDialog.appointmentId, status: 'CANCELLED' })
+      toast({ title: 'Sucesso', description: 'Agendamento cancelado com sucesso!' })
+      setConfirmDialog({ isOpen: false })
+      await fetchDashboardData('today')
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Não foi possível cancelar o agendamento.', variant: 'destructive' })
+    } finally {
+      setIsCancellingAppointment(false)
+    }
   }
 
   if (error) {
@@ -415,20 +446,33 @@ export default function DashboardPage() {
                       </div>
                       
                       {/* Ações */}
-                      <div className="flex items-center gap-2 pt-2">
+                      <div className="flex items-center gap-2 pt-2 flex-wrap">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="flex-1 border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-xs lg:text-sm"
+                          className="flex-1 min-w-[110px] border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-xs lg:text-sm"
                           onClick={() => router.push('/dashboard/clientes')}
                         >
                           <User className="w-3 h-3 mr-1" />
                           <span className="hidden sm:inline">Ver Cliente</span>
                           <span className="sm:hidden">Ver Cliente</span>
                         </Button>
+                        {(item.nextAppointment.status !== 'COMPLETED' && item.nextAppointment.status !== 'CANCELLED') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-[110px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white text-xs lg:text-sm"
+                            onClick={() => handleCancelAppointment(item.nextAppointment)}
+                            disabled={isCancellingAppointment}
+                            title="Cancelar agendamento"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            {isCancellingAppointment ? '...' : 'Cancelar'}
+                          </Button>
+                        )}
                         <Button 
                           size="sm" 
-                          className="flex-1 bg-primary hover:bg-primary/80 text-primary-foreground text-xs lg:text-sm"
+                          className="flex-1 min-w-[110px] bg-primary hover:bg-primary/80 text-primary-foreground text-xs lg:text-sm"
                           onClick={() => handleCompleteAppointment(item.nextAppointment)}
                           disabled={isCompletingAppointment}
                         >
@@ -495,16 +539,29 @@ export default function DashboardPage() {
                   <span className="ml-2 text-xs">({nextAppointment.duration} min)</span>
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="border-primary/30 hover:bg-primary/10 hover:border-primary/50"
+                  className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 min-w-[120px]"
                   onClick={() => router.push('/dashboard/clientes')}
                 >
                   <User className="w-4 h-4 mr-1" />
                   Ver Histórico
                 </Button>
+                {(nextAppointment.status !== 'COMPLETED' && nextAppointment.status !== 'CANCELLED') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white min-w-[120px]"
+                    onClick={() => handleCancelAppointment(nextAppointment)}
+                    disabled={isCancellingAppointment}
+                    title="Cancelar agendamento"
+                  >
+                    <XCircle className="w-4 h-4 mr-1" />
+                    {isCancellingAppointment ? '...' : 'Cancelar'}
+                  </Button>
+                )}
                 <Button 
                   size="sm" 
                   className="bg-primary hover:bg-primary/80 text-primary-foreground"
@@ -803,6 +860,34 @@ export default function DashboardPage() {
         }}
         professionals={(dashboardData?.professionals || []).map((p: any) => ({ id: p.id, name: p.name }))}
       />
+
+      {/* Dialogo de confirmação de cancelamento */}
+      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(open ? confirmDialog : { isOpen: false })}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Cancelar Agendamento</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja cancelar este agendamento?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1 text-sm">
+            {confirmDialog.clientName && (
+              <p className="text-foreground"><span className="text-[#a1a1aa]">Cliente:</span> {confirmDialog.clientName}</p>
+            )}
+            {confirmDialog.serviceName && (
+              <p className="text-foreground"><span className="text-[#a1a1aa]">Serviço:</span> {confirmDialog.serviceName}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" className="border-[#27272a] hover:bg-[#27272a]" onClick={() => setConfirmDialog({ isOpen: false })}>
+              Voltar
+            </Button>
+            <Button onClick={confirmCancel} disabled={isCancellingAppointment} className="bg-red-500 hover:bg-red-600 text-white">
+              {isCancellingAppointment ? 'Cancelando...' : 'Cancelar Agendamento'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
