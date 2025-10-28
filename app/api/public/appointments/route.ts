@@ -27,6 +27,18 @@ async function sendPublicConfirmationMessage(
 ) {
   console.log(`📧 [PUBLIC-CONFIRMATION] Iniciando processo de confirmação para agendamento público: ${appointment.id}`)
   
+  // Guarda defensiva: caso algum fluxo chegue aqui com data passada, não enviar.
+  try {
+    const nowBrazil = getBrazilNow()
+    const apptDate = new Date(appointment.dateTime)
+    if (apptDate < nowBrazil) {
+      console.log(`⚠️ [PUBLIC-CONFIRMATION] Skipping retroactive appointment (${apptDate.toString()} < ${nowBrazil.toString()})`)
+      return
+    }
+  } catch (e) {
+    console.warn('⚠️ [PUBLIC-CONFIRMATION] Falha ao avaliar retroatividade; seguindo com fluxo padrão', e)
+  }
+  
   // ✅ VERIFICAÇÃO 1: Buscar configuração WhatsApp do tenant (business)
   const tenantConfig = await getTenantWhatsAppConfig(business.id)
   

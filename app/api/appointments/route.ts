@@ -22,6 +22,19 @@ function generateId(): string {
 async function sendConfirmationMessage(appointment: any) {
   console.log(`📧 [CONFIRMATION] Iniciando processo de confirmação para agendamento: ${appointment.id}`)
   
+  // ⛔ Regra anti-retroativo: não enviar confirmação para agendamento no passado
+  try {
+    const nowBrazil = getBrazilNow()
+    const apptDate = new Date(appointment.dateTime)
+    if (apptDate < nowBrazil) {
+      console.log(`⚠️ [CONFIRMATION] Skipping: agendamento retroativo (${apptDate.toString()} < ${nowBrazil.toString()})`)
+      return
+    }
+  } catch (e) {
+    // Em caso de qualquer erro na comparação, manter fluxo normal para não bloquear indevidamente
+    console.warn('⚠️ [CONFIRMATION] Falha ao avaliar retroatividade; seguindo com fluxo padrão', e)
+  }
+  
   // ✅ VERIFICAÇÃO 1: Buscar configuração WhatsApp do tenant
   const tenantConfig = await getTenantWhatsAppConfig(appointment.tenantId)
   
