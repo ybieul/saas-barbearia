@@ -240,7 +240,8 @@ export async function sendFeedbackRequests() {
       if (!automation) continue
       if (!appt.endUser?.phone) continue
 
-      const delay = appt.tenant.feedbackDelayMinutes || 45
+  // Respeitar 0 (imediato). Usar nullish coalescing para não cair no fallback quando delay=0
+  const delay = (appt.tenant as any).feedbackDelayMinutes ?? 45
       const tolerance = 5 // minutos de tolerância para janela
       const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000)
       const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000)

@@ -224,7 +224,10 @@ function sendFeedbackRequests() {
                     continue;
                 if (!((_c = appt.endUser) === null || _c === void 0 ? void 0 : _c.phone))
                     continue;
-                const delay = appt.tenant.feedbackDelayMinutes || 45;
+                // Respeitar 0 (imediato): usar nullish coalescing para não cair no fallback quando delay=0
+                const delay = (appt.tenant && appt.tenant.feedbackDelayMinutes !== undefined && appt.tenant.feedbackDelayMinutes !== null)
+                    ? appt.tenant.feedbackDelayMinutes
+                    : 45;
                 const tolerance = 5; // minutos de tolerância para janela
                 const targetTime = new Date(new Date(appt.completedAt).getTime() + delay * 60 * 1000);
                 const windowStart = new Date(targetTime.getTime() - tolerance * 60 * 1000);

@@ -639,7 +639,11 @@ export default function WhatsAppPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white font-medium">Enviar mensagem de avaliação</p>
-                <p className="text-sm text-[#71717a]">Solicita avaliação X minutos após concluir</p>
+                <p className="text-sm text-[#71717a]">
+                  {feedback.delayMinutes === 0
+                    ? 'Imediatamente após concluir'
+                    : 'Solicita avaliação X minutos após concluir'}
+                </p>
               </div>
               <Switch
                 checked={feedback.enabled}
@@ -674,7 +678,7 @@ export default function WhatsAppPage() {
             <div className="space-y-2">
               <Label className="text-gray-300">Atraso (minutos após finalizar)</Label>
               <select
-                value={feedback.delayMinutes || 45}
+                value={typeof feedback.delayMinutes === 'number' ? feedback.delayMinutes : 45}
                 onChange={async (e) => {
                   const value = parseInt(e.target.value, 10)
                   setFeedback(f => ({ ...f, delayMinutes: value }))
@@ -683,6 +687,7 @@ export default function WhatsAppPage() {
                 }}
                 className="w-full bg-gray-700 border-[#3f3f46] text-white rounded px-3 py-2 text-sm"
               >
+                <option value={0}>Imediatamente (0 min)</option>
                 {[15,30,45,60,90].map(v => <option key={v} value={v}>{v} minutos</option>)}
               </select>
               <p className="text-xs text-[#52525b]">Janela de envio considera ±5 min de tolerância.</p>
