@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { finalizeAppointmentCore } from '@/lib/finalize-appointment'
+import { finalizeAppointmentCore, maybeSendImmediateFeedback } from '@/lib/finalize-appointment'
 import type { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
@@ -906,6 +906,13 @@ export async function PUT(request: NextRequest) {
         const finalizedAppointment = await finalizeAppointmentCore(tx, { appointmentId: id, paymentMethod: String(methodToUse) })
         return finalizedAppointment
       })
+
+      // Garantia extra: disparo imediato de feedback (delay=0) também após a transação
+      try {
+        await maybeSendImmediateFeedback(prisma, finalized)
+      } catch {
+        // não bloquear resposta por falha no envio imediato
+      }
 
       return NextResponse.json({ appointment: finalized, message: 'Agendamento atualizado com sucesso' })
     }
