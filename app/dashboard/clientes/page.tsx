@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown } from 'lucide-react'
+import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Switch } from "@/components/ui/switch"
 import { useServicePackages } from '@/hooks/use-service-packages'
@@ -653,7 +654,7 @@ export default function ClientesPage() {
   // Fidelização: cálculo status
   // ==========================
   type MemberStatus = 'GREEN' | 'YELLOW' | 'RED' | 'NONE'
-  const getMembershipStatus = (client: Client): { status: MemberStatus; dueDate: Date | null; source: 'SUBSCRIPTION' | 'PACKAGE' | 'NONE' } => {
+  const getMembershipStatus = (client: Client): { status: MemberStatus; dueDate: Date | null; source: 'SUBSCRIPTION' | 'PACKAGE' | 'NONE'; diffDays: number | null } => {
     const now = new Date()
     const sub = client.clientSubscriptions?.[0]
     const pkg = client.clientPackages?.[0]
@@ -665,9 +666,11 @@ export default function ClientesPage() {
     if (!subActive && !pkgActive) {
       // Se existe algum registro porém vencido/sem créditos, considera RED; senão NONE
       if (sub || pkg) {
-        return { status: 'RED', dueDate: sub?.endDate ? new Date(sub.endDate) : (pkg?.expiresAt ? new Date(pkg.expiresAt) : null), source: sub ? 'SUBSCRIPTION' : (pkg ? 'PACKAGE' : 'NONE') }
+        const d = sub?.endDate ? new Date(sub.endDate) : (pkg?.expiresAt ? new Date(pkg.expiresAt) : null)
+        const dd = d ? Math.floor((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
+        return { status: 'RED', dueDate: d, source: sub ? 'SUBSCRIPTION' : (pkg ? 'PACKAGE' : 'NONE'), diffDays: dd }
       }
-      return { status: 'NONE', dueDate: null, source: 'NONE' }
+      return { status: 'NONE', dueDate: null, source: 'NONE', diffDays: null }
     }
 
     // Escolher o mais relevante (maior validade)
@@ -690,7 +693,7 @@ export default function ClientesPage() {
     else if (diffDays <= 5) status = 'YELLOW'
     else status = 'GREEN'
 
-    return { status, dueDate: chosen.date, source: chosen.source }
+    return { status, dueDate: chosen.date, source: chosen.source, diffDays }
   }
 
   const calculateClientStats = (client: Client) => {
@@ -1008,12 +1011,26 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* Legenda das cores de fidelização */}
-      <div className="px-2 sm:px-0 text-xs text-[#a1a1aa] flex flex-wrap gap-3 items-center">
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500/30 border border-green-500/40"></span> Verde: válido por mais de 5 dias</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/40"></span> Amarelo: vence em até 5 dias</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500/30 border border-red-500/40"></span> Vermelho: vencido ou sem créditos</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-transparent border border-[#3f3f46]"></span> Sem cor: sem assinatura/pacote</span>
+      {/* Legenda das cores: comprimida em tooltip para ocupar menos espaço */}
+      <div className="px-2 sm:px-0 text-xs text-[#a1a1aa]">
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="inline-flex items-center gap-1 text-[#a1a1aa] hover:text-[#ededed]">
+                <Info className="w-4 h-4" />
+                <span className="underline decoration-dotted">Legenda de cores</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-[#1f1f23] border-[#2f2f33]">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-500/30 border border-green-500/40"></span> <span>Verde: válido por mais de 5 dias</span></div>
+                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/40"></span> <span>Amarelo: vence em até 5 dias</span></div>
+                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-red-500/30 border border-red-500/40"></span> <span>Vermelho: vencido ou sem créditos</span></div>
+                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-transparent border border-[#3f3f46]"></span> <span>Sem cor: sem assinatura/pacote</span></div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Clients list */}
@@ -1056,6 +1073,45 @@ export default function ClientesPage() {
               if (membership.status === 'GREEN') statusColorClass = 'bg-green-500/10 hover:bg-green-500/20'
               else if (membership.status === 'YELLOW') statusColorClass = 'bg-yellow-500/10 hover:bg-yellow-500/20'
               else if (membership.status === 'RED') statusColorClass = 'bg-red-500/10 hover:bg-red-500/20'
+
+              // Badge textual com tooltip
+              let badgeClass = ''
+              let badgeText = ''
+              let badgeTooltip = ''
+              if (membership.status !== 'NONE') {
+                if (membership.status === 'GREEN') {
+                  badgeClass = 'bg-green-500/20 text-green-300 border-green-500/30'
+                  const dd = membership.diffDays ?? null
+                  if (membership.dueDate) {
+                    if (dd !== null) {
+                      badgeText = dd > 5 ? 'Plano válido' : 'Vence em breve'
+                      badgeTooltip = dd === 0 ? 'Vence hoje' : `Vence em ${dd} dia${dd === 1 ? '' : 's'}`
+                    } else {
+                      badgeText = 'Plano válido'
+                      badgeTooltip = 'Plano válido'
+                    }
+                  } else {
+                    badgeText = 'Plano válido'
+                    badgeTooltip = 'Sem validade definida'
+                  }
+                } else if (membership.status === 'YELLOW') {
+                  badgeClass = 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                  const dd = Math.max(membership.diffDays ?? 0, 0)
+                  badgeText = 'Vence em breve'
+                  badgeTooltip = dd === 0 ? 'Vence hoje' : `Vence em ${dd} dia${dd === 1 ? '' : 's'}`
+                } else if (membership.status === 'RED') {
+                  badgeClass = 'bg-red-500/20 text-red-300 border-red-500/30'
+                  const dd = membership.diffDays ?? null
+                  if (dd !== null && dd < 0) {
+                    const past = Math.abs(dd)
+                    badgeText = 'Vencido'
+                    badgeTooltip = `Venceu há ${past} dia${past === 1 ? '' : 's'}`
+                  } else {
+                    badgeText = 'Sem créditos'
+                    badgeTooltip = 'Assinatura/pacote indisponível'
+                  }
+                }
+              }
               
               return (
                 <div key={client.id}>
@@ -1064,10 +1120,22 @@ export default function ClientesPage() {
                     {/* Cliente */}
                     <div className="col-span-2">
                       <div>
-                        <h3 className="font-medium text-white flex items-center gap-2">{client.name}
+                        <h3 className="font-medium text-white flex items-center gap-2 flex-wrap">{client.name}
                           {client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}
                           {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assinatura</span>; return null })()}
                           {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
+                          {badgeText && (
+                            <TooltipProvider delayDuration={100}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`px-1.5 py-0.5 text-[10px] rounded border ${badgeClass}`}>{badgeText}</span>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
+                                  {badgeTooltip}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </h3>
                         <p className="text-xs text-[#71717a]">
                           Cliente desde {formatBrazilDate(new Date(client.createdAt))}
@@ -1193,10 +1261,22 @@ export default function ClientesPage() {
                       {/* Header do cliente */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-white text-base flex items-center gap-2">{client.name}
+                          <h3 className="font-medium text-white text-base flex items-center gap-2 flex-wrap">{client.name}
                             {client.isWalkIn && (<span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Balcão</span>)}
                             {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assin.</span>; return null })()}
                             {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
+                            {badgeText && (
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className={`px-1 py-0.5 text-[10px] rounded border ${badgeClass}`}>{badgeText}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
+                                    {badgeTooltip}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge 
