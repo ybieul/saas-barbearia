@@ -20,6 +20,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Switch } from "@/components/ui/switch"
@@ -138,6 +139,9 @@ export default function ClientesPage() {
   // AlertDialogs de confirmação/estorno
   const [cancelSubDialog, setCancelSubDialog] = useState<{ open: boolean; subscriptionId: string; refund: string }>({ open: false, subscriptionId: '', refund: '' })
   const [deactivatePackageDialog, setDeactivatePackageDialog] = useState<{ open: boolean; clientPackageId: string; refund: string }>({ open: false, clientPackageId: '', refund: '' })
+  // AlertDialogs de renovação
+  const [renewSubDialog, setRenewSubDialog] = useState<{ open: boolean; subscriptionId: string; planId?: string; price: string }>({ open: false, subscriptionId: '', planId: undefined, price: '' })
+  const [renewPkgDialog, setRenewPkgDialog] = useState<{ open: boolean; clientPackageId: string; packageId?: string; price: string }>({ open: false, clientPackageId: '', packageId: undefined, price: '' })
   // Novo modal unificado de renovação (com forma de pagamento)
   const [renewModal, setRenewModal] = useState<{ open: boolean; kind: 'SUBSCRIPTION'|'PACKAGE'; id: string; overridePrice: string; paymentMethod: string; paymentDate: string }>({ open: false, kind: 'SUBSCRIPTION', id: '', overridePrice: '', paymentMethod: '', paymentDate: '' })
   // Diálogos de confirmação (com estorno): assinatura e pacote
@@ -334,16 +338,7 @@ export default function ClientesPage() {
       const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
       if (!res.ok) { return }
     const data = await res.json()
-    const items = (data.items || []).map((it: { id: string; package?: { id: string; name?: string }; name?: string; purchasedAt?: string; createdAt?: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number; preferredRenewalDay?: number | null }) => ({
-      id: it.id,
-      packageId: it.package?.id,
-      name: it.package?.name ?? it.name ?? 'Pacote',
-      purchasedAt: it.purchasedAt || it.createdAt || new Date().toISOString(),
-      expiresAt: it.expiresAt,
-      creditsTotal: it.creditsTotal,
-      usedCredits: it.usedCredits,
-      preferredRenewalDay: it.preferredRenewalDay ?? null
-    }))
+  const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits, preferredRenewalDay: it.preferredRenewalDay }))
       setClientPackagesList(items)
       setClientPackagesMeta(data.meta || null)
       setClientPackagesPage(page)
@@ -364,14 +359,14 @@ export default function ClientesPage() {
       const res = await fetch(url.toString(), { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Erro ao carregar assinaturas do cliente')
-      const items = (data.items || []).map((r: { id: string; plan?: { id: string; name?: string }; planId?: string; planName?: string; startDate: string; endDate: string; status: string; preferredRenewalDay?: number | null }) => ({
+      const items = (data.items || []).map((r: any) => ({
         id: r.id,
         planId: r.plan?.id || r.planId,
-        planName: r.plan?.name || r.planName || 'Plano',
+        planName: r.plan?.name || r.planName,
         startDate: r.startDate,
         endDate: r.endDate,
         status: r.status,
-        preferredRenewalDay: r.preferredRenewalDay ?? null
+        preferredRenewalDay: r.preferredRenewalDay
       }))
       setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: items }))
     } catch (e) {
@@ -410,7 +405,80 @@ export default function ClientesPage() {
     }
   }
 
-  
+  const renewClientSubscription = async (subscription: { id: string; planId?: string }) => {
+    if (!selectedClient) return
+    const planId = subscription.planId
+    if (!planId) {
+      // Sem planId no item: recarrega lista para obter planId e tenta novamente
+      await reloadSelectedClientSubscriptions()
+      const refreshed = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscription.id)
+      if (!refreshed?.planId) {
+        console.error('Não foi possível identificar o plano para renovar agora.')
+        return
+      }
+      return renewClientSubscription({ id: refreshed.id, planId: refreshed.planId })
+    }
+    const priceStr = window.prompt('Preço (opcional). Deixe em branco para usar o preço do plano:', '')
+    try {
+      setProcessingSubAction(subscription.id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      let body: { clientId: string; planId: string; startDate: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+      const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s) => s.id === subscription.id)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
+      const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
+      const res = await fetch('/api/client-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar assinatura')
+      await reloadSelectedClientSubscriptions()
+    } catch (e) {
+      console.error('Erro ao renovar assinatura', e)
+    } finally {
+      setProcessingSubAction(null)
+    }
+  }
+
+  // Renovar (vender novamente) um pacote baseado no pacote listado
+  const renewClientPackage = async (pkg: { id: string; packageId?: string }, priceStr?: string) => {
+    if (!selectedClient) return
+    let packageId = pkg.packageId
+    if (!packageId) {
+      await loadClientPackagesPage(clientPackagesPage)
+      const refreshed = (clientPackagesList || []).find((p: any) => p.id === pkg.id)
+      packageId = refreshed?.packageId
+      if (!packageId) {
+        console.error('Não foi possível identificar o pacote para renovar agora.')
+        return
+      }
+    }
+    try {
+      setProcessingAction(pkg.id)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      let body: { clientId: string; packageId: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, packageId }
+      const current = (clientPackagesList || []).find((p) => p.id === pkg.id)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
+      const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
+      const res = await fetch('/api/client-packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar pacote')
+      await loadClientPackagesPage(1)
+    } catch (e) {
+      console.error('Erro ao renovar pacote', e)
+    } finally {
+      setProcessingAction(null)
+    }
+  }
 
   const deactivateClientPackage = async (id: string) => {
     if (!selectedClient) return
@@ -442,7 +510,77 @@ export default function ClientesPage() {
     }
   }
 
-  // (AlertDialogs antigos de renovação removidos em favor do modal unificado `renewModal`)
+  // Confirmação de Renovação (Assinatura)
+  const confirmRenewSubscription = async () => {
+    if (!selectedClient) { setRenewSubDialog({ open: false, subscriptionId: '', planId: undefined, price: '' }); return }
+    const { subscriptionId, planId: initialPlanId, price } = renewSubDialog
+    let planId = initialPlanId
+    try {
+      if (!planId) {
+        await reloadSelectedClientSubscriptions()
+        const refreshed = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscriptionId)
+        planId = (refreshed as any)?.planId
+        if (!planId) throw new Error('Plano não encontrado para renovar')
+      }
+      setProcessingSubAction(subscriptionId)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      let body: { clientId: string; planId: string; startDate: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+      const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s) => s.id === subscriptionId)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
+      const parsed = price ? Number(String(price).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
+      const res = await fetch('/api/client-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar assinatura')
+      await reloadSelectedClientSubscriptions()
+    } catch (e) {
+      console.error('Erro ao renovar assinatura', e)
+    } finally {
+      setProcessingSubAction(null)
+      setRenewSubDialog({ open: false, subscriptionId: '', planId: undefined, price: '' })
+    }
+  }
+
+  // Confirmação de Renovação (Pacote)
+  const confirmRenewPackage = async () => {
+    if (!selectedClient) { setRenewPkgDialog({ open: false, clientPackageId: '', packageId: undefined, price: '' }); return }
+    const { clientPackageId, packageId: initialPackageId, price } = renewPkgDialog
+    let packageId = initialPackageId
+    try {
+      if (!packageId) {
+        await loadClientPackagesPage(clientPackagesPage)
+        const refreshed = (clientPackagesList || []).find((p: any) => p.id === clientPackageId)
+        packageId = (refreshed as any)?.packageId
+        if (!packageId) throw new Error('Pacote não encontrado para renovar')
+      }
+      setProcessingAction(clientPackageId)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      let body: { clientId: string; packageId: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, packageId }
+      const current = (clientPackagesList || []).find((p) => p.id === clientPackageId)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
+      const parsed = price ? Number(String(price).replace(',', '.')) : undefined
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
+      const res = await fetch('/api/client-packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao renovar pacote')
+      await loadClientPackagesPage(1)
+    } catch (e) {
+      console.error('Erro ao renovar pacote', e)
+    } finally {
+      setProcessingAction(null)
+      setRenewPkgDialog({ open: false, clientPackageId: '', packageId: undefined, price: '' })
+    }
+  }
 
   const sellPackage = async () => {
     if (!selectedClient || !selectedPackageId) return
@@ -468,10 +606,6 @@ export default function ClientesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Erro ao vender pacote')
       setIsSellPackageOpen(false)
-      // Atualiza lista do modal Gerenciar Planos se ele estiver aberto; caso contrário, garante a página 1 atualizada
-      if (selectedClient) {
-        await loadClientPackagesPage(1)
-      }
     } catch (e) {
       console.error('Erro ao vender pacote', e)
     } finally {
@@ -506,10 +640,6 @@ export default function ClientesPage() {
       setAllowImmediateUseSub(true)
       // Recarregar assinaturas para refletir imediatamente no modal (se abrir novamente)
       await reloadSelectedClientSubscriptions()
-      // Se o modal Gerenciar estiver aberto, recarrega também os pacotes exibidos lá
-      if (selectedClient) {
-        await loadClientPackagesPage(1)
-      }
     } catch (e) {
       console.error('Erro ao vender assinatura', e)
     } finally {
@@ -1831,7 +1961,7 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Pacote - simplificado: apenas venda */}
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col rounded-xl">
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Pacote</DialogTitle>
             <DialogDescription>Vender pacote para {selectedClient?.name}</DialogDescription>
@@ -1904,12 +2034,12 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Assinatura - simplificado: apenas venda */}
       <Dialog open={isSellSubscriptionOpen} onOpenChange={setIsSellSubscriptionOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-full sm:max-w-lg mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] overflow-hidden overflow-x-hidden flex flex-col rounded-xl">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Assinatura</DialogTitle>
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto px-0 sm:px-0 flex-1">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Plano</Label>
               <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
@@ -2028,7 +2158,59 @@ export default function ClientesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* AlertDialogs antigos de renovação removidos */}
+      {/* AlertDialog: Renovar assinatura (preço opcional) */}
+      <AlertDialog open={renewSubDialog.open}>
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Renovar assinatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirme a renovação. Informe um preço personalizado apenas se quiser substituir o preço do plano.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Preço (opcional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={renewSubDialog.price}
+              onChange={(e) => setRenewSubDialog(prev => ({ ...prev, price: e.target.value }))}
+              className="bg-[#27272a] border-[#3f3f46]"
+              placeholder="Usar preço do plano"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRenewSubDialog({ open: false, subscriptionId: '', planId: undefined, price: '' })}>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRenewSubscription}>Confirmar renovação</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog: Renovar pacote (preço opcional) */}
+      <AlertDialog open={renewPkgDialog.open}>
+        <AlertDialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-[420px] mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Renovar pacote</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirme a renovação. Informe um preço personalizado apenas se quiser substituir o preço do pacote.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Preço (opcional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={renewPkgDialog.price}
+              onChange={(e) => setRenewPkgDialog(prev => ({ ...prev, price: e.target.value }))}
+              className="bg-[#27272a] border-[#3f3f46]"
+              placeholder="Usar preço do pacote"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRenewPkgDialog({ open: false, clientPackageId: '', packageId: undefined, price: '' })}>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRenewPackage}>Confirmar renovação</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
