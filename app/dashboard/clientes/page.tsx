@@ -40,6 +40,19 @@ interface Client {
   totalSpent: number    // Convertido do Decimal para Number
   totalVisits: number   // Diretamente do banco
   lastVisit?: string    // Diretamente do banco
+  // ✅ Dados para status de fidelização (carregados via /api/clients)
+  clientSubscriptions?: Array<{
+    id: string
+    endDate: string | null
+    status: string
+    planId?: string
+  }>
+  clientPackages?: Array<{
+    id: string
+    expiresAt: string | null
+    creditsTotal?: number
+    usedCredits?: number
+  }>
   // ✅ Appointments apenas para exibição de histórico (não para cálculos)
   appointments?: Array<{
     id: string
@@ -636,6 +649,50 @@ export default function ClientesPage() {
     return status === 'active' ? 'Ativo' : 'Inativo'
   }
 
+  // ==========================
+  // Fidelização: cálculo status
+  // ==========================
+  type MemberStatus = 'GREEN' | 'YELLOW' | 'RED' | 'NONE'
+  const getMembershipStatus = (client: Client): { status: MemberStatus; dueDate: Date | null; source: 'SUBSCRIPTION' | 'PACKAGE' | 'NONE' } => {
+    const now = new Date()
+    const sub = client.clientSubscriptions?.[0]
+    const pkg = client.clientPackages?.[0]
+
+    const subActive = !!(sub && sub.status === 'ACTIVE' && sub.endDate && new Date(sub.endDate) >= now)
+    const pkgRemaining = (pkg ? Number(pkg.creditsTotal || 0) - Number(pkg.usedCredits || 0) : 0)
+    const pkgActive = !!(pkg && pkgRemaining > 0 && (!pkg.expiresAt || new Date(pkg.expiresAt) >= now))
+
+    if (!subActive && !pkgActive) {
+      // Se existe algum registro porém vencido/sem créditos, considera RED; senão NONE
+      if (sub || pkg) {
+        return { status: 'RED', dueDate: sub?.endDate ? new Date(sub.endDate) : (pkg?.expiresAt ? new Date(pkg.expiresAt) : null), source: sub ? 'SUBSCRIPTION' : (pkg ? 'PACKAGE' : 'NONE') }
+      }
+      return { status: 'NONE', dueDate: null, source: 'NONE' }
+    }
+
+    // Escolher o mais relevante (maior validade)
+    let chosen: { date: Date; source: 'SUBSCRIPTION' | 'PACKAGE' }
+    if (subActive && pkgActive) {
+      const subDate = new Date(sub!.endDate!)
+      const pkgDate = pkg!.expiresAt ? new Date(pkg!.expiresAt) : new Date('2999-12-31')
+      chosen = subDate >= pkgDate
+        ? { date: subDate, source: 'SUBSCRIPTION' }
+        : { date: pkgDate, source: 'PACKAGE' }
+    } else if (subActive) {
+      chosen = { date: new Date(sub!.endDate!), source: 'SUBSCRIPTION' }
+    } else {
+      chosen = { date: pkg!.expiresAt ? new Date(pkg!.expiresAt) : new Date('2999-12-31'), source: 'PACKAGE' }
+    }
+
+    const diffDays = Math.floor((chosen.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    let status: MemberStatus = 'GREEN'
+    if (diffDays < 0) status = 'RED'
+    else if (diffDays <= 5) status = 'YELLOW'
+    else status = 'GREEN'
+
+    return { status, dueDate: chosen.date, source: chosen.source }
+  }
+
   const calculateClientStats = (client: Client) => {
     // ✅ USAR APENAS DADOS DO BANCO DE DADOS - SEM CÁLCULOS
     const totalSpent = Number(client.totalSpent) || 0
@@ -951,6 +1008,14 @@ export default function ClientesPage() {
         </div>
       )}
 
+      {/* Legenda das cores de fidelização */}
+      <div className="px-2 sm:px-0 text-xs text-[#a1a1aa] flex flex-wrap gap-3 items-center">
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500/30 border border-green-500/40"></span> Verde: válido por mais de 5 dias</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/40"></span> Amarelo: vence em até 5 dias</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500/30 border border-red-500/40"></span> Vermelho: vencido ou sem créditos</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-transparent border border-[#3f3f46]"></span> Sem cor: sem assinatura/pacote</span>
+      </div>
+
       {/* Clients list */}
       <Card className="bg-[#18181b] border-[#27272a]">
         <CardContent className="p-0">
@@ -986,11 +1051,16 @@ export default function ClientesPage() {
               const stats = calculateClientStats(client)
               // ✅ USAR LASTVISIT DO BANCO DE DADOS
               const lastVisit = client.lastVisit ? new Date(client.lastVisit) : null
+              const membership = getMembershipStatus(client as any)
+              let statusColorClass = ''
+              if (membership.status === 'GREEN') statusColorClass = 'bg-green-500/10 hover:bg-green-500/20'
+              else if (membership.status === 'YELLOW') statusColorClass = 'bg-yellow-500/10 hover:bg-yellow-500/20'
+              else if (membership.status === 'RED') statusColorClass = 'bg-red-500/10 hover:bg-red-500/20'
               
               return (
                 <div key={client.id}>
                   {/* Layout Desktop - mantido exatamente igual */}
-                  <div className="hidden md:grid grid-cols-12 gap-4 p-4 pr-6 lg:pr-8 hover:bg-[#27272a]/80 transition-colors">
+                  <div className={`hidden md:grid grid-cols-12 gap-4 p-4 pr-6 lg:pr-8 transition-colors duration-200 ${statusColorClass}`}>
                     {/* Cliente */}
                     <div className="col-span-2">
                       <div>
@@ -1118,7 +1188,7 @@ export default function ClientesPage() {
                   </div>
 
                   {/* Layout Mobile - novo design otimizado */}
-                  <div className="block md:hidden p-4 hover:bg-[#27272a]/50 transition-colors">
+                  <div className={`block md:hidden p-4 transition-colors duration-200 ${statusColorClass || 'hover:bg-[#27272a]/50'}` }>
                     <div className="space-y-3">
                       {/* Header do cliente */}
                       <div className="flex items-start justify-between">

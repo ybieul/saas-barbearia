@@ -79,6 +79,31 @@ export async function GET(request: NextRequest) {
           totalSpent: true,
           totalVisits: true,
           lastVisit: true,
+          // Inclusões para status de fidelização
+          clientSubscriptions: {
+            where: { status: 'ACTIVE' },
+            orderBy: { endDate: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              endDate: true,
+              status: true,
+              planId: true,
+            }
+          },
+          clientPackages: {
+            // Observação: Prisma não permite comparação direta entre campos (usedCredits < totalCredits)
+            // então retornamos o mais recente e a validação de saldo será feita no frontend/backend consumidor.
+            orderBy: { expiresAt: 'desc' },
+            take: 1,
+            // Cast para permitir seleção de campos adicionados recentemente sem quebrar o typecheck local
+            select: ({
+              id: true,
+              expiresAt: true,
+              creditsTotal: true,
+              usedCredits: true,
+            } as any)
+          }
         }
       })
     } else {
@@ -99,6 +124,30 @@ export async function GET(request: NextRequest) {
           totalSpent: true,
           totalVisits: true,
           lastVisit: true,
+          // Inclusões para status de fidelização
+          clientSubscriptions: {
+            where: { status: 'ACTIVE' },
+            orderBy: { endDate: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              endDate: true,
+              status: true,
+              planId: true,
+            }
+          },
+          clientPackages: {
+            // Observação: Prisma não permite comparação direta entre campos (usedCredits < totalCredits)
+            // então retornamos o mais recente e a validação de saldo será feita no frontend/backend consumidor.
+            orderBy: { expiresAt: 'desc' },
+            take: 1,
+            select: ({
+              id: true,
+              expiresAt: true,
+              creditsTotal: true,
+              usedCredits: true,
+            } as any)
+          }
         }
       })
     }
