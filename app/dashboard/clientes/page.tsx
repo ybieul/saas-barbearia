@@ -307,10 +307,11 @@ export default function ClientesPage() {
     setIsSellSubscriptionOpen(true)
   }
   const openManagePlans = async (client: Client) => {
+    // Define o cliente selecionado e carrega dados usando o id diretamente para evitar race de estado
     setSelectedClient(client)
-    await reloadSelectedClientSubscriptions()
+    await reloadClientSubscriptionsById(client.id)
     setClientPackagesPage(1)
-    await loadClientPackagesPage(1)
+    await loadClientPackagesPageByClientId(client.id, 1)
     setIsManagePlansOpen(true)
   }
 
@@ -349,6 +350,29 @@ export default function ClientesPage() {
     }
   }
 
+  // Versão por clientId para evitar depender do estado selectedClient em aberturas imediatas
+  const loadClientPackagesPageByClientId = async (clientId: string, page: number) => {
+    try {
+      setLoadingClientPackages(true)
+      const url = new URL('/api/client-packages', window.location.origin)
+      url.searchParams.set('clientId', clientId)
+      url.searchParams.set('page', String(page))
+      url.searchParams.set('pageSize', '5')
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+      if (!res.ok) { return }
+      const data = await res.json()
+      const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits, preferredRenewalDay: it.preferredRenewalDay }))
+      setClientPackagesList(items)
+      setClientPackagesMeta(data.meta || null)
+      setClientPackagesPage(page)
+    } catch (e) {
+      console.error('Erro ao paginar pacotes do cliente', e)
+    } finally {
+      setLoadingClientPackages(false)
+    }
+  }
+
   // --- Assinaturas: helpers de recarga e ações ---
   const reloadSelectedClientSubscriptions = async () => {
     if (!selectedClient) return
@@ -369,6 +393,30 @@ export default function ClientesPage() {
         preferredRenewalDay: r.preferredRenewalDay
       }))
       setClientSubscriptionsMap(prev => ({ ...prev, [selectedClient.id]: items }))
+    } catch (e) {
+      console.error('Erro ao recarregar assinaturas do cliente:', e)
+    }
+  }
+
+  // Versão por clientId para evitar depender do estado selectedClient em aberturas imediatas
+  const reloadClientSubscriptionsById = async (clientId: string) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const url = new URL('/api/client-subscriptions', window.location.origin)
+      url.searchParams.set('clientId', clientId)
+      const res = await fetch(url.toString(), { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Erro ao carregar assinaturas do cliente')
+      const items = (data.items || []).map((r: any) => ({
+        id: r.id,
+        planId: r.plan?.id || r.planId,
+        planName: r.plan?.name || r.planName,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        status: r.status,
+        preferredRenewalDay: r.preferredRenewalDay
+      }))
+      setClientSubscriptionsMap(prev => ({ ...prev, [clientId]: items }))
     } catch (e) {
       console.error('Erro ao recarregar assinaturas do cliente:', e)
     }
@@ -1961,16 +2009,16 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Pacote - simplificado: apenas venda */}
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
-  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col rounded-xl">
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Pacote</DialogTitle>
             <DialogDescription>Vender pacote para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-full">
             <div className="text-sm font-medium text-[#ededed]">Vender novo pacote</div>
             <div className="space-y-2">
               <Label>Pacote</Label>
-              <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPackageId} onChange={e => setSelectedPackageId(e.target.value)}>
+              <select className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPackageId} onChange={e => setSelectedPackageId(e.target.value)}>
                 <option value="" disabled>Selecione...</option>
                 {availablePackages.map((p: any) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -1984,7 +2032,7 @@ export default function ClientesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Forma de Pagamento</Label>
-                <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodPkg} onChange={(e) => setPaymentMethodPkg(e.target.value)}>
+                <select className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodPkg} onChange={(e) => setPaymentMethodPkg(e.target.value)}>
                   <option value="" disabled>Selecione...</option>
                   <option value="CASH">Dinheiro</option>
                   <option value="PIX">PIX</option>
@@ -2003,7 +2051,7 @@ export default function ClientesPage() {
             <div className="space-y-2">
               <Label>Dia preferencial para renovação/vencimento</Label>
               <select
-                className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
+                className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
                 value={preferredRenewalDayPkg}
                 onChange={(e) => setPreferredRenewalDayPkg(e.target.value)}
               >
@@ -2034,12 +2082,13 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Assinatura - simplificado: apenas venda */}
       <Dialog open={isSellSubscriptionOpen} onOpenChange={setIsSellSubscriptionOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Assinatura</DialogTitle>
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          {/* Conteúdo rolável em mobile para evitar excesso de altura */}
+          <div className="space-y-4 flex-1 overflow-y-auto">
             <div className="space-y-2">
               <Label>Plano</Label>
               <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
