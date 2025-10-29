@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Plus, Phone, MessageCircle, Calendar, DollarSign, Edit, Trash2, Package, Crown, Info } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Switch } from "@/components/ui/switch"
 import { useServicePackages } from '@/hooks/use-service-packages'
@@ -73,6 +74,7 @@ interface ClientSubscriptionInfo {
   startDate: string
   endDate: string
   status: string
+  preferredRenewalDay?: number | null
 }
 
 export default function ClientesPage() {
@@ -111,12 +113,15 @@ export default function ClientesPage() {
   const { packages: availablePackages, fetchPackages } = useServicePackages()
   const [isSellPackageOpen, setIsSellPackageOpen] = useState(false)
   const [isSellSubscriptionOpen, setIsSellSubscriptionOpen] = useState(false)
+  const [isManagePlansOpen, setIsManagePlansOpen] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [overridePrice, setOverridePrice] = useState<string>('')
   const [preferredRenewalDayPkg, setPreferredRenewalDayPkg] = useState<string>('')
   const [allowImmediateUsePkg, setAllowImmediateUsePkg] = useState<boolean>(true)
+  const [paymentMethodPkg, setPaymentMethodPkg] = useState<string>('')
+  const [paymentDatePkg, setPaymentDatePkg] = useState<string>('')
   const [selling, setSelling] = useState(false)
-  const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; packageId?: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number }>>([])
+  const [clientPackagesList, setClientPackagesList] = useState<Array<{ id: string; packageId?: string; name: string; purchasedAt: string; expiresAt: string | null; creditsTotal?: number; usedCredits?: number; preferredRenewalDay?: number | null }>>([])
   const [loadingClientPackages, setLoadingClientPackages] = useState(false)
   const [clientPackagesMeta, setClientPackagesMeta] = useState<{ total: number; page: number; pageSize: number; hasNext: boolean } | null>(null)
   const [clientPackagesPage, setClientPackagesPage] = useState(1)
@@ -127,6 +132,8 @@ export default function ClientesPage() {
   const [overridePlanPrice, setOverridePlanPrice] = useState('')
   const [preferredRenewalDaySub, setPreferredRenewalDaySub] = useState<string>('')
   const [allowImmediateUseSub, setAllowImmediateUseSub] = useState<boolean>(true)
+  const [paymentMethodSub, setPaymentMethodSub] = useState<string>('')
+  const [paymentDateSub, setPaymentDateSub] = useState<string>('')
   // Ações por assinatura
   const [processingSubAction, setProcessingSubAction] = useState<string | null>(null)
   // AlertDialogs de confirmação/estorno
@@ -135,6 +142,8 @@ export default function ClientesPage() {
   // AlertDialogs de renovação
   const [renewSubDialog, setRenewSubDialog] = useState<{ open: boolean; subscriptionId: string; planId?: string; price: string }>({ open: false, subscriptionId: '', planId: undefined, price: '' })
   const [renewPkgDialog, setRenewPkgDialog] = useState<{ open: boolean; clientPackageId: string; packageId?: string; price: string }>({ open: false, clientPackageId: '', packageId: undefined, price: '' })
+  // Novo modal unificado de renovação (com forma de pagamento)
+  const [renewModal, setRenewModal] = useState<{ open: boolean; kind: 'SUBSCRIPTION'|'PACKAGE'; id: string; overridePrice: string; paymentMethod: string; paymentDate: string }>({ open: false, kind: 'SUBSCRIPTION', id: '', overridePrice: '', paymentMethod: '', paymentDate: '' })
   // Diálogos de confirmação (com estorno): assinatura e pacote
 
   useEffect(() => {
@@ -284,32 +293,8 @@ export default function ClientesPage() {
     setOverridePrice('')
     setPreferredRenewalDayPkg('')
     setAllowImmediateUsePkg(true)
-    setClientPackagesPage(1)
-    // Carregar pacotes já vendidos para este cliente
-    ;(async () => {
-      try {
-        setLoadingClientPackages(true)
-        const url = new URL('/api/client-packages', window.location.origin)
-        url.searchParams.set('clientId', client.id)
-        url.searchParams.set('page', '1')
-        url.searchParams.set('pageSize', '5')
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-        const res = await fetch(url.toString(), { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
-        if (!res.ok) { setClientPackagesList([]); setClientPackagesMeta(null) }
-        else {
-          const data = await res.json()
-          const items = (data.items || []).map((it: any) => ({ id: it.id, packageId: it.package?.id, name: it.package?.name || 'Pacote', purchasedAt: it.purchasedAt, expiresAt: it.expiresAt, creditsTotal: it.creditsTotal, usedCredits: it.usedCredits, preferredRenewalDay: it.preferredRenewalDay }))
-          setClientPackagesList(items)
-          setClientPackagesMeta(data.meta || null)
-        }
-      } catch (e) {
-        console.error('Erro ao carregar pacotes do cliente:', e)
-        setClientPackagesList([])
-        setClientPackagesMeta(null)
-      } finally {
-        setLoadingClientPackages(false)
-      }
-    })()
+    setPaymentMethodPkg('')
+    setPaymentDatePkg('')
     setIsSellPackageOpen(true)
   }
   const openSellSubscription = async (client: Client) => {
@@ -317,7 +302,16 @@ export default function ClientesPage() {
     await fetchAvailablePlans()
     setPreferredRenewalDaySub('')
     setAllowImmediateUseSub(true)
+    setPaymentMethodSub('')
+    setPaymentDateSub('')
     setIsSellSubscriptionOpen(true)
+  }
+  const openManagePlans = async (client: Client) => {
+    setSelectedClient(client)
+    await reloadSelectedClientSubscriptions()
+    setClientPackagesPage(1)
+    await loadClientPackagesPage(1)
+    setIsManagePlansOpen(true)
   }
 
   const fetchAvailablePlans = async () => {
@@ -391,9 +385,9 @@ export default function ClientesPage() {
     try {
       setProcessingSubAction(subscriptionId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { id: subscriptionId, action: 'cancel' }
+      let body: { id: string; action: 'cancel'; refundAmount?: number } = { id: subscriptionId, action: 'cancel' }
       const parsed = refund ? Number(String(refund).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, refundAmount: parsed }
       const res = await fetch('/api/client-subscriptions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -428,11 +422,11 @@ export default function ClientesPage() {
     try {
       setProcessingSubAction(subscription.id)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
-  const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscription.id)
-  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
+      let body: { clientId: string; planId: string; startDate: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+      const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s) => s.id === subscription.id)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
       const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
       const res = await fetch('/api/client-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -465,11 +459,11 @@ export default function ClientesPage() {
     try {
       setProcessingAction(pkg.id)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { clientId: selectedClient.id, packageId }
-  const current = (clientPackagesList || []).find((p: any) => p.id === pkg.id)
-  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
+      let body: { clientId: string; packageId: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, packageId }
+      const current = (clientPackagesList || []).find((p) => p.id === pkg.id)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
       const parsed = priceStr ? Number(String(priceStr).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
       const res = await fetch('/api/client-packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -496,9 +490,9 @@ export default function ClientesPage() {
     try {
       setProcessingAction(clientPackageId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { id: clientPackageId, action: 'deactivate' }
+      let body: { id: string; action: 'deactivate'; refundAmount?: number } = { id: clientPackageId, action: 'deactivate' }
       const parsed = refund ? Number(String(refund).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.refundAmount = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, refundAmount: parsed }
       const res = await fetch('/api/client-packages', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -530,11 +524,11 @@ export default function ClientesPage() {
       }
       setProcessingSubAction(subscriptionId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
-  const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s: any) => s.id === subscriptionId)
-  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
+      let body: { clientId: string; planId: string; startDate: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, planId, startDate: new Date().toISOString() }
+      const current = (clientSubscriptionsMap[selectedClient.id] || []).find((s) => s.id === subscriptionId)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
       const parsed = price ? Number(String(price).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
       const res = await fetch('/api/client-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -566,11 +560,11 @@ export default function ClientesPage() {
       }
       setProcessingAction(clientPackageId)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const body: any = { clientId: selectedClient.id, packageId }
-  const current = (clientPackagesList || []).find((p: any) => p.id === clientPackageId)
-  if (current?.preferredRenewalDay != null) body.preferredRenewalDay = current.preferredRenewalDay
+      let body: { clientId: string; packageId: string; preferredRenewalDay?: number; overridePrice?: number } = { clientId: selectedClient.id, packageId }
+      const current = (clientPackagesList || []).find((p) => p.id === clientPackageId)
+      if (current?.preferredRenewalDay != null) body = { ...body, preferredRenewalDay: current.preferredRenewalDay }
       const parsed = price ? Number(String(price).replace(',', '.')) : undefined
-      if (parsed && Number.isFinite(parsed) && parsed > 0) body.overridePrice = parsed
+      if (parsed && Number.isFinite(parsed) && parsed > 0) body = { ...body, overridePrice: parsed }
       const res = await fetch('/api/client-packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -594,9 +588,15 @@ export default function ClientesPage() {
       if (selling) return
       setSelling(true)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, packageId: selectedPackageId, overridePrice: overridePrice || undefined }
-      if (preferredRenewalDayPkg) body.preferredRenewalDay = Number(preferredRenewalDayPkg)
-      body.allowImmediateUse = Boolean(allowImmediateUsePkg)
+      let body: { clientId: string; packageId: string; overridePrice?: number | string; paymentMethod?: string; paymentDate?: string; preferredRenewalDay?: number; allowImmediateUse?: boolean } = {
+        clientId: selectedClient.id,
+        packageId: selectedPackageId,
+        overridePrice: overridePrice || undefined,
+        paymentMethod: paymentMethodPkg || undefined,
+        paymentDate: paymentDatePkg || undefined,
+      }
+      if (preferredRenewalDayPkg) body = { ...body, preferredRenewalDay: Number(preferredRenewalDayPkg) }
+      body = { ...body, allowImmediateUse: Boolean(allowImmediateUsePkg) }
       const res = await fetch('/api/client-packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -617,9 +617,15 @@ export default function ClientesPage() {
     try {
       setSelling(true)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const body: any = { clientId: selectedClient.id, planId: selectedPlanId, overridePrice: overridePlanPrice ? Number(overridePlanPrice) : undefined }
-      if (preferredRenewalDaySub) body.preferredRenewalDay = Number(preferredRenewalDaySub)
-      body.allowImmediateUse = Boolean(allowImmediateUseSub)
+      let body: { clientId: string; planId: string; overridePrice?: number; paymentMethod?: string; paymentDate?: string; preferredRenewalDay?: number; allowImmediateUse?: boolean } = {
+        clientId: selectedClient.id,
+        planId: selectedPlanId,
+        overridePrice: overridePlanPrice ? Number(overridePlanPrice) : undefined,
+        paymentMethod: paymentMethodSub || undefined,
+        paymentDate: paymentDateSub || undefined,
+      }
+      if (preferredRenewalDaySub) body = { ...body, preferredRenewalDay: Number(preferredRenewalDaySub) }
+      body = { ...body, allowImmediateUse: Boolean(allowImmediateUseSub) }
       const res = await fetch('/api/client-subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -1011,26 +1017,24 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* Legenda das cores: comprimida em tooltip para ocupar menos espaço */}
+      {/* Legenda das cores: usar Popover (abre no clique e fecha ao clicar fora) */}
       <div className="px-2 sm:px-0 text-xs text-[#a1a1aa]">
-        <TooltipProvider delayDuration={100}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="inline-flex items-center gap-1 text-[#a1a1aa] hover:text-[#ededed]">
-                <Info className="w-4 h-4" />
-                <span className="underline decoration-dotted">Legenda de cores</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-[#1f1f23] border-[#2f2f33]">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-500/30 border border-green-500/40"></span> <span>Verde: válido por mais de 5 dias</span></div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/40"></span> <span>Amarelo: vence em até 5 dias</span></div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-red-500/30 border border-red-500/40"></span> <span>Vermelho: vencido ou sem créditos</span></div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-transparent border border-[#3f3f46]"></span> <span>Sem cor: sem assinatura/pacote</span></div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="inline-flex items-center gap-1 text-[#a1a1aa] hover:text-[#ededed]">
+              <Info className="w-4 h-4" />
+              <span className="underline decoration-dotted">Legenda de cores</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="bg-[#1f1f23] border-[#2f2f33] w-80 p-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-500/30 border border-green-500/40"></span> <span>Verde: válido por mais de 5 dias</span></div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/40"></span> <span>Amarelo: vence em até 5 dias</span></div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-red-500/30 border border-red-500/40"></span> <span>Vermelho: vencido ou sem créditos</span></div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-transparent border border-[#3f3f46]"></span> <span>Sem cor: sem assinatura/pacote</span></div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Clients list */}
@@ -1125,16 +1129,17 @@ export default function ClientesPage() {
                           {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assinatura</span>; return null })()}
                           {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
                           {badgeText && (
-                            <TooltipProvider delayDuration={100}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className={`px-1.5 py-0.5 text-[10px] rounded border ${badgeClass}`}>{badgeText}</span>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
-                                  {badgeTooltip}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className={`px-1.5 py-0.5 text-[10px] rounded border ${badgeClass} inline-flex items-center gap-1`}>
+                                  <Info className="w-3 h-3 opacity-80" />
+                                  <span>{badgeText}</span>
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
+                                {badgeTooltip}
+                              </PopoverContent>
+                            </Popover>
                           )}
                         </h3>
                         <p className="text-xs text-[#71717a]">
@@ -1210,7 +1215,7 @@ export default function ClientesPage() {
                         >
                           Detalhes
                         </Button>
-                        {/* Botão unificado para vender Pacote ou Assinatura */}
+                        {/* Vender e Gerenciar */}
                         {!isCollaborator && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1234,6 +1239,16 @@ export default function ClientesPage() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        )}
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openManagePlans(client)}
+                            className="shrink-0 border-blue-600 text-blue-300 hover:bg-blue-600/10 px-2 py-1 h-8 text-xs"
+                          >
+                            Gerenciar Planos
+                          </Button>
                         )}
                         <Button
                           variant="outline"
@@ -1266,16 +1281,17 @@ export default function ClientesPage() {
                             {(() => { const subs = clientSubscriptionsMap[client.id] || []; const active = subs.some(s => s.status === 'ACTIVE' && (!s.endDate || new Date(s.endDate) >= new Date())); if (active) return <span className="px-1 py-0.5 text-[10px] rounded bg-blue-600/20 text-blue-300 border border-blue-600/40">Assin.</span>; return null })()}
                             {(() => { const pkg = clientPackagesSummary[client.id]; if (pkg?.hasActive) return <span className="px-1 py-0.5 text-[10px] rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/40">Pacote</span>; return null })()}
                             {badgeText && (
-                              <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className={`px-1 py-0.5 text-[10px] rounded border ${badgeClass}`}>{badgeText}</span>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
-                                    {badgeTooltip}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className={`px-1 py-0.5 text-[10px] rounded border ${badgeClass} inline-flex items-center gap-1`}>
+                                    <Info className="w-3 h-3 opacity-80" />
+                                    <span>{badgeText}</span>
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="bg-[#1f1f23] border-[#2f2f33] text-xs">
+                                  {badgeTooltip}
+                                </PopoverContent>
+                              </Popover>
                             )}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
@@ -1370,6 +1386,16 @@ export default function ClientesPage() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        )}
+                        {!isCollaborator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openManagePlans(client)}
+                            className="flex-1 border-blue-600 text-blue-300 hover:bg-blue-600/10 px-3 h-8 text-xs"
+                          >
+                            Gerenciar
+                          </Button>
                         )}
                         <Button
                           variant="outline"
@@ -1670,6 +1696,185 @@ export default function ClientesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal Gerenciar Planos: lista Assinaturas e Pacotes com ações */}
+      <Dialog open={isManagePlansOpen} onOpenChange={setIsManagePlansOpen}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-lg sm:w-full sm:max-w-2xl mx-auto h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          <DialogHeader className="border-b border-[#27272a] pb-3 md:pb-4 flex-shrink-0">
+            <DialogTitle className="text-[#ededed] text-base md:text-xl font-semibold">Gerenciar Planos — {selectedClient?.name}</DialogTitle>
+            <DialogDescription className="text-[#71717a] text-sm">Renove, cancele ou desative. Para vender um novo, use o botão Vender.</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-1 sm:px-2 space-y-4 mt-3">
+            {/* Assinaturas */}
+            <div className="bg-[#121214] border border-[#27272a] rounded p-3">
+              <div className="text-sm font-medium text-[#ededed] mb-2">Assinaturas</div>
+              {selectedClient ? (() => {
+                const subs = clientSubscriptionsMap[selectedClient.id] || []
+                if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
+                return (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {subs.map(s => {
+                      const now = new Date()
+                      const isCanceled = s.status === 'CANCELED'
+                      const isExpired = !isCanceled && s.endDate && new Date(s.endDate) < now
+                      const isActive = s.status === 'ACTIVE' && !isExpired
+                      const statusLabel = isCanceled ? 'Cancelada' : (isExpired ? 'Expirada' : 'Ativa')
+                      const statusClass = isCanceled
+                        ? 'bg-red-600/15 text-red-300 border-red-600/30'
+                        : isExpired
+                        ? 'bg-[#3f3f46]/20 text-[#a1a1aa] border-[#3f3f46]'
+                        : 'bg-blue-600/20 text-blue-300 border-blue-600/40'
+                      return (
+                        <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
+                          <div className="flex-1 mr-3 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="text-[#ededed] font-medium truncate">{s.planName}</div>
+                              <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
+                            </div>
+                            <div className="text-[#a1a1aa] text-xs">
+                              Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 items-start shrink-0 sm:min-w-[180px]">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
+                              onClick={() => setRenewModal({ open: true, kind: 'SUBSCRIPTION', id: s.id, overridePrice: '', paymentMethod: '', paymentDate: '' })}
+                            >Renovar</Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
+                              disabled={!isActive}
+                              onClick={() => setCancelSubDialog({ open: true, subscriptionId: s.id, refund: '' })}
+                            >Cancelar</Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })() : (<div className="text-[#71717a] text-sm">Selecione um cliente</div>)}
+            </div>
+
+            {/* Pacotes */}
+            <div className="bg-[#121214] border border-[#27272a] rounded p-3">
+              <div className="text-sm font-medium text-[#ededed] mb-2">Pacotes</div>
+              {loadingClientPackages ? (
+                <div className="text-[#71717a] text-sm">Carregando...</div>
+              ) : clientPackagesList.length === 0 ? (
+                <div className="text-[#71717a] text-sm">Nenhum pacote encontrado</div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {clientPackagesList.map((p) => {
+                    const remaining = Math.max((Number(p.creditsTotal || 0) - Number(p.usedCredits || 0)), 0)
+                    const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() < Date.now() : false
+                    const isActive = remaining > 0 && !isExpired
+                    const statusLabel = isActive ? 'Ativo' : 'Expirado'
+                    const statusClass = isActive ? 'text-emerald-400 border-emerald-600/30 bg-emerald-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
+                    return (
+                      <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
+                        <div className="flex-1 mr-3 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="text-[#ededed] font-medium truncate">{p.name}</div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
+                          </div>
+                          <div className="text-[#a1a1aa] text-xs">
+                            Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
+                            {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 items-start shrink-0 sm:min-w-[180px]">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
+                            onClick={() => setRenewModal({ open: true, kind: 'PACKAGE', id: p.id, overridePrice: '', paymentMethod: '', paymentDate: '' })}
+                          >Renovar</Button>
+                          <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
+                            disabled={!isActive}
+                            onClick={() => deactivateClientPackage(p.id)}
+                          >Desativar</Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
+            <Button variant="secondary" onClick={() => setIsManagePlansOpen(false)} className="w-full sm:w-auto">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Renovar Plano (assinatura/pacote) com forma de pagamento */}
+      <Dialog open={renewModal.open} onOpenChange={(open) => setRenewModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Renovar {renewModal.kind === 'SUBSCRIPTION' ? 'Assinatura' : 'Pacote'}</DialogTitle>
+            <DialogDescription>Informe a forma de pagamento e, se quiser, um preço personalizado e data do pagamento.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={renewModal.paymentMethod} onChange={(e) => setRenewModal(prev => ({ ...prev, paymentMethod: e.target.value }))}>
+                  <option value="" disabled>Selecione...</option>
+                  <option value="CASH">Dinheiro</option>
+                  <option value="PIX">PIX</option>
+                  <option value="CARD">Cartão</option>
+                  <option value="DEBIT">Débito</option>
+                  <option value="CREDIT">Crédito</option>
+                  <option value="TRANSFER">Transferência</option>
+                  <option value="PREPAID">Pré-pago</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Pagamento (opcional)</Label>
+                <Input type="datetime-local" value={renewModal.paymentDate} onChange={(e) => setRenewModal(prev => ({ ...prev, paymentDate: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Preço (opcional)</Label>
+              <Input type="number" step="0.01" value={renewModal.overridePrice} onChange={(e) => setRenewModal(prev => ({ ...prev, overridePrice: e.target.value }))} className="bg-[#27272a] border-[#3f3f46]" placeholder="Usar preço padrão" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setRenewModal(prev => ({ ...prev, open: false }))}>Cancelar</Button>
+            <Button onClick={async () => {
+              try {
+                if (!renewModal.paymentMethod) return
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+                if (renewModal.kind === 'SUBSCRIPTION') {
+                  let body: { subscriptionId: string; paymentMethod: string; paymentDate?: string; overridePrice?: number } = { subscriptionId: renewModal.id, paymentMethod: renewModal.paymentMethod }
+                  if (renewModal.paymentDate) body = { ...body, paymentDate: renewModal.paymentDate }
+                  if (renewModal.overridePrice) body = { ...body, overridePrice: Number(renewModal.overridePrice) }
+                  const res = await fetch('/api/client-subscriptions/renew', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body)
+                  })
+                  if (!res.ok) throw new Error('Falha na renovação')
+                  await reloadSelectedClientSubscriptions()
+                } else {
+                  let body: { clientPackageId: string; paymentMethod: string; paymentDate?: string; overridePrice?: number } = { clientPackageId: renewModal.id, paymentMethod: renewModal.paymentMethod }
+                  if (renewModal.paymentDate) body = { ...body, paymentDate: renewModal.paymentDate }
+                  if (renewModal.overridePrice) body = { ...body, overridePrice: Number(renewModal.overridePrice) }
+                  const res = await fetch('/api/client-packages/renew', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body)
+                  })
+                  if (!res.ok) throw new Error('Falha na renovação')
+                  await loadClientPackagesPage(1)
+                }
+                setRenewModal(prev => ({ ...prev, open: false }))
+              } catch (e) {
+                console.error(e)
+              }
+            }} disabled={!renewModal.paymentMethod} className="bg-tymer-primary hover:bg-tymer-primary/80">Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog de Confirmação para Excluir Cliente */}
       <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => {
         if (!open) {
@@ -1754,86 +1959,14 @@ export default function ClientesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Vender Pacote */}
+      {/* Dialog Vender Pacote - simplificado: apenas venda */}
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
   <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col rounded-xl">
           <DialogHeader>
             <DialogTitle>Pacote</DialogTitle>
-            <DialogDescription>Gerenciar pacotes do cliente {selectedClient?.name}</DialogDescription>
+            <DialogDescription>Vender pacote para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Lista de pacotes já vendidos para este cliente */}
-            <div className="bg-[#121214] border border-[#27272a] rounded p-3">
-              <div className="text-sm font-medium text-[#ededed] mb-2">Pacotes do cliente</div>
-              {loadingClientPackages ? (
-                <div className="text-[#71717a] text-sm">Carregando...</div>
-              ) : clientPackagesList.length === 0 ? (
-                <div className="text-[#71717a] text-sm">Nenhum pacote encontrado</div>
-              ) : (
-                <>
-                  <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
-                    {clientPackagesList.map((p) => {
-                      const remaining = Math.max((Number(p.creditsTotal || 0) - Number(p.usedCredits || 0)), 0)
-                      const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() < Date.now() : false
-                      const isActive = remaining > 0 && !isExpired
-                      const statusLabel = isActive ? 'Ativo' : 'Expirado'
-                      const statusClass = isActive ? 'text-emerald-400 border-emerald-600/30 bg-emerald-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
-                      return (
-                        <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
-                          <div className="flex-1 mr-3 min-w-0">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="text-[#ededed] font-medium truncate">{p.name}</div>
-                              <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
-                            </div>
-                            <div className="text-[#a1a1aa] text-xs">
-                              Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
-                              {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
-                            </div>
-                            {/* Opcional: valores financeiros (placeholder até termos a origem no backend) */}
-                            {/* <div className="text-[#a1a1aa] text-[11px] mt-0.5">Preço: R$ 0,00 • Estorno: R$ 0,00</div> */}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className={`text-xs font-semibold ${remaining > 0 && !isExpired ? 'text-emerald-400' : 'text-[#a1a1aa]'}`}>
-                              Saldo: {remaining}
-                            </div>
-                            <div className="flex flex-col gap-1 items-start shrink-0 sm:min-w-[150px]">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
-                                disabled={processingAction === p.id}
-                                onClick={() => setRenewPkgDialog({ open: true, clientPackageId: p.id, packageId: p.packageId, price: '' })}
-                              >{processingAction === p.id ? 'Processando...' : 'Renovar'}</Button>
-                              <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
-                                disabled={processingAction === p.id || !isActive}
-                                onClick={() => deactivateClientPackage(p.id)}
-                              >{processingAction === p.id ? 'Processando...' : 'Desativar'}</Button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {clientPackagesMeta && (clientPackagesMeta.total > clientPackagesMeta.pageSize) && (
-                    <div className="flex items-center justify-between pt-3">
-                      <div className="text-xs text-[#a1a1aa]">Total: {clientPackagesMeta.total}</div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
-                          disabled={clientPackagesPage <= 1 || loadingClientPackages}
-                          onClick={() => loadClientPackagesPage(clientPackagesPage - 1)}
-                        >Anterior</Button>
-                        <div className="text-xs text-[#a1a1aa]">Página {clientPackagesMeta.page}</div>
-                        <Button size="sm" variant="outline" className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a]"
-                          disabled={!clientPackagesMeta.hasNext || loadingClientPackages}
-                          onClick={() => loadClientPackagesPage(clientPackagesPage + 1)}
-                        >Próxima</Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
             <div className="text-sm font-medium text-[#ededed]">Vender novo pacote</div>
             <div className="space-y-2">
               <Label>Pacote</Label>
@@ -1847,6 +1980,25 @@ export default function ClientesPage() {
             <div className="space-y-2">
               <Label>Preço (opcional)</Label>
               <Input type="number" step="0.01" placeholder="Usar preço do pacote" value={overridePrice} onChange={e => setOverridePrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodPkg} onChange={(e) => setPaymentMethodPkg(e.target.value)}>
+                  <option value="" disabled>Selecione...</option>
+                  <option value="CASH">Dinheiro</option>
+                  <option value="PIX">PIX</option>
+                  <option value="CARD">Cartão</option>
+                  <option value="DEBIT">Débito</option>
+                  <option value="CREDIT">Crédito</option>
+                  <option value="TRANSFER">Transferência</option>
+                  <option value="PREPAID">Pré-pago</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Pagamento (opcional)</Label>
+                <Input type="datetime-local" value={paymentDatePkg} onChange={(e) => setPaymentDatePkg(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Dia preferencial para renovação/vencimento</Label>
@@ -1875,12 +2027,12 @@ export default function ClientesPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
             <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
-            <Button onClick={sellPackage} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
+            <Button onClick={sellPackage} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling || !paymentMethodPkg || !selectedPackageId}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Vender Assinatura */}
+      {/* Dialog Vender Assinatura - simplificado: apenas venda */}
       <Dialog open={isSellSubscriptionOpen} onOpenChange={setIsSellSubscriptionOpen}>
         <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto sm:max-h-[90vh] flex flex-col rounded-xl">
           <DialogHeader>
@@ -1888,61 +2040,6 @@ export default function ClientesPage() {
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Assinaturas existentes do cliente */}
-            {selectedClient && (
-              <div className="bg-[#121214] border border-[#27272a] rounded p-3">
-                <div className="text-sm font-medium text-[#ededed] mb-2">Assinaturas do cliente</div>
-                {(() => {
-                  const subs = clientSubscriptionsMap[selectedClient.id] || []
-                  if (subs.length === 0) return <div className="text-[#71717a] text-sm">Nenhuma assinatura encontrada</div>
-                  return (
-                    <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
-                      {subs.map(s => {
-                        const now = new Date()
-                        const isCanceled = s.status === 'CANCELED'
-                        const isExpired = !isCanceled && s.endDate && new Date(s.endDate) < now
-                        const isActive = s.status === 'ACTIVE' && !isExpired
-                        const statusLabel = isCanceled ? 'Cancelada' : (isExpired ? 'Expirada' : 'Ativa')
-                        const statusClass = isCanceled
-                          ? 'bg-red-600/15 text-red-300 border-red-600/30'
-                          : isExpired
-                          ? 'bg-[#3f3f46]/20 text-[#a1a1aa] border-[#3f3f46]'
-                          : 'bg-blue-600/20 text-blue-300 border-blue-600/40'
-                        return (
-                          <div key={s.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
-                            <div className="flex-1 mr-3 min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="text-[#ededed] font-medium truncate">{s.planName}</div>
-                                <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
-                              </div>
-                              <div className="text-[#a1a1aa] text-xs">
-                                Início {new Date(s.startDate).toLocaleDateString('pt-BR')} • Fim {new Date(s.endDate).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2 items-start shrink-0 sm:min-w-[150px]">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
-                                disabled={!isActive || processingSubAction === s.id}
-                                onClick={() => setCancelSubDialog({ open: true, subscriptionId: s.id, refund: '' })}
-                              >{processingSubAction === s.id ? 'Processando...' : 'Cancelar'}</Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
-                                disabled={processingSubAction === s.id}
-                                onClick={() => setRenewSubDialog({ open: true, subscriptionId: s.id, planId: (s as any).planId, price: '' })}
-                              >{processingSubAction === s.id ? 'Processando...' : 'Renovar'}</Button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
             <div className="space-y-2">
               <Label>Plano</Label>
               <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
@@ -1955,6 +2052,25 @@ export default function ClientesPage() {
             <div className="space-y-2">
               <Label>Preço (opcional)</Label>
               <Input type="number" step="0.01" placeholder="Usar preço do plano" value={overridePlanPrice} onChange={e => setOverridePlanPrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodSub} onChange={(e) => setPaymentMethodSub(e.target.value)}>
+                  <option value="" disabled>Selecione...</option>
+                  <option value="CASH">Dinheiro</option>
+                  <option value="PIX">PIX</option>
+                  <option value="CARD">Cartão</option>
+                  <option value="DEBIT">Débito</option>
+                  <option value="CREDIT">Crédito</option>
+                  <option value="TRANSFER">Transferência</option>
+                  <option value="PREPAID">Pré-pago</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Pagamento (opcional)</Label>
+                <Input type="datetime-local" value={paymentDateSub} onChange={(e) => setPaymentDateSub(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Dia preferencial para renovação/vencimento</Label>
@@ -1983,7 +2099,7 @@ export default function ClientesPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
             <Button variant="secondary" onClick={() => setIsSellSubscriptionOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
-            <Button onClick={sellSubscription} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling || !selectedPlanId}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
+            <Button onClick={sellSubscription} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling || !selectedPlanId || !paymentMethodSub}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

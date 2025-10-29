@@ -19,6 +19,8 @@ import { Plus, Trash2, DollarSign, Users, Package as PackageIcon } from 'lucide-
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Pie, PieChart, Cell } from 'recharts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { DateRange } from 'react-day-picker'
 
@@ -52,6 +54,7 @@ export default function MembershipsPage() {
       refunds: number
       netRevenue: number
     }
+    paymentsByMethod?: { method: string; amount: number }[]
   }
   const [stats, setStats] = useState<Stats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
@@ -370,6 +373,58 @@ export default function MembershipsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pie: receita de planos por forma de pagamento (período) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Receita de Planos por Forma de Pagamento (mês)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingStats ? (
+            <Skeleton className="h-64 w-full bg-[#2a2a2e]" />
+          ) : (stats?.paymentsByMethod && stats.paymentsByMethod.length > 0 ? (
+            <div className="w-full">
+              <ChartContainer
+                config={{
+                  CASH: { label: 'Dinheiro', color: '#22c55e' },
+                  PIX: { label: 'PIX', color: '#06b6d4' },
+                  CARD: { label: 'Cartão', color: '#a78bfa' },
+                  DEBIT: { label: 'Débito', color: '#f59e0b' },
+                  CREDIT: { label: 'Crédito', color: '#f97316' },
+                  TRANSFER: { label: 'Transferência', color: '#60a5fa' },
+                  PREPAID: { label: 'Pré-pago', color: '#eab308' },
+                  UNKNOWN: { label: 'Outro', color: '#94a3b8' },
+                }}
+                className="h-64"
+              >
+                <PieChart>
+                  <Pie
+                    data={(stats.paymentsByMethod || []).map((d) => ({ ...d, name: d.method }))}
+                    dataKey="amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    label
+                  >
+                    {(stats.paymentsByMethod || []).map((entry, index) => {
+                      const key = (entry.method || 'UNKNOWN') as string
+                      const colors: Record<string, string> = {
+                        CASH: '#22c55e', PIX: '#06b6d4', CARD: '#a78bfa', DEBIT: '#f59e0b', CREDIT: '#f97316', TRANSFER: '#60a5fa', PREPAID: '#eab308', UNKNOWN: '#94a3b8'
+                      }
+                      return <Cell key={`cell-${index}`} fill={colors[key] || colors.UNKNOWN} />
+                    })}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent formatter={(value: any, name: any) => [formatPrice(Number(value) || 0), name]} />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="text-sm text-[#a1a1aa]">Sem dados de pagamentos neste período.</div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* Cards topo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

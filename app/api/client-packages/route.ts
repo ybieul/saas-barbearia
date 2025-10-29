@@ -23,7 +23,7 @@ function nextOccurrenceOfDay(base: Date, day: number): Date {
 }
 
 // POST /api/client-packages - vender um pacote para um cliente
-// body: { clientId, packageId, expiresAt?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean }
+// body: { clientId, packageId, expiresAt?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean, paymentMethod?: import('@prisma/client').PaymentMethod, paymentDate?: string }
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Apenas o dono pode vender pacotes' }, { status: 403 })
     }
 
-    const { clientId, packageId, expiresAt, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse } = await request.json()
+    const { clientId, packageId, expiresAt, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse, paymentMethod, paymentDate } = await request.json()
     if (!clientId || !packageId) {
       return NextResponse.json({ message: 'clientId e packageId são obrigatórios' }, { status: 400 })
     }
@@ -60,7 +60,14 @@ export async function POST(request: NextRequest) {
         })
         if (last?.preferredRenewalDay != null) preferredRenewalDay = last.preferredRenewalDay
       } catch {
-        // fallback via SQL cru não é necessário aqui, findFirst deve funcionar
+        // fallback via SQL bruto, se necessário
+        const rows = await prisma.$queryRaw<Array<{ preferredRenewalDay: number | null }>>`
+          SELECT preferredRenewalDay FROM client_packages
+          WHERE clientId = ${clientId} AND packageId = ${packageId}
+          ORDER BY purchasedAt DESC
+          LIMIT 1
+        `
+        if (rows.length && rows[0]?.preferredRenewalDay != null) preferredRenewalDay = rows[0].preferredRenewalDay as any
       }
     }
 
@@ -119,7 +126,11 @@ export async function POST(request: NextRequest) {
           amount: priceToCharge,
           description: `Venda de pacote: ${pkg.name} para ${client.name}`,
           category: 'Pacotes de Serviços',
-          reference: `clientPackage:${cp.id}`
+          reference: `clientPackage:${cp.id}`,
+          recordSource: 'PACKAGE_SALE_INCOME',
+          paymentMethod: paymentMethod || null,
+          date: paymentDate ? new Date(paymentDate) : undefined,
+          endUserId: client.id
         }
       })
 

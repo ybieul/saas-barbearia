@@ -23,7 +23,7 @@ function nextOccurrenceOfDay(base: Date, day: number): Date {
 }
 
 // POST /api/client-subscriptions - vender uma assinatura para um cliente
-// body: { clientId, planId, startDate?, endDate?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean }
+// body: { clientId, planId, startDate?, endDate?, overridePrice?, preferredRenewalDay?: number, allowImmediateUse?: boolean, paymentMethod?: import('@prisma/client').PaymentMethod, paymentDate?: string }
 export async function POST(request: NextRequest) {
   try {
     const user = verifyToken(request)
@@ -31,16 +31,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Apenas o dono pode vender assinaturas' }, { status: 403 })
     }
 
-  const { clientId, planId, startDate, endDate, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse } = await request.json()
+  const { clientId, planId, startDate, endDate, overridePrice, preferredRenewalDay: prefDayRaw, allowImmediateUse, paymentMethod, paymentDate } = await request.json()
     if (!clientId || !planId) {
       return NextResponse.json({ message: 'clientId e planId são obrigatórios' }, { status: 400 })
     }
 
     // Valida tenant e dados
-    let plan: any
-    try {
-      plan = await (prisma as any).subscriptionPlan.findFirst({ where: { id: planId, tenantId: user.tenantId, isActive: true } })
-    } catch {
+    let plan = await prisma.subscriptionPlan.findFirst({ where: { id: planId, tenantId: user.tenantId, isActive: true } })
+    if (!plan) {
       const rows = await prisma.$queryRaw<Array<any>>`
         SELECT id, name, price, cycleInDays FROM subscription_plans WHERE id = ${planId} AND tenantId = ${user.tenantId} AND isActive = true LIMIT 1
       `
@@ -101,8 +99,8 @@ export async function POST(request: NextRequest) {
     const priceToCharge = overridePrice != null ? Number(overridePrice) : Number(plan.price)
 
     const result = await prisma.$transaction(async (tx) => {
-  const sub = await (tx as any).clientSubscription.create({
-    data: { clientId, planId, startDate: start, endDate: end, status: 'ACTIVE', preferredRenewalDay: preferredRenewalDay }
+      const sub = await tx.clientSubscription.create({
+        data: { clientId, planId, startDate: start, endDate: end, status: 'ACTIVE', preferredRenewalDay: preferredRenewalDay }
       })
 
       await tx.financialRecord.create({
@@ -112,7 +110,11 @@ export async function POST(request: NextRequest) {
           amount: priceToCharge,
           description: `Venda de assinatura: ${plan.name} para ${client.name}`,
           category: 'Assinaturas',
-          reference: `clientSubscription:${sub.id}`
+          reference: `clientSubscription:${sub.id}`,
+          recordSource: 'SUBSCRIPTION_SALE_INCOME',
+          paymentMethod: paymentMethod || null,
+          date: paymentDate ? new Date(paymentDate) : undefined,
+          endUserId: client.id
         }
       })
 

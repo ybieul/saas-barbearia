@@ -118,18 +118,29 @@ export async function GET(request: NextRequest) {
     // ---------------------------
     // Financeiro (mês corrente)
     // ---------------------------
-    const finRows = await prisma.$queryRaw<Array<{ category: string | null; type: string; amount: any }>>`
-      SELECT fr.category as category, fr.type as type, fr.amount as amount
+    const finRows = await prisma.$queryRaw<Array<{ category: string | null; type: string; amount: any; recordSource: string | null; paymentMethod: string | null }>>`
       FROM financial_records fr
       WHERE fr.tenantId = ${tenantId}
         AND fr.date >= ${periodFrom}
         AND fr.date <= ${periodTo}
     `
     const sum = (items: typeof finRows, where: (r: any) => boolean) => items.filter(where).reduce((acc, r) => acc + Number(r.amount || 0), 0)
-    const revenueSubscriptions = sum(finRows, r => r.type === 'INCOME' && (r.category || '').toLowerCase().includes('assin'))
-    const revenuePackages = sum(finRows, r => r.type === 'INCOME' && (r.category || '').toLowerCase().includes('pacote'))
-    const refunds = sum(finRows, r => r.type === 'EXPENSE' && (r.category || '').toLowerCase().includes('estorno'))
+    const isSubIncomeBySource = (r: any) => r.type === 'INCOME' && typeof r.recordSource === 'string' && (r.recordSource === 'SUBSCRIPTION_SALE_INCOME' || r.recordSource === 'SUBSCRIPTION_RENEWAL_INCOME')
+    const isPkgIncomeBySource = (r: any) => r.type === 'INCOME' && typeof r.recordSource === 'string' && (r.recordSource === 'PACKAGE_SALE_INCOME' || r.recordSource === 'PACKAGE_RENEWAL_INCOME')
+    // Fallback: if recordSource is null (legacy), fall back to category contains
+    const revenueSubscriptions = sum(finRows, r => isSubIncomeBySource(r) || (r.type === 'INCOME' && !r.recordSource && (r.category || '').toLowerCase().includes('assin')))
+    const revenuePackages = sum(finRows, r => isPkgIncomeBySource(r) || (r.type === 'INCOME' && !r.recordSource && (r.category || '').toLowerCase().includes('pacote')))
+    const refunds = sum(finRows, r => r.type === 'EXPENSE' && ((r.category || '').toLowerCase().includes('estorno') || (typeof r.recordSource === 'string' && r.recordSource.toLowerCase().includes('refund'))))
     const netRevenue = revenueSubscriptions + revenuePackages - refunds
+
+    // Quebra por forma de pagamento (somente receitas de planos - assinaturas e pacotes - por recordSource)
+    const paymentRows = finRows.filter((r) => isSubIncomeBySource(r) || isPkgIncomeBySource(r))
+    const paymentsByMethodMap = new Map<string, number>()
+    for (const r of paymentRows) {
+      const key = (r.paymentMethod || 'UNKNOWN').toString()
+      paymentsByMethodMap.set(key, (paymentsByMethodMap.get(key) || 0) + Number(r.amount || 0))
+    }
+    const paymentsByMethod = Array.from(paymentsByMethodMap.entries()).map(([method, amount]) => ({ method, amount }))
 
     return NextResponse.json({
       mrr,
@@ -145,7 +156,8 @@ export async function GET(request: NextRequest) {
         revenuePackages,
         refunds,
         netRevenue
-      }
+      },
+      paymentsByMethod
     })
   } catch (error: any) {
     const status = error instanceof AuthError ? error.status : (error?.message?.includes('Token') ? 401 : 500)
