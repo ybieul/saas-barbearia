@@ -15,7 +15,7 @@ import { formatPrice } from '@/lib/api-utils'
 import { useServicePackages, ServicePackageDto } from '@/hooks/use-service-packages'
 import { useServices } from '@/hooks/use-services'
 import { Switch } from '@/components/ui/switch'
-import { Plus, Trash2, DollarSign, Users, Package as PackageIcon } from 'lucide-react'
+import { Plus, Trash2, DollarSign, Users, Package as PackageIcon, Calendar as CalendarIcon } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
@@ -23,6 +23,7 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { Pie, PieChart, Cell } from 'recharts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { DateRange } from 'react-day-picker'
+import { getBrazilNow, utcToBrazil } from '@/lib/timezone'
 
 interface SubscriptionPlanDto {
   id: string
@@ -83,10 +84,19 @@ export default function MembershipsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Filtro de período (igual ao Financeiro): DateRange via Calendar + Popover
-  const nowLocal = new Date()
-  const initialFrom = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1, 0, 0, 0, 0)
-  const initialTo = new Date(nowLocal.getFullYear(), nowLocal.getMonth() + 1, 0, 23, 59, 59, 999)
+  // Alinha com o comportamento do "Relatório e Financeiro": mês atual por padrão (horários do Brasil)
+  const brazilNow = getBrazilNow()
+  const brazilLocalNow = utcToBrazil(brazilNow)
+  const initialFrom = new Date(brazilLocalNow.getFullYear(), brazilLocalNow.getMonth(), 1, 0, 0, 0, 0)
+  const initialTo = new Date(brazilLocalNow.getFullYear(), brazilLocalNow.getMonth() + 1, 0, 23, 59, 59, 999)
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: initialFrom, to: initialTo })
+
+  const periodLabel = useMemo(() => {
+    if (dateRange?.from && dateRange?.to) {
+      return `${dateRange.from.toLocaleDateString('pt-BR')} a ${dateRange.to.toLocaleDateString('pt-BR')}`
+    }
+    return null
+  }, [dateRange])
 
   function getPeriodRange(): { from?: string; to?: string } {
     const from = dateRange?.from ? new Date(dateRange.from) : undefined
@@ -307,11 +317,14 @@ export default function MembershipsPage() {
         <div className="flex items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="h-9">
-                Selecionar período
+              <Button variant="outline" className="h-9 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {dateRange?.from && dateRange?.to
+                  ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
+                  : 'Selecione o período'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="end">
               <div className="p-3">
                 <ShadcnCalendar
                   mode="range"
@@ -319,6 +332,46 @@ export default function MembershipsPage() {
                   onSelect={setDateRange}
                   numberOfMonths={2}
                 />
+                <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#18181b] border-[#27272a]"
+                    onClick={() => {
+                      const d = getBrazilNow()
+                      const from = new Date(d); from.setHours(0,0,0,0)
+                      const to = new Date(d); to.setHours(23,59,59,999)
+                      setDateRange({ from, to })
+                    }}
+                  >
+                    Hoje
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#18181b] border-[#27272a]"
+                    onClick={() => {
+                      const to = getBrazilNow(); to.setHours(23,59,59,999)
+                      const from = new Date(to); from.setDate(from.getDate() - 6); from.setHours(0,0,0,0)
+                      setDateRange({ from, to })
+                    }}
+                  >
+                    Últimos 7 dias
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#18181b] border-[#27272a]"
+                    onClick={() => {
+                      const now = getBrazilNow()
+                      const from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0)
+                      const to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999)
+                      setDateRange({ from, to })
+                    }}
+                  >
+                    Este mês
+                  </Button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -326,50 +379,54 @@ export default function MembershipsPage() {
         </div>
       </div>
 
-      {/* Cards financeiros do mês */}
+      {/* Cards financeiros (refletem o período selecionado) */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Assinaturas (mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Assinaturas</CardTitle>
             <DollarSign className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
               {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenueSubscriptions || 0)}
             </div>
+            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Pacotes (mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Pacotes</CardTitle>
             <PackageIcon className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
               {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenuePackages || 0)}
             </div>
+            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estornos (mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Estornos</CardTitle>
             <DollarSign className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
               {loadingStats ? <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.refunds || 0)}
             </div>
+            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Líquida (mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Líquida</CardTitle>
             <DollarSign className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
               {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.netRevenue || 0)}
             </div>
+            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
       </div>
@@ -377,7 +434,10 @@ export default function MembershipsPage() {
       {/* Pie: receita de planos por forma de pagamento (período) */}
       <Card>
         <CardHeader>
-          <CardTitle>Receita de Planos por Forma de Pagamento (mês)</CardTitle>
+          <CardTitle>
+            <span>Receita de Planos por Forma de Pagamento</span>
+            {periodLabel && (<span className="ml-2 text-sm text-[#71717a]">- {periodLabel}</span>)}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loadingStats ? (
