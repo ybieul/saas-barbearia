@@ -119,6 +119,7 @@ export async function GET(request: NextRequest) {
     // Financeiro (mês corrente)
     // ---------------------------
     const finRows = await prisma.$queryRaw<Array<{ category: string | null; type: string; amount: any; recordSource: string | null; paymentMethod: string | null }>>`
+      SELECT fr.category, fr.type, fr.amount, fr.recordSource, fr.paymentMethod
       FROM financial_records fr
       WHERE fr.tenantId = ${tenantId}
         AND fr.date >= ${periodFrom}

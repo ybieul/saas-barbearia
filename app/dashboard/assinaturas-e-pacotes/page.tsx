@@ -380,53 +380,41 @@ export default function MembershipsPage() {
       </div>
 
       {/* Cards financeiros (refletem o período selecionado) */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Assinaturas</CardTitle>
-            <DollarSign className="h-4 w-4 text-tymer-icon" />
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Receita Assinaturas</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
-              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenueSubscriptions || 0)}
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
+              {loadingStats ? <Skeleton className="h-6 w-24 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenueSubscriptions || 0)}
             </div>
-            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
+            {periodLabel && <div className="text-xs text-[#71717a]">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Pacotes</CardTitle>
-            <PackageIcon className="h-4 w-4 text-tymer-icon" />
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Receita Pacotes</CardTitle>
+            <PackageIcon className="h-4 w-4 text-tymer-icon flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
-              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenuePackages || 0)}
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
+              {loadingStats ? <Skeleton className="h-6 w-24 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.revenuePackages || 0)}
             </div>
-            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
+            {periodLabel && <div className="text-xs text-[#71717a]">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estornos</CardTitle>
-            <DollarSign className="h-4 w-4 text-tymer-icon" />
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Estornos</CardTitle>
+            <DollarSign className="h-4 w-4 text-tymer-icon flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
-              {loadingStats ? <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.refunds || 0)}
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
+              {loadingStats ? <Skeleton className="h-6 w-20 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.refunds || 0)}
             </div>
-            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Líquida</CardTitle>
-            <DollarSign className="h-4 w-4 text-tymer-icon" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">
-              {loadingStats ? <Skeleton className="h-7 w-28 bg-[#2a2a2e]"/> : formatPrice(stats?.financialSummary?.netRevenue || 0)}
-            </div>
-            {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
+            {periodLabel && <div className="text-xs text-[#71717a]">Período: {periodLabel}</div>}
           </CardContent>
         </Card>
       </div>
@@ -488,37 +476,40 @@ export default function MembershipsPage() {
 
       {/* Cards topo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Recorrente Mensal (MRR)</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Receita Recorrente Mensal (MRR)</CardTitle>
             <DollarSign className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
               {loadingStats ? <Skeleton className="h-7 w-32 bg-[#2a2a2e]"/> : mrrDisplay}
             </div>
+            <div className="text-xs text-[#71717a]">Visão atual (não depende do período)</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes com Assinatura Ativa</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Clientes com Assinatura Ativa</CardTitle>
             <Users className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
               {loadingStats ? <Skeleton className="h-7 w-12 bg-[#2a2a2e]"/> : (stats?.activeSubscriptionsCount ?? 0)}
             </div>
+            <div className="text-xs text-[#71717a]">Visão atual (não depende do período)</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes com Pacotes Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Clientes com Pacotes Ativos</CardTitle>
             <PackageIcon className="h-4 w-4 text-tymer-icon" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
+            <div className="text-lg sm:text-xl font-bold text-[#ededed] mb-1 truncate">
               {loadingStats ? <Skeleton className="h-7 w-12 bg-[#2a2a2e]"/> : (stats?.activePackagesCount ?? 0)}
             </div>
+            <div className="text-xs text-[#71717a]">Visão atual (não depende do período)</div>
           </CardContent>
         </Card>
       </div>
