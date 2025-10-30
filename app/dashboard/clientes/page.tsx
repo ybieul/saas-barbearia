@@ -1402,13 +1402,13 @@ export default function ClientesPage() {
                         </div>
                       </div>
 
-                      {/* Botões de ação */}
-                      <div className="flex gap-2 pt-2 flex-wrap">
+                      {/* Botões de ação (mobile): grid responsivo em 2-3 colunas */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 w-full">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(client)}
-                          className="flex-1 border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 text-xs h-8"
+                          className="w-full border-emerald-600 text-[#10b981] hover:bg-emerald-600/10 text-xs h-9"
                         >
                           Detalhes
                         </Button>
@@ -1418,7 +1418,7 @@ export default function ClientesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 border-purple-600 text-purple-300 hover:bg-purple-600/10 px-3 h-8 text-xs flex items-center gap-1"
+                                className="w-full border-purple-600 text-purple-300 hover:bg-purple-600/10 px-3 h-9 text-xs flex items-center justify-center gap-1"
                               >
                                 <DollarSign className="w-3 h-3" /> Vender
                               </Button>
@@ -1440,7 +1440,7 @@ export default function ClientesPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => openManagePlans(client)}
-                            className="flex-1 border-blue-600 text-blue-300 hover:bg-blue-600/10 px-3 h-8 text-xs"
+                            className="w-full border-blue-600 text-blue-300 hover:bg-blue-600/10 px-3 h-9 text-xs"
                           >
                             Gerenciar
                           </Button>
@@ -1449,7 +1449,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(client)}
-                          className="border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-3 h-8"
+                          className="w-full border-gray-600 text-[#a1a1aa] hover:bg-gray-700 px-3 h-9 flex items-center justify-center"
                         >
                           <Edit className="w-3 h-3" />
                         </Button>
@@ -1457,7 +1457,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(client.id, client.name)}
-                          className="border-red-600 text-red-400 hover:bg-red-600/10 px-3 h-8"
+                          className="w-full border-red-600 text-red-400 hover:bg-red-600/10 px-3 h-9 flex items-center justify-center"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -1821,8 +1821,8 @@ export default function ClientesPage() {
                     const statusLabel = isActive ? 'Ativo' : 'Expirado'
                     const statusClass = isActive ? 'text-emerald-400 border-emerald-600/30 bg-emerald-600/5' : 'text-[#a1a1aa] border-[#3f3f46] bg-transparent'
                     return (
-                      <div key={p.id} className="flex items-center justify-between text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
-                        <div className="flex-1 mr-3 min-w-0">
+                      <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm bg-[#18181b] border border-[#27272a] rounded p-2 min-w-0">
+                        <div className="flex-1 sm:mr-3 min-w-0 space-y-0.5 break-words">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="text-[#ededed] font-medium truncate">{p.name}</div>
                             <span className={`text-[10px] px-2 py-0.5 rounded border ${statusClass}`}>{statusLabel}</span>
@@ -1836,14 +1836,14 @@ export default function ClientesPage() {
                             {typeof p.usedCredits === 'number' ? ` • Usados: ${p.usedCredits}` : ''}
                           </div>
                         </div>
-                        <div className="flex flex-col gap-1 items-start shrink-0 sm:min-w-[180px]">
+                        <div className="flex gap-2 w-full sm:w-auto sm:flex-col items-stretch sm:items-start shrink-0 sm:min-w-[180px]">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-auto px-3 h-8 text-xs"
+                            className="border-[#3f3f46] text-[#a1a1aa] hover:bg-[#27272a] inline-flex w-full sm:w-auto px-3 h-8 text-xs"
                             onClick={() => setRenewModal({ open: true, kind: 'PACKAGE', id: p.id, overridePrice: '', paymentMethod: '', paymentDate: '' })}
                           >Renovar</Button>
-                          <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-auto px-3 h-8 text-xs"
+                          <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/10 inline-flex w-full sm:w-auto px-3 h-8 text-xs"
                             disabled={!isActive}
                             onClick={() => deactivateClientPackage(p.id)}
                           >Desativar</Button>
@@ -2092,10 +2092,10 @@ export default function ClientesPage() {
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
           {/* Conteúdo rolável em mobile para evitar excesso de altura */}
-          <div className="space-y-4 flex-1 overflow-y-auto">
+          <div className="space-y-4 flex-1 overflow-y-auto max-w-full">
             <div className="space-y-2">
               <Label>Plano</Label>
-              <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
+              <select className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
                 <option value="" disabled>Selecione...</option>
                 {availablePlans.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -2104,12 +2104,12 @@ export default function ClientesPage() {
             </div>
             <div className="space-y-2">
               <Label>Preço (opcional)</Label>
-              <Input type="number" step="0.01" placeholder="Usar preço do plano" value={overridePlanPrice} onChange={e => setOverridePlanPrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+              <Input type="number" step="0.01" placeholder="Usar preço do plano" value={overridePlanPrice} onChange={e => setOverridePlanPrice(e.target.value)} className="bg-[#27272a] border-[#3f3f46] w-full max-w-full" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Forma de Pagamento</Label>
-                <select className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodSub} onChange={(e) => setPaymentMethodSub(e.target.value)}>
+                <select className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2" value={paymentMethodSub} onChange={(e) => setPaymentMethodSub(e.target.value)}>
                   <option value="" disabled>Selecione...</option>
                   <option value="CASH">Dinheiro</option>
                   <option value="PIX">PIX</option>
@@ -2122,13 +2122,13 @@ export default function ClientesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Data do Pagamento (opcional)</Label>
-                <Input type="datetime-local" value={paymentDateSub} onChange={(e) => setPaymentDateSub(e.target.value)} className="bg-[#27272a] border-[#3f3f46]" />
+                <Input type="datetime-local" value={paymentDateSub} onChange={(e) => setPaymentDateSub(e.target.value)} className="bg-[#27272a] border-[#3f3f46] w-full max-w-full" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Dia preferencial para renovação/vencimento</Label>
               <select
-                className="w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
+                className="w-full max-w-full bg-[#27272a] border-[#3f3f46] rounded px-3 py-2"
                 value={preferredRenewalDaySub}
                 onChange={(e) => setPreferredRenewalDaySub(e.target.value)}
               >
