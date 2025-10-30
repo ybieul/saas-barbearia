@@ -1831,6 +1831,10 @@ export default function ClientesPage() {
                             Comprado em {new Date(p.purchasedAt).toLocaleDateString('pt-BR')}
                             {p.expiresAt ? ` • Válido até ${new Date(p.expiresAt).toLocaleDateString('pt-BR')}` : ' • Sem validade'}
                           </div>
+                          <div className="text-[#a1a1aa] text-xs">
+                            Créditos: <span className="text-white font-medium">{remaining}</span>{typeof p.creditsTotal === 'number' ? ` de ${p.creditsTotal}` : ''} restantes
+                            {typeof p.usedCredits === 'number' ? ` • Usados: ${p.usedCredits}` : ''}
+                          </div>
                         </div>
                         <div className="flex flex-col gap-1 items-start shrink-0 sm:min-w-[180px]">
                           <Button
@@ -2009,12 +2013,12 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Pacote - simplificado: apenas venda */}
       <Dialog open={isSellPackageOpen} onOpenChange={setIsSellPackageOpen}>
-  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col rounded-xl">
-          <DialogHeader>
+  <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] overflow-x-hidden flex flex-col rounded-xl">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Pacote</DialogTitle>
             <DialogDescription>Vender pacote para {selectedClient?.name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 max-w-full">
+          <div className="space-y-4 max-w-full flex-1 overflow-y-auto md:overflow-visible">
             <div className="text-sm font-medium text-[#ededed]">Vender novo pacote</div>
             <div className="space-y-2">
               <Label>Pacote</Label>
@@ -2073,7 +2077,7 @@ export default function ClientesPage() {
               <label htmlFor="allow-immediate-pkg" className="text-sm text-[#a1a1aa]">Permitir uso imediato</label>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
+          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row flex-shrink-0">
             <Button variant="secondary" onClick={() => setIsSellPackageOpen(false)} disabled={selling} className="w-full sm:w-auto">Cancelar</Button>
             <Button onClick={sellPackage} className="w-full sm:w-auto bg-tymer-primary hover:bg-tymer-primary/80" disabled={selling || !paymentMethodPkg || !selectedPackageId}>{selling ? 'Confirmando…' : 'Confirmar'}</Button>
           </DialogFooter>
@@ -2082,7 +2086,7 @@ export default function ClientesPage() {
 
       {/* Dialog Vender Assinatura - simplificado: apenas venda */}
       <Dialog open={isSellSubscriptionOpen} onOpenChange={setIsSellSubscriptionOpen}>
-        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] flex flex-col rounded-xl">
+        <DialogContent className="bg-[#18181b] border-[#27272a] text-[#ededed] w-[calc(100vw-2rem)] max-w-md sm:w-full sm:max-w-lg mx-auto h-auto max-h-[85vh] sm:max-h-[90vh] flex flex-col rounded-xl overflow-x-hidden md:overflow-x-visible">
           <DialogHeader>
             <DialogTitle>Assinatura</DialogTitle>
             <DialogDescription>Vender assinatura para {selectedClient?.name}</DialogDescription>
