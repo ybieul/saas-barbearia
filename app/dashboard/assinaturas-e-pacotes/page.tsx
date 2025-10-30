@@ -309,73 +309,113 @@ export default function MembershipsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Assinaturas e Pacotes</h1>
-          <p className="text-[#3f3f46]">Gerencie os planos de fidelização</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-9 bg-[#18181b] border-[#27272a] text-[#ededed]">
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                {dateRange?.from && dateRange?.to
-                  ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
-                  : 'Selecione o período'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="end">
-              <div className="p-3">
-                <ShadcnCalendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-                <div className="flex items-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-[#18181b] border-[#27272a]"
-                    onClick={() => {
-                      const d = getBrazilNow()
-                      const from = new Date(d); from.setHours(0,0,0,0)
-                      const to = new Date(d); to.setHours(23,59,59,999)
-                      setDateRange({ from, to })
-                    }}
-                  >
-                    Hoje
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-[#18181b] border-[#27272a]"
-                    onClick={() => {
-                      const to = getBrazilNow(); to.setHours(23,59,59,999)
-                      const from = new Date(to); from.setDate(from.getDate() - 6); from.setHours(0,0,0,0)
-                      setDateRange({ from, to })
-                    }}
-                  >
-                    Últimos 7 dias
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-[#18181b] border-[#27272a]"
-                    onClick={() => {
-                      const now = getBrazilNow()
-                      const from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0)
-                      const to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999)
-                      setDateRange({ from, to })
-                    }}
-                  >
-                    Este mês
-                  </Button>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#ededed]">Assinaturas e Pacotes</h1>
+            <p className="text-[#71717a]">Gerencie os planos de fidelização</p>
+          </div>
+
+          {/* Desktop: filtros e ação alinhados à direita */}
+          <div className="hidden sm:flex items-center gap-3 lg:ml-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 bg-[#18181b] border-[#27272a] text-[#ededed]">
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  {dateRange?.from && dateRange?.to
+                    ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
+                    : 'Selecione o período'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="end">
+                <div className="p-3">
+                  <ShadcnCalendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                  />
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const d = getBrazilNow()
+                        const from = new Date(d); from.setHours(0,0,0,0)
+                        const to = new Date(d); to.setHours(23,59,59,999)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Hoje
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const to = getBrazilNow(); to.setHours(23,59,59,999)
+                        const from = new Date(to); from.setDate(from.getDate() - 6); from.setHours(0,0,0,0)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Últimos 7 dias
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#18181b] border-[#27272a]"
+                      onClick={() => {
+                        const now = getBrazilNow()
+                        const from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0)
+                        const to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999)
+                        setDateRange({ from, to })
+                      }}
+                    >
+                      Este mês
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
+              </PopoverContent>
+            </Popover>
+            <Button onClick={() => openCreate('SUBSCRIPTION')} className="bg-tymer-primary hover:bg-tymer-primary/80">Criar Plano</Button>
+          </div>
+
+          {/* Mobile: controles empilhados e largura total */}
+          <div className="sm:hidden lg:ml-auto w-full lg:w-auto">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 items-center">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full lg:w-auto bg-[#18181b] border-[#27272a] text-[#ededed] text-center lg:text-left">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {dateRange?.from && dateRange?.to
+                      ? `${dateRange.from.toLocaleDateString('pt-BR')} - ${dateRange.to.toLocaleDateString('pt-BR')}`
+                      : 'Período'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-[#18181b] border-[#27272a]" align="start">
+                  <div className="p-3">
+                    <ShadcnCalendar mode="range" selected={dateRange} onSelect={setDateRange} />
+                    <div className="grid grid-cols-3 gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const d = getBrazilNow(); const f = new Date(d); f.setHours(0,0,0,0); const t = new Date(d); t.setHours(23,59,59,999); setDateRange({from:f,to:t})
+                      }}>Hoje</Button>
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const t = getBrazilNow(); t.setHours(23,59,59,999); const f = new Date(t); f.setDate(f.getDate()-6); f.setHours(0,0,0,0); setDateRange({from:f,to:t})
+                      }}>Últimos 7 dias</Button>
+                      <Button variant="outline" size="sm" className="bg-[#18181b] border-[#27272a]" onClick={() => {
+                        const n = getBrazilNow(); const f = new Date(n.getFullYear(), n.getMonth(), 1, 0,0,0,0); const t = new Date(n.getFullYear(), n.getMonth()+1, 0, 23,59,59,999); setDateRange({from:f,to:t})
+                      }}>Este mês</Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Button onClick={() => openCreate('SUBSCRIPTION')} className="w-full lg:w-auto bg-tymer-primary hover:bg-tymer-primary/80">
+                Criar Plano
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -523,9 +563,10 @@ export default function MembershipsPage() {
         <TabsContent value="subscriptions" className="space-y-4">
           {/* Cards de análise - Assinaturas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>MRR por Plano</CardTitle>
+            <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">MRR por Plano</CardTitle>
+                <DollarSign className="h-4 w-4 text-tymer-icon" />
               </CardHeader>
               <CardContent className="space-y-2">
                 {loadingStats ? (
@@ -542,15 +583,17 @@ export default function MembershipsPage() {
                         <div className="text-sm font-medium">{formatPrice(p.revenue || 0)}</div>
                       </div>
                     ))}
+                    <div className="text-xs text-[#71717a]">Visão atual (não depende do período)</div>
                   </div>
                 ) : (
                   <div className="text-sm text-[#a1a1aa]">Sem dados de MRR por plano ainda.</div>
                 ))}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Taxa de Retenção (mês)</CardTitle>
+            <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Taxa de Retenção (mês)</CardTitle>
+                <CalendarIcon className="h-4 w-4 text-tymer-icon" />
               </CardHeader>
               <CardContent>
                 {loadingStats ? (
@@ -570,9 +613,10 @@ export default function MembershipsPage() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Planos de Assinatura</CardTitle>
+          <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Planos de Assinatura</CardTitle>
+              <Users className="h-4 w-4 text-tymer-icon" />
             </CardHeader>
             <CardContent className="space-y-3">
               {loadingPlans ? (
@@ -605,9 +649,10 @@ export default function MembershipsPage() {
         <TabsContent value="packages" className="space-y-4">
           {/* Cards de análise - Pacotes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pacotes Vendidos (este mês)</CardTitle>
+            <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Pacotes Vendidos</CardTitle>
+                <PackageIcon className="h-4 w-4 text-tymer-icon" />
               </CardHeader>
               <CardContent>
                 {loadingStats ? (
@@ -619,13 +664,15 @@ export default function MembershipsPage() {
                   <div>
                     <div className="text-2xl font-semibold">{stats?.packageSalesThisMonth?.count ?? 0}</div>
                     <div className="text-xs text-[#a1a1aa]">Receita: {formatPrice(stats?.packageSalesThisMonth?.revenue || 0)}</div>
+                    {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
                   </div>
                 )}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Pacotes Mais Vendidos</CardTitle>
+            <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Pacotes Mais Vendidos</CardTitle>
+                <PackageIcon className="h-4 w-4 text-tymer-icon" />
               </CardHeader>
               <CardContent>
                 {loadingStats ? (
@@ -642,29 +689,35 @@ export default function MembershipsPage() {
                         <Badge variant="secondary" className="bg-[#1f1f23] text-[#ededed] border border-[#2b2b30]">{p.count}</Badge>
                       </div>
                     ))}
+                    {periodLabel && <div className="text-xs text-[#71717a]">Período: {periodLabel}</div>}
                   </div>
                 ) : (
                   <div className="text-sm text-[#a1a1aa]">Sem dados de vendas ainda.</div>
                 ))}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Créditos Usados (este mês)</CardTitle>
+            <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Créditos Usados</CardTitle>
+                <CalendarIcon className="h-4 w-4 text-tymer-icon" />
               </CardHeader>
               <CardContent>
                 {loadingStats ? (
                   <Skeleton className="h-7 w-20 bg-[#2a2a2e]"/>
                 ) : (
-                  <div className="text-2xl font-semibold">{stats?.creditsUsedThisMonth ?? 0}</div>
+                  <div>
+                    <div className="text-2xl font-semibold">{stats?.creditsUsedThisMonth ?? 0}</div>
+                    {periodLabel && <div className="text-xs text-[#71717a] mt-1">Período: {periodLabel}</div>}
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pacotes de Créditos</CardTitle>
+          <Card className="bg-[#18181b] border-[#27272a] hover:border-[#3f3f46] transition-colors duration-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-[#a1a1aa] truncate">Pacotes de Créditos</CardTitle>
+              <PackageIcon className="h-4 w-4 text-tymer-icon" />
             </CardHeader>
             <CardContent className="space-y-3">
               {packages.length === 0 ? (
